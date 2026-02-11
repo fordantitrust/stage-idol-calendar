@@ -6,21 +6,32 @@
 
 ## ✨ คุณสมบัติ
 
+### สำหรับผู้ใช้งาน
 - 🌸 **Sakura Theme** - ธีมสีชมพูซากุระสไตล์ญี่ปุ่น
 - 🌏 **3 ภาษา** - ไทย, English, 日本語 (พร้อม html lang attribute)
 - 📱 **Responsive Design** - รองรับทุกขนาดหน้าจอ รวมถึง iOS
-- 📊 **Vertical Timeline View** - ดูตารางเวลาแบบแนวตั้ง เห็น events ตามเวลาได้ง่ายบนมือถือ
+- 📊 **Dual View Modes** - สลับมุมมอง List / Gantt Chart Timeline
 - 🔍 **กรองข้อมูล** - ตามศิลปิน/วง และเวที (รองรับหลายค่า)
-- 📸 **บันทึกเป็นรูปภาพ** - Lazy-load html2canvas
-- 📅 **Export ICS** - ส่งออกเป็นไฟล์ปฏิทิน
-- ⚡ **SQLite Database** - ประสิทธิภาพสูง
-- 🔄 **Cache System** - Cache สำหรับ data version และ credits (TTL: 10 นาที / 1 ชั่วโมง)
-- ⚙️ **Admin UI** - จัดการ events และ credits ผ่านหน้าเว็บ (CRUD + Bulk Operations)
-- 📦 **Bulk Operations** - เลือกหลาย events/credits แล้วลบหรือแก้ไขพร้อมกัน
+- 📸 **บันทึกเป็นรูปภาพ** - Lazy-load html2canvas (PNG)
+- 📅 **Export ICS** - ส่งออกเป็นไฟล์ปฏิทิน (Google Calendar / Apple Calendar)
 - 📝 **Request System** - ผู้ใช้แจ้งเพิ่ม/แก้ไข event ได้ + Admin อนุมัติ
+
+### สำหรับ Admin
+- ⚙️ **Admin UI** - จัดการ events, requests และ credits ผ่านหน้าเว็บ (CRUD)
+- 📦 **Bulk Operations** - เลือกหลาย events/credits แล้วลบหรือแก้ไขพร้อมกัน (สูงสุด 100)
+- 📤 **ICS Upload** - อัพโหลดไฟล์ .ics พร้อม preview ก่อน import
 - 🎯 **Flexible Venue Entry** - พิมพ์เวทีใหม่ได้ พร้อม autocomplete
 - 📊 **Customizable Pagination** - เลือกแสดง 20/50/100 รายการต่อหน้า
 - 📋 **Credits Management** - จัดการ credits/references ผ่าน admin panel
+- 📝 **Request Management** - ดู/อนุมัติ/ปฏิเสธ คำขอจากผู้ใช้
+
+### เทคนิค
+- ⚡ **SQLite Database** - ประสิทธิภาพสูง
+- 🔄 **Cache System** - Cache สำหรับ data version (10 นาที) และ credits (1 ชั่วโมง)
+- 🏟️ **Venue Mode** - สลับโหมด multi/single venue (ซ่อน/แสดง venue filter, Gantt view, คอลัมน์เวที)
+- 🔒 **Security** - XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers
+- 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
+- 🧪 **172 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
 
 ## 🚀 การติดตั้ง
 
@@ -76,7 +87,7 @@ stage-idol-calendar/
 ├── contact.php            # ติดต่อเรา
 ├── credits.php            # หน้า Credits & References
 ├── export.php             # Export ICS
-├── api.php                # API endpoint
+├── api.php                # Public API endpoint
 ├── config.php             # Bootstrap file (โหลด config/ และ functions/)
 ├── IcsParser.php          # ICS Parser class
 ├── calendar.db            # SQLite database
@@ -91,8 +102,8 @@ stage-idol-calendar/
 ├── functions/             # Helper functions
 │   ├── helpers.php        # General utilities
 │   ├── cache.php          # Cache functions (get_data_version, get_cached_credits, etc.)
-│   ├── admin.php          # Auth functions
-│   └── security.php       # Security functions
+│   ├── admin.php          # Auth functions (login, session, CSRF)
+│   └── security.php       # Security functions (sanitize, headers, IP whitelist)
 │
 ├── cache/                 # Cache storage (auto-created)
 │   ├── data_version.json  # Data version cache
@@ -113,22 +124,43 @@ stage-idol-calendar/
 │
 ├── admin/                 # Admin UI (login required)
 │   ├── index.php          # Admin dashboard (Events + Requests + Credits)
-│   ├── api.php            # CRUD API endpoints (events + requests + credits)
+│   ├── api.php            # CRUD API endpoints (events + requests + credits + ICS upload)
 │   └── login.php          # Login page
+│
+├── tests/                 # Automated test suite
+│   ├── TestRunner.php     # Lightweight test framework (20 assertion methods)
+│   ├── run-tests.php      # Test runner with colored output
+│   ├── SecurityTest.php   # Security tests (15 tests)
+│   ├── CacheTest.php      # Cache tests (11 tests)
+│   ├── AdminAuthTest.php  # Auth tests (15 tests)
+│   ├── CreditsApiTest.php # Credits API tests (13 tests)
+│   └── IntegrationTest.php # Integration tests (118 tests)
 │
 ├── tools/                 # Development tools
 │   ├── import-ics-to-sqlite.php
 │   ├── update-ics-categories.php
 │   ├── migrate-add-requests-table.php
 │   ├── migrate-add-credits-table.php
+│   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
 │
-├── README.md
-├── QUICKSTART.md
-├── INSTALLATION.md
-├── CHANGELOG.md
-└── SQLITE_MIGRATION.md
+├── Dockerfile             # Docker image configuration
+├── docker-compose.yml     # Production Docker Compose
+├── docker-compose.dev.yml # Development Docker Compose
+├── .dockerignore          # Docker build exclusions
+│
+├── README.md              # เอกสารหลัก (English)
+├── QUICKSTART.md          # คู่มือเริ่มต้นเร็ว
+├── INSTALLATION.md        # คู่มือการติดตั้งโดยละเอียด
+├── DOCKER.md              # คู่มือ Docker
+├── CHANGELOG.md           # ประวัติการเปลี่ยนแปลง
+├── TESTING.md             # Manual testing checklist (129 test cases)
+├── SQLITE_MIGRATION.md    # คู่มือ migration database
+├── SECURITY.md            # นโยบายความปลอดภัย
+├── CONTRIBUTING.md        # แนวทางการมีส่วนร่วม
+└── .github/workflows/     # CI/CD
+    └── tests.yml          # GitHub Actions test pipeline
 ```
 
 ## 🎨 การปรับแต่ง
@@ -136,8 +168,22 @@ stage-idol-calendar/
 ### เปลี่ยน Version (Cache Busting)
 แก้ไขในไฟล์ `config/app.php`:
 ```php
-define('APP_VERSION', '1.0.0'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
+define('APP_VERSION', '1.1.0'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
 ```
+
+### Venue Mode (โหมดเวที)
+แก้ไขในไฟล์ `config/app.php`:
+```php
+define('VENUE_MODE', 'multi');   // หลายเวที - แสดง venue filter, Gantt view, คอลัมน์เวที
+define('VENUE_MODE', 'single');  // เวทีเดียว - ซ่อน venue filter, Gantt view, คอลัมน์เวที
+```
+
+| Feature | multi | single |
+|---------|-------|--------|
+| Venue filter (checkbox กรองเวที) | แสดง | ซ่อน |
+| Toggle สลับ List/Timeline view | แสดง | ซ่อน |
+| คอลัมน์เวทีในตาราง events | แสดง | ซ่อน |
+| คอลัมน์เวทีใน admin table | แสดง | ซ่อน |
 
 ### ธีมสี (Sakura)
 สีหลักอยู่ใน `styles/common.css`:
@@ -181,6 +227,7 @@ define('APP_VERSION', '1.0.0'); // เปลี่ยนเลขนี้เพ
 
 ## 🔌 API Endpoints
 
+### Public API (`api.php`)
 ```
 GET /api.php?action=events              # Events ทั้งหมด
 GET /api.php?action=events&organizer=X  # กรองตามศิลปิน
@@ -188,6 +235,54 @@ GET /api.php?action=events&location=X   # กรองตามเวที
 GET /api.php?action=organizers          # รายชื่อศิลปินทั้งหมด
 GET /api.php?action=locations           # รายชื่อเวทีทั้งหมด
 ```
+
+### Request API (`api/request.php`)
+```
+POST /api/request.php?action=submit     # ส่งคำขอเพิ่ม/แก้ไข event
+GET  /api/request.php?action=events     # ดึงรายการ events (สำหรับ modal)
+```
+
+### Admin API (`admin/api.php`) - ต้อง login + CSRF Token
+```
+# Events
+GET    ?action=list              # รายการ events (pagination, search, filter, sort)
+GET    ?action=get&id=X          # ดึง event เดียว
+POST   ?action=create            # สร้าง event ใหม่
+PUT    ?action=update&id=X       # แก้ไข event
+DELETE ?action=delete&id=X       # ลบ event
+DELETE ?action=bulk_delete       # ลบหลาย events (สูงสุด 100)
+PUT    ?action=bulk_update       # แก้ไขหลาย events (venue/organizer/categories)
+GET    ?action=venues            # รายชื่อเวทีทั้งหมด (สำหรับ autocomplete)
+
+# Requests
+GET    ?action=requests          # รายการคำขอ (filter by status)
+GET    ?action=pending_count     # จำนวนคำขอ pending (สำหรับ badge)
+PUT    ?action=request_approve&id=X  # อนุมัติคำขอ
+PUT    ?action=request_reject&id=X   # ปฏิเสธคำขอ
+
+# ICS Upload
+POST   ?action=upload_ics       # อัพโหลด + parse ไฟล์ .ics
+POST   ?action=import_ics_confirm    # ยืนยัน import events
+
+# Credits
+GET    ?action=credits_list      # รายการ credits (pagination, search)
+GET    ?action=credits_get&id=X  # ดึง credit เดียว
+POST   ?action=credits_create    # สร้าง credit ใหม่
+PUT    ?action=credits_update&id=X   # แก้ไข credit
+DELETE ?action=credits_delete&id=X   # ลบ credit
+DELETE ?action=credits_bulk_delete   # ลบหลาย credits
+```
+
+## 🔒 Security Features
+
+- **XSS Protection**: sanitize_string(), sanitize_string_array(), get_sanitized_param()
+- **CSRF Protection**: Token-based validation สำหรับ POST/PUT/DELETE
+- **Session Security**: Timeout 2 ชั่วโมง, timing attack prevention, session fixation prevention
+- **Secure Cookies**: httponly, secure, SameSite attributes
+- **Rate Limiting**: 10 requests/ชั่วโมง/IP สำหรับ event requests
+- **IP Whitelist**: จำกัด admin access ตาม IP (รองรับ CIDR notation)
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy
+- **SQL Injection Prevention**: PDO prepared statements ทุก query
 
 ## 🛠 Tools (สำหรับ Developer)
 
@@ -210,6 +305,27 @@ php import-ics-to-sqlite.php
 php migrate-add-credits-table.php
 php generate-password-hash.php yourpassword
 ```
+
+## 🐳 Docker
+
+### คำสั่งที่ใช้บ่อย
+```bash
+docker-compose up -d              # เริ่ม container
+docker-compose down               # หยุด container
+docker-compose logs -f             # ดู logs
+docker-compose restart             # restart
+docker exec idol-stage-calendar bash                      # เข้า shell
+docker exec idol-stage-calendar php tests/run-tests.php   # รัน tests
+docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php  # import data
+```
+
+### ไฟล์ Docker
+- `Dockerfile` - PHP 8.1-apache พร้อม PDO SQLite
+- `docker-compose.yml` - Production (port 8000, volumes สำหรับ ics/cache/db)
+- `docker-compose.dev.yml` - Development (live reload, error display)
+- `.dockerignore` - ลดขนาด image
+
+ดูรายละเอียดที่ [DOCKER.md](DOCKER.md)
 
 ## 🧪 Testing (สำหรับ Developer)
 
@@ -305,13 +421,26 @@ END:VCALENDAR
 - ตรวจสอบ internet connection (ต้องโหลด html2canvas)
 - ลองเปิด browser console ดู error
 
+### Docker issues
+- ตรวจสอบ `docker-compose logs -f`
+- ตรวจสอบ permissions: `docker exec idol-stage-calendar chmod -R 777 cache/`
+- Rebuild: `docker-compose down && docker-compose up --build -d`
+
 ## 📞 ติดต่อ
 
 - Twitter (X): [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ## 📝 Changelog
 
-### v1.1.0 (2026-02-10)
+### v1.1.0 (2026-02-11)
+
+- 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
+  - Dockerfile (PHP 8.1-apache พร้อม PDO SQLite)
+  - docker-compose.yml (Production) + docker-compose.dev.yml (Development)
+  - Auto-import data และสร้างตารางอัตโนมัติ
+  - Health check, volume persistence, network isolation
+  - คู่มือครบถ้วนใน [DOCKER.md](DOCKER.md)
+
 - 📋 **Credits Management System** - จัดการ credits/references ผ่าน admin panel
   - ฐานข้อมูล SQLite สำหรับเก็บ credits (title, link, description, display_order)
   - Admin UI - Tab "Credits" พร้อม CRUD operations
@@ -333,6 +462,14 @@ END:VCALENDAR
   - Transaction handling และ partial failure support
   - Confirmation modals พร้อม count display
 
+- 📤 **ICS Upload & Import** - อัพโหลดไฟล์ .ics ผ่าน Admin UI
+  - อัพโหลดไฟล์ .ics (สูงสุด 5MB)
+  - ตรวจสอบ file type และ MIME type
+  - Preview events ก่อน import
+  - ตรวจจับ duplicates (เช็คกับ UIDs ที่มีอยู่)
+  - เลือก insert/update/skip แต่ละ event
+  - บันทึกไฟล์ต้นฉบับไปโฟลเดอร์ ics/ ได้
+
 - 🎯 **Flexible Venue Entry** - เพิ่มเวทีใหม่ได้โดยไม่ต้องจำกัด
   - เปลี่ยนจาก `<select>` เป็น `<input>` + `<datalist>`
   - แสดง dropdown แนะนำเวทีที่มีอยู่
@@ -352,11 +489,20 @@ END:VCALENDAR
 
 - 🔒 **Security Enhancements** - เพิ่มความปลอดภัยให้กับระบบ
   - **XSS Protection**: Input sanitization functions (sanitize_string, sanitize_string_array, get_sanitized_param)
+  - **CSRF Protection**: Token-based validation สำหรับ POST/PUT/DELETE requests
   - **Session Security**: Session timeout (2 ชั่วโมง), timing attack prevention (hash_equals), session fixation prevention
-  - **Secure Cookies**: httponly, secure, SameSite=Strict attributes
+  - **IP Whitelist**: จำกัด admin access ตาม IP/CIDR
+  - **Secure Cookies**: httponly, secure, SameSite attributes
+  - **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
   - **JSON Security**: ใช้ JSON_HEX_* flags แทน htmlspecialchars() สำหรับ JSON ใน HTML attributes
   - **Race Condition Fix**: safe_session_start() พร้อม session status check
-  - **Configuration**: SESSION_TIMEOUT ตั้งค่าได้ใน config/admin.php
+  - **Configuration**: SESSION_TIMEOUT, IP Whitelist ตั้งค่าได้ใน config/admin.php
+
+- 🧪 **Automated Test Suite** - 172 unit tests ครอบคลุมทุก feature
+  - Custom TestRunner framework (20 assertion methods)
+  - 5 test suites: Security, Cache, AdminAuth, CreditsApi, Integration
+  - CI/CD ด้วย GitHub Actions (PHP 8.1, 8.2, 8.3)
+  - Quick test scripts สำหรับ pre-commit
 
 ### v20260204-231000
 - 📝 **Request to Add/Modify Event** - ผู้ใช้สามารถส่งคำขอเพิ่ม/แก้ไข event ได้

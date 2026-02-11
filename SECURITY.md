@@ -231,18 +231,28 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (1.0.0)
+### Current Version (1.1.0)
 
-⚠️ **Session Security**
-- Sessions use default PHP settings
-- Consider implementing:
-  - Session timeout
-  - Session regeneration after login
-  - Secure/HttpOnly cookie flags
+✅ **Session Security** (Implemented in v1.1.0)
+- Session timeout (2 hours, configurable)
+- Session ID regeneration on login/logout
+- Secure/HttpOnly cookie flags
+- Timing attack prevention with hash_equals()
+- Race condition prevention with safe_session_start()
 
-⚠️ **File Upload**
-- System doesn't support file uploads (by design)
-- ICS files must be manually placed by server admin
+✅ **File Upload** (Implemented in v1.1.0)
+- Admin can upload ICS files through the admin panel
+- File type validation (extension + MIME type)
+- File size limit (5MB)
+- Preview before import with duplicate detection
+
+✅ **CSRF Protection** (Implemented in v1.1.0)
+- Token-based validation for all POST/PUT/DELETE requests
+- X-CSRF-Token header required for admin API
+
+✅ **IP Whitelist** (Implemented in v1.1.0)
+- Optional IP restriction for admin panel
+- Supports single IP, CIDR notation, and IPv6
 
 ⚠️ **Two-Factor Authentication**
 - Not yet implemented
@@ -255,15 +265,16 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 Before going live:
 
 - [ ] Changed default admin credentials
-- [ ] Generated strong password hash
-- [ ] Enabled production mode
+- [ ] Generated strong password hash (`php tools/generate-password-hash.php`)
+- [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
 - [ ] Configured HTTPS
 - [ ] Set proper file permissions
-- [ ] Enabled IP whitelist (if applicable)
+- [ ] Enabled IP whitelist (if applicable) in `config/admin.php`
 - [ ] Configured backups
 - [ ] Reviewed security headers
 - [ ] Tested admin login
 - [ ] Tested rate limiting
+- [ ] Run automated tests: `php tests/run-tests.php`
 - [ ] Updated contact information
 - [ ] Removed test data from database
 
@@ -291,5 +302,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-02-09  
-**Version:** 1.0.0
+**Last Updated:** 2026-02-11
+**Version:** 1.1.0

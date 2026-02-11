@@ -5,9 +5,19 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.1.0] - 2026-02-10
+## [1.1.0] - 2026-02-11
 
 ### Added
+
+- 🐳 **Docker Support** - One-command deployment with Docker Compose
+  - **Dockerfile**: PHP 8.1-apache with PDO SQLite, auto-creates directories and imports data
+  - **docker-compose.yml**: Production setup with port 8000, volume mounts (ics, cache, database)
+  - **docker-compose.dev.yml**: Development mode with live reload and error display
+  - **.dockerignore**: Optimized build exclusions for smaller image size
+  - **Health Check**: Built-in container health monitoring
+  - **Auto-Setup**: Automatically creates tables and imports ICS files on first run
+  - **DOCKER.md**: Comprehensive Docker deployment guide (Quick Start, Production, Development, Advanced)
+
 - 📋 **Credits Management System** - Complete CRUD system for managing credits and references
   - **Database Table**: SQLite table with fields: id, title, link, description, display_order, created_at, updated_at
   - **Admin UI**: New "Credits" tab in admin panel with full management interface
@@ -51,6 +61,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Autocomplete suggestions from existing venues
   - Ability to type new venue names on-the-fly
   - Applies to both single event form and bulk edit modal
+
+- 📤 **ICS Upload & Import** - Upload ICS files directly through Admin UI
+  - File upload with validation (max 5MB, .ics files only)
+  - MIME type checking (text/calendar, text/plain, application/octet-stream)
+  - Preview parsed events before importing
+  - Duplicate detection (checks against existing UIDs in database)
+  - Per-event action: insert, update, or skip
+  - Option to save uploaded file to `ics/` folder
+  - Import statistics (inserted, updated, skipped, errors)
 
 - 📊 **Per-Page Selector** - Customize events displayed per page
   - Options: 20, 50, or 100 events per page
