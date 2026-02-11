@@ -40,8 +40,13 @@ Idol Stage Timetable is a PHP-based web application for managing and displaying 
 - **Disk Space**: ~10 MB + space for database
 - **Browser**: Modern browser with JavaScript enabled
 
+### Alternative: Docker (No PHP Required)
+- **Docker**: 20.10+ with Docker Compose V2
+- **Disk Space**: ~500 MB for Docker image + your data
+- See [DOCKER.md](DOCKER.md) for complete Docker deployment guide
+
 ### Recommended Requirements
-- **PHP**: 8.2 or higher
+- **PHP**: 8.3 or higher (or Docker)
 - **Memory**: 256 MB RAM
 - **Permissions**: Read/write access to project directory
 
@@ -326,7 +331,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '1.0.0'); // Change to force cache refresh
+define('APP_VERSION', '1.1.0'); // Change to force cache refresh
 ```
 
 **When to change**:

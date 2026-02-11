@@ -39,9 +39,11 @@ A beautiful, responsive event calendar system designed for idol performances and
 | Feature | Description |
 |---------|-------------|
 | 🗄️ **SQLite Database** | 10-20x faster than parsing ICS files |
-| 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, security headers |
+| 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers |
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files |
+| 🐳 **Docker Support** | One-command deployment with Docker Compose |
+| 🧪 **172 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -266,32 +268,40 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 **Events Endpoints:**
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/admin/api.php?action=list` | GET | List events with pagination |
+| `/admin/api.php?action=list` | GET | List events with pagination, search, filter, sort |
 | `/admin/api.php?action=get&id=X` | GET | Get single event |
 | `/admin/api.php?action=create` | POST | Create new event |
-| `/admin/api.php?action=update` | POST | Update event |
+| `/admin/api.php?action=update&id=X` | PUT | Update event |
 | `/admin/api.php?action=delete&id=X` | DELETE | Delete event |
-| `/admin/api.php?action=bulk_delete` | DELETE | Delete multiple events |
-| `/admin/api.php?action=bulk_edit` | POST | Edit multiple events |
+| `/admin/api.php?action=bulk_delete` | DELETE | Delete multiple events (max 100) |
+| `/admin/api.php?action=bulk_update` | PUT | Bulk edit venue/organizer/categories |
+| `/admin/api.php?action=venues` | GET | Get all distinct venues (autocomplete) |
 
 **Requests Endpoints:**
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/admin/api.php?action=requests` | GET | List user requests |
-| `/admin/api.php?action=approve&id=X` | POST | Approve request |
-| `/admin/api.php?action=reject&id=X` | POST | Reject request |
+| `/admin/api.php?action=requests` | GET | List user requests with status filter |
+| `/admin/api.php?action=pending_count` | GET | Get pending request count (badge) |
+| `/admin/api.php?action=request_approve&id=X` | PUT | Approve request |
+| `/admin/api.php?action=request_reject&id=X` | PUT | Reject request |
+
+**ICS Import Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/api.php?action=upload_ics` | POST | Upload and parse ICS file |
+| `/admin/api.php?action=import_ics_confirm` | POST | Confirm import with action choices |
 
 **Credits Endpoints:**
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/admin/api.php?action=credits_list` | GET | List credits with pagination |
+| `/admin/api.php?action=credits_list` | GET | List credits with pagination and search |
 | `/admin/api.php?action=credits_get&id=X` | GET | Get single credit |
 | `/admin/api.php?action=credits_create` | POST | Create new credit |
 | `/admin/api.php?action=credits_update&id=X` | PUT | Update credit |
 | `/admin/api.php?action=credits_delete&id=X` | DELETE | Delete credit |
 | `/admin/api.php?action=credits_bulk_delete` | DELETE | Delete multiple credits |
 
-**Authentication**: All admin API endpoints require a valid session cookie.
+**Authentication**: All admin API endpoints require a valid session cookie + IP whitelist check.
 
 **CSRF Protection**: POST/PUT/DELETE requests require `X-CSRF-Token` header.
 
@@ -307,6 +317,22 @@ Edit [config/app.php](config/app.php):
 ```php
 define('APP_VERSION', '1.1.0'); // Change this to force cache refresh
 ```
+
+### Venue Mode
+
+Toggle between multi-venue and single-venue layouts in [config/app.php](config/app.php):
+
+```php
+define('VENUE_MODE', 'multi');   // Multiple venues: shows venue filter, Gantt view, venue columns
+define('VENUE_MODE', 'single');  // Single venue: hides venue filter, Gantt view, venue columns
+```
+
+| Feature | `multi` | `single` |
+|---------|---------|----------|
+| Venue filter (checkboxes) | Visible | Hidden |
+| List/Timeline toggle switch | Visible | Hidden |
+| Venue column in event table | Visible | Hidden |
+| Venue column in admin table | Visible | Hidden |
 
 ### Cache Configuration
 
@@ -425,19 +451,38 @@ stage-idol-calendar/
 │   ├── import-ics-to-sqlite.php
 │   ├── update-ics-categories.php
 │   ├── migrate-add-requests-table.php
+│   ├── migrate-add-credits-table.php
+│   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
+│
+├── tests/                 # Automated test suite (172 tests)
+│   ├── TestRunner.php     # Test framework (20 assertion methods)
+│   ├── run-tests.php      # Test runner with colored output
+│   ├── SecurityTest.php   # Security tests (15 tests)
+│   ├── CacheTest.php      # Cache tests (11 tests)
+│   ├── AdminAuthTest.php  # Auth tests (15 tests)
+│   ├── CreditsApiTest.php # Credits API tests (13 tests)
+│   └── IntegrationTest.php # Integration tests (118 tests)
+│
+├── Dockerfile             # Docker image (PHP 8.1-apache)
+├── docker-compose.yml     # Production Docker Compose
+├── docker-compose.dev.yml # Development Docker Compose
+├── .dockerignore          # Docker build exclusions
 │
 ├── README.md              # This file
 ├── QUICKSTART.md          # Quick start guide
 ├── INSTALLATION.md        # Detailed installation guide
+├── DOCKER.md              # Docker deployment guide
 ├── SQLITE_MIGRATION.md    # Database migration guide
+├── TESTING.md             # Manual testing checklist (129 cases)
 ├── CHANGELOG.md           # Version history
 ├── LICENSE                # MIT License
 ├── CONTRIBUTING.md        # Contribution guidelines
 ├── SECURITY.md            # Security guidelines
 ├── .gitignore             # Git ignore rules
-└── .env.example           # Environment variables example
+└── .github/workflows/     # CI/CD
+    └── tests.yml          # GitHub Actions (PHP 8.1, 8.2, 8.3)
 ```
 
 ---
@@ -493,15 +538,38 @@ Located in `tools/` folder:
 | `import-ics-to-sqlite.php` | Import ICS files to SQLite database |
 | `update-ics-categories.php` | Add CATEGORIES field to ICS files |
 | `migrate-add-requests-table.php` | Create event_requests table |
+| `migrate-add-credits-table.php` | Create credits table |
+| `generate-password-hash.php` | Generate bcrypt password hash for admin |
 | `debug-parse.php` | Debug ICS file parsing |
 | `test-parse.php` | Test ICS parser |
 
 ### Running Tests
 
 ```bash
-cd tools
-php test-parse.php
+# Run all 172 automated tests
+php tests/run-tests.php
+
+# Run specific suite
+php tests/run-tests.php SecurityTest
+
+# Quick pre-commit tests
+quick-test.bat          # Windows
+./quick-test.sh         # Linux/Mac
 ```
+
+See [Testing](#-testing) section for full details.
+
+### Docker Development
+
+```bash
+# Development mode (live reload)
+docker-compose -f docker-compose.dev.yml up
+
+# Run tests in container
+docker exec idol-stage-calendar php tests/run-tests.php
+```
+
+See [DOCKER.md](DOCKER.md) for complete Docker guide.
 
 ### Database Management
 
@@ -650,7 +718,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 1.0.0
+**Current Version**: 1.1.0
 
 ---
 

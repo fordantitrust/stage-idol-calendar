@@ -131,11 +131,13 @@ http://localhost:8000/admin/
 ### What Can Admin Do?
 
 - ✅ Create, edit, delete events (with bulk operations)
+- ✅ Upload and import ICS files (with preview and duplicate detection)
 - ✅ Review and approve user requests
 - ✅ Compare original vs. requested changes
 - ✅ Manage credits and references
-- ✅ Bulk select and delete up to 100 items at once
+- ✅ Bulk select and delete/edit up to 100 items at once
 - ✅ Customizable pagination (20/50/100 per page)
+- ✅ CSRF protection and IP whitelist for security
 
 ---
 

@@ -85,7 +85,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Display order sorting
 - ✅ Validation (title, description length)
 
-**Total: 54 automated tests**
+**Total: 172 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
 
 ## 🎯 Expected Output
 
@@ -121,10 +121,11 @@ SecurityTest              ✓ PASS (15 passed, 0 failed)
 CacheTest                 ✓ PASS (11 passed, 0 failed)
 AdminAuthTest             ✓ PASS (15 passed, 0 failed)
 CreditsApiTest            ✓ PASS (13 passed, 0 failed)
+IntegrationTest           ✓ PASS (118 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 54 tests
-Passed: 54
+Total: 172 tests
+Passed: 172
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 
