@@ -1,0 +1,31 @@
+# Stage Idol Calendar - Security Configuration
+# Apache .htaccess file
+
+# ป้องกันการเข้าถึงไฟล์ database
+<FilesMatch "\.(db|sqlite|sqlite3)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ป้องกันการเข้าถึงไฟล์ config ที่มี sensitive data
+<FilesMatch "^\.">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# ป้องกัน directory listing
+Options -Indexes
+
+# ป้องกันการเข้าถึงไฟล์ .md
+<FilesMatch "\.(md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Security Headers (สำรองกรณี PHP ไม่ทำงาน)
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

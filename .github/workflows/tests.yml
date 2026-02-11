@@ -1,0 +1,96 @@
+name: Automated Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php-version }} Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: pdo, pdo_sqlite, sqlite3, mbstring
+          coverage: none
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Create cache directory
+        run: |
+          mkdir -p cache
+          chmod 755 cache
+
+      - name: Create database and tables
+        run: |
+          cd tools
+          php import-ics-to-sqlite.php || true
+          php migrate-add-requests-table.php || true
+          php migrate-add-credits-table.php || true
+          cd ..
+
+      - name: Run tests
+        run: php tests/run-tests.php
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-php-${{ matrix.php-version }}
+          path: |
+            tests/
+            cache/
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Run security tests only
+        run: php tests/run-tests.php SecurityTest
+
+  integration-check:
+    name: Integration Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo, pdo_sqlite, sqlite3
+
+      - name: Create database
+        run: |
+          mkdir -p cache
+          cd tools
+          php import-ics-to-sqlite.php || true
+          php migrate-add-requests-table.php || true
+          php migrate-add-credits-table.php || true
+
+      - name: Run integration tests
+        run: php tests/run-tests.php IntegrationTest

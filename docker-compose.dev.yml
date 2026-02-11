@@ -1,0 +1,38 @@
+# Docker Compose for Development
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: idol-stage-calendar-dev
+    ports:
+      - "8000:80"
+    volumes:
+      # Mount entire project for live development
+      - .:/var/www/html
+
+      # Exclude cache from host (use container's cache)
+      - /var/www/html/cache
+    environment:
+      # PHP Development Configuration
+      - PHP_MEMORY_LIMIT=512M
+      - PHP_DISPLAY_ERRORS=On
+      - PHP_ERROR_REPORTING=E_ALL
+      - TZ=Asia/Bangkok
+
+      # Enable development mode
+      - PRODUCTION_MODE=false
+    restart: unless-stopped
+    networks:
+      - idol-calendar-dev-network
+
+    # Override command for development (enable hot reload if needed)
+    command: apache2-foreground
+
+networks:
+  idol-calendar-dev-network:
+    driver: bridge
