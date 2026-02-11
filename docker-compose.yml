@@ -1,0 +1,55 @@
+# Idol Stage Timetable - Docker Compose Configuration
+# Quick start: docker-compose up -d
+
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: idol-stage-calendar
+    ports:
+      - "8000:80"
+    volumes:
+      # Mount ICS files directory (for easy updates)
+      - ./ics:/var/www/html/ics:ro
+
+      # Mount cache directory (for persistence)
+      - ./cache:/var/www/html/cache
+
+      # Mount database (for persistence)
+      - ./calendar.db:/var/www/html/calendar.db
+
+      # Mount config for easy updates (optional - uncomment if needed)
+      # - ./config:/var/www/html/config:ro
+    environment:
+      # PHP Configuration
+      - PHP_MEMORY_LIMIT=256M
+      - PHP_UPLOAD_MAX_FILESIZE=10M
+      - PHP_POST_MAX_SIZE=10M
+
+      # Timezone
+      - TZ=Asia/Bangkok
+    restart: unless-stopped
+    networks:
+      - idol-calendar-network
+
+  # Optional: phpMyAdmin-style SQLite browser (uncomment if needed)
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: idol-stage-adminer
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - ADMINER_DEFAULT_SERVER=web
+  #   restart: unless-stopped
+  #   networks:
+  #     - idol-calendar-network
+
+networks:
+  idol-calendar-network:
+    driver: bridge
+
+volumes:
+  # Named volumes for data persistence
+  calendar-data:
+  cache-data:

@@ -1,0 +1,1326 @@
+<?php
+/**
+ * Admin API for Event Management
+ * CRUD operations for events
+ */
+
+require_once __DIR__ . '/../config.php';
+
+// Security headers
+send_security_headers();
+header('Content-Type: application/json; charset=utf-8');
+// CORS: อนุญาตเฉพาะ same-origin (ลบ wildcard เพื่อความปลอดภัย)
+// header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
+
+// Handle preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
+// IP Whitelist check - ต้องผ่านก่อน login check
+require_api_allowed_ip();
+
+// Authentication: Require login for all API access
+require_api_login();
+
+// CSRF Protection: Validate token for state-changing requests (POST, PUT, DELETE)
+require_csrf_token();
+
+// Database connection
+$dbPath = __DIR__ . '/../calendar.db';
+$db = null;
+
+try {
+    $db = new PDO('sqlite:' . $dbPath);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    jsonResponse(false, null, safe_error_message('Database connection failed', $e->getMessage()));
+    exit;
+}
+
+// Get action
+$action = $_GET['action'] ?? '';
+
+switch ($action) {
+    case 'list':
+        listEvents();
+        break;
+    case 'get':
+        getEvent();
+        break;
+    case 'create':
+        createEvent();
+        break;
+    case 'update':
+        updateEvent();
+        break;
+    case 'delete':
+        deleteEvent();
+        break;
+    case 'venues':
+        getVenues();
+        break;
+    case 'requests':
+        listRequests();
+        break;
+    case 'request_approve':
+        approveRequest();
+        break;
+    case 'request_reject':
+        rejectRequest();
+        break;
+    case 'pending_count':
+        getPendingCount();
+        break;
+    case 'upload_ics':
+        uploadAndParseIcs();
+        break;
+    case 'import_ics_confirm':
+        confirmIcsImport();
+        break;
+    case 'bulk_delete':
+        bulkDeleteEvents();
+        break;
+    case 'bulk_update':
+        bulkUpdateEvents();
+        break;
+    case 'credits_list':
+        listCredits();
+        break;
+    case 'credits_get':
+        getCredit();
+        break;
+    case 'credits_create':
+        createCredit();
+        break;
+    case 'credits_update':
+        updateCredit();
+        break;
+    case 'credits_delete':
+        deleteCredit();
+        break;
+    case 'credits_bulk_delete':
+        bulkDeleteCredits();
+        break;
+    default:
+        jsonResponse(false, null, 'Invalid action');
+}
+
+/**
+ * List events with pagination and filters
+ */
+function listEvents() {
+    global $db;
+
+    $page = max(1, intval($_GET['page'] ?? 1));
+    $limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
+    $offset = ($page - 1) * $limit;
+    $search = get_sanitized_param('search', '', 200);
+    $venue = get_sanitized_param('venue', '', 200);
+    $dateFrom = get_sanitized_param('date_from', '', 20);
+    $dateTo = get_sanitized_param('date_to', '', 20);
+
+    // Sorting
+    $allowedSortColumns = ['id', 'title', 'start', 'location', 'organizer'];
+    $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'start';
+    $sortOrder = ($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
+
+    $where = [];
+    $params = [];
+
+    if ($search) {
+        $where[] = "(title LIKE :search OR organizer LIKE :search OR categories LIKE :search)";
+        $params[':search'] = '%' . $search . '%';
+    }
+
+    if ($venue) {
+        $where[] = "location = :venue";
+        $params[':venue'] = $venue;
+    }
+
+    if ($dateFrom) {
+        $where[] = "DATE(start) >= :date_from";
+        $params[':date_from'] = $dateFrom;
+    }
+
+    if ($dateTo) {
+        $where[] = "DATE(start) <= :date_to";
+        $params[':date_to'] = $dateTo;
+    }
+
+    $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    try {
+        // Count total
+        $countSql = "SELECT COUNT(*) as total FROM events $whereClause";
+        $stmt = $db->prepare($countSql);
+        $stmt->execute($params);
+        $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Get events with dynamic sorting
+        $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, created_at, updated_at
+                FROM events
+                $whereClause
+                ORDER BY $sortColumn $sortOrder
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+        $events = array_map(function($event) use ($fieldsToEscape) {
+            return escapeOutputData($event, $fieldsToEscape);
+        }, $events);
+
+        jsonResponse(true, [
+            'events' => $events,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => intval($total),
+                'totalPages' => ceil($total / $limit)
+            ]
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch events', $e->getMessage()));
+    }
+}
+
+/**
+ * Get single event by ID
+ */
+function getEvent() {
+    global $db;
+
+    $id = intval($_GET['id'] ?? 0);
+
+    if (!$id) {
+        jsonResponse(false, null, 'Event ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM events WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $event = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$event) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+
+        // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+        $event = escapeOutputData($event, $fieldsToEscape);
+
+        jsonResponse(true, $event);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch event', $e->getMessage()));
+    }
+}
+
+/**
+ * Create new event
+ */
+function createEvent() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    // Validate required fields
+    if (empty($input['title']) || empty($input['start']) || empty($input['end'])) {
+        jsonResponse(false, null, 'Title, start, and end are required');
+        return;
+    }
+
+    // Generate UID
+    $uid = uniqid('event-') . '@admin.local';
+
+    $now = date('Y-m-d H:i:s');
+
+    try {
+        $stmt = $db->prepare("
+            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :created_at, :updated_at)
+        ");
+
+        $stmt->execute([
+            ':uid' => $uid,
+            ':title' => $input['title'],
+            ':start' => $input['start'],
+            ':end' => $input['end'],
+            ':location' => $input['location'] ?? '',
+            ':organizer' => $input['organizer'] ?? '',
+            ':description' => $input['description'] ?? '',
+            ':categories' => $input['categories'] ?? '',
+            ':created_at' => $now,
+            ':updated_at' => $now
+        ]);
+
+        $id = $db->lastInsertId();
+
+        jsonResponse(true, ['id' => $id, 'uid' => $uid], 'Event created successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create event', $e->getMessage()));
+    }
+}
+
+/**
+ * Update existing event
+ */
+function updateEvent() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+
+    if (!$id) {
+        jsonResponse(false, null, 'Event ID required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    // Validate required fields
+    if (empty($input['title']) || empty($input['start']) || empty($input['end'])) {
+        jsonResponse(false, null, 'Title, start, and end are required');
+        return;
+    }
+
+    $now = date('Y-m-d H:i:s');
+
+    try {
+        $stmt = $db->prepare("
+            UPDATE events
+            SET title = :title,
+                start = :start,
+                end = :end,
+                location = :location,
+                organizer = :organizer,
+                description = :description,
+                categories = :categories,
+                updated_at = :updated_at
+            WHERE id = :id
+        ");
+
+        $stmt->execute([
+            ':id' => $id,
+            ':title' => $input['title'],
+            ':start' => $input['start'],
+            ':end' => $input['end'],
+            ':location' => $input['location'] ?? '',
+            ':organizer' => $input['organizer'] ?? '',
+            ':description' => $input['description'] ?? '',
+            ':categories' => $input['categories'] ?? '',
+            ':updated_at' => $now
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+
+        jsonResponse(true, ['id' => $id], 'Event updated successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to update event', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete event
+ */
+function deleteEvent() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+
+    if (!$id) {
+        jsonResponse(false, null, 'Event ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("DELETE FROM events WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+
+        jsonResponse(true, null, 'Event deleted successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete event', $e->getMessage()));
+    }
+}
+
+/**
+ * Bulk delete events
+ */
+function bulkDeleteEvents() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $ids = $input['ids'] ?? [];
+
+    // Validate
+    if (!is_array($ids) || empty($ids)) {
+        jsonResponse(false, null, 'Event IDs array required');
+        return;
+    }
+
+    if (count($ids) > 100) {
+        jsonResponse(false, null, 'Maximum 100 events per request');
+        return;
+    }
+
+    // Sanitize
+    $ids = array_map('intval', $ids);
+    $ids = array_filter($ids, function($id) { return $id > 0; });
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'No valid event IDs provided');
+        return;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $db->prepare("DELETE FROM events WHERE id IN ($placeholders)");
+        $stmt->execute($ids);
+
+        $deletedCount = $stmt->rowCount();
+        $failedCount = count($ids) - $deletedCount;
+
+        $db->commit();
+
+        jsonResponse(true, [
+            'deleted_count' => $deletedCount,
+            'failed_count' => $failedCount,
+            'requested_count' => count($ids)
+        ], "Deleted $deletedCount events successfully");
+
+    } catch (PDOException $e) {
+        $db->rollBack();
+        jsonResponse(false, null, safe_error_message('Failed to delete events', $e->getMessage()));
+    }
+}
+
+/**
+ * Bulk update events (location, organizer, and categories)
+ */
+function bulkUpdateEvents() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $ids = $input['ids'] ?? [];
+    $location = $input['location'] ?? null;
+    $organizer = $input['organizer'] ?? null;
+    $categories = $input['categories'] ?? null;
+
+    // Validate
+    if (!is_array($ids) || empty($ids)) {
+        jsonResponse(false, null, 'Event IDs array required');
+        return;
+    }
+
+    if ($location === null && $organizer === null && $categories === null) {
+        jsonResponse(false, null, 'At least one field (location, organizer, or categories) must be provided');
+        return;
+    }
+
+    if (count($ids) > 100) {
+        jsonResponse(false, null, 'Maximum 100 events per request');
+        return;
+    }
+
+    // Sanitize
+    $ids = array_map('intval', $ids);
+    $ids = array_filter($ids, function($id) { return $id > 0; });
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'No valid event IDs provided');
+        return;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        // Build dynamic UPDATE
+        $setClauses = [];
+        $params = [];
+
+        if ($location !== null) {
+            $setClauses[] = "location = :location";
+            $params[':location'] = trim($location);
+        }
+
+        if ($organizer !== null) {
+            $setClauses[] = "organizer = :organizer";
+            $params[':organizer'] = trim($organizer);
+        }
+
+        if ($categories !== null) {
+            $setClauses[] = "categories = :categories";
+            $params[':categories'] = trim($categories);
+        }
+
+        $setClauses[] = "updated_at = :updated_at";
+        $params[':updated_at'] = date('Y-m-d H:i:s');
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "UPDATE events SET " . implode(', ', $setClauses) . " WHERE id IN ($placeholders)";
+
+        $stmt = $db->prepare($sql);
+
+        // Bind named parameters
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        // Bind positional parameters (IDs)
+        foreach ($ids as $index => $id) {
+            $stmt->bindValue($index + 1, $id, PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        $updatedCount = $stmt->rowCount();
+        $failedCount = count($ids) - $updatedCount;
+
+        $db->commit();
+
+        jsonResponse(true, [
+            'updated_count' => $updatedCount,
+            'failed_count' => $failedCount,
+            'requested_count' => count($ids)
+        ], "Updated $updatedCount events successfully");
+
+    } catch (PDOException $e) {
+        $db->rollBack();
+        jsonResponse(false, null, safe_error_message('Failed to update events', $e->getMessage()));
+    }
+}
+
+/**
+ * Get all venues
+ */
+function getVenues() {
+    global $db;
+
+    try {
+        $stmt = $db->query("
+            SELECT DISTINCT location
+            FROM events
+            WHERE location IS NOT NULL AND location != ''
+            ORDER BY location ASC
+        ");
+
+        $venues = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // Escape HTML เพื่อป้องกัน XSS
+            $venues[] = htmlspecialchars($row['location'], ENT_QUOTES, 'UTF-8');
+        }
+
+        jsonResponse(true, $venues);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch venues', $e->getMessage()));
+    }
+}
+
+/**
+ * List requests
+ */
+function listRequests() {
+    global $db;
+    $status = $_GET['status'] ?? '';
+    $page = max(1, intval($_GET['page'] ?? 1));
+    $limit = 20;
+    $offset = ($page - 1) * $limit;
+
+    $where = $status && in_array($status, ['pending', 'approved', 'rejected']) ? "WHERE status = :status" : "";
+    $params = $status ? [':status' => $status] : [];
+
+    try {
+        $countStmt = $db->prepare("SELECT COUNT(*) as total FROM event_requests $where");
+        $countStmt->execute($params);
+        $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        $sql = "SELECT * FROM event_requests $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Fields ที่ต้อง escape เพื่อป้องกัน XSS
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories',
+                          'requester_name', 'requester_email', 'requester_note', 'admin_note', 'reviewed_by'];
+
+        // สำหรับ request ประเภท modify ให้ดึงข้อมูล event เดิมมาด้วย
+        foreach ($requests as &$req) {
+            if ($req['type'] === 'modify' && !empty($req['event_id'])) {
+                $eventStmt = $db->prepare("SELECT id, title, start, end, location, organizer, description, categories FROM events WHERE id = :id");
+                $eventStmt->execute([':id' => $req['event_id']]);
+                $originalEvent = $eventStmt->fetch(PDO::FETCH_ASSOC);
+                // Escape original_event ด้วย
+                $req['original_event'] = $originalEvent ? escapeOutputData($originalEvent, $fieldsToEscape) : null;
+            } else {
+                $req['original_event'] = null;
+            }
+            // Escape request data
+            $req = escapeOutputData($req, $fieldsToEscape);
+        }
+        unset($req); // ล้าง reference
+
+        jsonResponse(true, [
+            'requests' => $requests,
+            'pagination' => ['page' => $page, 'total' => intval($total), 'totalPages' => ceil($total / $limit)]
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, 'Failed to fetch requests');
+    }
+}
+
+/**
+ * Approve request
+ */
+function approveRequest() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') jsonResponse(false, null, 'PUT required');
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) jsonResponse(false, null, 'ID required');
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    try {
+        $db->beginTransaction();
+
+        $stmt = $db->prepare("SELECT * FROM event_requests WHERE id = :id AND status = 'pending'");
+        $stmt->execute([':id' => $id]);
+        $req = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$req) { $db->rollBack(); jsonResponse(false, null, 'Not found or processed'); }
+
+        $now = date('Y-m-d H:i:s');
+
+        if ($req['type'] === 'add') {
+            $uid = uniqid('req-') . '@local';
+            $stmt = $db->prepare("INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :now, :now2)");
+            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now, ':now2' => $now]);
+            $eventId = $db->lastInsertId();
+        } else {
+            $eventId = $req['event_id'];
+            $stmt = $db->prepare("UPDATE events SET title = :title, start = :start, end = :end, location = :location, organizer = :organizer, description = :description, categories = :categories, updated_at = :now WHERE id = :id");
+            $stmt->execute([':id' => $eventId, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now]);
+        }
+
+        $stmt = $db->prepare("UPDATE event_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id");
+        $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => $now, ':by' => $_SESSION['admin_username'] ?? 'admin']);
+
+        $db->commit();
+        jsonResponse(true, ['event_id' => $eventId], 'Approved');
+    } catch (PDOException $e) {
+        $db->rollBack();
+        jsonResponse(false, null, 'Failed');
+    }
+}
+
+/**
+ * Reject request
+ */
+function rejectRequest() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') jsonResponse(false, null, 'PUT required');
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) jsonResponse(false, null, 'ID required');
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    try {
+        $stmt = $db->prepare("UPDATE event_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id AND status = 'pending'");
+        $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => date('Y-m-d H:i:s'), ':by' => $_SESSION['admin_username'] ?? 'admin']);
+        if ($stmt->rowCount() === 0) jsonResponse(false, null, 'Not found or processed');
+        jsonResponse(true, null, 'Rejected');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, 'Failed');
+    }
+}
+
+/**
+ * Get pending count
+ */
+function getPendingCount() {
+    global $db;
+    try {
+        $stmt = $db->query("SELECT COUNT(*) as count FROM event_requests WHERE status = 'pending'");
+        jsonResponse(true, ['count' => intval($stmt->fetch(PDO::FETCH_ASSOC)['count'])]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, 'Failed');
+    }
+}
+
+/**
+ * Upload and parse ICS file
+ * Upload ไฟล์ .ics และ parse events พร้อมตรวจสอบ duplicates
+ */
+function uploadAndParseIcs() {
+    global $db;
+
+    // Validate file upload
+    if (!isset($_FILES['ics_file'])) {
+        jsonResponse(false, null, 'No file uploaded');
+    }
+
+    $file = $_FILES['ics_file'];
+
+    // Security validations
+    $allowedExt = ['ics'];
+    $allowedMime = ['text/calendar', 'text/plain', 'application/octet-stream'];
+    $maxSize = 5 * 1024 * 1024; // 5MB
+
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $mime = @mime_content_type($file['tmp_name']);
+
+    if (!in_array($ext, $allowedExt)) {
+        jsonResponse(false, null, 'Invalid file type. Only .ics files allowed');
+    }
+    if ($mime && !in_array($mime, $allowedMime)) {
+        jsonResponse(false, null, 'Invalid MIME type');
+    }
+    if ($file['size'] > $maxSize) {
+        jsonResponse(false, null, 'File too large. Maximum 5MB allowed');
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'Upload error: ' . $file['error']);
+    }
+
+    // Save to temporary location
+    $tempFile = sys_get_temp_dir() . '/ics_upload_' . uniqid() . '.ics';
+    if (!move_uploaded_file($file['tmp_name'], $tempFile)) {
+        jsonResponse(false, null, 'Failed to save uploaded file');
+    }
+
+    // Parse ICS file
+    $content = file_get_contents($tempFile);
+    if ($content === false) {
+        @unlink($tempFile);
+        jsonResponse(false, null, 'Failed to read uploaded file');
+    }
+
+    // Extract VEVENT blocks
+    preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $content, $matches);
+
+    // Require IcsParser
+    require_once __DIR__ . '/../IcsParser.php';
+    $parser = new IcsParser('ics', false);
+
+    $events = [];
+    $failed = [];
+    $stats = [
+        'total' => count($matches[1]),
+        'parsed' => 0,
+        'failed' => 0,
+        'duplicates' => 0
+    ];
+
+    foreach ($matches[1] as $index => $eventData) {
+        $event = $parser->parseEvent($eventData);
+
+        if (!$event) {
+            $failed[] = [
+                'index' => $index + 1,
+                'error' => 'Failed to parse event',
+                'raw_data' => substr($eventData, 0, 200)
+            ];
+            $stats['failed']++;
+            continue;
+        }
+
+        // Validate required fields
+        $errors = [];
+        if (empty($event['title'])) $errors[] = 'Missing title';
+        if (empty($event['start'])) $errors[] = 'Missing start time';
+        if (empty($event['end'])) $errors[] = 'Missing end time';
+
+        // Check for duplicates
+        $stmt = $db->prepare("SELECT id FROM events WHERE uid = :uid");
+        $stmt->execute([':uid' => $event['uid']]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $event['temp_id'] = 'temp_' . ($index + 1);
+        $event['is_duplicate'] = (bool)$existing;
+        $event['existing_event_id'] = $existing ? $existing['id'] : null;
+        $event['validation_errors'] = $errors;
+
+        if ($existing) $stats['duplicates']++;
+
+        $events[] = $event;
+        $stats['parsed']++;
+    }
+
+    // Store temp file path in session for later use
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $_SESSION['pending_ics_file'] = $tempFile;
+    $_SESSION['pending_ics_filename'] = basename($file['name']);
+
+    // Escape output data
+    $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+    $events = escapeOutputData($events, $fieldsToEscape);
+    $failed = escapeOutputData($failed, ['error', 'raw_data']);
+
+    jsonResponse(true, [
+        'filename' => basename($file['name']),
+        'events' => $events,
+        'stats' => $stats,
+        'failed_events' => $failed
+    ], 'File uploaded and parsed successfully');
+}
+
+/**
+ * Confirm ICS import
+ * รับ events จาก preview และ import ลง database
+ */
+function confirmIcsImport() {
+    global $db;
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!$input) {
+        jsonResponse(false, null, 'Invalid request data');
+    }
+
+    $events = $input['events'] ?? [];
+    $saveFile = $input['save_file'] ?? true;
+
+    if (empty($events)) {
+        jsonResponse(false, null, 'No events to import');
+    }
+
+    $stats = ['inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
+    $errors = [];
+
+    try {
+        $db->beginTransaction();
+
+        $insertStmt = $db->prepare("
+            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ");
+
+        $updateStmt = $db->prepare("
+            UPDATE events SET
+                title = :title, start = :start, end = :end,
+                location = :location, organizer = :organizer,
+                description = :description, categories = :categories,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE uid = :uid
+        ");
+
+        foreach ($events as $event) {
+            $action = $event['action'] ?? 'skip';
+
+            if ($action === 'skip') {
+                $stats['skipped']++;
+                continue;
+            }
+
+            // Validate required fields
+            if (empty($event['title']) || empty($event['start']) || empty($event['end']) || empty($event['uid'])) {
+                $stats['errors']++;
+                $errors[] = "Event missing required fields";
+                continue;
+            }
+
+            try {
+                $params = [
+                    ':uid' => $event['uid'],
+                    ':title' => $event['title'],
+                    ':start' => $event['start'],
+                    ':end' => $event['end'],
+                    ':location' => $event['location'] ?? '',
+                    ':organizer' => $event['organizer'] ?? '',
+                    ':description' => $event['description'] ?? '',
+                    ':categories' => $event['categories'] ?? ''
+                ];
+
+                if ($action === 'insert') {
+                    $insertStmt->execute($params);
+                    $stats['inserted']++;
+                } elseif ($action === 'update') {
+                    $updateStmt->execute($params);
+                    $stats['updated']++;
+                }
+            } catch (PDOException $e) {
+                $stats['errors']++;
+                $title = $event['title'] ?? 'Unknown';
+                $errors[] = "Event '$title': " . $e->getMessage();
+            }
+        }
+
+        $db->commit();
+
+        // Save file to ics/ folder if requested
+        $savedFilename = null;
+        if ($saveFile && isset($_SESSION['pending_ics_file'])) {
+            $tempFile = $_SESSION['pending_ics_file'];
+            $originalName = $_SESSION['pending_ics_filename'] ?? 'upload.ics';
+
+            // Generate unique filename: upload_YYYYMMDD_HHMMSS.ics
+            $timestamp = date('Ymd_His');
+            $savedFilename = "upload_{$timestamp}.ics";
+            $destination = __DIR__ . '/../ics/' . $savedFilename;
+
+            if (file_exists($tempFile)) {
+                if (copy($tempFile, $destination)) {
+                    @unlink($tempFile); // Remove temp file
+                } else {
+                    $errors[] = "Failed to save file to ics/ folder";
+                }
+            }
+
+            unset($_SESSION['pending_ics_file']);
+            unset($_SESSION['pending_ics_filename']);
+        }
+
+        jsonResponse(true, [
+            'saved_filename' => $savedFilename,
+            'stats' => $stats,
+            'errors' => $errors
+        ], 'Import completed successfully');
+
+    } catch (Exception $e) {
+        $db->rollBack();
+        jsonResponse(false, null, 'Import failed: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Escape HTML entities ในข้อมูลเพื่อป้องกัน XSS
+ * @param mixed $data - ข้อมูลที่ต้องการ escape (array หรือ string)
+ * @param array $fields - รายชื่อ fields ที่ต้อง escape (ถ้าเป็น array)
+ * @return mixed
+ */
+function escapeOutputData($data, $fields = []) {
+    if (is_array($data)) {
+        foreach ($data as $key => &$value) {
+            if (is_array($value)) {
+                // Recursive สำหรับ nested arrays
+                $value = escapeOutputData($value, $fields);
+            } elseif (is_string($value) && (empty($fields) || in_array($key, $fields))) {
+                $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+            }
+        }
+        unset($value);
+    } elseif (is_string($data)) {
+        $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+    }
+    return $data;
+}
+
+// ============================================================================
+// CREDITS API FUNCTIONS
+// ============================================================================
+
+/**
+ * List credits with pagination and search
+ */
+function listCredits() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    try {
+        // Pagination
+        $page = max(1, intval($_GET['page'] ?? 1));
+        $limit = max(1, min(100, intval($_GET['limit'] ?? 20)));
+        $offset = ($page - 1) * $limit;
+
+        // Search
+        $search = substr($_GET['search'] ?? '', 0, 200);
+
+        // Sorting
+        $allowedSortColumns = ['id', 'title', 'display_order', 'created_at'];
+        $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'display_order';
+        $sortOrder = ($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+
+        // Build WHERE clause
+        $where = [];
+        $params = [];
+
+        if ($search) {
+            $where[] = "(title LIKE :search OR description LIKE :search OR link LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        // Count total
+        $countSql = "SELECT COUNT(*) as total FROM credits $whereClause";
+        $stmt = $db->prepare($countSql);
+        $stmt->execute($params);
+        $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Fetch data
+        $sql = "SELECT * FROM credits $whereClause ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $credits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Escape output
+        $fieldsToEscape = ['title', 'link', 'description'];
+        $credits = array_map(function($credit) use ($fieldsToEscape) {
+            return escapeOutputData($credit, $fieldsToEscape);
+        }, $credits);
+
+        $totalPages = ceil($total / $limit);
+
+        jsonResponse(true, [
+            'credits' => $credits,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => $totalPages
+            ]
+        ]);
+
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch credits', $e->getMessage()));
+    }
+}
+
+/**
+ * Get single credit by ID
+ */
+function getCredit() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid credit ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM credits WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $credit = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$credit) {
+            jsonResponse(false, null, 'Credit not found');
+            return;
+        }
+
+        $fieldsToEscape = ['title', 'link', 'description'];
+        $credit = escapeOutputData($credit, $fieldsToEscape);
+
+        jsonResponse(true, $credit);
+
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch credit', $e->getMessage()));
+    }
+}
+
+/**
+ * Create new credit
+ */
+function createCredit() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    // Validation
+    if (empty($input['title'])) {
+        jsonResponse(false, null, 'Title is required');
+        return;
+    }
+
+    $title = trim($input['title']);
+    $link = trim($input['link'] ?? '');
+    $description = trim($input['description'] ?? '');
+    $display_order = intval($input['display_order'] ?? 0);
+
+    if (strlen($title) > 200) {
+        jsonResponse(false, null, 'Title is too long (max 200 characters)');
+        return;
+    }
+
+    if (strlen($description) > 1000) {
+        jsonResponse(false, null, 'Description is too long (max 1000 characters)');
+        return;
+    }
+
+    try {
+        $now = date('Y-m-d H:i:s');
+
+        $stmt = $db->prepare("
+            INSERT INTO credits (title, link, description, display_order, created_at, updated_at)
+            VALUES (:title, :link, :description, :display_order, :created_at, :updated_at)
+        ");
+
+        $stmt->execute([
+            ':title' => $title,
+            ':link' => $link,
+            ':description' => $description,
+            ':display_order' => $display_order,
+            ':created_at' => $now,
+            ':updated_at' => $now
+        ]);
+
+        $id = $db->lastInsertId();
+
+        // Invalidate cache
+        invalidate_credits_cache();
+
+        jsonResponse(true, ['id' => $id], 'Credit created successfully');
+
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create credit', $e->getMessage()));
+    }
+}
+
+/**
+ * Update existing credit
+ */
+function updateCredit() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid credit ID required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    // Validation
+    if (empty($input['title'])) {
+        jsonResponse(false, null, 'Title is required');
+        return;
+    }
+
+    $title = trim($input['title']);
+    $link = trim($input['link'] ?? '');
+    $description = trim($input['description'] ?? '');
+    $display_order = intval($input['display_order'] ?? 0);
+
+    if (strlen($title) > 200) {
+        jsonResponse(false, null, 'Title is too long (max 200 characters)');
+        return;
+    }
+
+    if (strlen($description) > 1000) {
+        jsonResponse(false, null, 'Description is too long (max 1000 characters)');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("
+            UPDATE credits
+            SET title = :title,
+                link = :link,
+                description = :description,
+                display_order = :display_order,
+                updated_at = :updated_at
+            WHERE id = :id
+        ");
+
+        $stmt->execute([
+            ':title' => $title,
+            ':link' => $link,
+            ':description' => $description,
+            ':display_order' => $display_order,
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $id
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Credit not found or no changes made');
+            return;
+        }
+
+        // Invalidate cache
+        invalidate_credits_cache();
+
+        jsonResponse(true, null, 'Credit updated successfully');
+
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to update credit', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete credit
+ */
+function deleteCredit() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid credit ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("DELETE FROM credits WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Credit not found');
+            return;
+        }
+
+        // Invalidate cache
+        invalidate_credits_cache();
+
+        jsonResponse(true, null, 'Credit deleted successfully');
+
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete credit', $e->getMessage()));
+    }
+}
+
+/**
+ * Bulk delete credits
+ */
+function bulkDeleteCredits() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $ids = $input['ids'] ?? [];
+
+    // Validation
+    if (!is_array($ids) || empty($ids)) {
+        jsonResponse(false, null, 'Credit IDs array required');
+        return;
+    }
+
+    if (count($ids) > 100) {
+        jsonResponse(false, null, 'Maximum 100 credits per request');
+        return;
+    }
+
+    // Sanitize
+    $ids = array_map('intval', $ids);
+    $ids = array_filter($ids, function($id) { return $id > 0; });
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'No valid credit IDs provided');
+        return;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $db->prepare("DELETE FROM credits WHERE id IN ($placeholders)");
+        $stmt->execute($ids);
+
+        $deletedCount = $stmt->rowCount();
+        $failedCount = count($ids) - $deletedCount;
+
+        $db->commit();
+
+        // Invalidate cache
+        invalidate_credits_cache();
+
+        jsonResponse(true, [
+            'deleted_count' => $deletedCount,
+            'failed_count' => $failedCount,
+            'requested_count' => count($ids)
+        ], "Deleted $deletedCount credits successfully");
+
+    } catch (PDOException $e) {
+        $db->rollBack();
+        jsonResponse(false, null, safe_error_message('Failed to delete credits', $e->getMessage()));
+    }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Send JSON response
+ */
+function jsonResponse($success, $data = null, $message = '') {
+    echo json_encode([
+        'success' => $success,
+        'data' => $data,
+        'message' => $message
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}

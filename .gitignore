@@ -1,0 +1,58 @@
+# Database
+calendar.db
+calendar.db-shm
+calendar.db-wal
+*.db
+*.db-journal
+
+# Cache
+cache/
+*.cache
+
+# Environment variables (if you add support later)
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# User uploaded files (if you add upload feature)
+uploads/
+
+# Rate limiting temp files
+rate_limit_*.txt
+
+# Config overrides (if you create a local config)
+config.local.php
+
+# Other
+/version1
+/version2
+/backup
+/.claude
