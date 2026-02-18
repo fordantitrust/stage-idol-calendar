@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 send_security_headers();
+
+// Multi-event support
+$eventSlug = get_current_event_slug();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -32,8 +35,8 @@ send_security_headers();
             <h1 data-i18n="contact.title">✉️ ติดต่อเรา</h1>
             <p data-i18n="contact.subtitle">หากพบปัญหาหรือต้องการข้อมูลเพิ่มเติม</p>
             <nav class="header-nav">
-                <a href="index.php" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
-                <a href="how-to-use.php" class="header-nav-link" data-i18n="nav.howToUse">📖 วิธีการใช้งาน</a>
+                <a href="<?php echo event_url('index.php'); ?>" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="nav.howToUse">📖 วิธีการใช้งาน</a>
             </nav>
         </header>
 

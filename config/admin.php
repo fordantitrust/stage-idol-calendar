@@ -9,26 +9,24 @@
 // =============================================================================
 
 /**
- * Admin Username
+ * Admin Username (Fallback)
  *
- * ⚠️ IMPORTANT: Change this before deploying to production!
+ * Used only if admin_users table does not exist in the database.
+ * Run: php tools/migrate-add-admin-users-table.php to migrate to database.
+ * After migration, credentials are managed via Admin UI → Change Password.
  */
 define('ADMIN_USERNAME', 'admin');
 
 /**
- * Admin Password Hash
+ * Admin Password Hash (Fallback)
  *
- * ⚠️ IMPORTANT: Change this before deploying to production!
+ * Used only if admin_users table does not exist in the database.
+ * After running the migration, this is ignored in favor of database credentials.
  *
  * Generate hash using:
- * php -r "echo password_hash('your_secure_password', PASSWORD_DEFAULT);"
- *
- * Then paste the output here.
- *
- * Note: Never store plain text passwords!
+ * php tools/generate-password-hash.php yourpassword
  */
-define('ADMIN_PASSWORD_HASH', '$2y$10$8xJ2LLw7X4TXOK9Eepeqv.DTzuU/canzio4HL9L1OG5RgnWVh/JVy');
-
+define('ADMIN_PASSWORD_HASH', '$2y$10$1FA2h7ytexdObt3iUWfD9uLxhkGNJ5z49iUTXWrp3Mqz/nbHTkUbG');
 /**
  * Session Timeout (in seconds)
  *

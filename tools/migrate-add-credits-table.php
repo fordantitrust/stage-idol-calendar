@@ -8,7 +8,7 @@
 
 require_once __DIR__ . '/../config.php';
 
-$dbPath = __DIR__ . '/../calendar.db';
+$dbPath = __DIR__ . '/../data/calendar.db';
 
 echo "==========================================\n";
 echo "Migration: Create Credits Table\n";

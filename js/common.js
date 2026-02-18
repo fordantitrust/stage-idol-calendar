@@ -82,6 +82,13 @@ function updateLanguage() {
         if (dayNameHeader) dayNameHeader.textContent = dayName;
     });
 
+    // Update date jump bar weekday names
+    const dateJumpBtns = document.querySelectorAll('.date-jump-weekday[data-dayofweek]');
+    dateJumpBtns.forEach(el => {
+        const dayOfWeek = parseInt(el.dataset.dayofweek);
+        el.textContent = lang.days[dayOfWeek];
+    });
+
     // Update day names
     const dayNameEls = domCache.dayNames || document.querySelectorAll('.day-name');
     dayNameEls.forEach(el => {
@@ -374,7 +381,14 @@ function exportToIcs() {
         }
     }
 
-    window.location.href = 'export.php?' + params.toString();
+    // Build export URL with clean event path
+    var basePath = (typeof BASE_PATH !== 'undefined') ? BASE_PATH : '';
+    var exportPath = basePath + '/export';
+    if (typeof EVENT_SLUG !== 'undefined' && EVENT_SLUG && typeof DEFAULT_EVENT_SLUG !== 'undefined' && EVENT_SLUG !== DEFAULT_EVENT_SLUG) {
+        exportPath = basePath + '/event/' + EVENT_SLUG + '/export';
+    }
+
+    window.location.href = exportPath + '?' + params.toString();
 }
 
 // ========================================

@@ -12,7 +12,7 @@
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '1.1.0');
+define('APP_VERSION', '1.2.5');
 
 /**
  * Production Mode
@@ -26,3 +26,16 @@ define('PRODUCTION_MODE', true);
  * 'single' - Single venue (hides venue filter, venue columns, Gantt view only)
  */
 define('VENUE_MODE', 'multi');
+
+/**
+ * Multi-Event Mode
+ * true  - Enable multi-event support (event selector, per-event filtering)
+ * false - Single event mode (backward compatible)
+ */
+define('MULTI_EVENT_MODE', true);
+
+/**
+ * Default Event Slug
+ * Used when no event is specified in URL parameter
+ */
+define('DEFAULT_EVENT_SLUG', 'default');

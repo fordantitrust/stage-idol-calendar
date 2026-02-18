@@ -5,12 +5,30 @@ require_once 'IcsParser.php';
 // Security headers
 send_security_headers();
 
-$parser = new IcsParser('ics');
+// Multi-event support
+$eventSlug = get_current_event_slug();
+$eventMeta = get_event_meta_by_slug($eventSlug);
+$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$currentVenueMode = get_event_venue_mode($eventMeta);
+$activeEvents = get_all_active_events();
+$eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
-// ดึงข้อมูลทั้งหมด
-$allEvents = $parser->getAllEvents();
-$artists = $parser->getAllOrganizers();
-$venues = $parser->getAllLocations();
+// Check if we should show event listing (homepage) or calendar view
+$showEventListing = MULTI_EVENT_MODE && $eventSlug === DEFAULT_EVENT_SLUG && count($activeEvents) > 0;
+
+// Only load calendar data when showing calendar view
+if (!$showEventListing) {
+    $parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
+
+    // ดึงข้อมูลทั้งหมด
+    $allEvents = $parser->getAllEvents();
+    $artists = $parser->getAllOrganizers();
+    $venues = $parser->getAllLocations();
+} else {
+    $allEvents = [];
+    $artists = [];
+    $venues = [];
+}
 
 // รับค่า filter จาก GET parameters (รองรับหลายค่า) with sanitization
 $filterArtists = get_sanitized_array_param('artist', 200, 50);
@@ -92,6 +110,185 @@ unset($dayEvents); // ยกเลิก reference
             max-width: 1200px;
         }
 
+        /* ========================================
+           Event Listing (Homepage) Styles
+           ======================================== */
+        .event-listing {
+            padding: 30px;
+        }
+
+        .event-listing-title {
+            text-align: center;
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+
+        .event-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .event-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .event-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(233, 30, 99, 0.2);
+        }
+
+        .event-card-header {
+            background: var(--sakura-gradient);
+            padding: 20px 24px;
+            color: white;
+        }
+
+        .event-card-name {
+            font-size: 1.2em;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+        }
+
+        .event-card-dates {
+            font-size: 0.9em;
+            opacity: 0.9;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .event-card-body {
+            padding: 20px 24px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .event-card-description {
+            color: #555;
+            font-size: 0.95em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex: 1;
+        }
+
+        .event-card-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .event-card-badge.upcoming {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .event-card-badge.ongoing {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+
+        .event-card-badge.past {
+            background: #F5F5F5;
+            color: #757575;
+        }
+
+        .event-card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--sakura-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            text-align: center;
+            justify-content: center;
+        }
+
+        .event-card-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
+        }
+
+        .event-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 10px 0;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .event-card-meta-item {
+            font-size: 0.85em;
+            color: #777;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .event-card-meta-link {
+            color: var(--sakura-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .event-card-meta-link:hover {
+            color: var(--sakura-deep);
+            text-decoration: underline;
+        }
+
+        .no-events-listing {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        @media (max-width: 768px) {
+            .event-listing {
+                padding: 20px 15px;
+            }
+
+            .event-cards {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .event-card-header {
+                padding: 16px 18px;
+            }
+
+            .event-card-name {
+                font-size: 1.1em;
+            }
+
+            .event-card-body {
+                padding: 16px 18px;
+            }
+
+            .event-listing-title {
+                font-size: 1.2em;
+            }
+        }
+
         header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
@@ -119,6 +316,29 @@ unset($dayEvents); // ยกเลิก reference
             display: flex;
             align-items: center;
             gap: 6px;
+        }
+
+        .event-selector {
+            margin-bottom: 10px;
+        }
+
+        .event-selector select {
+            padding: 8px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 0.95em;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            outline: none;
+            min-width: 200px;
+        }
+
+        .event-selector select option {
+            background: #E91E63;
+            color: white;
         }
 
         .filters {
@@ -363,8 +583,91 @@ unset($dayEvents); // ยกเลิก reference
             padding: 30px;
         }
 
+        /* ========================================
+           Date Jump Bar (Fixed position)
+           ======================================== */
+        .date-jump-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 10px 20px;
+            display: none; /* hidden by default, shown by JS */
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid var(--sakura-light);
+            box-shadow: 0 2px 12px rgba(233, 30, 99, 0.15);
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .date-jump-bar.visible {
+            display: flex;
+        }
+
+        .date-jump-label {
+            font-weight: 600;
+            color: var(--sakura-deep);
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .date-jump-buttons {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding: 2px 0;
+        }
+
+        .date-jump-buttons::-webkit-scrollbar {
+            display: none;
+        }
+
+        .date-jump-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #fff5f7, #fce4ec);
+            border: 2px solid var(--sakura-light);
+            border-radius: 12px;
+            text-decoration: none;
+            color: var(--sakura-deep);
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+            min-width: fit-content;
+        }
+
+        .date-jump-btn:hover,
+        .date-jump-btn.active {
+            background: var(--sakura-gradient);
+            color: white;
+            border-color: var(--sakura-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+        }
+
+        .date-jump-day {
+            font-size: 0.95em;
+            line-height: 1.2;
+        }
+
+        .date-jump-weekday {
+            font-size: 0.75em;
+            opacity: 0.8;
+            line-height: 1.2;
+        }
+
         .day-section {
             margin-bottom: 40px;
+            scroll-margin-top: 60px;
         }
 
         .day-header {
@@ -550,12 +853,36 @@ unset($dayEvents); // ยกเลิก reference
                 min-height: 48px;
             }
 
+            .date-jump-bar {
+                padding: 8px 10px;
+                gap: 8px;
+                border-radius: 0;
+            }
+
+            .date-jump-label {
+                font-size: 0.75em;
+            }
+
+            .date-jump-btn {
+                padding: 5px 10px;
+                border-radius: 8px;
+            }
+
+            .date-jump-day {
+                font-size: 0.82em;
+            }
+
+            .date-jump-weekday {
+                font-size: 0.68em;
+            }
+
             .calendar-container {
                 padding: 15px 10px;
             }
 
             .day-section {
                 margin-bottom: 30px;
+                scroll-margin-top: 55px;
             }
 
             .day-header {
@@ -1380,7 +1707,31 @@ unset($dayEvents); // ยกเลิก reference
     </style>
 </head>
 <body>
+    <?php if (!$showEventListing && !empty($eventsByDay) && count($eventsByDay) > 1): ?>
+    <div class="date-jump-bar" id="dateJumpBar">
+        <span class="date-jump-label" data-i18n="dateJump.label">📅 ข้ามไปวันที่:</span>
+        <div class="date-jump-buttons">
+            <?php foreach ($eventsByDay as $djKey => $djEvents): ?>
+            <?php
+                $djTimestamp = strtotime($djEvents[0]['start']);
+                $djDay = date('d', $djTimestamp);
+                $djMonth = date('m', $djTimestamp);
+                $djDayOfWeek = date('w', $djTimestamp);
+            ?>
+            <a href="#day-<?php echo $djKey; ?>" class="date-jump-btn" data-day="<?php echo $djDay; ?>" data-month="<?php echo $djMonth; ?>" data-dayofweek="<?php echo $djDayOfWeek; ?>">
+                <span class="date-jump-day"><?php echo $djDay . '/' . $djMonth; ?></span>
+                <span class="date-jump-weekday" data-dayofweek="<?php echo $djDayOfWeek; ?>"></span>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="container">
+        <?php if ($showEventListing): ?>
+        <!-- ========================================
+             Event Listing (Homepage)
+             ======================================== -->
         <header>
             <div class="version-display">
                 <span>v</span>
@@ -1391,19 +1742,158 @@ unset($dayEvents); // ยกเลิก reference
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
                 <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
             </div>
-            <h1 data-i18n="header.title">Idol Stage Timetable - Idol Stage Event</h1>
+            <h1 data-i18n="header.title">Idol Stage Timetable</h1>
+            <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
+            <nav class="header-nav">
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
+                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
+                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
+            </nav>
+        </header>
+
+        <div class="event-listing">
+            <h3 class="event-listing-title" data-i18n="listing.title">Events</h3>
+            <?php
+            // Sort events: ongoing first, then upcoming, then past
+            $today = date('Y-m-d');
+            $sortedEvents = $activeEvents;
+            usort($sortedEvents, function($a, $b) use ($today) {
+                $aStart = $a['start_date'] ?? '9999-12-31';
+                $aEnd = $a['end_date'] ?? $aStart;
+                $bStart = $b['start_date'] ?? '9999-12-31';
+                $bEnd = $b['end_date'] ?? $bStart;
+
+                // Determine status: 0=ongoing, 1=upcoming, 2=past
+                $aStatus = ($aStart <= $today && $aEnd >= $today) ? 0 : ($aStart > $today ? 1 : 2);
+                $bStatus = ($bStart <= $today && $bEnd >= $today) ? 0 : ($bStart > $today ? 1 : 2);
+
+                if ($aStatus !== $bStatus) {
+                    return $aStatus - $bStatus;
+                }
+                // Within same status, sort by start_date ascending for upcoming, descending for past
+                if ($aStatus === 2) {
+                    return strcmp($bStart, $aStart);
+                }
+                return strcmp($aStart, $bStart);
+            });
+            ?>
+            <?php if (empty($sortedEvents)): ?>
+                <div class="no-events-listing">
+                    <div class="no-events-icon" style="font-size:4em;opacity:0.3;margin-bottom:20px;">📅</div>
+                    <h2 data-i18n="listing.noEvents">ยังไม่มี Event ในระบบ</h2>
+                </div>
+            <?php else: ?>
+                <div class="event-cards">
+                    <?php foreach ($sortedEvents as $ev): ?>
+                    <?php
+                        // Skip the 'default' event in listing
+                        if ($ev['slug'] === DEFAULT_EVENT_SLUG) continue;
+
+                        $evStart = $ev['start_date'] ?? null;
+                        $evEnd = $ev['end_date'] ?? $evStart;
+                        $evStatus = 'upcoming';
+                        if ($evStart && $evEnd) {
+                            if ($evStart <= $today && $evEnd >= $today) {
+                                $evStatus = 'ongoing';
+                            } elseif ($evEnd < $today) {
+                                $evStatus = 'past';
+                            }
+                        }
+
+                        // Format dates for display
+                        $displayStart = $evStart ? date('d/m/Y', strtotime($evStart)) : '-';
+                        $displayEnd = $evEnd ? date('d/m/Y', strtotime($evEnd)) : '-';
+
+                        // Per-event data version and credits
+                        $evMetaId = intval($ev['id']);
+                        $evDataVersion = get_data_version($evMetaId);
+                        $evCredits = get_cached_credits($evMetaId);
+                    ?>
+                    <div class="event-card">
+                        <div class="event-card-header">
+                            <h4 class="event-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
+                            <div class="event-card-dates">
+                                📅 <?php echo $displayStart; ?> - <?php echo $displayEnd; ?>
+                            </div>
+                        </div>
+                        <div class="event-card-body">
+                            <?php if ($evStatus === 'ongoing'): ?>
+                                <span class="event-card-badge ongoing" data-i18n="listing.ongoing">กำลังจัดงาน</span>
+                            <?php elseif ($evStatus === 'upcoming'): ?>
+                                <span class="event-card-badge upcoming" data-i18n="listing.upcoming">กำลังจะมาถึง</span>
+                            <?php else: ?>
+                                <span class="event-card-badge past" data-i18n="listing.past">จบแล้ว</span>
+                            <?php endif; ?>
+
+                            <?php if (!empty($ev['description'])): ?>
+                                <div class="event-card-description">
+                                    <?php echo nl2br(htmlspecialchars($ev['description'])); ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="event-card-meta">
+                                <span class="event-card-meta-item" title="Data Version">
+                                    🔄 <?php echo $evDataVersion; ?>
+                                </span>
+                                <?php if (!empty($evCredits)): ?>
+                                <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="event-card-meta-item event-card-meta-link" data-i18n="listing.credits">
+                                    📋 Credits (<?php echo count($evCredits); ?>)
+                                </a>
+                                <?php endif; ?>
+                            </div>
+
+                            <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="event-card-link" data-i18n="listing.viewSchedule">
+                                📋 ดูตารางเวลา
+                            </a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php else: ?>
+        <!-- ========================================
+             Calendar View (Event Detail)
+             ======================================== -->
+        <header>
+            <div class="version-display">
+                <span>v</span>
+                <span><?php echo APP_VERSION; ?></span>
+            </div>
+            <div class="language-switcher">
+                <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
+                <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
+                <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
+            </div>
+            <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
+            <div class="event-selector">
+                <select id="eventSelector" onchange="switchEvent(this.value)">
+                    <?php foreach ($activeEvents as $ev): ?>
+                    <option value="<?php echo htmlspecialchars($ev['slug']); ?>"
+                            <?php echo ($ev['slug'] === $eventSlug) ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($ev['name']); ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php endif; ?>
+            <h1 data-i18n="header.title">Idol Stage Timetable - <?php echo htmlspecialchars($eventName); ?></h1>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
             <nav class="header-nav">
-                <a href="how-to-use.php" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
-                <a href="contact.php" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
-                <a href="credits.php" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
-                <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version(); ?></a>
+                <?php if (MULTI_EVENT_MODE): ?>
+                <a href="<?php echo get_base_path(); ?>/" class="header-nav-link">🏠 Events</a>
+                <?php endif; ?>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
+                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
+                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
+                <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventMetaId); ?></a>
             </nav>
         </header>
 
         <div class="filters">
-            <form method="GET" action="">
+            <form method="GET" action="<?php echo event_url('index.php'); ?>"  >
                 <div class="filter-group">
                     <div class="filter-item">
                         <label data-i18n="filter.artist">🎤 กรองตามวง/ศิลปิน:</label>
@@ -1435,7 +1925,7 @@ unset($dayEvents); // ยกเลิก reference
                         </div>
                     </div>
 
-                    <?php if (VENUE_MODE === 'multi'): ?>
+                    <?php if ($currentVenueMode === 'multi'): ?>
                     <div class="filter-item">
                         <label data-i18n="filter.venue">🏛️ กรองตามเวที:</label>
                         <div class="search-box-wrapper" id="venueSearchWrapper">
@@ -1470,14 +1960,14 @@ unset($dayEvents); // ยกเลิก reference
 
                 <div class="filter-buttons">
                     <button type="submit" class="btn btn-primary" data-i18n="button.search">🔍 ค้นหา</button>
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='index.php'" data-i18n="button.reset">🔄 รีเซ็ต</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='<?php echo event_url('index.php'); ?>'" data-i18n="button.reset">🔄 รีเซ็ต</button>
                     <button type="button" class="btn btn-success" onclick="saveAsImage()" data-i18n="button.saveImage">📸 บันทึกเป็นรูปภาพ</button>
                     <button type="button" class="btn btn-primary" onclick="exportToIcs()" data-i18n="button.exportIcs">📅 Export to Calendar</button>
                     <button type="button" class="btn btn-warning" onclick="openRequestModal()" data-i18n="button.requestAdd">📝 แจ้งเพิ่ม Event</button>
                 </div>
 
                 <!-- View Toggle Switch -->
-                <?php if (VENUE_MODE === 'multi'): ?>
+                <?php if ($currentVenueMode === 'multi'): ?>
                 <div class="view-toggle">
                     <label class="toggle-label">
                         <span class="toggle-text active" data-i18n="view.list">รายการ</span>
@@ -1507,7 +1997,7 @@ unset($dayEvents); // ยกเลิก reference
                         $year = date('Y', $firstEventTimestamp);
                         $dayOfWeek = date('w', $firstEventTimestamp);
                     ?>
-                    <div class="day-section">
+                    <div class="day-section" id="day-<?php echo $dayKey; ?>">
                         <div class="day-header" data-day="<?php echo $day; ?>" data-month="<?php echo $month; ?>" data-year="<?php echo $year; ?>" data-dayofweek="<?php echo $dayOfWeek; ?>">
                             📅 <span class="day-header-text"><?php echo $day . '/' . $month . '/' . $year; ?></span>
                             <span class="day-name-header" style="margin-left: 8px;"></span>
@@ -1519,7 +2009,7 @@ unset($dayEvents); // ยกเลิก reference
                                     <tr>
                                         <th data-i18n="table.time">เวลา</th>
                                         <th data-i18n="table.event">การแสดง/ศิลปิน</th>
-                                        <?php if (VENUE_MODE === 'multi'): ?>
+                                        <?php if ($currentVenueMode === 'multi'): ?>
                                         <th data-i18n="table.venue">เวที</th>
                                         <?php endif; ?>
                                         <th data-i18n="table.categories">ศิลปินที่เกี่ยวข้อง</th>
@@ -1548,7 +2038,7 @@ unset($dayEvents); // ยกเลิก reference
                                                     <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <?php if (VENUE_MODE === 'multi'): ?>
+                                            <?php if ($currentVenueMode === 'multi'): ?>
                                             <td class="event-venue-cell">
                                                 <?php if (!empty($event['location'])): ?>
                                                     <span style="color: #212529; font-size: 0.95em;">
@@ -1601,6 +2091,7 @@ unset($dayEvents); // ยกเลิก reference
                 <?php endforeach; ?>
             <?php endif; ?>
         </div>
+        <?php endif; ?> <!-- end showEventListing conditional -->
 
         <footer>
             <div class="footer-text">
@@ -1610,20 +2101,26 @@ unset($dayEvents); // ยกเลิก reference
         </footer>
     </div>
 
+    <!-- Shared JavaScript (includes translations and common functions) -->
+    <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
+    <script src="<?php echo asset_url('js/common.js'); ?>"></script>
+
+    <script>
+    const DEFAULT_EVENT_SLUG = '<?php echo DEFAULT_EVENT_SLUG; ?>';
+    const BASE_PATH = '<?php echo rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\"); ?>';
+    </script>
+
+    <?php if (!$showEventListing): ?>
     <!-- Venues data for Gantt chart -->
     <script>
         window.VENUES_DATA = <?php echo json_encode(array_values($venues), JSON_UNESCAPED_UNICODE); ?>;
     </script>
 
-    <!-- Shared JavaScript (includes translations and common functions) -->
-    <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
-    <script src="<?php echo asset_url('js/common.js'); ?>"></script>
-
     <!-- Request Modal -->
     <div id="requestModal" class="req-modal-overlay">
         <div class="req-modal">
             <div class="req-modal-header">
-                <h2 id="modalTitle">📝 แจ้งเพิ่ม Event</h2>
+                <h2 id="modalTitle" data-i18n="modal.addTitle">📝 แจ้งเพิ่ม Event</h2>
                 <button onclick="closeRequestModal()" class="req-close">&times;</button>
             </div>
             <form id="requestForm" onsubmit="submitRequest(event)">
@@ -1631,35 +2128,35 @@ unset($dayEvents); // ยกเลิก reference
                 <input type="hidden" id="reqEventId" value="">
                 <div class="req-modal-body">
                     <div class="req-row">
-                        <div class="req-group"><label>ชื่อ Event *</label><input type="text" id="reqTitle" required maxlength="200"></div>
-                        <div class="req-group"><label>Organizer</label><input type="text" id="reqOrganizer" maxlength="200"></div>
+                        <div class="req-group"><label data-i18n="modal.eventName">ชื่อ Event *</label><input type="text" id="reqTitle" required maxlength="200"></div>
+                        <div class="req-group"><label data-i18n="modal.organizer">Organizer</label><input type="text" id="reqOrganizer" maxlength="200"></div>
                     </div>
                     <div class="req-row">
                         <div class="req-group">
-                            <label>เวที</label>
+                            <label data-i18n="modal.venue">เวที</label>
                             <select id="reqLocation">
-                                <option value="">-- เลือก --</option>
+                                <option value="" data-i18n="modal.selectVenue">-- เลือก --</option>
                                 <?php foreach ($venues as $v): ?><option value="<?php echo htmlspecialchars($v); ?>"><?php echo htmlspecialchars($v); ?></option><?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="req-group"><label>Categories</label><input type="text" id="reqCategories" maxlength="500"></div>
+                        <div class="req-group"><label data-i18n="modal.categories">Categories</label><input type="text" id="reqCategories" maxlength="500"></div>
                     </div>
                     <div class="req-row">
-                        <div class="req-group"><label>วันที่ *</label><input type="date" id="reqDate" required></div>
-                        <div class="req-group"><label>เริ่ม *</label><input type="time" id="reqStart" required></div>
-                        <div class="req-group"><label>สิ้นสุด *</label><input type="time" id="reqEnd" required></div>
+                        <div class="req-group"><label data-i18n="modal.date">วันที่ *</label><input type="date" id="reqDate" required></div>
+                        <div class="req-group"><label data-i18n="modal.startTime">เริ่ม *</label><input type="time" id="reqStart" required></div>
+                        <div class="req-group"><label data-i18n="modal.endTime">สิ้นสุด *</label><input type="time" id="reqEnd" required></div>
                     </div>
-                    <div class="req-group"><label>รายละเอียด</label><textarea id="reqDesc" rows="2" maxlength="2000"></textarea></div>
+                    <div class="req-group"><label data-i18n="modal.description">รายละเอียด</label><textarea id="reqDesc" rows="2" maxlength="2000"></textarea></div>
                     <hr style="margin:15px 0;border:none;border-top:1px solid #ddd;">
                     <div class="req-row">
-                        <div class="req-group"><label>ชื่อผู้แจ้ง *</label><input type="text" id="reqName" required maxlength="100"></div>
+                        <div class="req-group"><label data-i18n="modal.requesterName">ชื่อผู้แจ้ง *</label><input type="text" id="reqName" required maxlength="100"></div>
                         <div class="req-group"><label>Email</label><input type="email" id="reqEmail" maxlength="200"></div>
                     </div>
-                    <div class="req-group"><label>หมายเหตุ</label><textarea id="reqNote" rows="2" maxlength="1000" placeholder="แหล่งข้อมูล, เหตุผล"></textarea></div>
+                    <div class="req-group"><label data-i18n="modal.requesterNote">หมายเหตุ</label><textarea id="reqNote" rows="2" maxlength="1000" data-i18n-placeholder="modal.notePlaceholder" placeholder="แหล่งข้อมูล, เหตุผล"></textarea></div>
                 </div>
                 <div class="req-modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeRequestModal()">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary" id="reqSubmitBtn">ส่งคำขอ</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRequestModal()" data-i18n="modal.cancel">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" id="reqSubmitBtn" data-i18n="modal.submit">ส่งคำขอ</button>
                 </div>
             </form>
         </div>
@@ -1697,13 +2194,85 @@ unset($dayEvents); // ยกเลิก reference
     </style>
 
     <script>
-    const VENUE_MODE = '<?php echo VENUE_MODE; ?>';
+    const VENUE_MODE = '<?php echo $currentVenueMode; ?>';
+    const EVENT_SLUG = '<?php echo htmlspecialchars($eventSlug); ?>';
+
+    // Date jump bar: fixed position, show/hide on scroll, highlight active date
+    (function() {
+        const jumpBar = document.getElementById('dateJumpBar');
+        if (!jumpBar) return;
+
+        const jumpBtns = jumpBar.querySelectorAll('.date-jump-btn');
+        const daySections = document.querySelectorAll('.day-section[id^="day-"]');
+        const calendarContainer = document.querySelector('.calendar-container');
+        if (daySections.length === 0 || !calendarContainer) return;
+
+        const jumpBarHeight = 56; // approximate bar height for offset
+
+        // Position the bar to match container width
+        function positionBar() {
+            const container = document.querySelector('.container');
+            if (container) {
+                const rect = container.getBoundingClientRect();
+                jumpBar.style.left = rect.left + 'px';
+                jumpBar.style.width = rect.width + 'px';
+                jumpBar.style.maxWidth = rect.width + 'px';
+            }
+        }
+
+        // Show/hide based on scroll position
+        function updateVisibility() {
+            const calRect = calendarContainer.getBoundingClientRect();
+            // Show when calendar top is above viewport
+            if (calRect.top < 0 && calRect.bottom > jumpBarHeight) {
+                jumpBar.classList.add('visible');
+                positionBar();
+            } else {
+                jumpBar.classList.remove('visible');
+            }
+        }
+
+        window.addEventListener('scroll', updateVisibility, { passive: true });
+        window.addEventListener('resize', function() {
+            if (jumpBar.classList.contains('visible')) positionBar();
+        }, { passive: true });
+
+        // Smooth scroll with offset for fixed bar
+        jumpBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const target = document.getElementById(targetId);
+                if (target) {
+                    const y = target.getBoundingClientRect().top + window.pageYOffset - jumpBarHeight;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                    // Update active state
+                    jumpBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // IntersectionObserver to highlight current visible date
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    jumpBtns.forEach(b => {
+                        b.classList.toggle('active', b.getAttribute('href') === '#' + id);
+                    });
+                }
+            });
+        }, { rootMargin: '-60px 0px -60% 0px', threshold: 0 });
+
+        daySections.forEach(section => observer.observe(section));
+    })();
 
     function openRequestModal() {
         document.getElementById('requestForm').reset();
         document.getElementById('reqType').value = 'add';
         document.getElementById('reqEventId').value = '';
-        document.getElementById('modalTitle').textContent = '📝 แจ้งเพิ่ม Event';
+        document.getElementById('modalTitle').textContent = translations[currentLang]['modal.addTitle'] || '📝 แจ้งเพิ่ม Event';
         document.getElementById('reqDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('requestModal').classList.add('active');
     }
@@ -1759,30 +2328,31 @@ unset($dayEvents); // ยกเลิก reference
             categories: document.getElementById('reqCategories').value,
             requester_name: document.getElementById('reqName').value,
             requester_email: document.getElementById('reqEmail').value,
-            requester_note: document.getElementById('reqNote').value
+            requester_note: document.getElementById('reqNote').value,
+            event_slug: EVENT_SLUG
         };
 
         btn.disabled = true;
-        btn.textContent = 'กำลังส่ง...';
+        btn.textContent = translations[currentLang]['modal.submitting'] || 'กำลังส่ง...';
 
         try {
-            const res = await fetch('api/request.php?action=submit', {
+            const res = await fetch(BASE_PATH + '/api/request?action=submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
             const result = await res.json();
             if (result.success) {
-                alert('ส่งคำขอสำเร็จ! Admin จะตรวจสอบต่อไป');
+                alert(translations[currentLang]['modal.submitSuccess'] || 'ส่งคำขอสำเร็จ!');
                 closeRequestModal();
             } else {
                 alert('Error: ' + result.message);
             }
         } catch (e) {
-            alert('ไม่สามารถส่งได้');
+            alert(translations[currentLang]['modal.submitError'] || 'ไม่สามารถส่งได้');
         } finally {
             btn.disabled = false;
-            btn.textContent = 'ส่งคำขอ';
+            btn.textContent = translations[currentLang]['modal.submit'] || 'ส่งคำขอ';
         }
     }
 
@@ -1807,11 +2377,21 @@ unset($dayEvents); // ยกเลิก reference
         window.location.href = url.toString();
     }
 
+    // Switch event (multi-event selector) - uses clean URL /event/slug
+    function switchEvent(slug) {
+        if (slug && slug !== DEFAULT_EVENT_SLUG) {
+            window.location.href = BASE_PATH + '/event/' + slug;
+        } else {
+            window.location.href = BASE_PATH + '/';
+        }
+    }
+
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && document.getElementById('requestModal').classList.contains('active')) {
             closeRequestModal();
         }
     });
     </script>
+    <?php endif; ?>
 </body>
 </html>

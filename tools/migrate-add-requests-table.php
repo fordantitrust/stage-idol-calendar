@@ -5,7 +5,7 @@
 
 echo "=== Migration: Add event_requests table ===\n\n";
 
-$dbPath = __DIR__ . '/../calendar.db';
+$dbPath = __DIR__ . '/../data/calendar.db';
 
 try {
     $db = new PDO('sqlite:' . $dbPath);

@@ -29,11 +29,10 @@ require_api_login();
 require_csrf_token();
 
 // Database connection
-$dbPath = __DIR__ . '/../calendar.db';
 $db = null;
 
 try {
-    $db = new PDO('sqlite:' . $dbPath);
+    $db = new PDO('sqlite:' . DB_PATH);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     jsonResponse(false, null, safe_error_message('Database connection failed', $e->getMessage()));
@@ -42,6 +41,17 @@ try {
 
 // Get action
 $action = $_GET['action'] ?? '';
+
+// Role-based access control: restrict admin-only actions
+$adminOnlyActions = [
+    'backup_create', 'backup_list', 'backup_download',
+    'backup_delete', 'backup_restore', 'backup_upload_restore',
+    'users_list', 'users_get', 'users_create', 'users_update', 'users_delete',
+];
+
+if (in_array($action, $adminOnlyActions)) {
+    require_api_admin_role();
+}
 
 switch ($action) {
     case 'list':
@@ -104,8 +114,91 @@ switch ($action) {
     case 'credits_bulk_delete':
         bulkDeleteCredits();
         break;
+    // Events Meta (Conventions) CRUD
+    case 'event_meta_list':
+        listEventMeta();
+        break;
+    case 'event_meta_get':
+        getEventMeta();
+        break;
+    case 'event_meta_create':
+        createEventMeta();
+        break;
+    case 'event_meta_update':
+        updateEventMeta();
+        break;
+    case 'event_meta_delete':
+        deleteEventMeta();
+        break;
+    // Change Password
+    case 'change_password':
+        changeAdminPassword();
+        break;
+    // User Management (admin only)
+    case 'users_list':
+        listUsers();
+        break;
+    case 'users_get':
+        getUser();
+        break;
+    case 'users_create':
+        createUser();
+        break;
+    case 'users_update':
+        updateUser();
+        break;
+    case 'users_delete':
+        deleteUser();
+        break;
+    // Backup/Restore
+    case 'backup_create':
+        createBackup();
+        break;
+    case 'backup_list':
+        listBackups();
+        break;
+    case 'backup_download':
+        downloadBackup();
+        break;
+    case 'backup_delete':
+        deleteBackupFile();
+        break;
+    case 'backup_restore':
+        restoreBackup();
+        break;
+    case 'backup_upload_restore':
+        uploadAndRestoreBackup();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
+}
+
+/**
+ * Change admin password
+ */
+function changeAdminPassword() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $userId = $_SESSION['admin_user_id'] ?? null;
+    if ($userId === null) {
+        jsonResponse(false, null, 'Password change requires database-managed user. Run: php tools/migrate-add-admin-users-table.php');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $currentPassword = $input['current_password'] ?? '';
+    $newPassword = $input['new_password'] ?? '';
+
+    if (empty($currentPassword) || empty($newPassword)) {
+        jsonResponse(false, null, 'Current password and new password are required');
+        return;
+    }
+
+    $result = change_admin_password($userId, $currentPassword, $newPassword);
+    jsonResponse($result['success'], null, $result['message']);
 }
 
 /**
@@ -127,8 +220,16 @@ function listEvents() {
     $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'start';
     $sortOrder = ($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
 
+    // Event meta filter
+    $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
+
     $where = [];
     $params = [];
+
+    if ($eventMetaId) {
+        $where[] = "event_meta_id = :event_meta_id";
+        $params[':event_meta_id'] = $eventMetaId;
+    }
 
     if ($search) {
         $where[] = "(title LIKE :search OR organizer LIKE :search OR categories LIKE :search)";
@@ -254,9 +355,11 @@ function createEvent() {
     $now = date('Y-m-d H:i:s');
 
     try {
+        $eventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
+
         $stmt = $db->prepare("
-            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :created_at, :updated_at)
+            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -268,6 +371,7 @@ function createEvent() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
+            ':event_meta_id' => $eventMetaId,
             ':created_at' => $now,
             ':updated_at' => $now
         ]);
@@ -309,6 +413,8 @@ function updateEvent() {
     $now = date('Y-m-d H:i:s');
 
     try {
+        $updateEventMetaId = array_key_exists('event_meta_id', $input) ? (isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null) : null;
+
         $stmt = $db->prepare("
             UPDATE events
             SET title = :title,
@@ -318,6 +424,7 @@ function updateEvent() {
                 organizer = :organizer,
                 description = :description,
                 categories = :categories,
+                event_meta_id = :event_meta_id,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -331,6 +438,7 @@ function updateEvent() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
+            ':event_meta_id' => $updateEventMetaId,
             ':updated_at' => $now
         ]);
 
@@ -568,12 +676,22 @@ function getVenues() {
 function listRequests() {
     global $db;
     $status = $_GET['status'] ?? '';
+    $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
     $page = max(1, intval($_GET['page'] ?? 1));
     $limit = 20;
     $offset = ($page - 1) * $limit;
 
-    $where = $status && in_array($status, ['pending', 'approved', 'rejected']) ? "WHERE status = :status" : "";
-    $params = $status ? [':status' => $status] : [];
+    $conditions = [];
+    $params = [];
+    if ($status && in_array($status, ['pending', 'approved', 'rejected'])) {
+        $conditions[] = "status = :status";
+        $params[':status'] = $status;
+    }
+    if ($eventMetaId) {
+        $conditions[] = "event_meta_id = :event_meta_id";
+        $params[':event_meta_id'] = $eventMetaId;
+    }
+    $where = $conditions ? "WHERE " . implode(' AND ', $conditions) : "";
 
     try {
         $countStmt = $db->prepare("SELECT COUNT(*) as total FROM event_requests $where");
@@ -642,8 +760,9 @@ function approveRequest() {
 
         if ($req['type'] === 'add') {
             $uid = uniqid('req-') . '@local';
-            $stmt = $db->prepare("INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :now, :now2)");
-            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now, ':now2' => $now]);
+            $reqEventMetaId = $req['event_meta_id'] ?? null;
+            $stmt = $db->prepare("INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, :now, :now2)");
+            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':event_meta_id' => $reqEventMetaId, ':now' => $now, ':now2' => $now]);
             $eventId = $db->lastInsertId();
         } else {
             $eventId = $req['event_id'];
@@ -830,6 +949,7 @@ function confirmIcsImport() {
 
     $events = $input['events'] ?? [];
     $saveFile = $input['save_file'] ?? true;
+    $eventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
 
     if (empty($events)) {
         jsonResponse(false, null, 'No events to import');
@@ -842,8 +962,8 @@ function confirmIcsImport() {
         $db->beginTransaction();
 
         $insertStmt = $db->prepare("
-            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ");
 
         $updateStmt = $db->prepare("
@@ -883,6 +1003,7 @@ function confirmIcsImport() {
                 ];
 
                 if ($action === 'insert') {
+                    $params[':event_meta_id'] = $eventMetaId;
                     $insertStmt->execute($params);
                     $stats['inserted']++;
                 } elseif ($action === 'update') {
@@ -985,9 +1106,17 @@ function listCredits() {
         $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'display_order';
         $sortOrder = ($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
+        // Event meta filter
+        $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
+
         // Build WHERE clause
         $where = [];
         $params = [];
+
+        if ($eventMetaId) {
+            $where[] = "(event_meta_id IS NULL OR event_meta_id = :event_meta_id)";
+            $params[':event_meta_id'] = $eventMetaId;
+        }
 
         if ($search) {
             $where[] = "(title LIKE :search OR description LIKE :search OR link LIKE :search)";
@@ -1097,6 +1226,7 @@ function createCredit() {
     $link = trim($input['link'] ?? '');
     $description = trim($input['description'] ?? '');
     $display_order = intval($input['display_order'] ?? 0);
+    $creditEventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
 
     if (strlen($title) > 200) {
         jsonResponse(false, null, 'Title is too long (max 200 characters)');
@@ -1112,8 +1242,8 @@ function createCredit() {
         $now = date('Y-m-d H:i:s');
 
         $stmt = $db->prepare("
-            INSERT INTO credits (title, link, description, display_order, created_at, updated_at)
-            VALUES (:title, :link, :description, :display_order, :created_at, :updated_at)
+            INSERT INTO credits (title, link, description, display_order, event_meta_id, created_at, updated_at)
+            VALUES (:title, :link, :description, :display_order, :event_meta_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -1121,6 +1251,7 @@ function createCredit() {
             ':link' => $link,
             ':description' => $description,
             ':display_order' => $display_order,
+            ':event_meta_id' => $creditEventMetaId,
             ':created_at' => $now,
             ':updated_at' => $now
         ]);
@@ -1128,7 +1259,7 @@ function createCredit() {
         $id = $db->lastInsertId();
 
         // Invalidate cache
-        invalidate_credits_cache();
+        invalidate_credits_cache($creditEventMetaId);
 
         jsonResponse(true, ['id' => $id], 'Credit created successfully');
 
@@ -1166,6 +1297,7 @@ function updateCredit() {
     $link = trim($input['link'] ?? '');
     $description = trim($input['description'] ?? '');
     $display_order = intval($input['display_order'] ?? 0);
+    $creditEventMetaId = isset($input['event_meta_id']) ? (is_null($input['event_meta_id']) ? null : intval($input['event_meta_id'])) : null;
 
     if (strlen($title) > 200) {
         jsonResponse(false, null, 'Title is too long (max 200 characters)');
@@ -1184,6 +1316,7 @@ function updateCredit() {
                 link = :link,
                 description = :description,
                 display_order = :display_order,
+                event_meta_id = :event_meta_id,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -1193,6 +1326,7 @@ function updateCredit() {
             ':link' => $link,
             ':description' => $description,
             ':display_order' => $display_order,
+            ':event_meta_id' => $creditEventMetaId,
             ':updated_at' => date('Y-m-d H:i:s'),
             ':id' => $id
         ]);
@@ -1203,7 +1337,7 @@ function updateCredit() {
         }
 
         // Invalidate cache
-        invalidate_credits_cache();
+        invalidate_credits_cache($creditEventMetaId);
 
         jsonResponse(true, null, 'Credit updated successfully');
 
@@ -1307,6 +1441,839 @@ function bulkDeleteCredits() {
         $db->rollBack();
         jsonResponse(false, null, safe_error_message('Failed to delete credits', $e->getMessage()));
     }
+}
+
+// ============================================================================
+// EVENTS META (CONVENTIONS) API FUNCTIONS
+// ============================================================================
+
+/**
+ * List all events_meta (conventions)
+ */
+function listEventMeta() {
+    global $db;
+
+    try {
+        $stmt = $db->query("SELECT * FROM events_meta ORDER BY start_date DESC, name ASC");
+        $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Add event count for each meta
+        foreach ($metas as &$meta) {
+            $countStmt = $db->prepare("SELECT COUNT(*) as count FROM events WHERE event_meta_id = :id");
+            $countStmt->execute([':id' => $meta['id']]);
+            $meta['event_count'] = intval($countStmt->fetch(PDO::FETCH_ASSOC)['count']);
+        }
+        unset($meta);
+
+        $fieldsToEscape = ['name', 'slug', 'description'];
+        $metas = array_map(function($m) use ($fieldsToEscape) {
+            return escapeOutputData($m, $fieldsToEscape);
+        }, $metas);
+
+        jsonResponse(true, $metas);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch events meta', $e->getMessage()));
+    }
+}
+
+/**
+ * Get single event_meta by ID
+ */
+function getEventMeta() {
+    global $db;
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'Event meta ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM events_meta WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $meta = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$meta) {
+            jsonResponse(false, null, 'Event meta not found');
+            return;
+        }
+
+        $fieldsToEscape = ['name', 'slug', 'description'];
+        $meta = escapeOutputData($meta, $fieldsToEscape);
+
+        jsonResponse(true, $meta);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch event meta', $e->getMessage()));
+    }
+}
+
+/**
+ * Create new event_meta (convention)
+ */
+function createEventMeta() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($input['name']) || empty($input['slug'])) {
+        jsonResponse(false, null, 'Name and slug are required');
+        return;
+    }
+
+    $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
+    $name = mb_substr(trim($input['name']), 0, 200);
+    $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
+    $startDate = $input['start_date'] ?? null;
+    $endDate = $input['end_date'] ?? null;
+    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
+    $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+
+    try {
+        // Check unique slug
+        $check = $db->prepare("SELECT id FROM events_meta WHERE slug = :slug");
+        $check->execute([':slug' => $slug]);
+        if ($check->fetch()) {
+            jsonResponse(false, null, 'Slug already exists');
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $stmt = $db->prepare("
+            INSERT INTO events_meta (slug, name, description, start_date, end_date, venue_mode, is_active, created_at, updated_at)
+            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :now, :now2)
+        ");
+        $stmt->execute([
+            ':slug' => $slug,
+            ':name' => $name,
+            ':description' => $description,
+            ':start_date' => $startDate,
+            ':end_date' => $endDate,
+            ':venue_mode' => $venueMode,
+            ':is_active' => $isActive,
+            ':now' => $now,
+            ':now2' => $now
+        ]);
+
+        jsonResponse(true, ['id' => $db->lastInsertId()], 'Convention created successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create convention', $e->getMessage()));
+    }
+}
+
+/**
+ * Update existing event_meta
+ */
+function updateEventMeta() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'Event meta ID required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    if (empty($input['name']) || empty($input['slug'])) {
+        jsonResponse(false, null, 'Name and slug are required');
+        return;
+    }
+
+    $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
+    $name = mb_substr(trim($input['name']), 0, 200);
+    $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
+    $startDate = $input['start_date'] ?? null;
+    $endDate = $input['end_date'] ?? null;
+    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
+    $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+
+    try {
+        // Check slug uniqueness (exclude self)
+        $check = $db->prepare("SELECT id FROM events_meta WHERE slug = :slug AND id != :id");
+        $check->execute([':slug' => $slug, ':id' => $id]);
+        if ($check->fetch()) {
+            jsonResponse(false, null, 'Slug already exists');
+            return;
+        }
+
+        $stmt = $db->prepare("
+            UPDATE events_meta
+            SET slug = :slug, name = :name, description = :description,
+                start_date = :start_date, end_date = :end_date,
+                venue_mode = :venue_mode, is_active = :is_active,
+                updated_at = :updated_at
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            ':slug' => $slug,
+            ':name' => $name,
+            ':description' => $description,
+            ':start_date' => $startDate,
+            ':end_date' => $endDate,
+            ':venue_mode' => $venueMode,
+            ':is_active' => $isActive,
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id' => $id
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Convention not found');
+            return;
+        }
+
+        jsonResponse(true, ['id' => $id], 'Convention updated successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to update convention', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete event_meta
+ */
+function deleteEventMeta() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'Event meta ID required');
+        return;
+    }
+
+    try {
+        // Check if there are events linked to this meta
+        $countStmt = $db->prepare("SELECT COUNT(*) as count FROM events WHERE event_meta_id = :id");
+        $countStmt->execute([':id' => $id]);
+        $eventCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['count']);
+
+        if ($eventCount > 0) {
+            jsonResponse(false, null, "Cannot delete: $eventCount events are linked to this convention. Delete or reassign them first.");
+            return;
+        }
+
+        $stmt = $db->prepare("DELETE FROM events_meta WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Convention not found');
+            return;
+        }
+
+        jsonResponse(true, null, 'Convention deleted successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete convention', $e->getMessage()));
+    }
+}
+
+// ============================================================================
+// USER MANAGEMENT FUNCTIONS (admin only)
+// ============================================================================
+
+/**
+ * List all admin users
+ */
+function listUsers() {
+    global $db;
+
+    try {
+        $stmt = $db->query("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at FROM admin_users ORDER BY id ASC");
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $fieldsToEscape = ['username', 'display_name'];
+        $users = array_map(function($user) use ($fieldsToEscape) {
+            return escapeOutputData($user, $fieldsToEscape);
+        }, $users);
+
+        jsonResponse(true, ['users' => $users]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch users', $e->getMessage()));
+    }
+}
+
+/**
+ * Get single user by ID
+ */
+function getUser() {
+    global $db;
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'User ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at FROM admin_users WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            jsonResponse(false, null, 'User not found');
+            return;
+        }
+
+        $fieldsToEscape = ['username', 'display_name'];
+        $user = escapeOutputData($user, $fieldsToEscape);
+
+        jsonResponse(true, $user);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch user', $e->getMessage()));
+    }
+}
+
+/**
+ * Create new admin user
+ */
+function createUser() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $username = trim($input['username'] ?? '');
+    $password = $input['password'] ?? '';
+    $displayName = trim($input['display_name'] ?? '');
+    $role = $input['role'] ?? 'agent';
+    $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+
+    // Validation
+    if (empty($username)) {
+        jsonResponse(false, null, 'Username is required');
+        return;
+    }
+
+    if (strlen($username) > 50) {
+        jsonResponse(false, null, 'Username is too long (max 50 characters)');
+        return;
+    }
+
+    if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $username)) {
+        jsonResponse(false, null, 'Username can only contain letters, numbers, underscore, hyphen, and dot');
+        return;
+    }
+
+    if (empty($password) || strlen($password) < 8) {
+        jsonResponse(false, null, 'Password is required (min 8 characters)');
+        return;
+    }
+
+    if (!in_array($role, ['admin', 'agent'])) {
+        jsonResponse(false, null, 'Invalid role. Must be admin or agent');
+        return;
+    }
+
+    if (strlen($displayName) > 100) {
+        jsonResponse(false, null, 'Display name is too long (max 100 characters)');
+        return;
+    }
+
+    try {
+        // Check unique username
+        $check = $db->prepare("SELECT id FROM admin_users WHERE username = :username");
+        $check->execute([':username' => $username]);
+        if ($check->fetch()) {
+            jsonResponse(false, null, 'Username already exists');
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $db->prepare("
+            INSERT INTO admin_users (username, password_hash, display_name, role, is_active, created_at, updated_at)
+            VALUES (:username, :password_hash, :display_name, :role, :is_active, :created_at, :updated_at)
+        ");
+        $stmt->execute([
+            ':username' => $username,
+            ':password_hash' => $passwordHash,
+            ':display_name' => $displayName ?: $username,
+            ':role' => $role,
+            ':is_active' => $isActive,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+
+        jsonResponse(true, ['id' => $db->lastInsertId()], 'User created successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create user', $e->getMessage()));
+    }
+}
+
+/**
+ * Update existing admin user
+ */
+function updateUser() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'User ID required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+
+    $displayName = trim($input['display_name'] ?? '');
+    $role = $input['role'] ?? '';
+    $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+    $newPassword = $input['password'] ?? '';
+
+    // Validation
+    if (!in_array($role, ['admin', 'agent'])) {
+        jsonResponse(false, null, 'Invalid role. Must be admin or agent');
+        return;
+    }
+
+    if (strlen($displayName) > 100) {
+        jsonResponse(false, null, 'Display name is too long (max 100 characters)');
+        return;
+    }
+
+    // Prevent changing own role
+    $currentUserId = $_SESSION['admin_user_id'] ?? null;
+    if ($currentUserId !== null && intval($currentUserId) === $id) {
+        // Check if trying to change own role
+        $selfStmt = $db->prepare("SELECT role FROM admin_users WHERE id = :id");
+        $selfStmt->execute([':id' => $id]);
+        $self = $selfStmt->fetch(PDO::FETCH_ASSOC);
+        if ($self && $self['role'] !== $role) {
+            jsonResponse(false, null, 'Cannot change your own role');
+            return;
+        }
+        // Prevent deactivating self
+        if (!$isActive) {
+            jsonResponse(false, null, 'Cannot deactivate your own account');
+            return;
+        }
+    }
+
+    try {
+        // Check user exists
+        $check = $db->prepare("SELECT id FROM admin_users WHERE id = :id");
+        $check->execute([':id' => $id]);
+        if (!$check->fetch()) {
+            jsonResponse(false, null, 'User not found');
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+
+        if (!empty($newPassword)) {
+            if (strlen($newPassword) < 8) {
+                jsonResponse(false, null, 'Password must be at least 8 characters');
+                return;
+            }
+            $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $db->prepare("
+                UPDATE admin_users
+                SET display_name = :display_name, role = :role, is_active = :is_active,
+                    password_hash = :password_hash, updated_at = :updated_at
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':display_name' => $displayName,
+                ':role' => $role,
+                ':is_active' => $isActive,
+                ':password_hash' => $passwordHash,
+                ':updated_at' => $now,
+                ':id' => $id,
+            ]);
+        } else {
+            $stmt = $db->prepare("
+                UPDATE admin_users
+                SET display_name = :display_name, role = :role, is_active = :is_active,
+                    updated_at = :updated_at
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':display_name' => $displayName,
+                ':role' => $role,
+                ':is_active' => $isActive,
+                ':updated_at' => $now,
+                ':id' => $id,
+            ]);
+        }
+
+        jsonResponse(true, ['id' => $id], 'User updated successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to update user', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete admin user
+ */
+function deleteUser() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'User ID required');
+        return;
+    }
+
+    // Cannot delete self
+    $currentUserId = $_SESSION['admin_user_id'] ?? null;
+    if ($currentUserId !== null && intval($currentUserId) === $id) {
+        jsonResponse(false, null, 'Cannot delete your own account');
+        return;
+    }
+
+    try {
+        // Check if this is the last admin user
+        $user = $db->prepare("SELECT role FROM admin_users WHERE id = :id");
+        $user->execute([':id' => $id]);
+        $userData = $user->fetch(PDO::FETCH_ASSOC);
+
+        if (!$userData) {
+            jsonResponse(false, null, 'User not found');
+            return;
+        }
+
+        if ($userData['role'] === 'admin') {
+            $adminCount = $db->query("SELECT COUNT(*) as count FROM admin_users WHERE role = 'admin' AND is_active = 1")->fetch(PDO::FETCH_ASSOC)['count'];
+            if (intval($adminCount) <= 1) {
+                jsonResponse(false, null, 'Cannot delete the last admin user');
+                return;
+            }
+        }
+
+        $stmt = $db->prepare("DELETE FROM admin_users WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'User not found');
+            return;
+        }
+
+        jsonResponse(true, null, 'User deleted successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete user', $e->getMessage()));
+    }
+}
+
+// ============================================================================
+// BACKUP/RESTORE FUNCTIONS
+// ============================================================================
+
+/**
+ * Validate backup filename to prevent path traversal
+ */
+function validateBackupFilename($filename) {
+    if (empty($filename)) {
+        return false;
+    }
+    // Only allow alphanumeric, underscore, hyphen, dot
+    if (!preg_match('/^[a-zA-Z0-9_\-\.]+\.db$/', $filename)) {
+        return false;
+    }
+    // Block path traversal
+    if (strpos($filename, '..') !== false || strpos($filename, '/') !== false || strpos($filename, '\\') !== false) {
+        return false;
+    }
+    return true;
+}
+
+/**
+ * Get backup directory path
+ */
+function getBackupDir() {
+    return __DIR__ . '/../backups';
+}
+
+/**
+ * Create a backup of the database
+ */
+function createBackup() {
+    global $db;
+
+    $dbPath = DB_PATH;
+    $backupDir = getBackupDir();
+
+    if (!file_exists($dbPath)) {
+        jsonResponse(false, null, 'Database file not found');
+        return;
+    }
+
+    // Create backup directory if not exists
+    if (!is_dir($backupDir)) {
+        if (!mkdir($backupDir, 0755, true)) {
+            jsonResponse(false, null, 'Failed to create backup directory');
+            return;
+        }
+    }
+
+    $timestamp = gmdate('Ymd_His');
+    $backupFilename = "backup_{$timestamp}.db";
+    $backupPath = $backupDir . '/' . $backupFilename;
+
+    // Close DB connection first to release file lock (important on Windows)
+    $db = null;
+
+    $success = copy($dbPath, $backupPath);
+
+    // Reopen DB connection
+    $db = new PDO('sqlite:' . $dbPath);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    if (!$success) {
+        jsonResponse(false, null, 'Failed to create backup');
+        return;
+    }
+
+    jsonResponse(true, [
+        'filename' => $backupFilename,
+        'size' => filesize($backupPath),
+        'created_at' => gmdate('Y-m-d H:i:s')
+    ], 'Backup created successfully');
+}
+
+/**
+ * List all backup files
+ */
+function listBackups() {
+    $backupDir = getBackupDir();
+
+    if (!is_dir($backupDir)) {
+        jsonResponse(true, ['backups' => []]);
+        return;
+    }
+
+    $files = glob($backupDir . '/*.db') ?: [];
+    $backups = [];
+
+    foreach ($files as $file) {
+        $filename = basename($file);
+        $backups[] = [
+            'filename' => $filename,
+            'size' => filesize($file),
+            'created_at' => gmdate('Y-m-d H:i:s', filemtime($file))
+        ];
+    }
+
+    // Sort by modification time descending (newest first)
+    usort($backups, function($a, $b) {
+        return strcmp($b['created_at'], $a['created_at']);
+    });
+
+    jsonResponse(true, ['backups' => $backups]);
+}
+
+/**
+ * Download a backup file
+ */
+function downloadBackup() {
+    $filename = $_GET['filename'] ?? '';
+
+    if (!validateBackupFilename($filename)) {
+        jsonResponse(false, null, 'Invalid filename');
+        return;
+    }
+
+    $backupDir = getBackupDir();
+    $filePath = $backupDir . '/' . $filename;
+
+    if (!file_exists($filePath)) {
+        jsonResponse(false, null, 'Backup file not found');
+        return;
+    }
+
+    // Send file for download
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+
+    readfile($filePath);
+    exit;
+}
+
+/**
+ * Delete a backup file
+ */
+function deleteBackupFile() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $filename = $input['filename'] ?? '';
+
+    if (!validateBackupFilename($filename)) {
+        jsonResponse(false, null, 'Invalid filename');
+        return;
+    }
+
+    $backupDir = getBackupDir();
+    $filePath = $backupDir . '/' . $filename;
+
+    if (!file_exists($filePath)) {
+        jsonResponse(false, null, 'Backup file not found');
+        return;
+    }
+
+    if (!unlink($filePath)) {
+        jsonResponse(false, null, 'Failed to delete backup file');
+        return;
+    }
+
+    jsonResponse(true, null, 'Backup deleted successfully');
+}
+
+/**
+ * Validate that a file is a valid SQLite database
+ */
+function isValidSqliteFile($filePath) {
+    $handle = fopen($filePath, 'rb');
+    if (!$handle) {
+        return false;
+    }
+    $header = fread($handle, 16);
+    fclose($handle);
+
+    // SQLite database file header
+    return $header === "SQLite format 3\0";
+}
+
+/**
+ * Restore database from a backup file on server
+ */
+function restoreBackup() {
+    global $db;
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $filename = $input['filename'] ?? '';
+
+    if (!validateBackupFilename($filename)) {
+        jsonResponse(false, null, 'Invalid filename');
+        return;
+    }
+
+    $backupDir = getBackupDir();
+    $backupPath = $backupDir . '/' . $filename;
+    $dbPath = DB_PATH;
+
+    if (!file_exists($backupPath)) {
+        jsonResponse(false, null, 'Backup file not found');
+        return;
+    }
+
+    // Validate SQLite format
+    if (!isValidSqliteFile($backupPath)) {
+        jsonResponse(false, null, 'Invalid database file format');
+        return;
+    }
+
+    // Auto-create backup before restore (safety net)
+    $autoBackupName = 'auto_before_restore_' . gmdate('Ymd_His') . '.db';
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0755, true);
+    }
+    copy($dbPath, $backupDir . '/' . $autoBackupName);
+
+    // Close current DB connection
+    $db = null;
+
+    // Copy backup to database
+    if (!copy($backupPath, $dbPath)) {
+        jsonResponse(false, null, 'Failed to restore database');
+        return;
+    }
+
+    // Invalidate all caches
+    invalidate_all_caches();
+
+    jsonResponse(true, [
+        'restored_from' => $filename,
+        'auto_backup' => $autoBackupName
+    ], 'Database restored successfully. Auto-backup created: ' . $autoBackupName);
+}
+
+/**
+ * Upload a .db file and restore from it
+ */
+function uploadAndRestoreBackup() {
+    global $db;
+
+    if (!isset($_FILES['backup_file'])) {
+        jsonResponse(false, null, 'No file uploaded');
+        return;
+    }
+
+    $file = $_FILES['backup_file'];
+    $maxSize = 50 * 1024 * 1024; // 50MB
+
+    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+    if ($ext !== 'db') {
+        jsonResponse(false, null, 'Invalid file type. Only .db files allowed');
+        return;
+    }
+    if ($file['size'] > $maxSize) {
+        jsonResponse(false, null, 'File too large. Maximum 50MB allowed');
+        return;
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'Upload error: ' . $file['error']);
+        return;
+    }
+
+    // Validate SQLite format
+    if (!isValidSqliteFile($file['tmp_name'])) {
+        jsonResponse(false, null, 'Invalid database file. Not a valid SQLite database');
+        return;
+    }
+
+    $dbPath = DB_PATH;
+    $backupDir = getBackupDir();
+
+    // Auto-create backup before restore
+    if (!is_dir($backupDir)) {
+        mkdir($backupDir, 0755, true);
+    }
+    $autoBackupName = 'auto_before_restore_' . gmdate('Ymd_His') . '.db';
+    copy($dbPath, $backupDir . '/' . $autoBackupName);
+
+    // Close current DB connection
+    $db = null;
+
+    // Move uploaded file to database location
+    if (!move_uploaded_file($file['tmp_name'], $dbPath)) {
+        jsonResponse(false, null, 'Failed to restore database');
+        return;
+    }
+
+    // Invalidate all caches
+    invalidate_all_caches();
+
+    jsonResponse(true, [
+        'auto_backup' => $autoBackupName
+    ], 'Database restored from uploaded file. Auto-backup created: ' . $autoBackupName);
 }
 
 // ============================================================================

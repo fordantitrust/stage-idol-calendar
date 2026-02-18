@@ -110,7 +110,10 @@ php migrate-add-requests-table.php
 # 2. Create credits table
 php migrate-add-credits-table.php
 
-# 3. Configure credentials in config/admin.php
+# 3. Create events_meta table (multi-event support)
+php migrate-add-events-meta-table.php
+
+# 4. Configure credentials in config/admin.php
 # Generate hash: php -r "echo password_hash('your_password', PASSWORD_DEFAULT);"
 # Then set ADMIN_USERNAME and ADMIN_PASSWORD_HASH
 
@@ -135,6 +138,7 @@ http://localhost:8000/admin/
 - ✅ Review and approve user requests
 - ✅ Compare original vs. requested changes
 - ✅ Manage credits and references
+- ✅ Manage multiple conventions (multi-event support)
 - ✅ Bulk select and delete/edit up to 100 items at once
 - ✅ Customizable pagination (20/50/100 per page)
 - ✅ CSRF protection and IP whitelist for security
@@ -200,14 +204,15 @@ quick-test.bat
 php tests/run-tests.php
 ```
 
-**172 automated tests** covering:
+**226 automated tests** covering:
 - Security (XSS, SQL injection, input sanitization)
 - Cache system (TTL, invalidation)
 - Authentication (session, timing attacks)
 - Database operations (CRUD, bulk operations)
 - Integration (configuration, workflows, API endpoints)
+- User management & role-based access control
 
-✅ **All tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
 
 See [tests/README.md](tests/README.md) for details.
 

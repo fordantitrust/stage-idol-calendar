@@ -387,9 +387,23 @@ Before submitting PR, test:
    - [ ] Tablet (768x1024)
    - [ ] Mobile (375x667)
 
-### Automated Testing (Future)
+### Automated Testing
 
-We plan to add automated testing with PHPUnit and Jest. Contributions to test infrastructure are welcome!
+The project includes **226 automated tests** covering security, cache, authentication, database operations, user management, and integration:
+
+```bash
+# Run all tests
+php tests/run-tests.php
+
+# Run specific suite
+php tests/run-tests.php SecurityTest       # 7 tests
+php tests/run-tests.php CacheTest          # 17 tests
+php tests/run-tests.php AdminAuthTest      # 32 tests
+php tests/run-tests.php CreditsApiTest     # 43 tests
+php tests/run-tests.php IntegrationTest    # 90 tests
+```
+
+All tests must pass before submitting a PR. See [tests/README.md](tests/README.md) for details.
 
 ---
 

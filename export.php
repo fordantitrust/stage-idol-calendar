@@ -5,8 +5,14 @@ require_once 'IcsParser.php';
 // Security headers (excluding X-Frame-Options for download)
 header('X-Content-Type-Options: nosniff');
 
+// Multi-event support
+$eventSlug = get_current_event_slug();
+$eventMeta = get_event_meta_by_slug($eventSlug);
+$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
+
 // สร้าง IcsParser instance
-$parser = new IcsParser('ics');
+$parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
 
 // ดึงข้อมูลทั้งหมด
 $allEvents = $parser->getAllEvents();
@@ -36,7 +42,8 @@ $filteredEvents = array_filter($allEvents, function($event) use ($filterArtists,
 });
 
 // สร้างชื่อไฟล์
-$filename = 'stage-idol-calendar-' . date('Y-m-d') . '.ics';
+$slugSuffix = ($eventSlug && $eventSlug !== DEFAULT_EVENT_SLUG) ? '-' . $eventSlug : '';
+$filename = 'stage-idol-calendar' . $slugSuffix . '-' . date('Y-m-d') . '.ics';
 
 // ตั้งค่า headers สำหรับดาวน์โหลดไฟล์
 header('Content-Type: text/calendar; charset=utf-8');
@@ -55,7 +62,7 @@ echo "VERSION:2.0\r\n";
 echo "PRODID:-//Idol Stage Timetable//NONSGML v1.0//EN\r\n";
 echo "CALSCALE:GREGORIAN\r\n";
 echo "METHOD:PUBLISH\r\n";
-echo "X-WR-CALNAME:Idol Stage Timetable\r\n";
+echo "X-WR-CALNAME:" . ($eventName ? $eventName . " - " : "") . "Idol Stage Timetable\r\n";
 echo "X-WR-TIMEZONE:Asia/Bangkok\r\n";
 echo "X-WR-CALDESC:Exported events from Idol Stage Timetable ($exportedEvents of $totalEvents events)\r\n";
 

@@ -5,6 +5,11 @@
  */
 require_once 'config.php';
 send_security_headers();
+
+// Multi-event support
+$eventSlug = get_current_event_slug();
+$eventMeta = get_event_meta_by_slug($eventSlug);
+$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -86,16 +91,16 @@ send_security_headers();
                 <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
             </div>
             <h1 data-i18n="credits.title">📋 Credits & References</h1>
-            <p data-i18n="credits.subtitle">แหล่งข้อมูลที่ใช้ในการจัดทำปฏิทิน Japan Expo Thailand 2026</p>
+            <p data-i18n="credits.subtitle">แหล่งข้อมูลที่ใช้ในการจัดทำปฏิทิน</p>
             <nav class="header-nav">
-                <a href="index.php" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
-                <a href="how-to-use.php" class="header-nav-link" data-i18n="nav.howToUse">📖 วิธีการใช้งาน</a>
+                <a href="<?php echo event_url('index.php'); ?>" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="nav.howToUse">📖 วิธีการใช้งาน</a>
             </nav>
         </header>
 
         <?php
         // Fetch credits from cache (or database if cache expired)
-        $credits = get_cached_credits();
+        $credits = get_cached_credits($eventMetaId);
         ?>
 
         <div class="content">
@@ -132,7 +137,7 @@ send_security_headers();
                 </div>
             <?php else: ?>
                 <div class="section">
-                    <p style="text-align: center; padding: 40px; color: #999;">
+                    <p style="text-align: center; padding: 40px; color: #999;" data-i18n="credits.noData">
                         ยังไม่มีข้อมูล credits
                     </p>
                 </div>

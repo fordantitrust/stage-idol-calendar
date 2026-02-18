@@ -29,10 +29,10 @@ jobs:
       - name: Check PHP version
         run: php -v
 
-      - name: Create cache directory
+      - name: Create directories
         run: |
-          mkdir -p cache
-          chmod 755 cache
+          mkdir -p cache data
+          chmod 755 cache data
 
       - name: Create database and tables
         run: |
@@ -40,6 +40,7 @@ jobs:
           php import-ics-to-sqlite.php || true
           php migrate-add-requests-table.php || true
           php migrate-add-credits-table.php || true
+          php migrate-add-admin-users-table.php || true
           cd ..
 
       - name: Run tests
@@ -86,11 +87,12 @@ jobs:
 
       - name: Create database
         run: |
-          mkdir -p cache
+          mkdir -p cache data
           cd tools
           php import-ics-to-sqlite.php || true
           php migrate-add-requests-table.php || true
           php migrate-add-credits-table.php || true
+          php migrate-add-admin-users-table.php || true
 
       - name: Run integration tests
         run: php tests/run-tests.php IntegrationTest

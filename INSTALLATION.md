@@ -194,25 +194,36 @@ sudo chmod -R 755 /var/www/html/stage-idol-calendar
 ```
 
 **Server Block Example** (`/etc/nginx/sites-available/calendar`):
+
+See [nginx-clean-url.conf](nginx-clean-url.conf) for a complete example with clean URL support.
+
 ```nginx
 server {
     listen 80;
     server_name calendar.example.com;
     root /var/www/html/stage-idol-calendar;
-    index index.php index.html;
+    index index.php;
 
+    # Event path routing for multi-event support
+    location ~ ^/event/([^/]+)/([^/]+)$ {
+        rewrite ^/event/([^/]+)/([^/]+)$ /$2.php?event=$1 last;
+    }
+    location ~ ^/event/([^/]+)/?$ {
+        rewrite ^/event/([^/]+)/?$ /index.php?event=$1 last;
+    }
+
+    # Clean URLs - try without .php extension
     location / {
-        try_files $uri $uri/ =404;
+        try_files $uri $uri/ $uri.php?$query_string;
     }
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;  # Adjust PHP version
     }
 
-    location ~ /\.ht {
-        deny all;
-    }
+    location ~ /\. { deny all; }
+    location ~ \.(db|sqlite|sqlite3)$ { deny all; }
 }
 ```
 
@@ -331,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '1.1.0'); // Change to force cache refresh
+define('APP_VERSION', '1.2.1'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -371,9 +382,12 @@ php migrate-add-requests-table.php
 
 # Create credits table
 php migrate-add-credits-table.php
+
+# Create events_meta table (multi-event/conventions support)
+php migrate-add-events-meta-table.php
 ```
 
-This creates the `event_requests` and `credits` tables in the database.
+This creates the `event_requests`, `credits`, and `events_meta` tables in the database.
 
 ### Step 2: Configure Admin Credentials
 
@@ -418,13 +432,17 @@ define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 - Bulk delete multiple credits
 - Search, sort by display order
 - Pagination
-- Pagination
+
+**Conventions Tab**:
+- Create, edit, delete conventions
+- Configure name, slug, dates, venue mode, active status
+- Per-convention venue mode (multi/single)
 
 **Requests Tab**:
 - View pending user requests
 - Compare original vs. requested changes
 - Approve or reject requests
-- Filter by status
+- Filter by status and convention
 
 ---
 
@@ -743,7 +761,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **172 automated unit tests** for quality assurance:
+The project includes **226 automated unit tests** for quality assurance:
 
 ```bash
 # Run all tests
@@ -770,13 +788,13 @@ chmod +x quick-test.sh
 
 ### Test Coverage
 
-- **SecurityTest** (15 tests) - XSS protection, input sanitization, SQL injection prevention
-- **CacheTest** (11 tests) - Cache creation, invalidation, TTL behavior
-- **AdminAuthTest** (15 tests) - Authentication, session management, password security
-- **CreditsApiTest** (13 tests) - Database CRUD, bulk operations, validation
-- **IntegrationTest** (118 tests) - Configuration validation, file structure, workflows, API endpoints
+- **SecurityTest** (7 tests) - XSS protection, input sanitization, SQL injection prevention
+- **CacheTest** (17 tests) - Cache creation, invalidation, TTL behavior
+- **AdminAuthTest** (32 tests) - Authentication, session management, password security
+- **CreditsApiTest** (43 tests) - Database CRUD, bulk operations, validation
+- **IntegrationTest** (90 tests) - Configuration validation, file structure, workflows, API endpoints
 
-✅ **All 172 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
 
 ### CI/CD Integration
 
@@ -802,7 +820,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 172 tests pass
+- [ ] Verify all 226 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, or 8.3)
 - [ ] Change admin credentials in `config/admin.php`
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`

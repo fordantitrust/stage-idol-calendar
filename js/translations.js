@@ -60,7 +60,7 @@ const translations = {
         'section2.filter1.tip': '💡 เคล็ดลับ:',
         'section2.filter1.tipText': 'คุณสามารถเลือกหลายศิลปินพร้อมกันได้',
         'section2.filter2.title': '2. กรองตามเวที',
-        'section2.filter2.desc': 'เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Maipenrai Stage เป็นต้น',
+        'section2.filter2.desc': 'เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Common Stage เป็นต้น',
         'section2.action.title': '3. ดำเนินการ',
         'section2.action1': '🔍 ค้นหา: กดปุ่มนี้เพื่อแสดงผลลัพธ์ตามที่คุณเลือก',
         'section2.action2': '🔄 รีเซ็ต: ล้างตัวกรองทั้งหมดและแสดงกิจกรรมทั้งหมด',
@@ -136,13 +136,47 @@ const translations = {
         'contact.section3.title': '🙏 ขอบคุณ',
         'contact.section3.text': 'ขอบคุณที่ใช้งานปฏิทินกิจกรรมนี้ หากมีข้อเสนอแนะหรือต้องการช่วยพัฒนาโปรเจกต์นี้ เรายินดีรับฟังและต้อนรับเสมอ!',
 
+        // Event listing page
+        'listing.title': 'รายการ Events',
+        'listing.ongoing': 'กำลังจัดงาน',
+        'listing.upcoming': 'กำลังจะมาถึง',
+        'listing.past': 'จบแล้ว',
+        'listing.viewSchedule': '📋 ดูตารางเวลา',
+        'listing.credits': '📋 Credits',
+        'listing.noEvents': 'ยังไม่มี Event ในระบบ',
+
+        // Date jump bar
+        'dateJump.label': '📅 ข้ามไปวันที่:',
+
         // Credits page
         'credits.title': '📋 Credits & References',
-        'credits.subtitle': 'แหล่งข้อมูลที่ใช้ในการจัดทำปฏิทิน your event',
+        'credits.subtitle': 'แหล่งข้อมูลที่ใช้ในการจัดทำปฏิทิน',
+        'credits.list.title': '📋 Credits & References',
         'credits.announcements.title': '📢 Official Announcements',
         'credits.channels.title': '🔗 Official Channels',
         'credits.disclaimer.title': 'Disclaimer:',
-        'credits.disclaimer.text': 'ข้อมูลในปฏิทินนี้รวบรวมจากแหล่งข้อมูลสาธารณะเพื่อความสะดวกในการติดตามกำหนดการ กรุณาตรวจสอบข้อมูลอย่างเป็นทางการจากผู้จัดงานก่อนเข้าร่วมงาน ข้อมูลอาจมีการเปลี่ยนแปลงโดยไม่แจ้งให้ทราบล่วงหน้า'
+        'credits.disclaimer.text': 'ข้อมูลในปฏิทินนี้รวบรวมจากแหล่งข้อมูลสาธารณะเพื่อความสะดวกในการติดตามกำหนดการ กรุณาตรวจสอบข้อมูลอย่างเป็นทางการจากผู้จัดงานก่อนเข้าร่วมงาน ข้อมูลอาจมีการเปลี่ยนแปลงโดยไม่แจ้งให้ทราบล่วงหน้า',
+        'credits.noData': 'ยังไม่มีข้อมูล credits',
+
+        // Request modal
+        'modal.addTitle': '📝 แจ้งเพิ่ม Event',
+        'modal.eventName': 'ชื่อ Event *',
+        'modal.organizer': 'Organizer',
+        'modal.venue': 'เวที',
+        'modal.selectVenue': '-- เลือก --',
+        'modal.categories': 'Categories',
+        'modal.date': 'วันที่ *',
+        'modal.startTime': 'เริ่ม *',
+        'modal.endTime': 'สิ้นสุด *',
+        'modal.description': 'รายละเอียด',
+        'modal.requesterName': 'ชื่อผู้แจ้ง *',
+        'modal.requesterNote': 'หมายเหตุ',
+        'modal.notePlaceholder': 'แหล่งข้อมูล, เหตุผล',
+        'modal.cancel': 'ยกเลิก',
+        'modal.submit': 'ส่งคำขอ',
+        'modal.submitting': 'กำลังส่ง...',
+        'modal.submitSuccess': 'ส่งคำขอสำเร็จ! Admin จะตรวจสอบต่อไป',
+        'modal.submitError': 'ไม่สามารถส่งได้'
     },
     en: {
         // Common
@@ -204,7 +238,7 @@ const translations = {
         'section2.filter1.tip': '💡 Tip:',
         'section2.filter1.tipText': 'You can select multiple artists at once',
         'section2.filter2.title': '2. Filter by Venue',
-        'section2.filter2.desc': 'Select the venue you want to see events for, such as Fan Meeting Hall, Maipenrai Stage, etc.',
+        'section2.filter2.desc': 'Select the venue you want to see events for, such as Fan Meeting Hall, Common Stage, etc.',
         'section2.action.title': '3. Actions',
         'section2.action1': '🔍 Search: Click this button to show results based on your selection',
         'section2.action2': '🔄 Reset: Clear all filters and show all events',
@@ -280,13 +314,47 @@ const translations = {
         'contact.section3.title': '🙏 Thank You',
         'contact.section3.text': 'Thank you for using this event calendar. If you have any suggestions or want to help develop this project, we are always happy to listen and welcome you!',
 
+        // Event listing page
+        'listing.title': 'Events',
+        'listing.ongoing': 'Ongoing',
+        'listing.upcoming': 'Upcoming',
+        'listing.past': 'Ended',
+        'listing.viewSchedule': '📋 View Schedule',
+        'listing.credits': '📋 Credits',
+        'listing.noEvents': 'No events in the system',
+
+        // Date jump bar
+        'dateJump.label': '📅 Jump to date:',
+
         // Credits page
         'credits.title': '📋 Credits & References',
-        'credits.subtitle': 'Data sources used to create your event calendar',
+        'credits.subtitle': 'Data sources used to create the calendar',
+        'credits.list.title': '📋 Credits & References',
         'credits.announcements.title': '📢 Official Announcements',
         'credits.channels.title': '🔗 Official Channels',
         'credits.disclaimer.title': 'Disclaimer:',
-        'credits.disclaimer.text': 'Information in this calendar is compiled from public sources for your convenience. Please verify official information from the organizers before attending. Information may change without notice.'
+        'credits.disclaimer.text': 'Information in this calendar is compiled from public sources for your convenience. Please verify official information from the organizers before attending. Information may change without notice.',
+        'credits.noData': 'No credits data available',
+
+        // Request modal
+        'modal.addTitle': '📝 Request New Event',
+        'modal.eventName': 'Event Name *',
+        'modal.organizer': 'Organizer',
+        'modal.venue': 'Venue',
+        'modal.selectVenue': '-- Select --',
+        'modal.categories': 'Categories',
+        'modal.date': 'Date *',
+        'modal.startTime': 'Start *',
+        'modal.endTime': 'End *',
+        'modal.description': 'Description',
+        'modal.requesterName': 'Your Name *',
+        'modal.requesterNote': 'Note',
+        'modal.notePlaceholder': 'Source, reason',
+        'modal.cancel': 'Cancel',
+        'modal.submit': 'Submit Request',
+        'modal.submitting': 'Submitting...',
+        'modal.submitSuccess': 'Request submitted successfully! Admin will review it.',
+        'modal.submitError': 'Unable to submit request'
     },
     ja: {
         // Common
@@ -348,7 +416,7 @@ const translations = {
         'section2.filter1.tip': '💡 ヒント:',
         'section2.filter1.tipText': '複数のアーティストを同時に選択できます',
         'section2.filter2.title': '2. 会場でフィルタ',
-        'section2.filter2.desc': 'Fan Meeting Hall、Maipenrai Stageなど、イベントを見たい会場を選択します。',
+        'section2.filter2.desc': 'Fan Meeting Hall, Common Stageなど、イベントを見たい会場を選択します。',
         'section2.action.title': '3. アクション',
         'section2.action1': '🔍 検索: このボタンをクリックして、選択に基づいて結果を表示します',
         'section2.action2': '🔄 リセット: すべてのフィルターをクリアして、すべてのイベントを表示します',
@@ -424,12 +492,46 @@ const translations = {
         'contact.section3.title': '🙏 ありがとうございます',
         'contact.section3.text': 'このイベントカレンダーをご利用いただきありがとうございます。提案がある場合や、このプロジェクトの開発を手伝いたい場合は、いつでも喜んでお聞きし、歓迎します！',
 
+        // Event listing page
+        'listing.title': 'イベント一覧',
+        'listing.ongoing': '開催中',
+        'listing.upcoming': '開催予定',
+        'listing.past': '終了',
+        'listing.viewSchedule': '📋 スケジュールを見る',
+        'listing.credits': '📋 クレジット',
+        'listing.noEvents': 'システムにイベントがありません',
+
+        // Date jump bar
+        'dateJump.label': '📅 日付にジャンプ:',
+
         // Credits page
         'credits.title': '📋 クレジット & 参照',
-        'credits.subtitle': 'your event カレンダーの作成に使用したデータソース',
+        'credits.subtitle': 'カレンダーの作成に使用したデータソース',
+        'credits.list.title': '📋 クレジット & 参照',
         'credits.announcements.title': '📢 公式発表',
         'credits.channels.title': '🔗 公式チャンネル',
         'credits.disclaimer.title': '免責事項:',
-        'credits.disclaimer.text': 'このカレンダーの情報は、便利にご利用いただけるよう公開情報から収集しています。参加前に主催者の公式情報をご確認ください。情報は予告なく変更される場合があります。'
+        'credits.disclaimer.text': 'このカレンダーの情報は、便利にご利用いただけるよう公開情報から収集しています。参加前に主催者の公式情報をご確認ください。情報は予告なく変更される場合があります。',
+        'credits.noData': 'クレジットデータはまだありません',
+
+        // Request modal
+        'modal.addTitle': '📝 イベント追加リクエスト',
+        'modal.eventName': 'イベント名 *',
+        'modal.organizer': 'オーガナイザー',
+        'modal.venue': '会場',
+        'modal.selectVenue': '-- 選択 --',
+        'modal.categories': 'カテゴリ',
+        'modal.date': '日付 *',
+        'modal.startTime': '開始 *',
+        'modal.endTime': '終了 *',
+        'modal.description': '詳細',
+        'modal.requesterName': 'お名前 *',
+        'modal.requesterNote': '備考',
+        'modal.notePlaceholder': '情報源、理由',
+        'modal.cancel': 'キャンセル',
+        'modal.submit': 'リクエスト送信',
+        'modal.submitting': '送信中...',
+        'modal.submitSuccess': 'リクエストが送信されました！管理者が確認します。',
+        'modal.submitError': '送信できませんでした'
     }
 };

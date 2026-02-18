@@ -36,10 +36,12 @@ RUN if [ -f /var/www/html/ics/*.ics ]; then \
     fi
 
 # Set proper permissions for database
-RUN if [ -f /var/www/html/calendar.db ]; then \
-        chmod 666 /var/www/html/calendar.db && \
-        chown www-data:www-data /var/www/html/calendar.db; \
-    fi
+RUN mkdir -p /var/www/html/data && \
+    if [ -f /var/www/html/data/calendar.db ]; then \
+        chmod 666 /var/www/html/data/calendar.db && \
+        chown www-data:www-data /var/www/html/data/calendar.db; \
+    fi && \
+    chown www-data:www-data /var/www/html/data
 
 # Expose port 80
 EXPOSE 80

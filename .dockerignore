@@ -28,8 +28,8 @@ cache/*
 !cache/.gitignore
 
 # Database (will be created at runtime)
-calendar.db
-calendar.db-journal
+data/
+*.db-journal
 
 # Logs
 *.log
