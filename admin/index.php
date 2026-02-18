@@ -13,7 +13,9 @@ require_login();
 
 // Generate CSRF token for this session
 $csrfToken = csrf_token();
-$adminUsername = $_SESSION['admin_username'] ?? 'Admin';
+$adminUsername = $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'Admin';
+$adminUserId = $_SESSION['admin_user_id'] ?? null;
+$adminRole = $_SESSION['admin_role'] ?? 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -173,6 +175,15 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
         .btn-danger:hover {
             background: #dc2626;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
         }
 
         .btn-sm {
@@ -708,7 +719,10 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         <div class="admin-header">
             <h1>Admin - Idol Stage Timetable</h1>
             <div style="display: flex; align-items: center; gap: 15px;">
-                <span style="color: rgba(255, 255, 255, 0.95); font-weight: 600;">สวัสดี, <?php echo htmlspecialchars($adminUsername); ?></span>
+                <span style="color: rgba(255, 255, 255, 0.95); font-weight: 600;">สวัสดี, <?php echo htmlspecialchars($adminUsername); ?> <small style="opacity:0.7; font-weight:400;">(<?php echo htmlspecialchars($adminRole); ?>)</small></span>
+                <?php if ($adminUserId !== null): ?>
+                <a href="#" onclick="showChangePasswordModal(); return false;" style="background: rgba(255, 255, 255, 0.15); color: white;">🔑 Change Password</a>
+                <?php endif; ?>
                 <a href="../index.php">&larr; กลับหน้าหลัก</a>
                 <a href="login.php?logout=1" style="background: rgba(239, 68, 68, 0.2); color: white;">Logout</a>
             </div>
@@ -720,12 +734,20 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             <button class="tab-btn" onclick="switchTab('requests')">Requests <span class="badge" id="pendingBadge" style="display:none">0</span></button>
             <button class="tab-btn" onclick="switchTab('import')">📤 Import ICS</button>
             <button class="tab-btn" onclick="switchTab('credits')">📋 Credits</button>
+            <button class="tab-btn" onclick="switchTab('conventions')">🏟️ Conventions</button>
+            <?php if ($adminRole === 'admin'): ?>
+            <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
+            <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
+            <?php endif; ?>
         </div>
 
         <!-- Events Section -->
         <div id="eventsSection">
         <!-- Toolbar -->
         <div class="admin-toolbar">
+            <select id="eventMetaFilter" onchange="currentPage=1;loadEvents()">
+                <option value="">All Conventions</option>
+            </select>
             <div class="search-wrapper">
                 <input type="text" id="searchInput" placeholder="ค้นหา..." onkeyup="handleSearch(event)">
                 <button type="button" class="clear-search" onclick="clearSearch()" title="Clear">&times;</button>
@@ -786,6 +808,9 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         <!-- Requests Section -->
         <div id="requestsSection" style="display:none">
             <div class="admin-toolbar">
+                <select id="reqEventMetaFilter" onchange="reqPage=1;loadRequests()">
+                    <option value="">All Conventions</option>
+                </select>
                 <select id="reqStatusFilter" onchange="loadRequests()">
                     <option value="">ทุกสถานะ</option>
                     <option value="pending" selected>รอดำเนินการ</option>
@@ -806,6 +831,13 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         <div id="importSection" style="display:none">
             <!-- Upload Area -->
             <div class="upload-area" id="uploadArea">
+                <div class="form-group" style="max-width: 400px; margin: 0 auto 20px;">
+                    <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Convention:</label>
+                    <select id="icsImportEventMeta" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;">
+                        <option value="">-- เลือก Convention --</option>
+                    </select>
+                    <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก convention ที่ต้องการ import events เข้าไป</small>
+                </div>
                 <div class="upload-box" id="uploadBox" onclick="document.getElementById('icsFileInput').click()">
                     <input type="file" id="icsFileInput" accept=".ics" style="display:none" onchange="handleFileSelect(event)">
                     <div class="upload-placeholder">
@@ -827,6 +859,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
                 <div class="preview-header">
                     <h3>📋 ตัวอย่าง Events (<span id="previewCount">0</span>)</h3>
                     <div class="preview-stats">
+                        <span class="stat-badge" style="background:#e3f2fd;color:#1565c0;">📦 <span id="previewConventionName">-</span></span>
                         <span class="stat-badge stat-new">➕ <span id="statNew">0</span> ใหม่</span>
                         <span class="stat-badge stat-duplicate">⚠️ <span id="statDup">0</span> ซ้ำ</span>
                         <span class="stat-badge stat-error">❌ <span id="statError">0</span> ผิดพลาด</span>
@@ -904,6 +937,9 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         <!-- Credits Section -->
         <div id="creditsSection" style="display:none">
             <div class="admin-toolbar">
+                <select id="creditsEventMetaFilter" onchange="creditsCurrentPage=1;loadCredits()">
+                    <option value="">All Conventions</option>
+                </select>
                 <div class="search-wrapper">
                     <input type="text" id="creditsSearchInput" placeholder="ค้นหา credits..." onkeyup="handleCreditsSearch(event)">
                     <button type="button" class="clear-search" onclick="clearCreditsSearch()" title="Clear">&times;</button>
@@ -951,7 +987,220 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             <!-- Pagination -->
             <div class="pagination" id="creditsPagination"></div>
         </div>
+
+        <!-- Conventions Section -->
+        <div id="conventionsSection" style="display:none">
+            <div class="admin-toolbar">
+                <div class="search-wrapper">
+                    <input type="text" id="conventionsSearchInput" placeholder="ค้นหา conventions..." onkeyup="handleConventionsSearch(event)">
+                    <button type="button" class="clear-search" onclick="clearConventionsSearch()" title="Clear">&times;</button>
+                </div>
+                <button class="btn btn-primary" onclick="openAddConventionModal()">+ เพิ่ม Convention</button>
+            </div>
+
+            <!-- Conventions Table -->
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Slug</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Venue Mode</th>
+                        <th>Active</th>
+                        <th>Events</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="conventionsTableBody">
+                    <tr>
+                        <td colspan="9" class="loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Users Section (admin only) -->
+        <?php if ($adminRole === 'admin'): ?>
+        <div id="usersSection" style="display:none">
+            <div class="admin-toolbar">
+                <button class="btn btn-primary" onclick="openAddUserModal()">+ Add User</button>
+            </div>
+
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Username</th>
+                        <th>Display Name</th>
+                        <th>Role</th>
+                        <th>Active</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="7" class="loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+
+        <!-- Backup Section -->
+        <?php if ($adminRole === 'admin'): ?>
+        <div id="backupSection" style="display:none">
+            <div class="admin-toolbar">
+                <button class="btn btn-primary" onclick="createBackup()">💾 สร้าง Backup</button>
+                <button class="btn btn-secondary" onclick="openUploadRestoreModal()">📤 Upload & Restore</button>
+            </div>
+
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Filename</th>
+                        <th>Size</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="backupTableBody">
+                    <tr>
+                        <td colspan="5" class="loading">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
     </div>
+
+    <!-- User Modal (admin only) -->
+    <?php if ($adminRole === 'admin'): ?>
+    <div class="modal-overlay" id="userModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="userModalTitle">Add User</h2>
+                <button class="modal-close" onclick="closeUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="userModalError" style="display:none; background:#fef2f2; color:#dc2626; padding:10px; border-radius:6px; margin-bottom:15px; border:1px solid #fecaca;"></div>
+                <form id="userForm" onsubmit="submitUserForm(event)">
+                    <input type="hidden" id="userId" value="">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="userUsername" required maxlength="50" pattern="[a-zA-Z0-9_\-\.]+">
+                    </div>
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" id="userDisplayName" maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label id="userPasswordLabel">Password (min 8 characters)</label>
+                        <input type="password" id="userPassword" minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <select id="userRole">
+                            <option value="admin">Admin - Full access</option>
+                            <option value="agent">Agent - Events management only</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="userIsActive" checked> Active
+                        </label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="userSubmitBtn">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Confirmation Modal -->
+    <div class="modal-overlay" id="deleteUserModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Delete User</h2>
+                <button class="modal-close" onclick="closeDeleteUserModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this user?</p>
+                <p><strong id="deleteUserName"></strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDeleteUser()">Delete</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Backup Restore Confirmation Modal -->
+    <?php if ($adminRole === 'admin'): ?>
+    <div class="modal-overlay" id="restoreModal">
+        <div class="modal">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <h2>⚠️ Restore Database</h2>
+                <button class="modal-close" onclick="closeRestoreModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;">คำเตือน: การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
+                <p>ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
+                <p style="margin-top: 10px;">Restore จากไฟล์: <strong id="restoreFilename"></strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRestoreModal()">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmRestore()">Restore</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Upload Restore Modal -->
+    <div class="modal-overlay" id="uploadRestoreModal">
+        <div class="modal">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <h2>📤 Upload & Restore</h2>
+                <button class="modal-close" onclick="closeUploadRestoreModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;">คำเตือน: การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
+                <p>ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="backupFileInput">เลือกไฟล์ .db</label>
+                    <input type="file" id="backupFileInput" accept=".db">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUploadRestoreModal()">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmUploadRestore()">Upload & Restore</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Delete Confirmation Modal -->
+    <div class="modal-overlay" id="deleteBackupModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>ลบ Backup</h2>
+                <button class="modal-close" onclick="closeDeleteBackupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>ต้องการลบไฟล์ backup นี้?</p>
+                <p><strong id="deleteBackupFilename"></strong></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeleteBackupModal()">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmDeleteBackup()">ลบ</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- Add/Edit Modal -->
     <div class="modal-overlay" id="eventModal">
@@ -963,6 +1212,14 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             <div class="modal-body">
                 <form id="eventForm" onsubmit="saveEvent(event)">
                     <input type="hidden" id="eventId">
+
+                    <div class="form-group">
+                        <label for="eventConvention">Convention</label>
+                        <select id="eventConvention">
+                            <option value="">-- ไม่ระบุ --</option>
+                            <!-- populated from event_meta_list -->
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label for="title">ชื่อ Event *</label>
@@ -1139,6 +1396,14 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
                         <input type="number" id="creditDisplayOrder" min="0" value="0" placeholder="0">
                         <small class="form-hint">ลำดับการแสดงผล (เลขน้อยขึ้นก่อน)</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="creditEventMetaId">Convention</label>
+                        <select id="creditEventMetaId">
+                            <option value="">-- ทุก Convention (Global) --</option>
+                        </select>
+                        <small class="form-hint">เลือก convention ที่ credit นี้สังกัด (ว่าง = แสดงทุก convention)</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -1204,6 +1469,122 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         </div>
     </div>
 
+    <!-- Add/Edit Convention Modal -->
+    <div class="modal-overlay" id="conventionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="conventionModalTitle">เพิ่ม Convention</h2>
+                <button class="modal-close" onclick="closeConventionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="conventionForm" onsubmit="saveConvention(event)">
+                    <input type="hidden" id="conventionId">
+
+                    <div class="form-group">
+                        <label for="conventionName">Name *</label>
+                        <input type="text" id="conventionName" required maxlength="200" placeholder="ชื่อ Convention">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conventionSlug">Slug *</label>
+                        <input type="text" id="conventionSlug" required maxlength="100" placeholder="convention-slug" pattern="[a-z0-9\-]+">
+                        <small class="form-hint">ตัวอักษรพิมพ์เล็ก ตัวเลข และ - เท่านั้น</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conventionDescription">Description</label>
+                        <textarea id="conventionDescription" rows="3" maxlength="1000" placeholder="รายละเอียด"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="conventionStartDate">Start Date *</label>
+                            <input type="date" id="conventionStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="conventionEndDate">End Date *</label>
+                            <input type="date" id="conventionEndDate" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="conventionVenueMode">Venue Mode</label>
+                            <select id="conventionVenueMode">
+                                <option value="multi">Multi</option>
+                                <option value="single">Single</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="conventionIsActive">Active</label>
+                            <div style="padding-top: 8px;">
+                                <input type="checkbox" id="conventionIsActive" checked style="width: auto; margin-right: 8px;">
+                                <label for="conventionIsActive" style="display: inline; font-weight: normal;">เปิดใช้งาน</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConventionModal()">ยกเลิก</button>
+                <button type="submit" form="conventionForm" class="btn btn-primary">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Convention Modal -->
+    <div class="modal-overlay" id="deleteConventionModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>ยืนยันการลบ</h2>
+                <button class="modal-close" onclick="closeDeleteConventionModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>คุณต้องการลบ convention "<span id="deleteConventionName"></span>" หรือไม่?</p>
+                <p class="form-warning">⚠️ Events ที่อยู่ใน convention นี้จะไม่ถูกลบ แต่จะไม่มี convention อ้างอิง</p>
+                <input type="hidden" id="deleteConventionId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteConventionModal()">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteConvention()">ลบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <?php if ($adminUserId !== null): ?>
+    <div class="modal-overlay" id="changePasswordModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>🔑 Change Password</h2>
+                <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="changePasswordError" style="display:none; background:#fef2f2; color:#dc2626; padding:10px; border-radius:6px; margin-bottom:15px; border:1px solid #fecaca;"></div>
+                <div id="changePasswordSuccess" style="display:none; background:#f0fdf4; color:#16a34a; padding:10px; border-radius:6px; margin-bottom:15px; border:1px solid #bbf7d0;"></div>
+                <form id="changePasswordForm" onsubmit="submitChangePassword(event)">
+                    <div class="form-group">
+                        <label>Current Password</label>
+                        <input type="password" id="cpCurrentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label>New Password (min 8 characters)</label>
+                        <input type="password" id="cpNewPassword" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirm New Password</label>
+                        <input type="password" id="cpConfirmPassword" required minlength="8">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Change Password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
@@ -1215,6 +1596,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
         // Configuration
         const VENUE_MODE = '<?php echo VENUE_MODE; ?>';
+        const ADMIN_ROLE = '<?php echo $adminRole; ?>';
 
         // State
         let currentPage = 1;
@@ -1228,6 +1610,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            loadEventMetaOptions();
             loadVenues();
             loadEvents();
             loadPendingCount();
@@ -1243,8 +1626,16 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             document.getElementById('requestsSection').style.display = tab === 'requests' ? 'block' : 'none';
             document.getElementById('importSection').style.display = tab === 'import' ? 'block' : 'none';
             document.getElementById('creditsSection').style.display = tab === 'credits' ? 'block' : 'none';
+            document.getElementById('conventionsSection').style.display = tab === 'conventions' ? 'block' : 'none';
+            const usersEl = document.getElementById('usersSection');
+            if (usersEl) usersEl.style.display = tab === 'users' ? 'block' : 'none';
+            const backupEl = document.getElementById('backupSection');
+            if (backupEl) backupEl.style.display = tab === 'backup' ? 'block' : 'none';
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
+            if (tab === 'conventions') loadConventions();
+            if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
+            if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
         }
 
         // Pending count
@@ -1268,9 +1659,13 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
         async function loadRequests() {
             const status = document.getElementById('reqStatusFilter').value;
+            const eventMetaId = document.getElementById('reqEventMetaFilter').value;
             showLoading();
             try {
-                const res = await fetch(`api.php?action=requests&page=${reqPage}` + (status ? `&status=${status}` : ''));
+                let reqUrl = `api.php?action=requests&page=${reqPage}`;
+                if (status) reqUrl += `&status=${status}`;
+                if (eventMetaId) reqUrl += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
+                const res = await fetch(reqUrl);
                 const result = await res.json();
                 if (result.success) {
                     requestsData = result.data.requests;
@@ -1500,6 +1895,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
         function clearFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('venueFilter').value = '';
+            document.getElementById('eventMetaFilter').value = '';
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
             currentPage = 1;
@@ -1566,12 +1962,14 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             const venue = document.getElementById('venueFilter').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
+            const eventMetaId = document.getElementById('eventMetaFilter').value;
 
             let url = `api.php?action=list&page=${currentPage}&limit=${perPage}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (venue) url += `&venue=${encodeURIComponent(venue)}`;
             if (dateFrom) url += `&date_from=${encodeURIComponent(dateFrom)}`;
             if (dateTo) url += `&date_to=${encodeURIComponent(dateTo)}`;
+            if (eventMetaId) url += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
             url += `&sort=${sortColumn}&order=${sortDirection}`;
 
             showLoading();
@@ -1937,6 +2335,10 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             // Set default date to today
             document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
 
+            // Pre-select convention from filter dropdown
+            const filterVal = document.getElementById('eventMetaFilter')?.value || '';
+            document.getElementById('eventConvention').value = filterVal;
+
             formChanged = false;
             document.getElementById('eventModal').classList.add('active');
         }
@@ -1959,6 +2361,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
                 document.getElementById('modalTitle').textContent = 'แก้ไข Event';
                 document.getElementById('eventId').value = event.id;
+                document.getElementById('eventConvention').value = event.event_meta_id || '';
                 document.getElementById('title').value = event.title;
                 document.getElementById('organizer').value = event.organizer || '';
                 document.getElementById('location').value = event.location || '';
@@ -1996,6 +2399,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
                 document.getElementById('modalTitle').textContent = 'Duplicate Event';
                 document.getElementById('eventId').value = ''; // No ID = create new
+                document.getElementById('eventConvention').value = event.event_meta_id || '';
                 document.getElementById('title').value = event.title + ' (Copy)';
                 document.getElementById('organizer').value = event.organizer || '';
                 document.getElementById('location').value = event.location || '';
@@ -2035,6 +2439,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             const startTime = document.getElementById('startTime').value;
             const endTime = document.getElementById('endTime').value;
 
+            const conventionVal = document.getElementById('eventConvention').value;
             const data = {
                 title: document.getElementById('title').value,
                 organizer: document.getElementById('organizer').value,
@@ -2042,10 +2447,12 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
                 start: `${date}T${startTime}:00`,
                 end: `${date}T${endTime}:00`,
                 description: document.getElementById('description').value,
-                categories: document.getElementById('categories').value
+                categories: document.getElementById('categories').value,
+                event_meta_id: conventionVal ? parseInt(conventionVal) : null
             };
 
             const isEdit = !!id;
+
             const url = isEdit ? `api.php?action=update&id=${id}` : 'api.php?action=create';
             const method = isEdit ? 'PUT' : 'POST';
 
@@ -2197,6 +2604,11 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             // Hide upload area, show preview section
             document.getElementById('uploadArea').style.display = 'none';
             document.getElementById('previewSection').style.display = 'block';
+
+            // Show selected convention name
+            const icsSelect = document.getElementById('icsImportEventMeta');
+            const conventionName = icsSelect.value ? icsSelect.options[icsSelect.selectedIndex].text : '(ไม่ได้เลือก)';
+            document.getElementById('previewConventionName').textContent = conventionName;
 
             // Update stats
             document.getElementById('previewCount').textContent = uploadedEvents.length;
@@ -2389,6 +2801,16 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
 
             showLoading();
 
+            // Include event_meta_id from ICS import selector
+            const importEventMetaId = document.getElementById('icsImportEventMeta').value;
+            const importBody = {
+                events: eventsToImport,
+                save_file: true
+            };
+            if (importEventMetaId) {
+                importBody.event_meta_id = parseInt(importEventMetaId);
+            }
+
             try {
                 const response = await fetch('api.php?action=import_ics_confirm', {
                     method: 'POST',
@@ -2396,10 +2818,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': CSRF_TOKEN
                     },
-                    body: JSON.stringify({
-                        events: eventsToImport,
-                        save_file: true
-                    })
+                    body: JSON.stringify(importBody)
                 });
 
                 const result = await response.json();
@@ -2501,7 +2920,9 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             showLoading();
 
             const search = document.getElementById('creditsSearchInput')?.value || '';
-            const url = `api.php?action=credits_list&page=${creditsCurrentPage}&limit=${creditsPerPage}&sort=${creditsSortColumn}&order=${creditsSortDirection}&search=${encodeURIComponent(search)}`;
+            const eventMetaId = document.getElementById('creditsEventMetaFilter')?.value || '';
+            let url = `api.php?action=credits_list&page=${creditsCurrentPage}&limit=${creditsPerPage}&sort=${creditsSortColumn}&order=${creditsSortDirection}&search=${encodeURIComponent(search)}`;
+            if (eventMetaId) url += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
 
             try {
                 const response = await fetch(url);
@@ -2639,6 +3060,9 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             document.getElementById('creditModalTitle').textContent = 'เพิ่ม Credit';
             document.getElementById('creditForm').reset();
             document.getElementById('creditId').value = '';
+            // Pre-select current filter convention
+            const filterVal = document.getElementById('creditsEventMetaFilter')?.value || '';
+            document.getElementById('creditEventMetaId').value = filterVal;
             creditsFormChanged = false;
             document.getElementById('creditModal').classList.add('active');
         }
@@ -2662,6 +3086,7 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
                 document.getElementById('creditLink').value = credit.link || '';
                 document.getElementById('creditDescription').value = credit.description || '';
                 document.getElementById('creditDisplayOrder').value = credit.display_order || 0;
+                document.getElementById('creditEventMetaId').value = credit.event_meta_id || '';
 
                 creditsFormChanged = false;
                 document.getElementById('creditModal').classList.add('active');
@@ -2686,11 +3111,13 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             e.preventDefault();
 
             const id = document.getElementById('creditId').value;
+            const eventMetaVal = document.getElementById('creditEventMetaId').value;
             const data = {
                 title: document.getElementById('creditTitle').value,
                 link: document.getElementById('creditLink').value,
                 description: document.getElementById('creditDescription').value,
-                display_order: parseInt(document.getElementById('creditDisplayOrder').value) || 0
+                display_order: parseInt(document.getElementById('creditDisplayOrder').value) || 0,
+                event_meta_id: eventMetaVal ? parseInt(eventMetaVal) : null
             };
 
             const isEdit = !!id;
@@ -2906,6 +3333,757 @@ $adminUsername = $_SESSION['admin_username'] ?? 'Admin';
             input.addEventListener('change', () => { creditsFormChanged = true; });
             input.addEventListener('input', () => { creditsFormChanged = true; });
         });
+
+        // ========================================================================
+        // EVENT META (CONVENTIONS) - Populate filter dropdowns
+        // ========================================================================
+
+        async function loadEventMetaOptions() {
+            try {
+                const response = await fetch('api.php?action=event_meta_list');
+                const result = await response.json();
+
+                if (result.success) {
+                    const metas = result.data;
+                    const selectors = [
+                        'eventMetaFilter',
+                        'reqEventMetaFilter',
+                        'creditsEventMetaFilter',
+                        'eventConvention',
+                        'creditEventMetaId',
+                        'icsImportEventMeta'
+                    ];
+
+                    selectors.forEach(selectorId => {
+                        const select = document.getElementById(selectorId);
+                        if (!select) return;
+                        // Keep the first "All Conventions" option
+                        while (select.options.length > 1) {
+                            select.remove(1);
+                        }
+                        metas.forEach(meta => {
+                            const option = document.createElement('option');
+                            option.value = meta.id;
+                            option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                            select.appendChild(option);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load event meta options:', error);
+            }
+        }
+
+        // ========================================================================
+        // CONVENTIONS MANAGEMENT
+        // ========================================================================
+
+        let conventionsFormChanged = false;
+
+        // Load Conventions
+        async function loadConventions() {
+            showLoading();
+
+            const search = document.getElementById('conventionsSearchInput')?.value || '';
+            let url = `api.php?action=event_meta_list`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderConventions(result.data);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to load conventions:', error);
+                showToast('Failed to load conventions', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Render Conventions Table
+        function renderConventions(conventions) {
+            const tbody = document.getElementById('conventionsTableBody');
+
+            if (!conventions || conventions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">ไม่พบ conventions</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = conventions.map(conv => {
+                const activeLabel = conv.is_active
+                    ? '<span class="status-approved">Active</span>'
+                    : '<span class="status-rejected">Inactive</span>';
+
+                const startDate = conv.start_date || '-';
+                const endDate = conv.end_date || '-';
+
+                return `
+                    <tr>
+                        <td>${conv.id}</td>
+                        <td>${escapeHtml(conv.name)}</td>
+                        <td><code>${escapeHtml(conv.slug)}</code></td>
+                        <td>${escapeHtml(startDate)}</td>
+                        <td>${escapeHtml(endDate)}</td>
+                        <td>${escapeHtml(conv.venue_mode || 'multi')}</td>
+                        <td>${activeLabel}</td>
+                        <td>${conv.event_count !== undefined ? conv.event_count : '-'}</td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="openEditConventionModal(${conv.id})">แก้ไข</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteConventionModal(${conv.id}, '${escapeHtml(conv.name).replace(/'/g, "\\'")}')">ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Search Conventions
+        let conventionsSearchTimeout = null;
+
+        function handleConventionsSearch(event) {
+            if (event.key === 'Enter') {
+                loadConventions();
+                return;
+            }
+            clearTimeout(conventionsSearchTimeout);
+            conventionsSearchTimeout = setTimeout(() => {
+                loadConventions();
+            }, 300);
+        }
+
+        function clearConventionsSearch() {
+            document.getElementById('conventionsSearchInput').value = '';
+            loadConventions();
+        }
+
+        // Open Add Convention Modal
+        function openAddConventionModal() {
+            document.getElementById('conventionModalTitle').textContent = 'เพิ่ม Convention';
+            document.getElementById('conventionForm').reset();
+            document.getElementById('conventionId').value = '';
+            document.getElementById('conventionIsActive').checked = true;
+            document.getElementById('conventionVenueMode').value = 'multi';
+            conventionsFormChanged = false;
+            document.getElementById('conventionModal').classList.add('active');
+        }
+
+        // Open Edit Convention Modal
+        async function openEditConventionModal(id) {
+            showLoading();
+            try {
+                const response = await fetch(`api.php?action=event_meta_get&id=${id}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    showToast(result.message, 'error');
+                    return;
+                }
+
+                const conv = result.data;
+
+                document.getElementById('conventionModalTitle').textContent = 'แก้ไข Convention';
+                document.getElementById('conventionId').value = conv.id;
+                document.getElementById('conventionName').value = conv.name || '';
+                document.getElementById('conventionSlug').value = conv.slug || '';
+                document.getElementById('conventionDescription').value = conv.description || '';
+                document.getElementById('conventionStartDate').value = conv.start_date || '';
+                document.getElementById('conventionEndDate').value = conv.end_date || '';
+                document.getElementById('conventionVenueMode').value = conv.venue_mode || 'multi';
+                document.getElementById('conventionIsActive').checked = !!conv.is_active;
+
+                conventionsFormChanged = false;
+                document.getElementById('conventionModal').classList.add('active');
+            } catch (error) {
+                showToast('Failed to load convention', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Close Convention Modal
+        function closeConventionModal() {
+            if (conventionsFormChanged) {
+                if (!confirm('คุณมีการแก้ไขที่ยังไม่ได้บันทึก ต้องการปิดหรือไม่?')) {
+                    return;
+                }
+            }
+            conventionsFormChanged = false;
+            document.getElementById('conventionModal').classList.remove('active');
+        }
+
+        // Save Convention
+        async function saveConvention(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('conventionId').value;
+            const data = {
+                name: document.getElementById('conventionName').value,
+                slug: document.getElementById('conventionSlug').value,
+                description: document.getElementById('conventionDescription').value,
+                start_date: document.getElementById('conventionStartDate').value,
+                end_date: document.getElementById('conventionEndDate').value,
+                venue_mode: document.getElementById('conventionVenueMode').value,
+                is_active: document.getElementById('conventionIsActive').checked ? 1 : 0
+            };
+
+            const isEdit = !!id;
+            const url = isEdit ? `api.php?action=event_meta_update&id=${id}` : 'api.php?action=event_meta_create';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            showLoading();
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || (isEdit ? 'อัปเดตสำเร็จ' : 'สร้างสำเร็จ'), 'success');
+                    closeConventionModal();
+                    loadConventions();
+                    loadEventMetaOptions(); // Refresh filter dropdowns
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save convention:', error);
+                showToast('Failed to save convention', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Delete Convention
+        function openDeleteConventionModal(id, name) {
+            document.getElementById('deleteConventionId').value = id;
+            document.getElementById('deleteConventionName').textContent = name;
+            document.getElementById('deleteConventionModal').classList.add('active');
+        }
+
+        function closeDeleteConventionModal() {
+            document.getElementById('deleteConventionModal').classList.remove('active');
+        }
+
+        async function confirmDeleteConvention() {
+            const id = document.getElementById('deleteConventionId').value;
+
+            showLoading();
+
+            try {
+                const response = await fetch(`api.php?action=event_meta_delete&id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-Token': CSRF_TOKEN
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || 'ลบสำเร็จ', 'success');
+                    closeDeleteConventionModal();
+                    loadConventions();
+                    loadEventMetaOptions(); // Refresh filter dropdowns
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Failed to delete convention:', error);
+                showToast('Failed to delete convention', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Form Change Tracking for Conventions
+        document.addEventListener('DOMContentLoaded', function() {
+            const convFormInputs = document.querySelectorAll('#conventionForm input, #conventionForm textarea, #conventionForm select');
+            convFormInputs.forEach(input => {
+                input.addEventListener('change', () => { conventionsFormChanged = true; });
+                input.addEventListener('input', () => { conventionsFormChanged = true; });
+            });
+        });
+
+        // Auto-generate slug from name
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('conventionName');
+            const slugInput = document.getElementById('conventionSlug');
+            if (nameInput && slugInput) {
+                nameInput.addEventListener('input', function() {
+                    // Only auto-generate if slug is empty or was auto-generated
+                    if (!document.getElementById('conventionId').value) {
+                        slugInput.value = nameInput.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9\s-]/g, '')
+                            .replace(/\s+/g, '-')
+                            .replace(/-+/g, '-')
+                            .trim();
+                    }
+                });
+            }
+        });
+        // ============================================================
+        // BACKUP/RESTORE
+        // ============================================================
+
+        let pendingRestoreFilename = '';
+        let pendingDeleteBackupFilename = '';
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+        }
+
+        async function loadBackups() {
+            try {
+                const res = await fetch('api.php?action=backup_list');
+                const result = await res.json();
+                const tbody = document.getElementById('backupTableBody');
+
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">Error loading backups</td></tr>';
+                    return;
+                }
+
+                const backups = result.data.backups;
+                if (backups.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">ยังไม่มีไฟล์ backup</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = backups.map((b, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${escapeHtml(b.filename)}</td>
+                        <td>${formatFileSize(b.size)}</td>
+                        <td>${b.created_at}</td>
+                        <td>
+                            <button class="btn btn-primary btn-sm" onclick="downloadBackup('${escapeHtml(b.filename)}')">⬇️ Download</button>
+                            <button class="btn btn-warning btn-sm" onclick="openRestoreModal('${escapeHtml(b.filename)}')">🔄 Restore</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteBackupModal('${escapeHtml(b.filename)}')">🗑️ ลบ</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                document.getElementById('backupTableBody').innerHTML = '<tr><td colspan="5" class="loading">Error loading backups</td></tr>';
+            }
+        }
+
+        async function createBackup() {
+            try {
+                const res = await fetch('api.php?action=backup_create', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert('Backup created: ' + result.data.filename);
+                    loadBackups();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Failed to create backup');
+            }
+        }
+
+        function downloadBackup(filename) {
+            window.location.href = 'api.php?action=backup_download&filename=' + encodeURIComponent(filename);
+        }
+
+        // Restore Modal
+        function openRestoreModal(filename) {
+            pendingRestoreFilename = filename;
+            document.getElementById('restoreFilename').textContent = filename;
+            document.getElementById('restoreModal').classList.add('active');
+        }
+
+        function closeRestoreModal() {
+            document.getElementById('restoreModal').classList.remove('active');
+            pendingRestoreFilename = '';
+        }
+
+        async function confirmRestore() {
+            if (!pendingRestoreFilename) return;
+            closeRestoreModal();
+
+            try {
+                const res = await fetch('api.php?action=backup_restore', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({ filename: pendingRestoreFilename })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert(result.message);
+                    loadBackups();
+                    loadEvents();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Failed to restore database');
+            }
+        }
+
+        // Upload Restore Modal
+        function openUploadRestoreModal() {
+            document.getElementById('backupFileInput').value = '';
+            document.getElementById('uploadRestoreModal').classList.add('active');
+        }
+
+        function closeUploadRestoreModal() {
+            document.getElementById('uploadRestoreModal').classList.remove('active');
+        }
+
+        async function confirmUploadRestore() {
+            const fileInput = document.getElementById('backupFileInput');
+            if (!fileInput.files.length) {
+                alert('กรุณาเลือกไฟล์ .db');
+                return;
+            }
+
+            closeUploadRestoreModal();
+
+            const formData = new FormData();
+            formData.append('backup_file', fileInput.files[0]);
+
+            try {
+                const res = await fetch('api.php?action=backup_upload_restore', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                    body: formData
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert(result.message);
+                    loadBackups();
+                    loadEvents();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Failed to upload and restore');
+            }
+        }
+
+        // Delete Backup Modal
+        function openDeleteBackupModal(filename) {
+            pendingDeleteBackupFilename = filename;
+            document.getElementById('deleteBackupFilename').textContent = filename;
+            document.getElementById('deleteBackupModal').classList.add('active');
+        }
+
+        function closeDeleteBackupModal() {
+            document.getElementById('deleteBackupModal').classList.remove('active');
+            pendingDeleteBackupFilename = '';
+        }
+
+        async function confirmDeleteBackup() {
+            const filename = pendingDeleteBackupFilename;
+            if (!filename) return;
+            closeDeleteBackupModal();
+
+            try {
+                const res = await fetch('api.php?action=backup_delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({ filename: filename })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadBackups();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (e) {
+                alert('Failed to delete backup');
+            }
+        }
+
+        // =============================================================================
+        // CHANGE PASSWORD
+        // =============================================================================
+
+        // =============================================================================
+        // USER MANAGEMENT (admin only)
+        // =============================================================================
+
+        let pendingDeleteUserId = null;
+
+        async function loadUsers() {
+            if (ADMIN_ROLE !== 'admin') return;
+            const tbody = document.getElementById('usersTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+
+            try {
+                const res = await fetch('api.php?action=users_list', {
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    tbody.innerHTML = '<tr><td colspan="7">Error: ' + (result.message || 'Failed') + '</td></tr>';
+                    return;
+                }
+
+                const users = result.data.users;
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(function(user) {
+                    const roleBadge = user.role === 'admin'
+                        ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Admin</span>'
+                        : '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Agent</span>';
+                    const activeBadge = user.is_active == 1
+                        ? '<span style="color:#16a34a;">Active</span>'
+                        : '<span style="color:#dc2626;">Inactive</span>';
+                    const lastLogin = user.last_login_at || '-';
+
+                    return '<tr>' +
+                        '<td>' + user.id + '</td>' +
+                        '<td><strong>' + user.username + '</strong></td>' +
+                        '<td>' + (user.display_name || '-') + '</td>' +
+                        '<td>' + roleBadge + '</td>' +
+                        '<td>' + activeBadge + '</td>' +
+                        '<td>' + lastLogin + '</td>' +
+                        '<td>' +
+                            '<button class="btn btn-secondary" onclick="openEditUserModal(' + user.id + ')" style="padding:4px 10px;font-size:12px;">Edit</button> ' +
+                            '<button class="btn btn-danger" onclick="openDeleteUserModal(' + user.id + ', \'' + user.username.replace(/'/g, "\\'") + '\')" style="padding:4px 10px;font-size:12px;">Delete</button>' +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="7">Network error</td></tr>';
+            }
+        }
+
+        function openAddUserModal() {
+            document.getElementById('userModalTitle').textContent = 'Add User';
+            document.getElementById('userSubmitBtn').textContent = 'Create';
+            document.getElementById('userId').value = '';
+            document.getElementById('userUsername').value = '';
+            document.getElementById('userUsername').readOnly = false;
+            document.getElementById('userDisplayName').value = '';
+            document.getElementById('userPassword').value = '';
+            document.getElementById('userPassword').required = true;
+            document.getElementById('userPasswordLabel').textContent = 'Password (min 8 characters)';
+            document.getElementById('userRole').value = 'agent';
+            document.getElementById('userIsActive').checked = true;
+            document.getElementById('userModalError').style.display = 'none';
+            document.getElementById('userModal').style.display = 'flex';
+        }
+
+        async function openEditUserModal(id) {
+            try {
+                const res = await fetch('api.php?action=users_get&id=' + id, {
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showToast(result.message || 'Failed to load user', 'error');
+                    return;
+                }
+
+                const user = result.data;
+                document.getElementById('userModalTitle').textContent = 'Edit User';
+                document.getElementById('userSubmitBtn').textContent = 'Save';
+                document.getElementById('userId').value = user.id;
+                document.getElementById('userUsername').value = user.username;
+                document.getElementById('userUsername').readOnly = true;
+                document.getElementById('userDisplayName').value = user.display_name || '';
+                document.getElementById('userPassword').value = '';
+                document.getElementById('userPassword').required = false;
+                document.getElementById('userPasswordLabel').textContent = 'Password (leave blank to keep current)';
+                document.getElementById('userRole').value = user.role || 'agent';
+                document.getElementById('userIsActive').checked = user.is_active == 1;
+                document.getElementById('userModalError').style.display = 'none';
+                document.getElementById('userModal').style.display = 'flex';
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function submitUserForm(e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('userModalError');
+            errorEl.style.display = 'none';
+
+            const id = document.getElementById('userId').value;
+            const isEdit = !!id;
+
+            const data = {
+                username: document.getElementById('userUsername').value.trim(),
+                display_name: document.getElementById('userDisplayName').value.trim(),
+                password: document.getElementById('userPassword').value,
+                role: document.getElementById('userRole').value,
+                is_active: document.getElementById('userIsActive').checked ? 1 : 0
+            };
+
+            // Client-side validation
+            if (!isEdit && data.password.length < 8) {
+                errorEl.textContent = 'Password must be at least 8 characters';
+                errorEl.style.display = 'block';
+                return;
+            }
+            if (isEdit && data.password && data.password.length < 8) {
+                errorEl.textContent = 'Password must be at least 8 characters';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const url = isEdit ? 'api.php?action=users_update&id=' + id : 'api.php?action=users_create';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    closeUserModal();
+                    loadUsers();
+                    showToast(result.message || 'Success', 'success');
+                } else {
+                    errorEl.textContent = result.message || 'Failed';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Network error';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        function openDeleteUserModal(id, username) {
+            pendingDeleteUserId = id;
+            document.getElementById('deleteUserName').textContent = username;
+            document.getElementById('deleteUserModal').classList.add('active');
+        }
+
+        function closeDeleteUserModal() {
+            document.getElementById('deleteUserModal').classList.remove('active');
+            pendingDeleteUserId = null;
+        }
+
+        async function confirmDeleteUser() {
+            if (!pendingDeleteUserId) return;
+
+            try {
+                const res = await fetch('api.php?action=users_delete&id=' + pendingDeleteUserId, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const result = await res.json();
+
+                closeDeleteUserModal();
+                if (result.success) {
+                    loadUsers();
+                    showToast(result.message || 'User deleted', 'success');
+                } else {
+                    showToast(result.message || 'Failed to delete user', 'error');
+                }
+            } catch (e) {
+                closeDeleteUserModal();
+                showToast('Network error', 'error');
+            }
+        }
+
+        // =============================================================================
+        // CHANGE PASSWORD
+        // =============================================================================
+
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'flex';
+            document.getElementById('changePasswordForm').reset();
+            document.getElementById('changePasswordError').style.display = 'none';
+            document.getElementById('changePasswordSuccess').style.display = 'none';
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        }
+
+        async function submitChangePassword(e) {
+            e.preventDefault();
+            const currentPassword = document.getElementById('cpCurrentPassword').value;
+            const newPassword = document.getElementById('cpNewPassword').value;
+            const confirmPassword = document.getElementById('cpConfirmPassword').value;
+            const errorEl = document.getElementById('changePasswordError');
+            const successEl = document.getElementById('changePasswordSuccess');
+
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = 'New passwords do not match';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                errorEl.textContent = 'New password must be at least 8 characters';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('api.php?action=change_password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    successEl.textContent = result.message || 'Password changed successfully';
+                    successEl.style.display = 'block';
+                    document.getElementById('changePasswordForm').reset();
+                } else {
+                    errorEl.textContent = result.message || 'Failed to change password';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Network error';
+                errorEl.style.display = 'block';
+            }
+        }
+
     </script>
 </body>
 </html>

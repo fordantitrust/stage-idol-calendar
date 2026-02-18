@@ -136,7 +136,7 @@ function testDatabasePath($test) {
     $dbPath = DB_PATH;
 
     $test->assertNotEmpty($dbPath, 'DB_PATH should not be empty');
-    $test->assertContains('calendar.db', $dbPath, 'DB_PATH should point to calendar.db');
+    $test->assertContains('data/calendar.db', $dbPath, 'DB_PATH should point to data/calendar.db');
 }
 
 function testIcsParserExists($test) {
@@ -291,7 +291,7 @@ function testFullWorkflowSimulation($test) {
     // 4. Credits cache is created
 
     // Skip if no database
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
         return;
@@ -391,4 +391,161 @@ function testLicenseExists($test) {
         // Just pass if no license file
         $test->assertTrue(true, 'LICENSE file is optional');
     }
+}
+
+// ============================================================================
+// MULTI-EVENT SUPPORT TESTS
+// ============================================================================
+
+function testMultiEventConstantsDefined($test) {
+    $test->assertTrue(defined('MULTI_EVENT_MODE'), 'MULTI_EVENT_MODE should be defined');
+    $test->assertTrue(defined('DEFAULT_EVENT_SLUG'), 'DEFAULT_EVENT_SLUG should be defined');
+    $test->assertNotEmpty(DEFAULT_EVENT_SLUG, 'DEFAULT_EVENT_SLUG should not be empty');
+}
+
+function testMultiEventHelperFunctionsExist($test) {
+    $functions = [
+        'get_current_event_slug',
+        'get_event_meta_by_slug',
+        'get_event_meta_id',
+        'get_all_active_events',
+        'get_event_venue_mode',
+        'event_url'
+    ];
+
+    foreach ($functions as $func) {
+        $test->assertTrue(function_exists($func), "Function {$func} should be defined");
+    }
+}
+
+function testGetCurrentEventSlugDefault($test) {
+    // Without $_GET['event'], should return DEFAULT_EVENT_SLUG
+    unset($_GET['event']);
+    $slug = get_current_event_slug();
+    $test->assertEquals(DEFAULT_EVENT_SLUG, $slug, 'Should return default slug when no event parameter');
+}
+
+function testGetCurrentEventSlugSanitization($test) {
+    $_GET['event'] = 'valid-slug_123';
+    $slug = get_current_event_slug();
+    $test->assertEquals('valid-slug_123', $slug, 'Should accept valid slug characters');
+
+    $_GET['event'] = 'invalid<script>slug';
+    $slug = get_current_event_slug();
+    $test->assertEquals('invalidscriptslug', $slug, 'Should sanitize invalid characters from slug');
+
+    // Cleanup
+    unset($_GET['event']);
+}
+
+function testGetEventVenueModeFallback($test) {
+    // When eventMeta is null, should fall back to VENUE_MODE constant
+    $mode = get_event_venue_mode(null);
+    $test->assertEquals(VENUE_MODE, $mode, 'Should fall back to VENUE_MODE when eventMeta is null');
+
+    // When eventMeta has venue_mode, should use it
+    $mode = get_event_venue_mode(['venue_mode' => 'single']);
+    $test->assertEquals('single', $mode, 'Should use venue_mode from eventMeta');
+
+    $mode = get_event_venue_mode(['venue_mode' => 'multi']);
+    $test->assertEquals('multi', $mode, 'Should use venue_mode from eventMeta');
+}
+
+function testEventUrlWithoutMultiEvent($test) {
+    $url = event_url('index.php', DEFAULT_EVENT_SLUG);
+    $test->assertEquals('/', $url, 'Should return root path for index.php with default slug');
+}
+
+function testEventUrlWithEventSlug($test) {
+    if (!MULTI_EVENT_MODE) {
+        $test->assertTrue(true, 'Skipped: MULTI_EVENT_MODE is disabled');
+        return;
+    }
+
+    $url = event_url('index.php', 'test-event');
+    $test->assertContains('/event/test-event', $url, 'Should use clean event path');
+    $test->assertTrue(strpos($url, 'event=') === false, 'Should not use query string for event');
+}
+
+function testEventUrlCleanUrl($test) {
+    $url = event_url('credits.php', DEFAULT_EVENT_SLUG);
+    $test->assertEquals('/credits', $url, 'Should remove .php extension for clean URL');
+
+    $url2 = event_url('how-to-use.php', DEFAULT_EVENT_SLUG);
+    $test->assertEquals('/how-to-use', $url2, 'Should remove .php for hyphenated pages');
+}
+
+function testEventUrlCleanEventPath($test) {
+    if (!MULTI_EVENT_MODE) {
+        $test->assertTrue(true, 'Skipped: MULTI_EVENT_MODE is disabled');
+        return;
+    }
+
+    $url = event_url('credits.php', 'feb-2026');
+    $test->assertEquals('/event/feb-2026/credits', $url, 'Should build /event/slug/page path');
+
+    $url2 = event_url('index.php', 'feb-2026');
+    $test->assertEquals('/event/feb-2026', $url2, 'Should build /event/slug for index');
+}
+
+function testEventUrlWithExtraParams($test) {
+    if (!MULTI_EVENT_MODE) {
+        $test->assertTrue(true, 'Skipped: MULTI_EVENT_MODE is disabled');
+        return;
+    }
+
+    $url = event_url('index.php', 'test-event', ['page' => '2']);
+    $test->assertContains('/event/test-event', $url, 'Should include event in path');
+    $test->assertContains('page=2', $url, 'Should include extra parameters as query string');
+}
+
+function testMigrationToolExists($test) {
+    $migrationFile = dirname(__DIR__) . '/tools/migrate-add-events-meta-table.php';
+    $test->assertFileExists($migrationFile, 'Multi-event migration script should exist');
+}
+
+function testIcsParserAcceptsEventMetaId($test) {
+    require_once dirname(__DIR__) . '/IcsParser.php';
+
+    // Constructor should accept 4th parameter for eventMetaId
+    $parser = new IcsParser('ics', false, 'data/calendar.db', null);
+    $test->assertTrue($parser instanceof IcsParser, 'IcsParser should accept null eventMetaId');
+
+    $parser2 = new IcsParser('ics', false, 'data/calendar.db', 1);
+    $test->assertTrue($parser2 instanceof IcsParser, 'IcsParser should accept integer eventMetaId');
+}
+
+function testGetDataVersionWithEventMetaId($test) {
+    // Should work with null (backward compatible)
+    $version = get_data_version(null);
+    $test->assertNotEmpty($version, 'get_data_version(null) should return a version string');
+
+    // Should work with a specific ID (even non-existent)
+    $version = get_data_version(99999);
+    $test->assertNotEmpty($version, 'get_data_version(99999) should return a version string');
+}
+
+function testGetCachedCreditsWithEventMetaId($test) {
+    // Should work with null (backward compatible)
+    $credits = get_cached_credits(null);
+    $test->assertTrue(is_array($credits), 'get_cached_credits(null) should return an array');
+
+    // Should work with a specific ID
+    $credits = get_cached_credits(99999);
+    $test->assertTrue(is_array($credits), 'get_cached_credits(99999) should return an array');
+}
+
+function testGetAllActiveEventsReturnsArray($test) {
+    $events = get_all_active_events();
+    $test->assertTrue(is_array($events), 'get_all_active_events should return an array');
+}
+
+function testGetEventMetaBySlugNonExistent($test) {
+    $meta = get_event_meta_by_slug('non_existent_slug_12345');
+    $test->assertNull($meta, 'Should return null for non-existent slug');
+}
+
+function testGetEventMetaIdNonExistent($test) {
+    $id = get_event_meta_id('non_existent_slug_12345');
+    $test->assertNull($id, 'Should return null for non-existent slug');
 }

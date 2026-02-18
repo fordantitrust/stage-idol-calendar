@@ -5,6 +5,7 @@ class IcsParser {
     private $useDatabase;
     private $db;
     private $dbPath;
+    private $eventMetaId;
 
     /**
      * Constructor
@@ -12,11 +13,13 @@ class IcsParser {
      * @param string $icsFolder Path to ICS folder (default: 'ics')
      * @param bool $useDatabase Use SQLite database instead of reading files directly (default: true)
      * @param string $dbPath Path to SQLite database file (default: 'calendar.db')
+     * @param int|null $eventMetaId Filter by event_meta_id (null = all events)
      */
-    public function __construct($icsFolder = 'ics', $useDatabase = true, $dbPath = 'calendar.db') {
+    public function __construct($icsFolder = 'ics', $useDatabase = true, $dbPath = 'data/calendar.db', $eventMetaId = null) {
         $this->icsFolder = rtrim($icsFolder, '/');
         $this->useDatabase = $useDatabase;
         $this->dbPath = $dbPath;
+        $this->eventMetaId = $eventMetaId;
 
         // เชื่อมต่อ database ถ้าเลือกใช้ database mode
         if ($this->useDatabase) {
@@ -57,11 +60,21 @@ class IcsParser {
         $events = [];
 
         try {
-            $stmt = $this->db->query("
-                SELECT id, uid, title, start, end, location, organizer, description, categories
-                FROM events
-                ORDER BY start ASC
-            ");
+            if ($this->eventMetaId !== null) {
+                $stmt = $this->db->prepare("
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_meta_id
+                    FROM events
+                    WHERE event_meta_id = :event_meta_id
+                    ORDER BY start ASC
+                ");
+                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+            } else {
+                $stmt = $this->db->query("
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_meta_id
+                    FROM events
+                    ORDER BY start ASC
+                ");
+            }
 
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $events[] = $row;
@@ -280,11 +293,21 @@ class IcsParser {
         $organizers = [];
 
         try {
-            $stmt = $this->db->query("
-                SELECT DISTINCT categories
-                FROM events
-                WHERE categories IS NOT NULL AND categories != ''
-            ");
+            if ($this->eventMetaId !== null) {
+                $stmt = $this->db->prepare("
+                    SELECT DISTINCT categories
+                    FROM events
+                    WHERE categories IS NOT NULL AND categories != ''
+                    AND event_meta_id = :event_meta_id
+                ");
+                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+            } else {
+                $stmt = $this->db->query("
+                    SELECT DISTINCT categories
+                    FROM events
+                    WHERE categories IS NOT NULL AND categories != ''
+                ");
+            }
 
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 // แยก categories ด้วย comma
@@ -385,12 +408,23 @@ class IcsParser {
         $locations = [];
 
         try {
-            $stmt = $this->db->query("
-                SELECT DISTINCT location
-                FROM events
-                WHERE location IS NOT NULL AND location != ''
-                ORDER BY location ASC
-            ");
+            if ($this->eventMetaId !== null) {
+                $stmt = $this->db->prepare("
+                    SELECT DISTINCT location
+                    FROM events
+                    WHERE location IS NOT NULL AND location != ''
+                    AND event_meta_id = :event_meta_id
+                    ORDER BY location ASC
+                ");
+                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+            } else {
+                $stmt = $this->db->query("
+                    SELECT DISTINCT location
+                    FROM events
+                    WHERE location IS NOT NULL AND location != ''
+                    ORDER BY location ASC
+                ");
+            }
 
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $locations[] = $row['location'];

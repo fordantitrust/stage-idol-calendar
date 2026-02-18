@@ -5,6 +5,164 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-02-18
+
+### Added
+
+- 👤 **User Management System** - จัดการ admin users ผ่าน Admin panel
+  - Tab "👤 Users" ใน Admin panel (แสดงเฉพาะ admin role)
+  - ตาราง users: ID, Username, Display Name, Role, Active, Last Login, Actions
+  - สร้าง user ใหม่: username, password (min 8 chars), display_name, role, is_active
+  - แก้ไข user: password optional, username ไม่สามารถเปลี่ยนได้
+  - ลบ user: ห้ามลบตัวเอง, ต้องเหลืออย่างน้อย 1 admin
+  - API endpoints: `users_list`, `users_get`, `users_create`, `users_update`, `users_delete`
+
+- 🛡️ **Role-Based Access Control** - ระบบสิทธิ์ตาม role
+  - 2 roles: `admin` (full access) และ `agent` (events management only)
+  - `admin` role: เข้าถึงทุก tab + จัดการ users + backup/restore
+  - `agent` role: เข้าถึงเฉพาะ Events, Requests, Import ICS, Credits, Conventions
+  - Defense in depth: PHP ซ่อน HTML elements + API-level role checks
+  - ป้องกัน lockout: ห้ามลบตัวเอง, ห้ามเปลี่ยน role ตัวเอง, ห้าม deactivate ตัวเอง
+  - ต้องเหลืออย่างน้อย 1 active admin เสมอ
+  - Config fallback users เป็น admin role เสมอ (backward compatible)
+  - Role badge แสดงข้าง username ใน header
+  - Helper functions: `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `require_api_admin_role()`
+  - Migration script: `tools/migrate-add-role-column.php`
+
+### Changed
+- `functions/admin.php`: เพิ่ม `$_SESSION['admin_role']` ใน `admin_login()` + 4 role helper functions
+- `admin/api.php`: เพิ่ม admin-only action gate สำหรับ backup/users actions + 5 user CRUD endpoints
+- `admin/index.php`: เพิ่ม Users tab/modal + ซ่อน Users/Backup tabs จาก agent role
+- `config/app.php`: APP_VERSION → '1.2.5'
+
+### Testing
+- 🧪 **226 automated tests** (เพิ่มจาก 207) - เพิ่ม 19 tests ใน `UserManagementTest.php`
+  - Schema tests: role column, default values
+  - Role helper tests: `get_admin_role()`, `is_admin_role()`
+  - User CRUD tests: create, update, delete, validation
+  - Permission tests: admin-only actions, agent restrictions
+
+## [1.2.4] - 2026-02-17
+
+### Added
+
+- 🔐 **Database-based Admin Authentication** - ย้าย credentials จาก config เข้า SQLite
+  - ตาราง `admin_users` รองรับหลาย admin users (username, password_hash, display_name, is_active)
+  - Login ลองหาจาก DB ก่อน → fallback ไปใช้ config constants (backward compatible)
+  - บันทึก `last_login_at` ทุกครั้งที่ login สำเร็จ
+  - Dummy `password_verify` เมื่อไม่พบ username เพื่อป้องกัน timing attacks
+  - Migration script: `tools/migrate-add-admin-users-table.php`
+
+- 🔑 **Change Password UI** - เปลี่ยนรหัสผ่านผ่าน Admin panel
+  - ปุ่ม "🔑 Change Password" ใน Admin header (แสดงเฉพาะ DB user)
+  - Modal form: current password + new password + confirm password
+  - Validation: ต้องใส่รหัสเดิม, รหัสใหม่ขั้นต่ำ 8 ตัวอักษร
+  - API endpoint: `POST ?action=change_password`
+
+### Fixed
+- 🐛 **Backup Delete Fix** - แก้ไขปัญหาลบไฟล์ backup แล้วขึ้น "Invalid filename"
+  - เปลี่ยน HTTP method จาก DELETE เป็น POST (Apache/Windows ไม่ส่ง body ใน DELETE request)
+  - แก้ JS variable scope bug: `closeDeleteBackupModal()` เคลียร์ตัวแปร filename ก่อนที่ `fetch` จะใช้งาน
+  - บันทึก filename เป็น local variable ก่อน close modal
+
+### Changed
+- `functions/admin.php`: เพิ่ม 4 ฟังก์ชัน (`admin_users_table_exists`, `get_admin_user_by_username`, `update_admin_last_login`, `change_admin_password`) + แก้ `admin_login()` ให้อ่านจาก DB ก่อน
+- `config/admin.php`: `ADMIN_USERNAME` / `ADMIN_PASSWORD_HASH` เป็น fallback (deprecation comment)
+- `tools/generate-password-hash.php`: แนะนำ 3 วิธีเปลี่ยนรหัส (Admin UI, config, SQL)
+- `admin/api.php`: เปลี่ยน backup delete จาก DELETE เป็น POST method
+- เพิ่ม 6 tests ใหม่ (รวม 207 tests จาก 189)
+
+## [1.2.3] - 2026-02-17
+
+### Added
+
+- 💾 **Backup/Restore System** - จัดการ backup ฐานข้อมูลผ่าน Admin UI
+  - **Backup Tab**: Tab ใหม่ "💾 Backup" ใน Admin panel
+  - **Create Backup**: สร้าง backup ไฟล์ .db พร้อมบันทึกไว้บน server ใน `backups/`
+  - **Download Backup**: ดาวน์โหลดไฟล์ backup มาเก็บที่เครื่อง
+  - **Restore from Server**: เลือก restore จากไฟล์ backup ที่เก็บไว้บน server
+  - **Upload & Restore**: อัพโหลดไฟล์ .db จากเครื่องเพื่อ restore
+  - **Delete Backup**: ลบไฟล์ backup ที่ไม่ต้องการ
+  - **Auto-Backup Safety**: สร้าง auto-backup อัตโนมัติก่อนทุกการ restore
+  - **SQLite Validation**: ตรวจสอบ SQLite header ก่อน restore
+  - **Path Traversal Protection**: ป้องกัน path traversal attacks ใน filename
+
+- 📂 **Database Directory Restructure** - จัดโครงสร้าง directory ใหม่
+  - **`data/`**: ย้าย `calendar.db` ไปอยู่ใน `data/calendar.db`
+  - **`backups/`**: เก็บไฟล์ backup แยกใน `backups/` directory
+  - **DB_PATH Constant**: ใช้ `DB_PATH` constant แทน hardcoded path ทั้งระบบ
+  - **Docker Updated**: อัพเดท docker-compose.yml mount volume เป็น `data/`
+
+### Changed
+- `config/database.php`: DB_PATH ชี้ไป `data/calendar.db`
+- `admin/api.php`: ใช้ `DB_PATH` constant, backup dir เปลี่ยนเป็น `backups/`
+- `functions/cache.php`: เพิ่ม `invalidate_all_caches()` สำหรับ restore
+- อัพเดท migration tools, tests, Docker files ให้ใช้ path ใหม่
+
+## [1.2.1] - 2026-02-12
+
+### Added
+
+- 🔗 **Clean URL Rewrite** - Remove `.php` extension from all public URLs
+  - **`.htaccess`**: Apache rewrite rules for clean URLs and event path routing
+  - **`nginx-clean-url.conf`**: Nginx configuration example for clean URLs
+  - **Event Path Routing**: `/event/slug` → `index.php?event=slug`, `/event/slug/credits` → `credits.php?event=slug`
+  - **Backward Compatible**: Old `.php` URLs still work
+  - **Admin URLs unchanged**: `/admin/` paths remain as-is
+  - **Updated `event_url()`**: Generates clean URLs (`/credits` instead of `/credits.php`)
+
+- 📅 **Date Jump Bar** - Quick navigation between days in multi-day events
+  - Fixed-position bar appears when scrolling past the calendar area
+  - Shows day/month and weekday name for each date
+  - Smooth scroll with offset for fixed bar height
+  - IntersectionObserver highlights current visible date
+  - Responsive design for mobile
+  - Translatable label in all 3 languages
+
+- 📦 **ICS Import Event Selector** - Choose target convention when importing ICS files
+  - Dedicated dropdown in ICS upload area to select target convention
+  - Convention name badge shown in preview stats
+
+- 📋 **Admin Credits Per-Event** - Assign credits to specific conventions
+  - Convention selector dropdown in credit create/edit form
+  - Supports global credits (null = shown in all conventions)
+
+- 🌏 **Complete i18n for Request Modal** - All form elements fully translated
+  - 20 new translation keys for request modal (labels, buttons, messages) in TH/EN/JA
+  - `data-i18n` attributes on all form labels and buttons
+  - JavaScript alert/confirm messages use translation system
+  - Added missing `credits.list.title` and `credits.noData` keys
+
+### Changed
+- Updated `event_url()` to generate clean event paths (`/event/slug/page`)
+- Updated `exportToIcs()` to use clean URL paths
+- Updated inline JS API calls to use clean URLs (`api/request` instead of `api/request.php`)
+
+### Testing
+- 🧪 **189 automated tests** (up from 187) - Added clean URL routing tests
+
+## [1.2.0] - 2026-02-11
+
+### Added
+
+- 🎪 **Multi-Event (Conventions) Support** - Manage multiple events/conventions in one system
+  - **New Table**: `events_meta` for storing convention metadata (name, slug, dates, venue_mode, is_active)
+  - **Convention Management**: Full CRUD for conventions via new "Conventions" tab in admin panel
+  - **Event Scoping**: Each event, request, and credit can belong to a specific convention
+  - **URL-based Selection**: Access conventions via `?event=slug` URL parameter
+  - **Convention Selector**: Dropdown in header to switch between conventions (public + admin)
+  - **Per-Convention Venue Mode**: Each convention can have its own `multi` or `single` venue mode
+  - **Backward Compatible**: Existing data works without migration (null event_meta_id = global)
+  - **Feature Flag**: `MULTI_EVENT_MODE` constant to enable/disable multi-event features
+  - **Migration Script**: `tools/migrate-add-events-meta-table.php` creates tables and migrates existing data
+  - **New Config Constants**: `DEFAULT_EVENT_SLUG`, `MULTI_EVENT_MODE` in `config/app.php`
+  - **New Helper Functions**: `get_current_event_slug()`, `get_event_meta_by_slug()`, `get_event_meta_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`
+  - **Admin API Endpoints**: `event_meta_list`, `event_meta_get`, `event_meta_create`, `event_meta_update`, `event_meta_delete`
+  - **Public API**: New `events_list` action returns all active conventions; all actions support `?event=slug` filtering
+  - **ICS Import**: `--event=slug` argument for CLI import tool
+  - **Cache Scoping**: Data version and credits cache scoped per convention
+  - **15 New Tests**: Multi-event helper functions, IcsParser filtering, cache scoping (total: 187 tests)
+
 ## [1.1.0] - 2026-02-11
 
 ### Added
@@ -160,7 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Safe session handling with race condition prevention
 
 ### Testing
-- 🧪 **Automated Test Suite** - 172 comprehensive unit tests
+- 🧪 **Automated Test Suite** - 187 comprehensive unit tests
   - **Test Framework**: Custom lightweight TestRunner with 20 assertion methods
   - **SecurityTest** (15 tests): Input sanitization, XSS protection, null byte injection, SQL injection prevention
   - **CacheTest** (11 tests): Cache creation, TTL, invalidation, hit/miss, error fallback

@@ -1,5 +1,28 @@
-# Stage Idol Calendar - Security Configuration
-# Apache .htaccess file
+# Stage Idol Calendar - Apache Configuration
+
+# Clean URLs
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Event path with subpage: /event/slug/credits → credits.php?event=slug
+    RewriteRule ^event/([^/]+)/([^/]+)$ $2.php?event=$1 [L,QSA]
+
+    # Event path main page: /event/slug → index.php?event=slug
+    RewriteRule ^event/([^/]+)/?$ index.php?event=$1 [L,QSA]
+
+    # Remove .php extension (public pages only, not admin)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} !^/admin/
+    RewriteRule ^([^/]+)$ $1.php [L,QSA]
+
+    # api/ subdirectory (api/request)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/([^/]+)$ api/$1.php [L,QSA]
+</IfModule>
+
+# --- Security Configuration ---
 
 # ป้องกันการเข้าถึงไฟล์ database
 <FilesMatch "\.(db|sqlite|sqlite3)$">

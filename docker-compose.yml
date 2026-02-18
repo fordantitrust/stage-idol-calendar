@@ -17,7 +17,7 @@ services:
       - ./cache:/var/www/html/cache
 
       # Mount database (for persistence)
-      - ./calendar.db:/var/www/html/calendar.db
+      - ./data:/var/www/html/data
 
       # Mount config for easy updates (optional - uncomment if needed)
       # - ./config:/var/www/html/config:ro

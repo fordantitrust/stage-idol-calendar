@@ -15,23 +15,32 @@
 - 📸 **บันทึกเป็นรูปภาพ** - Lazy-load html2canvas (PNG)
 - 📅 **Export ICS** - ส่งออกเป็นไฟล์ปฏิทิน (Google Calendar / Apple Calendar)
 - 📝 **Request System** - ผู้ใช้แจ้งเพิ่ม/แก้ไข event ได้ + Admin อนุมัติ
+- 🎪 **Multi-Event Support** - รองรับหลาย conventions/events ในระบบเดียว เลือกผ่าน URL หรือ dropdown
 
 ### สำหรับ Admin
-- ⚙️ **Admin UI** - จัดการ events, requests และ credits ผ่านหน้าเว็บ (CRUD)
+- ⚙️ **Admin UI** - จัดการ events, requests, credits และ conventions ผ่านหน้าเว็บ (CRUD)
+- 🎪 **Convention Management** - Tab "Conventions" สำหรับจัดการหลายงาน (CRUD)
+- 🔐 **Database Auth** - Admin credentials ใน SQLite รองรับหลาย users + เปลี่ยนรหัสผ่านผ่าน UI
+- 💾 **Backup/Restore** - สำรอง/กู้คืนฐานข้อมูลผ่าน Admin UI พร้อม auto-backup ก่อน restore
 - 📦 **Bulk Operations** - เลือกหลาย events/credits แล้วลบหรือแก้ไขพร้อมกัน (สูงสุด 100)
 - 📤 **ICS Upload** - อัพโหลดไฟล์ .ics พร้อม preview ก่อน import
 - 🎯 **Flexible Venue Entry** - พิมพ์เวทีใหม่ได้ พร้อม autocomplete
 - 📊 **Customizable Pagination** - เลือกแสดง 20/50/100 รายการต่อหน้า
 - 📋 **Credits Management** - จัดการ credits/references ผ่าน admin panel
 - 📝 **Request Management** - ดู/อนุมัติ/ปฏิเสธ คำขอจากผู้ใช้
+- 👤 **User Management** - จัดการ admin users (CRUD) พร้อม role-based access control
+- 🛡️ **Role-Based Access** - 2 roles: admin (full access) / agent (events management only)
 
 ### เทคนิค
 - ⚡ **SQLite Database** - ประสิทธิภาพสูง
-- 🔄 **Cache System** - Cache สำหรับ data version (10 นาที) และ credits (1 ชั่วโมง)
-- 🏟️ **Venue Mode** - สลับโหมด multi/single venue (ซ่อน/แสดง venue filter, Gantt view, คอลัมน์เวที)
+- 🎪 **Multi-Event Architecture** - ตาราง `events_meta` + `event_meta_id` FK ใน events, event_requests, credits
+- 🔄 **Cache System** - Cache สำหรับ data version และ credits แยกตาม convention
+- 🏟️ **Venue Mode** - สลับโหมด multi/single venue แยกตาม convention ได้
 - 🔒 **Security** - XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers
 - 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
-- 🧪 **172 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
+- 🔗 **Clean URLs** - ลบ .php extension จาก public URLs พร้อม .htaccess และ Nginx config
+- 📅 **Date Jump Bar** - แถบกระโดดไปวันที่ต้องการ (fixed-position, IntersectionObserver)
+- 🧪 **226 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
 
 ## 🚀 การติดตั้ง
 
@@ -90,7 +99,8 @@ stage-idol-calendar/
 ├── api.php                # Public API endpoint
 ├── config.php             # Bootstrap file (โหลด config/ และ functions/)
 ├── IcsParser.php          # ICS Parser class
-├── calendar.db            # SQLite database
+├── .htaccess              # Apache clean URL rewrite rules
+├── nginx-clean-url.conf   # Nginx clean URL config example
 │
 ├── config/                # Configuration constants
 │   ├── app.php            # Application settings & version
@@ -102,8 +112,14 @@ stage-idol-calendar/
 ├── functions/             # Helper functions
 │   ├── helpers.php        # General utilities
 │   ├── cache.php          # Cache functions (get_data_version, get_cached_credits, etc.)
-│   ├── admin.php          # Auth functions (login, session, CSRF)
+│   ├── admin.php          # Auth functions (login, session, CSRF, role-based access)
 │   └── security.php       # Security functions (sanitize, headers, IP whitelist)
+│
+├── data/                  # Database storage
+│   └── calendar.db        # SQLite database
+│
+├── backups/               # Backup storage (auto-created)
+│   └── backup_*.db        # Backup files
 │
 ├── cache/                 # Cache storage (auto-created)
 │   ├── data_version.json  # Data version cache
@@ -123,24 +139,28 @@ stage-idol-calendar/
 │   └── request.php        # Request to Add/Modify API
 │
 ├── admin/                 # Admin UI (login required)
-│   ├── index.php          # Admin dashboard (Events + Requests + Credits)
-│   ├── api.php            # CRUD API endpoints (events + requests + credits + ICS upload)
+│   ├── index.php          # Admin dashboard (Events + Requests + Credits + Conventions + Users + Backup)
+│   ├── api.php            # CRUD API endpoints (events + requests + credits + conventions + users + ICS upload + backup)
 │   └── login.php          # Login page
 │
 ├── tests/                 # Automated test suite
 │   ├── TestRunner.php     # Lightweight test framework (20 assertion methods)
 │   ├── run-tests.php      # Test runner with colored output
-│   ├── SecurityTest.php   # Security tests (15 tests)
-│   ├── CacheTest.php      # Cache tests (11 tests)
-│   ├── AdminAuthTest.php  # Auth tests (15 tests)
-│   ├── CreditsApiTest.php # Credits API tests (13 tests)
-│   └── IntegrationTest.php # Integration tests (118 tests)
+│   ├── SecurityTest.php   # Security tests (7 tests)
+│   ├── CacheTest.php      # Cache tests (17 tests)
+│   ├── AdminAuthTest.php  # Auth tests (38 tests)
+│   ├── CreditsApiTest.php # Credits API tests (49 tests)
+│   ├── IntegrationTest.php # Integration tests (96 tests)
+│   └── UserManagementTest.php # User management & role tests (19 tests)
 │
 ├── tools/                 # Development tools
 │   ├── import-ics-to-sqlite.php
 │   ├── update-ics-categories.php
 │   ├── migrate-add-requests-table.php
 │   ├── migrate-add-credits-table.php
+│   ├── migrate-add-events-meta-table.php
+│   ├── migrate-add-admin-users-table.php
+│   ├── migrate-add-role-column.php
 │   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
@@ -168,8 +188,17 @@ stage-idol-calendar/
 ### เปลี่ยน Version (Cache Busting)
 แก้ไขในไฟล์ `config/app.php`:
 ```php
-define('APP_VERSION', '1.1.0'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
+define('APP_VERSION', '1.2.5'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
 ```
+
+### Multi-Event Mode (โหมดหลาย Convention)
+แก้ไขในไฟล์ `config/app.php`:
+```php
+define('MULTI_EVENT_MODE', true);      // เปิดใช้งานระบบหลาย conventions
+define('DEFAULT_EVENT_SLUG', 'default'); // slug ของ convention เริ่มต้น
+```
+
+เข้าถึง convention ผ่าน URL: `/event/slug` เช่น `/event/idol-stage-feb-2026`
 
 ### Venue Mode (โหมดเวที)
 แก้ไขในไฟล์ `config/app.php`:
@@ -230,10 +259,12 @@ define('VENUE_MODE', 'single');  // เวทีเดียว - ซ่อน v
 ### Public API (`api.php`)
 ```
 GET /api.php?action=events              # Events ทั้งหมด
+GET /api.php?action=events&event=slug   # กรองตาม convention
 GET /api.php?action=events&organizer=X  # กรองตามศิลปิน
 GET /api.php?action=events&location=X   # กรองตามเวที
 GET /api.php?action=organizers          # รายชื่อศิลปินทั้งหมด
 GET /api.php?action=locations           # รายชื่อเวทีทั้งหมด
+GET /api.php?action=events_list         # รายการ conventions ที่ active ทั้งหมด
 ```
 
 ### Request API (`api/request.php`)
@@ -244,33 +275,58 @@ GET  /api/request.php?action=events     # ดึงรายการ events (�
 
 ### Admin API (`admin/api.php`) - ต้อง login + CSRF Token
 ```
-# Events
+# Events (รองรับ ?event_meta_id=X สำหรับกรองตาม convention)
 GET    ?action=list              # รายการ events (pagination, search, filter, sort)
 GET    ?action=get&id=X          # ดึง event เดียว
-POST   ?action=create            # สร้าง event ใหม่
-PUT    ?action=update&id=X       # แก้ไข event
+POST   ?action=create            # สร้าง event ใหม่ (รับ event_meta_id)
+PUT    ?action=update&id=X       # แก้ไข event (รับ event_meta_id)
 DELETE ?action=delete&id=X       # ลบ event
 DELETE ?action=bulk_delete       # ลบหลาย events (สูงสุด 100)
 PUT    ?action=bulk_update       # แก้ไขหลาย events (venue/organizer/categories)
 GET    ?action=venues            # รายชื่อเวทีทั้งหมด (สำหรับ autocomplete)
 
-# Requests
+# Conventions (events_meta CRUD)
+GET    ?action=event_meta_list           # รายการ conventions ทั้งหมด
+GET    ?action=event_meta_get&id=X       # ดึง convention เดียว
+POST   ?action=event_meta_create         # สร้าง convention ใหม่
+PUT    ?action=event_meta_update&id=X    # แก้ไข convention
+DELETE ?action=event_meta_delete&id=X    # ลบ convention
+
+# Requests (รองรับ ?event_meta_id=X สำหรับกรองตาม convention)
 GET    ?action=requests          # รายการคำขอ (filter by status)
 GET    ?action=pending_count     # จำนวนคำขอ pending (สำหรับ badge)
 PUT    ?action=request_approve&id=X  # อนุมัติคำขอ
 PUT    ?action=request_reject&id=X   # ปฏิเสธคำขอ
 
-# ICS Upload
+# ICS Upload (รองรับ event_meta_id)
 POST   ?action=upload_ics       # อัพโหลด + parse ไฟล์ .ics
 POST   ?action=import_ics_confirm    # ยืนยัน import events
 
-# Credits
+# Credits (รองรับ ?event_meta_id=X สำหรับกรองตาม convention)
 GET    ?action=credits_list      # รายการ credits (pagination, search)
 GET    ?action=credits_get&id=X  # ดึง credit เดียว
-POST   ?action=credits_create    # สร้าง credit ใหม่
+POST   ?action=credits_create    # สร้าง credit ใหม่ (รับ event_meta_id)
 PUT    ?action=credits_update&id=X   # แก้ไข credit
 DELETE ?action=credits_delete&id=X   # ลบ credit
 DELETE ?action=credits_bulk_delete   # ลบหลาย credits
+
+# Change Password
+POST   ?action=change_password      # เปลี่ยนรหัสผ่าน admin (ต้อง login ด้วย DB user)
+
+# User Management (admin role only)
+GET    ?action=users_list          # รายการ users ทั้งหมด
+GET    ?action=users_get&id=X      # ดึง user เดียว
+POST   ?action=users_create        # สร้าง user ใหม่ (username, password, display_name, role)
+PUT    ?action=users_update&id=X   # แก้ไข user (password optional)
+DELETE ?action=users_delete&id=X   # ลบ user (ห้ามลบตัวเอง/admin คนสุดท้าย)
+
+# Backup/Restore (admin role only)
+POST   ?action=backup_create        # สร้าง backup ใหม่
+GET    ?action=backup_list          # รายการ backup ทั้งหมด
+GET    ?action=backup_download&filename=X  # ดาวน์โหลดไฟล์ backup
+DELETE ?action=backup_delete        # ลบไฟล์ backup
+POST   ?action=backup_restore      # Restore จากไฟล์บน server
+POST   ?action=backup_upload_restore     # Upload .db แล้ว restore
 ```
 
 ## 🔒 Security Features
@@ -283,6 +339,7 @@ DELETE ?action=credits_bulk_delete   # ลบหลาย credits
 - **IP Whitelist**: จำกัด admin access ตาม IP (รองรับ CIDR notation)
 - **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy
 - **SQL Injection Prevention**: PDO prepared statements ทุก query
+- **Role-Based Access Control**: admin/agent roles, defense in depth (PHP + API level)
 
 ## 🛠 Tools (สำหรับ Developer)
 
@@ -294,6 +351,9 @@ DELETE ?action=credits_bulk_delete   # ลบหลาย credits
 | `update-ics-categories.php` | เพิ่ม CATEGORIES field |
 | `migrate-add-requests-table.php` | สร้างตาราง event_requests |
 | `migrate-add-credits-table.php` | สร้างตาราง credits |
+| `migrate-add-events-meta-table.php` | สร้างตาราง events_meta + เพิ่ม event_meta_id |
+| `migrate-add-admin-users-table.php` | สร้างตาราง admin_users + seed จาก config |
+| `migrate-add-role-column.php` | เพิ่ม role column ใน admin_users |
 | `generate-password-hash.php` | สร้าง password hash สำหรับ admin |
 | `debug-parse.php` | Debug การ parse ICS |
 | `test-parse.php` | ทดสอบ parse ไฟล์ |
@@ -331,18 +391,19 @@ docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php  # import dat
 
 ### Automated Test Suite
 
-ระบบมี **172 automated unit tests** ครอบคลุมทุก feature:
+ระบบมี **226 automated unit tests** ครอบคลุมทุก feature:
 
 ```bash
 # รัน test ทั้งหมด
 php tests/run-tests.php
 
 # รัน test แต่ละ suite
-php tests/run-tests.php SecurityTest      # 15 tests
-php tests/run-tests.php CacheTest         # 11 tests
-php tests/run-tests.php AdminAuthTest     # 15 tests
-php tests/run-tests.php CreditsApiTest    # 13 tests
-php tests/run-tests.php IntegrationTest   # 118 tests
+php tests/run-tests.php SecurityTest          # 7 tests
+php tests/run-tests.php CacheTest             # 17 tests
+php tests/run-tests.php AdminAuthTest         # 38 tests
+php tests/run-tests.php CreditsApiTest        # 49 tests
+php tests/run-tests.php IntegrationTest       # 96 tests
+php tests/run-tests.php UserManagementTest    # 19 tests
 
 # รัน test เฉพาะ function
 php tests/run-tests.php SecurityTest::testSanitizeString
@@ -362,11 +423,12 @@ quick-test.bat
 
 - **SecurityTest**: XSS protection, input sanitization, SQL injection prevention
 - **CacheTest**: Cache TTL, invalidation, hit/miss behavior
-- **AdminAuthTest**: Session security, timing attack resistance
+- **AdminAuthTest**: Session security, timing attack resistance, DB auth, change password
 - **CreditsApiTest**: Database CRUD operations, bulk operations
-- **IntegrationTest**: Configuration validation, workflow testing, API endpoints
+- **IntegrationTest**: Configuration validation, workflow testing, API endpoints, multi-event support
+- **UserManagementTest**: Role column schema, role helpers, user CRUD, permission checks
 
-✅ **ผ่านทั้งหมด 172 tests บน PHP 8.1, 8.2, และ 8.3**
+✅ **ผ่านทั้งหมด 226 tests บน PHP 8.1, 8.2, และ 8.3**
 
 ### Manual Testing
 
@@ -431,6 +493,74 @@ END:VCALENDAR
 - Twitter (X): [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ## 📝 Changelog
+
+### v1.2.5 (2026-02-18)
+
+- 👤 **User Management** - จัดการ admin users ผ่าน Admin panel (CRUD)
+  - Tab "👤 Users" สำหรับ admin role
+  - สร้าง/แก้ไข/ลบ users พร้อม role assignment
+  - API: `users_list`, `users_get`, `users_create`, `users_update`, `users_delete`
+- 🛡️ **Role-Based Access Control** - แบ่งสิทธิ์ admin/agent
+  - `admin`: เข้าถึงทุกอย่าง + จัดการ users + backup/restore
+  - `agent`: จัดการ events เท่านั้น (Events, Requests, Import ICS, Credits, Conventions)
+  - Defense in depth: PHP ซ่อน HTML + API บล็อก role
+  - ป้องกัน lockout: ห้ามลบตัวเอง, ห้ามเปลี่ยน role ตัวเอง, ต้องเหลืออย่างน้อย 1 admin
+  - Migration script: `tools/migrate-add-role-column.php`
+  - Helper functions: `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `require_api_admin_role()`
+- 🧪 **226 automated tests** (เพิ่มจาก 207)
+
+### v1.2.4 (2026-02-17)
+
+- 🔐 **Database-based Admin Authentication** - ย้าย credentials จาก config เข้า SQLite
+  - ตาราง `admin_users` รองรับหลาย admin users
+  - Login: DB ก่อน → fallback config (backward compatible)
+  - Migration script: `tools/migrate-add-admin-users-table.php`
+- 🔑 **Change Password UI** - เปลี่ยนรหัสผ่านผ่าน Admin panel
+  - ปุ่ม "🔑 Change Password" ใน header + modal form
+  - API: `POST ?action=change_password`
+- 🐛 **Backup Delete Fix** - แก้ไขลบ backup ขึ้น "Invalid filename" (DELETE→POST + JS variable scope fix)
+- 🧪 **207 automated tests** (เพิ่มจาก 189)
+
+### v1.2.3 (2026-02-17)
+
+- 💾 **Backup/Restore System** - สำรอง/กู้คืนฐานข้อมูลผ่าน Admin UI
+  - Tab "💾 Backup" ใน Admin panel
+  - สร้าง/download/restore/delete backup ไฟล์ .db
+  - Upload .db จากเครื่องเพื่อ restore
+  - Auto-backup ก่อนทุกการ restore (safety net)
+  - SQLite header validation + path traversal protection
+- 📂 **Database Directory Restructure** - จัดโครงสร้างใหม่
+  - `calendar.db` → `data/calendar.db`
+  - Backup files → `backups/` directory
+  - ใช้ `DB_PATH` constant แทน hardcoded path ทั้งระบบ
+  - เพิ่ม `invalidate_all_caches()` ใน cache functions
+
+### v1.2.1 (2026-02-12)
+
+- 🔗 **Clean URL Rewrite** - ลบ .php จาก public URLs พร้อม .htaccess และ nginx config
+- 📅 **Date Jump Bar** - แถบ fixed-position สำหรับกระโดดไปวันที่ต้องการ
+- 📦 **ICS Import Event Selector** - เลือก convention เป้าหมายเมื่อ import ICS
+- 📋 **Admin Credits Per-Event** - กำหนด credits ให้ convention เฉพาะได้
+- 🌏 **Complete i18n** - แปลภาษาครบทุก element รวม request modal (20 keys ใหม่)
+- 🧪 **189 automated tests** (เพิ่มจาก 187)
+
+### v1.2.0 (2026-02-11)
+
+- 🎪 **Multi-Event (Conventions) Support** - รองรับหลายงาน/conventions ในระบบเดียว
+  - ตาราง `events_meta` สำหรับเก็บข้อมูล convention (name, slug, dates, venue_mode, is_active)
+  - Tab "Conventions" ใน Admin สำหรับจัดการ CRUD
+  - เลือก Convention ผ่าน URL `?event=slug` หรือ dropdown
+  - Convention dropdown ใน Event form สำหรับระบุ convention
+  - Per-convention venue mode (multi/single)
+  - Cache แยกตาม convention
+  - Backward compatible - ข้อมูลเดิมทำงานได้โดยไม่ต้อง migrate
+  - Migration script: `tools/migrate-add-events-meta-table.php`
+  - Config ใหม่: `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG`
+  - Helper functions: `get_current_event_slug()`, `get_event_meta_by_slug()`, `get_event_meta_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`
+  - Admin API: `event_meta_list`, `event_meta_get`, `event_meta_create`, `event_meta_update`, `event_meta_delete`
+  - Public API: action `events_list` + parameter `?event=slug` สำหรับทุก action
+  - ICS Import: argument `--event=slug`
+  - เพิ่ม 15 tests ใหม่ (รวม 189 tests)
 
 ### v1.1.0 (2026-02-11)
 
@@ -498,7 +628,7 @@ END:VCALENDAR
   - **Race Condition Fix**: safe_session_start() พร้อม session status check
   - **Configuration**: SESSION_TIMEOUT, IP Whitelist ตั้งค่าได้ใน config/admin.php
 
-- 🧪 **Automated Test Suite** - 172 unit tests ครอบคลุมทุก feature
+- 🧪 **Automated Test Suite** - 207 unit tests ครอบคลุมทุก feature
   - Custom TestRunner framework (20 assertion methods)
   - 5 test suites: Security, Cache, AdminAuth, CreditsApi, Integration
   - CI/CD ด้วย GitHub Actions (PHP 8.1, 8.2, 8.3)

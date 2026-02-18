@@ -26,7 +26,15 @@ function escapeApiData($data, $fields = []) {
     return $data;
 }
 
-$parser = new IcsParser('ics');
+// Multi-event support
+$eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET['event']) : null;
+$eventMetaId = null;
+if ($eventSlug) {
+    $eventMeta = get_event_meta_by_slug($eventSlug);
+    $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+}
+
+$parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
 
 $action = $_GET['action'] ?? 'events';
 $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
@@ -80,10 +88,26 @@ try {
             echo json_encode($locations, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             break;
 
+        case 'events_list':
+            $activeEvents = get_all_active_events();
+            $activeEvents = array_map(function($ev) {
+                return [
+                    'id' => intval($ev['id']),
+                    'slug' => htmlspecialchars($ev['slug'], ENT_QUOTES, 'UTF-8'),
+                    'name' => htmlspecialchars($ev['name'], ENT_QUOTES, 'UTF-8'),
+                    'description' => htmlspecialchars($ev['description'] ?? '', ENT_QUOTES, 'UTF-8'),
+                    'start_date' => $ev['start_date'],
+                    'end_date' => $ev['end_date'],
+                    'venue_mode' => $ev['venue_mode'],
+                ];
+            }, $activeEvents);
+            echo json_encode($activeEvents, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode([
-                'error' => 'Invalid action. Use: events, organizers, or locations'
+                'error' => 'Invalid action. Use: events, organizers, locations, or events_list'
             ], JSON_UNESCAPED_UNICODE);
     }
 } catch (Exception $e) {

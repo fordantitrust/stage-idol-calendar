@@ -29,8 +29,12 @@ echo "==============================================\n\n";
 echo "Password: {$password}\n";
 echo "Hash: {$hash}\n\n";
 
-echo "คัดลอก hash ด้านบนไปใส่ใน config/admin.php:\n";
-echo "define('ADMIN_PASSWORD_HASH', '{$hash}');\n\n";
+echo "Option 1 (Recommended): Change password via Admin UI\n";
+echo "  Login to Admin panel -> Click 'Change Password'\n\n";
+echo "Option 2 (Config fallback): Paste in config/admin.php:\n";
+echo "  define('ADMIN_PASSWORD_HASH', '{$hash}');\n\n";
+echo "Option 3 (Direct DB update):\n";
+echo "  UPDATE admin_users SET password_hash = '{$hash}' WHERE username = 'admin';\n\n";
 
 echo "==============================================\n";
 ?>

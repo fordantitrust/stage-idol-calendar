@@ -19,6 +19,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📸 **Save as Image** | Export filtered schedule as PNG image |
 | 📅 **Export to Calendar** | Download as ICS file for Google Calendar, Apple Calendar, etc. |
 | 📝 **Request Changes** | Submit requests to add or modify events |
+| 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based selection |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description |
@@ -32,6 +33,12 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes |
 | 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations |
 | 📤 **ICS Upload** | Upload and preview ICS files before importing |
+| 💾 **Backup/Restore** | Backup and restore database with auto-safety backup |
+| 🎪 **Convention Management** | Full CRUD for managing multiple events/conventions |
+| 🔐 **DB Auth & Multi-user** | Admin credentials in SQLite, supports multiple admin users |
+| 🔑 **Change Password** | Change admin password via UI with current password verification |
+| 👤 **User Management** | Full CRUD for admin users with role assignment |
+| 🛡️ **Role-Based Access** | Admin (full access) / Agent (events only) role system |
 | 🔒 **Secure Access** | Session-based authentication with optional IP whitelist |
 | 🔐 **CSRF Protection** | Token-based CSRF validation for all admin operations |
 
@@ -43,7 +50,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
-| 🧪 **172 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🎪 **Multi-Event** | Support multiple conventions with per-event venue mode and caching |
+| 🧪 **226 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -189,22 +197,46 @@ Users can request to add new events or modify existing ones:
 ### Admin Capabilities
 
 **Events Tab:**
-- Create, edit, and delete events
+- Create, edit, and delete events (with convention assignment)
 - Bulk operations (select and delete/edit up to 100 events)
-- Search and filter by venue
+- Filter by venue or convention
 - Pagination for large event lists (20/50/100 per page)
 
 **Requests Tab:**
 - View pending user requests
 - Compare original vs. requested changes (side-by-side)
 - Approve or reject requests
-- Filter by status (pending/approved/rejected)
+- Filter by status and convention
 
 **Credits Tab:**
 - Create, edit, and delete credits/references
 - Bulk delete multiple credits
 - Search, sort, and pagination
 - Manage title, link, description, and display order
+
+**Conventions Tab:**
+- Create, edit, and delete conventions/events
+- Configure name, slug, dates, venue mode, active status
+- Per-convention venue mode (multi/single)
+
+**Users Tab** (admin role only):
+- Create, edit, and delete admin users
+- Assign roles: `admin` (full access) or `agent` (events management only)
+- Toggle active/inactive status
+- Safety: cannot delete self, cannot change own role, must keep 1+ admin
+
+**Backup Tab** (admin role only):
+- Create database backup (stored on server in `backups/`)
+- Download backup files to local machine
+- Restore from server backup or upload .db file
+- Auto-backup created before every restore operation
+- Delete old backup files
+
+**Authentication & Roles:**
+- Admin credentials stored in SQLite (`admin_users` table) - supports multiple users
+- Role-based access: `admin` sees all tabs; `agent` sees Events, Requests, Import, Credits, Conventions only
+- Change Password button in admin header (current password required)
+- Fallback to `config/admin.php` if `admin_users` table doesn't exist
 
 ### Initial Setup
 
@@ -220,10 +252,30 @@ Users can request to add new events or modify existing ones:
    php migrate-add-credits-table.php
    ```
 
-2. **Configure admin credentials** in `config/admin.php`:
+3. **Create events_meta table** (multi-event support):
    ```bash
-   # Generate password hash
-   php -r "echo password_hash('your_strong_password', PASSWORD_DEFAULT);"
+   cd tools
+   php migrate-add-events-meta-table.php
+   ```
+
+4. **Create admin_users table** (database-based auth):
+   ```bash
+   cd tools
+   php migrate-add-admin-users-table.php
+   ```
+   This migrates credentials from `config/admin.php` into SQLite.
+   After migration, change password via Admin UI → "🔑 Change Password".
+
+5. **Add role column** (role-based access control):
+   ```bash
+   cd tools
+   php migrate-add-role-column.php
+   ```
+   Adds `role` column to `admin_users` table. Existing users default to `admin` role.
+
+5. **(Alternative) Configure admin credentials** in `config/admin.php` (fallback):
+   ```bash
+   php tools/generate-password-hash.php your_strong_password
    ```
    Then update in `config/admin.php`:
    ```php
@@ -251,10 +303,12 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api.php?action=events` | GET | Get all events |
+| `/api.php?action=events&event=slug` | GET | Filter by convention |
 | `/api.php?action=events&organizer=X` | GET | Filter by artist |
 | `/api.php?action=events&location=X` | GET | Filter by venue |
 | `/api.php?action=organizers` | GET | Get all artists |
 | `/api.php?action=locations` | GET | Get all venues |
+| `/api.php?action=events_list` | GET | Get all active conventions |
 
 ### Request API (`/api/request.php`)
 
@@ -291,6 +345,15 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 | `/admin/api.php?action=upload_ics` | POST | Upload and parse ICS file |
 | `/admin/api.php?action=import_ics_confirm` | POST | Confirm import with action choices |
 
+**Conventions Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/api.php?action=event_meta_list` | GET | List all conventions |
+| `/admin/api.php?action=event_meta_get&id=X` | GET | Get single convention |
+| `/admin/api.php?action=event_meta_create` | POST | Create convention |
+| `/admin/api.php?action=event_meta_update&id=X` | PUT | Update convention |
+| `/admin/api.php?action=event_meta_delete&id=X` | DELETE | Delete convention |
+
 **Credits Endpoints:**
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -301,7 +364,31 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 | `/admin/api.php?action=credits_delete&id=X` | DELETE | Delete credit |
 | `/admin/api.php?action=credits_bulk_delete` | DELETE | Delete multiple credits |
 
-**Authentication**: All admin API endpoints require a valid session cookie + IP whitelist check.
+**Backup/Restore Endpoints:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/api.php?action=backup_create` | POST | Create database backup |
+| `/admin/api.php?action=backup_list` | GET | List all backups |
+| `/admin/api.php?action=backup_download&filename=X` | GET | Download backup file |
+| `/admin/api.php?action=backup_delete` | DELETE | Delete backup file |
+| `/admin/api.php?action=backup_restore` | POST | Restore from server backup |
+| `/admin/api.php?action=backup_upload_restore` | POST | Upload .db file and restore |
+
+**User Management Endpoints** (admin role only):
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/api.php?action=users_list` | GET | List all admin users |
+| `/admin/api.php?action=users_get&id=X` | GET | Get single user |
+| `/admin/api.php?action=users_create` | POST | Create new user |
+| `/admin/api.php?action=users_update&id=X` | PUT | Update user |
+| `/admin/api.php?action=users_delete&id=X` | DELETE | Delete user |
+
+**Account Endpoint:**
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/admin/api.php?action=change_password` | POST | Change admin password (requires DB auth) |
+
+**Authentication**: All admin API endpoints require a valid session cookie + IP whitelist check. Credentials are stored in SQLite `admin_users` table (with fallback to `config/admin.php`).
 
 **CSRF Protection**: POST/PUT/DELETE requests require `X-CSRF-Token` header.
 
@@ -315,8 +402,19 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '1.1.0'); // Change this to force cache refresh
+define('APP_VERSION', '1.2.5'); // Change this to force cache refresh
 ```
+
+### Multi-Event Mode
+
+Enable multiple conventions support in [config/app.php](config/app.php):
+
+```php
+define('MULTI_EVENT_MODE', true);       // Enable multi-event support
+define('DEFAULT_EVENT_SLUG', 'default'); // Default convention slug
+```
+
+Access conventions via URL: `/event/slug` (e.g., `/event/idol-stage-feb-2026`)
 
 ### Venue Mode
 
@@ -415,7 +513,8 @@ stage-idol-calendar/
 ├── api.php                # Public API endpoint
 ├── config.php             # Bootstrap file (loads config/ files)
 ├── IcsParser.php          # ICS parser class
-├── calendar.db            # SQLite database
+├── .htaccess              # Apache clean URL rewrite rules
+├── nginx-clean-url.conf   # Nginx clean URL config example
 │
 ├── config/                # Configuration files
 │   ├── app.php            # Application settings
@@ -437,14 +536,20 @@ stage-idol-calendar/
 │   ├── translations.js    # Multi-language translations
 │   └── common.js          # Shared utilities
 │
+├── data/                  # Database storage
+│   └── calendar.db        # SQLite database
+│
+├── backups/               # Backup storage (auto-created by admin)
+│   └── backup_*.db        # Backup files
+│
 ├── ics/                   # ICS data files (place your .ics files here)
 │
 ├── api/                   # Public APIs
 │   └── request.php        # User request submission
 │
 ├── admin/                 # Admin interface (login required)
-│   ├── index.php          # Admin dashboard
-│   ├── api.php            # Admin CRUD API
+│   ├── index.php          # Admin dashboard (Events + Requests + Credits + Conventions + Users + Backup)
+│   ├── api.php            # Admin CRUD API (+ conventions + users + backup/restore)
 │   └── login.php          # Login page
 │
 ├── tools/                 # Development tools
@@ -452,18 +557,22 @@ stage-idol-calendar/
 │   ├── update-ics-categories.php
 │   ├── migrate-add-requests-table.php
 │   ├── migrate-add-credits-table.php
+│   ├── migrate-add-events-meta-table.php
+│   ├── migrate-add-admin-users-table.php
+│   ├── migrate-add-role-column.php
 │   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
 │
-├── tests/                 # Automated test suite (172 tests)
+├── tests/                 # Automated test suite (226 tests)
 │   ├── TestRunner.php     # Test framework (20 assertion methods)
 │   ├── run-tests.php      # Test runner with colored output
-│   ├── SecurityTest.php   # Security tests (15 tests)
-│   ├── CacheTest.php      # Cache tests (11 tests)
-│   ├── AdminAuthTest.php  # Auth tests (15 tests)
-│   ├── CreditsApiTest.php # Credits API tests (13 tests)
-│   └── IntegrationTest.php # Integration tests (118 tests)
+│   ├── SecurityTest.php   # Security tests (7 tests)
+│   ├── CacheTest.php      # Cache tests (17 tests)
+│   ├── AdminAuthTest.php  # Auth tests (38 tests)
+│   ├── CreditsApiTest.php # Credits API tests (49 tests)
+│   ├── IntegrationTest.php # Integration tests (96 tests)
+│   └── UserManagementTest.php # User management & role tests (19 tests)
 │
 ├── Dockerfile             # Docker image (PHP 8.1-apache)
 ├── docker-compose.yml     # Production Docker Compose
@@ -539,6 +648,9 @@ Located in `tools/` folder:
 | `update-ics-categories.php` | Add CATEGORIES field to ICS files |
 | `migrate-add-requests-table.php` | Create event_requests table |
 | `migrate-add-credits-table.php` | Create credits table |
+| `migrate-add-events-meta-table.php` | Create events_meta table (multi-event support) |
+| `migrate-add-admin-users-table.php` | Create admin_users table + seed from config |
+| `migrate-add-role-column.php` | Add role column to admin_users (RBAC) |
 | `generate-password-hash.php` | Generate bcrypt password hash for admin |
 | `debug-parse.php` | Debug ICS file parsing |
 | `test-parse.php` | Test ICS parser |
@@ -546,7 +658,7 @@ Located in `tools/` folder:
 ### Running Tests
 
 ```bash
-# Run all 172 automated tests
+# Run all 226 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -600,8 +712,8 @@ See [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) for database schema, migration gu
 ### Database Errors
 
 - Verify PHP has SQLite extension enabled: `php -m | grep pdo_sqlite`
-- Check database file permissions: `chmod 644 calendar.db`
-- Try deleting `calendar.db` and re-running import
+- Check database file permissions: `chmod 644 data/calendar.db`
+- Try deleting `data/calendar.db` and re-running import
 
 ---
 
@@ -646,14 +758,15 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **172 automated unit tests** covering all critical functionality:
+The project includes **226 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
-- 🔒 **SecurityTest** (15 tests) - Input sanitization, XSS protection, SQL injection prevention
-- 💾 **CacheTest** (11 tests) - Cache creation, invalidation, TTL, fallback behavior
-- 🔐 **AdminAuthTest** (15 tests) - Authentication, session management, timing attack resistance
-- 📋 **CreditsApiTest** (13 tests) - Database CRUD operations, bulk operations
-- 🔗 **IntegrationTest** (118 tests) - File structure, configuration, full workflows, API endpoints
+- 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
+- 💾 **CacheTest** (17 tests) - Cache creation, invalidation, TTL, fallback behavior
+- 🔐 **AdminAuthTest** (38 tests) - Authentication, session management, timing attack resistance, DB auth, change password
+- 📋 **CreditsApiTest** (49 tests) - Database CRUD operations, bulk operations
+- 🔗 **IntegrationTest** (96 tests) - File structure, configuration, full workflows, API endpoints
+- 👤 **UserManagementTest** (19 tests) - Role column schema, role helpers, user CRUD, permission checks
 
 **Run All Tests:**
 ```bash
@@ -691,14 +804,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 172 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 172 tests
-Passed: 172
+Total: 226 tests
+Passed: 226
 Pass Rate: 100.0%
 ```
 
@@ -718,7 +831,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 1.1.0
+**Current Version**: 1.2.5
 
 ---
 

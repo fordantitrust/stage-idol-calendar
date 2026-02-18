@@ -40,6 +40,7 @@ $testFiles = [
     'AdminAuthTest' => __DIR__ . '/AdminAuthTest.php',
     'CreditsApiTest' => __DIR__ . '/CreditsApiTest.php',
     'IntegrationTest' => __DIR__ . '/IntegrationTest.php',
+    'UserManagementTest' => __DIR__ . '/UserManagementTest.php',
 ];
 
 // Filter test files if specific test requested

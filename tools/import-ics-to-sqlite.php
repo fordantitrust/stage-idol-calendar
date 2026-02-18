@@ -4,13 +4,26 @@
  * สคริปต์สำหรับ import ไฟล์ .ics ทั้งหมดจากโฟลเดอร์ ics/ ลงใน SQLite database
  */
 
-require_once '../IcsParser.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../IcsParser.php';
 
 echo "=== ICS to SQLite Import Script ===\n\n";
 
+// Parse --event=slug argument
+$eventSlug = null;
+foreach ($argv ?? [] as $arg) {
+    if (strpos($arg, '--event=') === 0) {
+        $eventSlug = substr($arg, 8);
+    }
+}
+
+if ($eventSlug) {
+    echo "Event slug: $eventSlug\n";
+}
+
 // กำหนด path
-$icsFolder = '../ics';
-$dbPath = '../calendar.db';
+$icsFolder = __DIR__ . '/../ics';
+$dbPath = __DIR__ . '/../data/calendar.db';
 
 // สร้างหรือเชื่อมต่อ SQLite database
 try {
@@ -20,6 +33,20 @@ try {
 } catch (PDOException $e) {
     echo "❌ Database connection failed: " . $e->getMessage() . "\n";
     exit(1);
+}
+
+// Resolve event_meta_id from slug
+$eventMetaId = null;
+if ($eventSlug) {
+    $metaStmt = $db->prepare("SELECT id FROM events_meta WHERE slug = :slug");
+    $metaStmt->execute([':slug' => $eventSlug]);
+    $metaRow = $metaStmt->fetch(PDO::FETCH_ASSOC);
+    if ($metaRow) {
+        $eventMetaId = intval($metaRow['id']);
+        echo "Event meta ID: $eventMetaId\n\n";
+    } else {
+        echo "Warning: Event slug '$eventSlug' not found in events_meta. Events will be imported without event_meta_id.\n\n";
+    }
 }
 
 // สร้าง table structure
@@ -72,8 +99,8 @@ $stats = [
 
 // เตรียม SQL statements
 $insertSQL = "
-INSERT INTO events (uid, title, start, end, location, organizer, description, categories)
-VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories)
+INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id)
+VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id)
 ";
 
 $updateSQL = "
@@ -146,7 +173,8 @@ foreach ($files as $file) {
                     ':location' => $event['location'],
                     ':organizer' => $event['organizer'],
                     ':description' => $event['description'],
-                    ':categories' => $event['categories']
+                    ':categories' => $event['categories'],
+                    ':event_meta_id' => $eventMetaId
                 ]);
                 $stats['inserted']++;
                 echo "  ✅ Inserted: " . $event['title'] . "\n";

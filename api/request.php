@@ -16,7 +16,7 @@ if (!defined('RATE_LIMIT_WINDOW')) {
     define('RATE_LIMIT_WINDOW', 3600);
 }
 
-$dbPath = __DIR__ . '/../calendar.db';
+$dbPath = DB_PATH;
 $db = null;
 
 // ตรวจสอบว่าไฟล์ database มีอยู่
@@ -78,6 +78,12 @@ function submitRequest() {
     }
 
     // Sanitize
+    // Resolve event_meta_id from event_slug
+    $eventMetaId = null;
+    if (!empty($input['event_slug'])) {
+        $eventMetaId = get_event_meta_id($input['event_slug']);
+    }
+
     $data = [
         ':type' => $input['type'],
         ':event_id' => $input['type'] === 'modify' ? intval($input['event_id']) : null,
@@ -91,12 +97,13 @@ function submitRequest() {
         ':requester_name' => mb_substr(trim($input['requester_name']), 0, 100),
         ':requester_email' => mb_substr(trim($input['requester_email'] ?? ''), 0, 200),
         ':requester_note' => mb_substr(trim($input['requester_note'] ?? ''), 0, 1000),
+        ':event_meta_id' => $eventMetaId,
     ];
 
     try {
         $stmt = $db->prepare("
-            INSERT INTO event_requests (type, event_id, title, start, end, location, organizer, description, categories, requester_name, requester_email, requester_note)
-            VALUES (:type, :event_id, :title, :start, :end, :location, :organizer, :description, :categories, :requester_name, :requester_email, :requester_note)
+            INSERT INTO event_requests (type, event_id, title, start, end, location, organizer, description, categories, requester_name, requester_email, requester_note, event_meta_id)
+            VALUES (:type, :event_id, :title, :start, :end, :location, :organizer, :description, :categories, :requester_name, :requester_email, :requester_note, :event_meta_id)
         ");
         $stmt->execute($data);
         recordRequest($ip);
@@ -110,7 +117,18 @@ function getEvents() {
     global $db;
 
     try {
-        $stmt = $db->query("SELECT id, title, start, location, organizer FROM events ORDER BY start DESC LIMIT 100");
+        $eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET['event']) : null;
+        $eventMetaId = null;
+        if ($eventSlug) {
+            $eventMetaId = get_event_meta_id($eventSlug);
+        }
+
+        if ($eventMetaId) {
+            $stmt = $db->prepare("SELECT id, title, start, location, organizer FROM events WHERE event_meta_id = :emi ORDER BY start DESC LIMIT 100");
+            $stmt->execute([':emi' => $eventMetaId]);
+        } else {
+            $stmt = $db->query("SELECT id, title, start, location, organizer FROM events ORDER BY start DESC LIMIT 100");
+        }
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
         jsonResponse(true, $events);
     } catch (PDOException $e) {

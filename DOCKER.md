@@ -102,6 +102,7 @@ docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php
 # 5. Create required tables
 docker exec idol-stage-calendar php tools/migrate-add-requests-table.php
 docker exec idol-stage-calendar php tools/migrate-add-credits-table.php
+docker exec idol-stage-calendar php tools/migrate-add-events-meta-table.php
 
 # 6. Verify
 curl http://localhost:8000

@@ -17,6 +17,7 @@ Complete test cases for all features and security aspects.
 9. [Frontend Features](#frontend-features)
 10. [Performance Testing](#performance-testing)
 11. [Edge Cases & Error Handling](#edge-cases--error-handling)
+12. [User Management & Roles](#user-management--roles)
 
 ---
 
@@ -29,7 +30,7 @@ Complete test cases for all features and security aspects.
 php -S localhost:8000
 
 # Check PHP version
-php -v  # Should be 7.0+
+php -v  # Should be 8.1+
 
 # Verify SQLite extension
 php -m | grep -i sqlite  # Should show pdo_sqlite
@@ -48,6 +49,9 @@ php import-ics-to-sqlite.php
 # Create necessary tables
 php migrate-add-requests-table.php
 php migrate-add-credits-table.php
+php migrate-add-events-meta-table.php
+php migrate-add-admin-users-table.php
+php migrate-add-role-column.php
 
 # Clear cache
 rm -f cache/*.json
@@ -1879,13 +1883,141 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v1.1.0
+**Version**: v1.2.5
 
 **Result**: Pass / Fail
 
 **Notes**:
 _________________________________
 _________________________________
+
+---
+
+## 12. User Management & Roles
+
+### 12.1 User Management (Admin Role)
+
+**Test Case 12.1.1**: Users tab visibility for admin role
+
+**Steps**:
+1. Login as admin role user
+2. Check admin panel tabs
+
+**Expected Result**:
+- ✅ "👤 Users" tab visible
+- ✅ "💾 Backup" tab visible
+
+---
+
+**Test Case 12.1.2**: Users tab hidden for agent role
+
+**Steps**:
+1. Login as agent role user
+2. Check admin panel tabs
+
+**Expected Result**:
+- ❌ "👤 Users" tab NOT visible
+- ❌ "💾 Backup" tab NOT visible
+- ✅ Events, Requests, Import ICS, Credits, Conventions tabs visible
+
+---
+
+**Test Case 12.1.3**: Create new user
+
+**Steps**:
+1. Login as admin
+2. Click "👤 Users" tab
+3. Click "+ เพิ่ม User"
+4. Fill: username, display name, password (min 8 chars), role, active
+5. Click "บันทึก"
+
+**Expected Result**:
+- ✅ User created successfully
+- ✅ User appears in list
+
+---
+
+**Test Case 12.1.4**: Edit user
+
+**Steps**:
+1. Click "แก้ไข" on existing user
+2. Change display name
+3. Leave password empty (keep existing)
+4. Click "บันทึก"
+
+**Expected Result**:
+- ✅ Display name updated
+- ✅ Password unchanged
+
+---
+
+**Test Case 12.1.5**: Delete user - cannot delete self
+
+**Steps**:
+1. Try to delete your own user account
+
+**Expected Result**:
+- ❌ Error: "Cannot delete your own account"
+
+---
+
+**Test Case 12.1.6**: Delete user - must keep 1 admin
+
+**Steps**:
+1. If only 1 active admin exists
+2. Try to delete that admin
+
+**Expected Result**:
+- ❌ Error: "Cannot delete the last admin user"
+
+---
+
+**Test Case 12.1.7**: Cannot change own role
+
+**Steps**:
+1. Edit your own user
+2. Try to change role from admin to agent
+
+**Expected Result**:
+- ❌ Error: "Cannot change your own role"
+
+---
+
+### 12.2 Role-Based API Protection
+
+**Test Case 12.2.1**: Agent cannot access users API
+
+**Steps**:
+1. Login as agent user
+2. Call `GET /admin/api.php?action=users_list`
+
+**Expected Result**:
+- ❌ HTTP 403 Forbidden
+- ❌ JSON error: "Admin role required"
+
+---
+
+**Test Case 12.2.2**: Agent cannot access backup API
+
+**Steps**:
+1. Login as agent user
+2. Call `POST /admin/api.php?action=backup_create`
+
+**Expected Result**:
+- ❌ HTTP 403 Forbidden
+- ❌ JSON error: "Admin role required"
+
+---
+
+**Test Case 12.2.3**: Agent can access events API
+
+**Steps**:
+1. Login as agent user
+2. Call `GET /admin/api.php?action=list`
+
+**Expected Result**:
+- ✅ HTTP 200 OK
+- ✅ Events list returned
 
 ---
 

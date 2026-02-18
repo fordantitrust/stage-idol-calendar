@@ -312,3 +312,73 @@ function testSessionRegenerationOnLogin($test) {
 
     $test->assertTrue(function_exists('session_regenerate_id'), 'session_regenerate_id should be available');
 }
+
+// =============================================================================
+// DATABASE AUTH TESTS
+// =============================================================================
+
+function testAdminUsersTableExistsFunction($test) {
+    $test->assertTrue(function_exists('admin_users_table_exists'), 'Function should exist');
+    $result = admin_users_table_exists();
+    $test->assertTrue(is_bool($result), 'Should return boolean');
+}
+
+function testGetAdminUserByUsername($test) {
+    $test->assertTrue(function_exists('get_admin_user_by_username'), 'Function should exist');
+    // Test with non-existent user
+    $result = get_admin_user_by_username('nonexistent_user_xyz_999');
+    $test->assertNull($result, 'Should return null for non-existent user');
+}
+
+function testGetAdminUserByUsernameReturnsUser($test) {
+    if (!admin_users_table_exists()) {
+        echo " [SKIP: No admin_users table] ";
+        $test->assertTrue(true, 'Skipped - no admin_users table');
+        return;
+    }
+    // Default migration seeds 'admin' user
+    $result = get_admin_user_by_username('admin');
+    if ($result !== null) {
+        $test->assertContains('$2y$', $result['password_hash'], 'Password hash should be bcrypt');
+        $test->assertEquals(1, $result['is_active'], 'Default user should be active');
+    } else {
+        $test->assertTrue(true, 'No admin user seeded yet');
+    }
+}
+
+function testChangeAdminPasswordValidation($test) {
+    $test->assertTrue(function_exists('change_admin_password'), 'Function should exist');
+    // Test with too-short password
+    $result = change_admin_password(999, 'current', 'short');
+    $test->assertFalse($result['success'], 'Should fail for short password');
+    $test->assertContains('8 characters', $result['message'], 'Should mention minimum length');
+}
+
+function testChangeAdminPasswordWrongUser($test) {
+    if (!admin_users_table_exists()) {
+        echo " [SKIP: No admin_users table] ";
+        $test->assertTrue(true, 'Skipped - no admin_users table');
+        return;
+    }
+    $result = change_admin_password(99999, 'wrongpass', 'newpassword123');
+    $test->assertFalse($result['success'], 'Should fail for non-existent user');
+    $test->assertContains('not found', $result['message'], 'Should say user not found');
+}
+
+function testAdminLoginSessionContainsUserId($test) {
+    if (PHP_SAPI === 'cli' && headers_sent()) {
+        echo " [SKIP: CLI with headers sent] ";
+        $test->assertTrue(true, 'Skipped in CLI environment');
+        return;
+    }
+
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        safe_session_start();
+    }
+    $_SESSION = [];
+
+    // Failed login should not set admin_user_id
+    admin_login('wrong', 'wrong');
+    $test->assertFalse(isset($_SESSION['admin_user_id']), 'Should not set admin_user_id for failed login');
+    $test->assertFalse(isset($_SESSION['admin_display_name']), 'Should not set admin_display_name for failed login');
+}

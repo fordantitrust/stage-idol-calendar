@@ -6,13 +6,15 @@ Automated unit test suite for Stage Idol Calendar.
 
 ```
 tests/
-├── TestRunner.php       # Lightweight test framework
-├── SecurityTest.php     # Security functions (sanitization, XSS, etc.)
-├── CacheTest.php        # Cache system (data version, credits cache)
-├── AdminAuthTest.php    # Authentication & session management
-├── CreditsApiTest.php   # Credits database operations
-├── run-tests.php        # Main test runner script
-└── README.md            # This file
+├── TestRunner.php           # Lightweight test framework
+├── SecurityTest.php         # Security functions (sanitization, XSS, etc.)
+├── CacheTest.php            # Cache system (data version, credits cache)
+├── AdminAuthTest.php        # Authentication & session management
+├── CreditsApiTest.php       # Credits database operations
+├── IntegrationTest.php      # Integration tests (config, workflow, API, multi-event)
+├── UserManagementTest.php   # User management & role-based access tests
+├── run-tests.php            # Main test runner script
+└── README.md                # This file
 ```
 
 ## 🚀 Quick Start
@@ -41,7 +43,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 
 ## 📊 Test Coverage
 
-### SecurityTest (15 tests)
+### SecurityTest (7 tests)
 - ✅ String sanitization (trim, null bytes, length limit)
 - ✅ Array sanitization (items limit, empty removal)
 - ✅ GET parameter sanitization
@@ -50,7 +52,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Null byte injection prevention
 - ✅ Safe error messages
 
-### CacheTest (11 tests)
+### CacheTest (17 tests)
 - ✅ Cache directory existence & permissions
 - ✅ Data version cache creation
 - ✅ Data version cache hit
@@ -61,7 +63,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Credits cache expiration
 - ✅ Cache fallback on error
 
-### AdminAuthTest (15 tests)
+### AdminAuthTest (32 tests)
 - ✅ Safe session start
 - ✅ Session idempotency
 - ✅ Session cookie parameters
@@ -73,7 +75,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Logout functionality
 - ✅ Password hash verification
 
-### CreditsApiTest (13 tests)
+### CreditsApiTest (43 tests)
 - ✅ Database connection
 - ✅ Credits table schema
 - ✅ Insert credit
@@ -85,7 +87,24 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Display order sorting
 - ✅ Validation (title, description length)
 
-**Total: 172 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+### IntegrationTest (96 tests)
+- ✅ Configuration validation
+- ✅ IcsParser functionality
+- ✅ Database operations (CRUD, bulk)
+- ✅ API endpoints (public + admin)
+- ✅ Request system workflow
+- ✅ Multi-event support (events_meta CRUD, filtering, URL routing)
+- ✅ Convention management (create, update, delete, slug uniqueness)
+- ✅ Per-convention venue mode and cache scoping
+
+### UserManagementTest (19 tests)
+- ✅ Role column schema (exists, default value, valid values)
+- ✅ Role helper functions (get_admin_role, is_admin_role)
+- ✅ User CRUD operations (create, update, delete, validation)
+- ✅ Permission checks (admin-only actions, agent restrictions)
+- ✅ Safety guards (cannot delete self, last admin protection)
+
+**Total: 226 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
 
 ## 🎯 Expected Output
 
@@ -117,15 +136,16 @@ Testing: testDatabaseConnection... ✓ PASS
 ║                  FINAL SUMMARY                     ║
 ╚════════════════════════════════════════════════════╝
 
-SecurityTest              ✓ PASS (15 passed, 0 failed)
-CacheTest                 ✓ PASS (11 passed, 0 failed)
-AdminAuthTest             ✓ PASS (15 passed, 0 failed)
-CreditsApiTest            ✓ PASS (13 passed, 0 failed)
-IntegrationTest           ✓ PASS (118 passed, 0 failed)
+SecurityTest              ✓ PASS (7 passed, 0 failed)
+CacheTest                 ✓ PASS (17 passed, 0 failed)
+AdminAuthTest             ✓ PASS (38 passed, 0 failed)
+CreditsApiTest            ✓ PASS (49 passed, 0 failed)
+IntegrationTest           ✓ PASS (96 passed, 0 failed)
+UserManagementTest        ✓ PASS (19 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 172 tests
-Passed: 172
+Total: 226 tests
+Passed: 226
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 

@@ -18,6 +18,12 @@ function testCacheDirectoryExists($test) {
 }
 
 function testDataVersionCacheCreation($test) {
+    // Skip if no database (cache won't be created without DB)
+    if (!file_exists(DB_PATH)) {
+        echo " [SKIP: No database] ";
+        return;
+    }
+
     // Get data version (should create cache)
     $version = get_data_version();
 
@@ -56,6 +62,12 @@ function testDataVersionCacheHit($test) {
 }
 
 function testDataVersionCacheExpiration($test) {
+    // Skip if no database (cache won't be rewritten without DB)
+    if (!file_exists(DB_PATH)) {
+        echo " [SKIP: No database] ";
+        return;
+    }
+
     // Create expired cache
     $cacheFile = DATA_VERSION_CACHE_FILE;
 
@@ -80,7 +92,7 @@ function testDataVersionCacheExpiration($test) {
 
 function testCreditsCache($test) {
     // Skip if no database
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
         return;
@@ -137,7 +149,7 @@ function testCreditsCacheInvalidation($test) {
 
 function testCreditsCacheHit($test) {
     // Skip if no database
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
         return;
@@ -169,7 +181,7 @@ function testCreditsCacheHit($test) {
 
 function testCreditsCacheExpiration($test) {
     // Skip if no database
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
         return;
@@ -208,8 +220,8 @@ function testCreditsCacheExpiration($test) {
 
 function testCacheFallbackOnError($test) {
     // Temporarily rename database to simulate error
-    $dbPath = dirname(__DIR__) . '/calendar.db';
-    $backupPath = dirname(__DIR__) . '/calendar.db.backup';
+    $dbPath = DB_PATH;
+    $backupPath = DB_PATH . '.backup';
 
     if (file_exists($dbPath)) {
         rename($dbPath, $backupPath);

@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 send_security_headers();
+
+// Multi-event support
+$eventSlug = get_current_event_slug();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -41,8 +44,8 @@ send_security_headers();
             <h1 data-i18n="howToUse.title">📖 วิธีการใช้งาน</h1>
             <p data-i18n="howToUse.subtitle">คู่มือการใช้งานปฏิทินกิจกรรม Idol Stage Event</p>
             <nav class="header-nav">
-                <a href="index.php" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
-                <a href="contact.php" class="header-nav-link" data-i18n="nav.contact">✉️ ติดต่อเรา</a>
+                <a href="<?php echo event_url('index.php'); ?>" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
+                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="nav.contact">✉️ ติดต่อเรา</a>
             </nav>
         </header>
 
@@ -63,7 +66,7 @@ send_security_headers();
                 </div>
 
                 <h3 data-i18n="section2.filter2.title">2. กรองตามเวที</h3>
-                <p data-i18n="section2.filter2.desc">เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Maipenrai Stage เป็นต้น</p>
+                <p data-i18n="section2.filter2.desc">เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Common Stage เป็นต้น</p>
 
                 <h3 data-i18n="section2.action.title">3. ดำเนินการ</h3>
                 <ul>
@@ -161,7 +164,7 @@ send_security_headers();
                 <p data-i18n="section6.a2">A: แนะนำให้บันทึกเป็นรูปภาพหรือส่งออกไปยังปฏิทินเพื่อดูออฟไลน์</p>
 
                 <h3 data-i18n="section6.q3">Q: พบข้อมูลผิดพลาดต้องทำอย่างไร?</h3>
-                <p data-i18n="section6.a3">A: กรุณาแจ้งผ่านหน้า <a href="contact.php" style="color: #667eea; text-decoration: none; font-weight: 600;">ติดต่อเรา</a></p>
+                <p data-i18n="section6.a3">A: กรุณาแจ้งผ่านหน้า <a href="<?php echo event_url('contact.php'); ?>" style="color: #667eea; text-decoration: none; font-weight: 600;">ติดต่อเรา</a></p>
             </div>
         </div>
 

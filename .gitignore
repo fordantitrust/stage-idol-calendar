@@ -1,8 +1,6 @@
 # Database
-calendar.db
-calendar.db-shm
-calendar.db-wal
-*.db
+*.db-shm
+*.db-wal
 *.db-journal
 
 # Cache
@@ -55,4 +53,5 @@ config.local.php
 /version1
 /version2
 /backup
+/backups
 /.claude

@@ -102,6 +102,34 @@ Stores user-submitted requests for adding or modifying events.
 
 ---
 
+### Table: `events_meta`
+
+Stores convention/event metadata for multi-event support.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Convention ID |
+| `slug` | TEXT | UNIQUE NOT NULL | URL-friendly identifier (e.g., `idol-stage-feb-2026`) |
+| `name` | TEXT | NOT NULL | Convention display name |
+| `description` | TEXT | | Optional description |
+| `start_date` | DATE | | Convention start date |
+| `end_date` | DATE | | Convention end date |
+| `venue_mode` | TEXT | DEFAULT 'multi' | Venue mode: 'multi' or 'single' |
+| `is_active` | BOOLEAN | DEFAULT 1 | Whether convention is active |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
+
+**Indexes**:
+- `idx_events_meta_slug` - Unique index on `slug` for fast lookups
+- `idx_events_meta_active` - Index on `is_active` for filtering
+
+**Foreign Keys** (in other tables):
+- `events.event_meta_id` → `events_meta.id`
+- `event_requests.event_meta_id` → `events_meta.id`
+- `credits.event_meta_id` → `events_meta.id`
+
+---
+
 ### Table: `credits`
 
 Stores credits and references displayed on the credits.php page.
@@ -123,6 +151,31 @@ Stores credits and references displayed on the credits.php page.
 
 ---
 
+### Table: `admin_users`
+
+Stores admin user credentials and roles.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | User ID |
+| `username` | TEXT | UNIQUE NOT NULL | Login username |
+| `password_hash` | TEXT | NOT NULL | Bcrypt password hash |
+| `display_name` | TEXT | | Display name in UI |
+| `role` | TEXT | NOT NULL DEFAULT 'admin' | User role: 'admin' or 'agent' |
+| `is_active` | BOOLEAN | DEFAULT 1 | Whether user is active |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
+| `last_login_at` | DATETIME | | Last successful login |
+
+**Indexes**:
+- `idx_admin_users_username` - Unique index on `username`
+
+**Roles**:
+- `admin`: Full access (manage users, backup, and all features)
+- `agent`: Events management only (Events, Requests, Import ICS, Credits, Conventions)
+
+---
+
 ## 🚀 Getting Started
 
 ### Step 1: Import ICS Files
@@ -136,7 +189,7 @@ php import-ics-to-sqlite.php
 
 ### Step 2: Create Additional Tables (Optional)
 
-Create tables for request system and credits management:
+Create tables for request system, credits management, multi-event support, and admin users:
 
 ```bash
 cd tools
@@ -146,6 +199,15 @@ php migrate-add-requests-table.php
 
 # Create credits table
 php migrate-add-credits-table.php
+
+# Create events_meta table (multi-event/conventions support)
+php migrate-add-events-meta-table.php
+
+# Create admin_users table (database-based auth)
+php migrate-add-admin-users-table.php
+
+# Add role column to admin_users (role-based access control)
+php migrate-add-role-column.php
 ```
 
 **Expected Output**:
@@ -738,7 +800,7 @@ sqlite3 calendar.db
 
 # Inside SQLite shell:
 .tables
-# Should show: events, event_requests, credits
+# Should show: events, event_requests, credits, events_meta
 
 .schema events
 # Should show table structure
@@ -755,7 +817,7 @@ SELECT COUNT(*) FROM events;
 # Verify all features work with database
 php tests/run-tests.php
 
-# Expected: 172 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
+# Expected: 226 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
 # If any tests fail, check:
 # - Database file exists and is readable
 # - All tables are created

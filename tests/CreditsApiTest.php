@@ -6,7 +6,7 @@
 require_once __DIR__ . '/../config.php';
 
 function testDatabaseConnection($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -23,7 +23,7 @@ function testDatabaseConnection($test) {
 }
 
 function testCreditsTableExists($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -41,7 +41,7 @@ function testCreditsTableExists($test) {
 }
 
 function testCreditsTableSchema($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -68,7 +68,7 @@ function testCreditsTableSchema($test) {
 }
 
 function testInsertCredit($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -115,7 +115,7 @@ function testInsertCredit($test) {
 }
 
 function testSelectCredits($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -147,7 +147,7 @@ function testSelectCredits($test) {
 }
 
 function testUpdateCredit($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -188,7 +188,7 @@ function testUpdateCredit($test) {
 }
 
 function testDeleteCredit($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -226,7 +226,7 @@ function testDeleteCredit($test) {
 }
 
 function testBulkDeleteCredits($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -283,7 +283,7 @@ function testCreditValidation($test) {
 }
 
 function testSQLInjectionProtection($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
@@ -314,7 +314,7 @@ function testSQLInjectionProtection($test) {
 }
 
 function testDisplayOrderSorting($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = DB_PATH;
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";
