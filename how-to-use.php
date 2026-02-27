@@ -13,14 +13,16 @@ $eventSlug = get_current_event_slug();
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>วิธีการใช้งาน - Idol Stage Event Calendar</title>
+    <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JBRL4XB417"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-JBRL4XB417');
+    gtag('config', '<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');
     </script>
+    <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <style>

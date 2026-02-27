@@ -12,7 +12,7 @@
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '2.0.0');
+define('APP_VERSION', '2.0.1');
 
 /**
  * Production Mode
@@ -39,3 +39,10 @@ define('MULTI_EVENT_MODE', true);
  * Used when no event is specified in URL parameter
  */
 define('DEFAULT_EVENT_SLUG', 'default');
+
+/**
+ * Google Analytics Measurement ID
+ * Set to your GA4 Measurement ID (e.g. 'G-XXXXXXXXXX') to enable tracking.
+ * Leave empty '' to disable Google Analytics entirely.
+ */
+define('GOOGLE_ANALYTICS_ID', '');
