@@ -51,40 +51,46 @@ This guide covers SQLite integration, migration, and optimization.
 
 ## 📊 Database Schema
 
-### Table: `events`
+> **Note**: Tables and columns were renamed in v2.0.0. Run `tools/migrate-rename-tables-columns.php` to update existing databases.
 
-Stores all event data with auto-generated IDs and timestamps.
+### Table: `programs`
+
+Stores individual show/performance data (formerly named `events`).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique event ID |
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique program ID |
 | `uid` | TEXT | UNIQUE NOT NULL | ICS UID (globally unique) |
-| `title` | TEXT | NOT NULL | Event title/summary |
+| `title` | TEXT | NOT NULL | Program title/summary |
 | `start` | DATETIME | NOT NULL | Start date and time |
 | `end` | DATETIME | NOT NULL | End date and time |
 | `location` | TEXT | | Venue/stage name |
-| `organizer` | TEXT | | Performer/artist (legacy field) |
-| `description` | TEXT | | Event description |
+| `organizer` | TEXT | | Performer/artist |
+| `description` | TEXT | | Program description |
 | `categories` | TEXT | | Artist names (comma-separated) |
+| `event_id` | INTEGER | FK → `events.id` | Event this program belongs to |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
 
-**Indexes**:
-- `uid` - Unique index for fast lookups and duplicate prevention
-- `start` - Index for chronological queries
+**Indexes** (v1.2.10):
+- `idx_programs_event_id` — FK lookups
+- `idx_programs_start` — chronological queries
+- `idx_programs_location` — venue filtering
+- `idx_programs_categories` — artist filtering
 
 ---
 
-### Table: `event_requests`
+### Table: `program_requests`
 
-Stores user-submitted requests for adding or modifying events.
+Stores user-submitted requests for adding or modifying programs (formerly `event_requests`).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Request ID |
 | `type` | TEXT | NOT NULL | 'add' or 'modify' |
-| `event_id` | INTEGER | | ID of event to modify (for type='modify') |
-| `title` | TEXT | NOT NULL | Requested event title |
+| `program_id` | INTEGER | FK → `programs.id` | Program to modify (for type='modify') |
+| `event_id` | INTEGER | FK → `events.id` | Event this request belongs to |
+| `title` | TEXT | NOT NULL | Requested program title |
 | `start` | DATETIME | NOT NULL | Requested start time |
 | `end` | DATETIME | NOT NULL | Requested end time |
 | `location` | TEXT | | Requested venue |
@@ -98,35 +104,33 @@ Stores user-submitted requests for adding or modifying events.
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Request submission time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last status update time |
 
-**Foreign Key**: `event_id` references `events(id)`
+**Indexes** (v1.2.10):
+- `idx_program_requests_status` — status filtering
+- `idx_program_requests_event_id` — event filtering
 
 ---
 
-### Table: `events_meta`
+### Table: `events`
 
-Stores convention/event metadata for multi-event support.
+Stores event/convention metadata for multi-event support (formerly `events_meta`).
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Convention ID |
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Event ID |
 | `slug` | TEXT | UNIQUE NOT NULL | URL-friendly identifier (e.g., `idol-stage-feb-2026`) |
-| `name` | TEXT | NOT NULL | Convention display name |
+| `name` | TEXT | NOT NULL | Event display name |
 | `description` | TEXT | | Optional description |
-| `start_date` | DATE | | Convention start date |
-| `end_date` | DATE | | Convention end date |
+| `start_date` | DATE | | Event start date |
+| `end_date` | DATE | | Event end date |
 | `venue_mode` | TEXT | DEFAULT 'multi' | Venue mode: 'multi' or 'single' |
-| `is_active` | BOOLEAN | DEFAULT 1 | Whether convention is active |
+| `is_active` | BOOLEAN | DEFAULT 1 | Whether event is active |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
 
-**Indexes**:
-- `idx_events_meta_slug` - Unique index on `slug` for fast lookups
-- `idx_events_meta_active` - Index on `is_active` for filtering
-
-**Foreign Keys** (in other tables):
-- `events.event_meta_id` → `events_meta.id`
-- `event_requests.event_meta_id` → `events_meta.id`
-- `credits.event_meta_id` → `events_meta.id`
+**Referenced by**:
+- `programs.event_id` → `events.id`
+- `program_requests.event_id` → `events.id`
+- `credits.event_id` → `events.id`
 
 ---
 
@@ -178,43 +182,55 @@ Stores admin user credentials and roles.
 
 ## 🚀 Getting Started
 
-### Step 1: Import ICS Files
+### Option A: Setup Wizard (Recommended) 🧙
 
-Import your `.ics` files into SQLite database:
+Open `http://your-domain.com/setup.php` — the wizard handles everything: creates directories, initializes all tables, seeds admin user, and imports `.ics` data.
+
+See [SETUP.md](SETUP.md) for detailed guide.
+
+---
+
+### Option B: Manual CLI
+
+#### Step 1: Import ICS Files (creates `programs` table)
 
 ```bash
 cd tools
 php import-ics-to-sqlite.php
 ```
 
-### Step 2: Create Additional Tables (Optional)
-
-Create tables for request system, credits management, multi-event support, and admin users:
+#### Step 2: Create Additional Tables
 
 ```bash
 cd tools
 
-# Create event requests table
+# Request system (program_requests table)
 php migrate-add-requests-table.php
 
-# Create credits table
+# Credits management
 php migrate-add-credits-table.php
 
-# Create events_meta table (multi-event/conventions support)
+# Multi-event support (events table)
 php migrate-add-events-meta-table.php
 
-# Create admin_users table (database-based auth)
+# Database-based auth (admin_users table)
 php migrate-add-admin-users-table.php
 
-# Add role column to admin_users (role-based access control)
+# Role-based access control
 php migrate-add-role-column.php
+
+# Rename tables/columns to v2.0.0 schema (idempotent)
+php migrate-rename-tables-columns.php
+
+# Performance indexes (idempotent)
+php migrate-add-indexes.php
 ```
 
 **Expected Output**:
 ```
 === ICS to SQLite Import Script ===
 
-✅ Connected to database: calendar.db
+✅ Connected to database: data/calendar.db
 
 📋 Creating table structure...
 ✅ Table structure created/verified
@@ -242,7 +258,7 @@ Processing: events.ics
 Check that database was created:
 
 ```bash
-ls -lh calendar.db
+ls -lh data/calendar.db
 ```
 
 Should show a file with size > 0 bytes.
@@ -297,7 +313,7 @@ Use the **Admin Panel** at `/admin/` for:
 
 **Open database**:
 ```bash
-sqlite3 calendar.db
+sqlite3 data/calendar.db
 ```
 
 **Useful commands**:
@@ -305,29 +321,30 @@ sqlite3 calendar.db
 ```sql
 -- View all tables
 .tables
+-- Should show: programs, events, program_requests, credits, admin_users
 
 -- Show table schema
-.schema events
+.schema programs
 
--- Count events
-SELECT COUNT(*) FROM events;
+-- Count programs
+SELECT COUNT(*) FROM programs;
 
--- View all events
-SELECT * FROM events ORDER BY start;
+-- View all programs ordered by start
+SELECT * FROM programs ORDER BY start;
 
 -- Filter by artist
-SELECT * FROM events WHERE categories LIKE '%Artist Name%';
+SELECT * FROM programs WHERE categories LIKE '%Artist Name%';
 
 -- Filter by venue
-SELECT * FROM events WHERE location = 'Main Stage';
+SELECT * FROM programs WHERE location = 'Main Stage';
 
--- View events on specific date
-SELECT * FROM events
+-- View programs on specific date
+SELECT * FROM programs
 WHERE DATE(start) = '2026-02-07'
 ORDER BY start;
 
--- Delete all events (careful!)
-DELETE FROM events;
+-- Delete all programs (careful!)
+DELETE FROM programs;
 
 -- Exit SQLite
 .quit
@@ -335,34 +352,36 @@ DELETE FROM events;
 
 ### Backup and Restore
 
+Use the **Admin Panel → Backup tab** for GUI-based backup/restore, or via CLI:
+
 **Backup**:
 ```bash
 # Simple file copy
-cp calendar.db calendar.db.backup
+cp data/calendar.db backups/calendar.db.backup
 
 # SQL dump (more portable)
-sqlite3 calendar.db .dump > backup.sql
+sqlite3 data/calendar.db .dump > backups/backup.sql
 ```
 
 **Restore**:
 ```bash
 # From backup file
-cp calendar.db.backup calendar.db
+cp backups/calendar.db.backup data/calendar.db
 
 # From SQL dump
-sqlite3 calendar.db < backup.sql
+sqlite3 data/calendar.db < backups/backup.sql
 ```
 
 ### Vacuum and Optimize
 
 **Compact database** (reclaim unused space):
 ```bash
-sqlite3 calendar.db "VACUUM;"
+sqlite3 data/calendar.db "VACUUM;"
 ```
 
 **Analyze queries** (optimize query planner):
 ```bash
-sqlite3 calendar.db "ANALYZE;"
+sqlite3 data/calendar.db "ANALYZE;"
 ```
 
 Run these periodically (monthly) if database grows large.
@@ -442,66 +461,64 @@ $parser = new IcsParser('ics', false);
 
 ## 🔌 Admin API
 
-Admin panel uses these endpoints in [admin/api.php](admin/api.php):
+Admin panel uses these endpoints in [admin/api.php](admin/api.php). All require a valid session cookie + `X-CSRF-Token` header for state-changing operations.
 
-### Events Management
+### Programs Management
 
-**List events** (with pagination):
+**List programs** (with pagination):
 ```http
-GET /admin/api.php?action=list&page=1&limit=20&search=keyword&location=venue
+GET /admin/api.php?action=programs_list&page=1&limit=20&search=keyword&location=venue
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "data": {
-    "events": [...],
-    "total": 100,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 5
-  },
-  "message": "Events retrieved successfully"
-}
+**Get single program**:
+```http
+GET /admin/api.php?action=programs_get&id=5
 ```
 
-**Get single event**:
+**Create program**:
 ```http
-GET /admin/api.php?action=get&id=5
-```
-
-**Create event**:
-```http
-POST /admin/api.php?action=create
+POST /admin/api.php?action=programs_create
 Content-Type: application/json
 
 {
-  "title": "New Event",
+  "title": "New Program",
   "start": "2026-03-01 10:00:00",
   "end": "2026-03-01 11:00:00",
   "location": "Main Stage",
   "organizer": "Artist Name",
-  "description": "Event details",
-  "categories": "Artist Name"
+  "description": "Program details",
+  "categories": "Artist Name",
+  "event_id": 1
 }
 ```
 
-**Update event**:
+**Update program**:
 ```http
-POST /admin/api.php?action=update
+PUT /admin/api.php?action=programs_update&id=5
 Content-Type: application/json
 
-{
-  "id": 5,
-  "title": "Updated Title",
-  ...
-}
+{ "title": "Updated Title", ... }
 ```
 
-**Delete event**:
+**Delete program**:
 ```http
-DELETE /admin/api.php?action=delete&id=5
+DELETE /admin/api.php?action=programs_delete&id=5
+```
+
+**Bulk delete**:
+```http
+DELETE /admin/api.php?action=programs_bulk_delete
+Content-Type: application/json
+
+{ "ids": [1, 2, 3] }
+```
+
+**Bulk edit** (venue/organizer/categories):
+```http
+PUT /admin/api.php?action=programs_bulk_update
+Content-Type: application/json
+
+{ "ids": [1, 2, 3], "location": "Stage B" }
 ```
 
 ### Requests Management
@@ -511,70 +528,32 @@ DELETE /admin/api.php?action=delete&id=5
 GET /admin/api.php?action=requests&status=pending
 ```
 
-**Approve request**:
+**Approve / Reject request**:
 ```http
-POST /admin/api.php?action=approve&id=10
+PUT /admin/api.php?action=request_approve&id=10
+PUT /admin/api.php?action=request_reject&id=10
 ```
 
-**Reject request**:
+### Events Management (meta/convention)
+
 ```http
-POST /admin/api.php?action=reject&id=10
+GET    /admin/api.php?action=events_list
+GET    /admin/api.php?action=events_get&id=1
+POST   /admin/api.php?action=events_create
+PUT    /admin/api.php?action=events_update&id=1
+DELETE /admin/api.php?action=events_delete&id=1
 ```
 
 ### Credits Management
 
-**List credits** (with pagination, search, sort):
 ```http
-GET /admin/api.php?action=credits_list&page=1&limit=20&search=keyword&sort=display_order&order=asc
-```
-
-**Get single credit**:
-```http
-GET /admin/api.php?action=credits_get&id=5
-```
-
-**Create credit**:
-```http
-POST /admin/api.php?action=credits_create
-Content-Type: application/json
-
-{
-  "title": "Credit Name",
-  "link": "https://example.com",
-  "description": "Description text",
-  "display_order": 0
-}
-```
-
-**Update credit**:
-```http
-PUT /admin/api.php?action=credits_update&id=5
-Content-Type: application/json
-
-{
-  "title": "Updated Name",
-  ...
-}
-```
-
-**Delete credit**:
-```http
+GET    /admin/api.php?action=credits_list&page=1&limit=20&search=keyword
+GET    /admin/api.php?action=credits_get&id=5
+POST   /admin/api.php?action=credits_create
+PUT    /admin/api.php?action=credits_update&id=5
 DELETE /admin/api.php?action=credits_delete&id=5
+DELETE /admin/api.php?action=credits_bulk_delete   # body: { "ids": [1,2,3] }
 ```
-
-**Bulk delete credits**:
-```http
-DELETE /admin/api.php?action=credits_bulk_delete
-Content-Type: application/json
-
-{
-  "ids": [1, 2, 3, 4, 5]
-}
-```
-
-**Authentication**: All admin endpoints require valid session.
-
-**CSRF Protection**: POST/PUT/DELETE operations require CSRF token header.
 
 **Cache Invalidation**: Credits cache is automatically cleared after create/update/delete.
 
@@ -590,20 +569,20 @@ Create custom PHP scripts to query the database:
 <?php
 require_once 'config.php';
 
-$db = new PDO('sqlite:calendar.db');
+$db = new PDO('sqlite:' . DB_PATH);
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-// Example: Get events happening today
+// Example: Get programs happening today
 $stmt = $db->prepare("
-    SELECT * FROM events
+    SELECT * FROM programs
     WHERE DATE(start) = DATE('now')
     ORDER BY start
 ");
 $stmt->execute();
-$todayEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$todayPrograms = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-foreach ($todayEvents as $event) {
-    echo "{$event['title']} at {$event['location']}\n";
+foreach ($todayPrograms as $p) {
+    echo "{$p['title']} at {$p['location']}\n";
 }
 ```
 
@@ -626,7 +605,7 @@ Export database events back to ICS format:
 ```php
 <?php
 $db = new PDO('sqlite:calendar.db');
-$events = $db->query("SELECT * FROM events ORDER BY start")->fetchAll();
+$events = $db->query("SELECT * FROM programs ORDER BY start")->fetchAll();
 
 header('Content-Type: text/calendar; charset=utf-8');
 header('Content-Disposition: attachment; filename="export.ics"');
@@ -657,12 +636,14 @@ echo "END:VCALENDAR\r\n";
 
 **Error**: `unable to open database file`
 
-**Cause**: Database hasn't been created yet
+**Cause**: Database hasn't been created yet, or `data/` directory doesn't exist
 
 **Fix**:
 ```bash
+mkdir -p data
 cd tools
 php import-ics-to-sqlite.php
+# Or use setup.php wizard: http://localhost:8000/setup.php
 ```
 
 ---
@@ -693,7 +674,7 @@ rm calendar.db-shm calendar.db-wal
 
 **Fix**:
 1. Re-run import: `php tools/import-ics-to-sqlite.php`
-2. Change `APP_VERSION` in `config.php` to bust cache
+2. Change `APP_VERSION` in `config/app.php` to bust cache
 3. Hard refresh browser (Ctrl+F5)
 
 ---
@@ -705,13 +686,13 @@ rm calendar.db-shm calendar.db-wal
 **Fix**:
 ```bash
 # Try to repair
-sqlite3 calendar.db "PRAGMA integrity_check;"
+sqlite3 data/calendar.db "PRAGMA integrity_check;"
 
-# If that fails, restore from backup
-cp calendar.db.backup calendar.db
+# If that fails, restore from backup (Admin → Backup tab)
+cp backups/backup_*.db data/calendar.db
 
 # Or re-import from ICS files
-rm calendar.db
+rm data/calendar.db
 php tools/import-ics-to-sqlite.php
 ```
 
@@ -726,13 +707,13 @@ php tools/import-ics-to-sqlite.php
 **Fix**:
 ```bash
 # Vacuum to reclaim space
-sqlite3 calendar.db "VACUUM;"
+sqlite3 data/calendar.db "VACUUM;"
 
 # Update statistics
-sqlite3 calendar.db "ANALYZE;"
+sqlite3 data/calendar.db "ANALYZE;"
 
 # Check database size
-ls -lh calendar.db
+ls -lh data/calendar.db
 ```
 
 ---
@@ -742,12 +723,13 @@ ls -lh calendar.db
 ### File Permissions
 
 ```bash
-# Secure database file
-chmod 600 calendar.db
-chown www-data:www-data calendar.db
+# Secure database directory and file
+chmod 750 data/
+chmod 600 data/calendar.db
+chown www-data:www-data data/ data/calendar.db
 
-# Make sure parent directory isn't web-accessible
-# Don't put database in public_html root!
+# data/ is not web-accessible by default (.htaccess blocks it)
+# Nginx: add "location ~ ^/data { deny all; }" to server block
 ```
 
 ### SQL Injection Prevention
@@ -756,11 +738,11 @@ chown www-data:www-data calendar.db
 
 ```php
 // ✅ SAFE
-$stmt = $db->prepare("SELECT * FROM events WHERE id = ?");
+$stmt = $db->prepare("SELECT * FROM programs WHERE id = ?");
 $stmt->execute([$id]);
 
 // ❌ UNSAFE - Never do this!
-$result = $db->query("SELECT * FROM events WHERE id = $id");
+$result = $db->query("SELECT * FROM programs WHERE id = $id");
 ```
 
 All queries in this project use prepared statements.
@@ -796,17 +778,17 @@ php tests/run-tests.php IntegrationTest
 ### Verify Tables Exist
 
 ```bash
-sqlite3 calendar.db
+sqlite3 data/calendar.db
 
 # Inside SQLite shell:
 .tables
-# Should show: events, event_requests, credits, events_meta
+# Should show: programs, events, program_requests, credits, admin_users
 
-.schema events
+.schema programs
 # Should show table structure
 
-SELECT COUNT(*) FROM events;
-# Should show number of imported events
+SELECT COUNT(*) FROM programs;
+# Should show number of imported programs
 
 .quit
 ```
@@ -817,11 +799,11 @@ SELECT COUNT(*) FROM events;
 # Verify all features work with database
 php tests/run-tests.php
 
-# Expected: 226 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
+# Expected: 324 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
 # If any tests fail, check:
-# - Database file exists and is readable
-# - All tables are created
-# - Permissions are correct
+# - Database file exists at data/calendar.db
+# - All tables are created (programs, events, program_requests, credits, admin_users)
+# - Permissions on data/ and cache/ directories are correct
 ```
 
 ### Test Cache with Database
@@ -841,12 +823,12 @@ ls -la cache/
 ### Manual Verification Checklist
 
 After migration:
-- [ ] Run `php tests/run-tests.php` - all tests pass
-- [ ] Visit index.php - events display correctly
-- [ ] Check cache/ folder - cache files created
-- [ ] Login to admin - can view/edit events
-- [ ] Test bulk operations - select/delete multiple events
-- [ ] Visit credits.php - credits display from database
+- [ ] Run `php tests/run-tests.php` — all 324 tests pass
+- [ ] Visit index.php — programs display correctly
+- [ ] Check `cache/` folder — cache files created
+- [ ] Login to admin — can view/edit programs
+- [ ] Test bulk operations — select/delete multiple programs
+- [ ] Visit credits.php — credits display from database
 
 See [TESTING.md](TESTING.md) for comprehensive manual test cases.
 
@@ -856,6 +838,7 @@ See [TESTING.md](TESTING.md) for comprehensive manual test cases.
 
 - **SQLite Documentation**: https://www.sqlite.org/docs.html
 - **PHP PDO Tutorial**: https://www.php.net/manual/en/book.pdo.php
+- **Setup Wizard**: [SETUP.md](SETUP.md)
 - **Main Docs**: [README.md](README.md)
 - **Installation Guide**: [INSTALLATION.md](INSTALLATION.md)
 - **Quick Start**: [QUICKSTART.md](QUICKSTART.md)

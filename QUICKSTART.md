@@ -102,25 +102,24 @@ END:VCALENDAR
 
 ### Enable Admin Panel
 
+#### Option A: Setup Wizard (Recommended) 🧙
+
+Open `http://localhost:8000/setup.php` and follow the 5-step wizard — creates all tables, seeds admin user, lets you change password, then locks the setup page.
+
+See [SETUP.md](SETUP.md) for detailed guide.
+
+#### Option B: Manual CLI
+
 ```bash
-# 1. Create request table
 cd tools
+php import-ics-to-sqlite.php
 php migrate-add-requests-table.php
-
-# 2. Create credits table
 php migrate-add-credits-table.php
-
-# 3. Create events_meta table (multi-event support)
 php migrate-add-events-meta-table.php
-
-# 4. Configure credentials in config/admin.php
-# Generate hash: php -r "echo password_hash('your_password', PASSWORD_DEFAULT);"
-# Then set ADMIN_USERNAME and ADMIN_PASSWORD_HASH
-
-# 4. Optional: Configure security settings
-# - SESSION_TIMEOUT: Session timeout in seconds (default: 7200 = 2 hours)
-# - ADMIN_IP_WHITELIST_ENABLED: Restrict admin access to specific IPs
-# - ADMIN_ALLOWED_IPS: Array of allowed IP addresses/CIDR ranges
+php migrate-add-admin-users-table.php
+php migrate-add-role-column.php
+php migrate-rename-tables-columns.php
+php migrate-add-indexes.php
 ```
 
 ### Access Admin
@@ -129,7 +128,7 @@ php migrate-add-events-meta-table.php
 http://localhost:8000/admin/
 ```
 
-**Default Credentials**: Set in `config/admin.php`
+**Default Credentials**: Created via setup.php wizard or set in `config/admin.php`
 
 ### What Can Admin Do?
 
@@ -138,7 +137,7 @@ http://localhost:8000/admin/
 - ✅ Review and approve user requests
 - ✅ Compare original vs. requested changes
 - ✅ Manage credits and references
-- ✅ Manage multiple conventions (multi-event support)
+- ✅ Manage multiple events (multi-event support)
 - ✅ Bulk select and delete/edit up to 100 items at once
 - ✅ Customizable pagination (20/50/100 per page)
 - ✅ CSRF protection and IP whitelist for security
@@ -204,7 +203,7 @@ quick-test.bat
 php tests/run-tests.php
 ```
 
-**226 automated tests** covering:
+**324 automated tests** covering:
 - Security (XSS, SQL injection, input sanitization)
 - Cache system (TTL, invalidation)
 - Authentication (session, timing attacks)
@@ -212,7 +211,7 @@ php tests/run-tests.php
 - Integration (configuration, workflows, API endpoints)
 - User management & role-based access control
 
-✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 324 tests pass on PHP 8.1, 8.2, and 8.3**
 
 See [tests/README.md](tests/README.md) for details.
 
@@ -225,13 +224,14 @@ See [tests/README.md](tests/README.md) for details.
 | Events not showing | Check files are in `ics/` folder with `.ics` extension |
 | Changes not updating | Change `APP_VERSION` in `config/app.php` |
 | Database errors | Run `php tools/import-ics-to-sqlite.php` |
-| Admin can't login | Check credentials in `config/admin.php` |
+| Admin can't login | Run setup.php wizard or check `config/admin.php` |
 
 ---
 
 ## 📚 Need More Help?
 
 - **Full Guide**: [README.md](README.md)
+- **Setup Wizard**: [SETUP.md](SETUP.md)
 - **Installation**: [INSTALLATION.md](INSTALLATION.md)
 - **Database**: [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md)
 - **Changes**: [CHANGELOG.md](CHANGELOG.md)

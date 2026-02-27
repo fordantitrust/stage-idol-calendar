@@ -11,7 +11,7 @@ Complete test cases for all features and security aspects.
 3. [Cache System](#cache-system)
 4. [Security Testing](#security-testing)
 5. [Admin Authentication](#admin-authentication)
-6. [Events Management](#events-management)
+6. [Programs Management](#programs-management)
 7. [Request System](#request-system)
 8. [Bulk Operations](#bulk-operations)
 9. [Frontend Features](#frontend-features)
@@ -36,22 +36,27 @@ php -v  # Should be 8.1+
 php -m | grep -i sqlite  # Should show pdo_sqlite
 
 # Check database exists
-ls -la calendar.db
+ls -la data/calendar.db
 ```
 
 ### Test Data Preparation
 
+#### Option A: Setup Wizard (Recommended)
+
+Open `http://localhost:8000/setup.php` and follow the 5-step wizard.
+
+#### Option B: Manual CLI
+
 ```bash
-# Import test events
 cd tools
 php import-ics-to-sqlite.php
-
-# Create necessary tables
 php migrate-add-requests-table.php
 php migrate-add-credits-table.php
 php migrate-add-events-meta-table.php
 php migrate-add-admin-users-table.php
 php migrate-add-role-column.php
+php migrate-rename-tables-columns.php
+php migrate-add-indexes.php
 
 # Clear cache
 rm -f cache/*.json
@@ -977,18 +982,18 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-## 5. Events Management
+## 5. Programs Management
 
-### 5.1 List Events
+### 5.1 List Programs
 
-**Test Case 5.1.1**: Load events list
+**Test Case 5.1.1**: Load programs list
 
 **Steps**:
 1. Login to admin
-2. View "Events" tab (default)
+2. View "Programs" tab (default)
 
 **Expected Result**:
-- ✅ Events table displayed
+- ✅ Programs table displayed
 - ✅ Columns: Checkbox, ID, Title, Start, Location, Organizer, Actions
 - ✅ Pagination visible
 
@@ -1001,7 +1006,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 2. Click "ค้นหา"
 
 **Expected Result**:
-- ✅ Only events at selected venue shown
+- ✅ Only programs at selected venue shown
 
 ---
 
@@ -1012,19 +1017,19 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 2. Results filter
 
 **Expected Result**:
-- ✅ Matching events shown
-- ✅ Non-matching events hidden
+- ✅ Matching programs shown
+- ✅ Non-matching programs hidden
 
 ---
 
-### 5.2 Create Event
+### 5.2 Create Program
 
-**Test Case 5.2.1**: Create valid event
+**Test Case 5.2.1**: Create valid program
 
 **Steps**:
-1. Click "+ เพิ่ม Event"
+1. Click "+ เพิ่ม Program"
 2. Fill all fields:
-   - Title: "Test Event"
+   - Title: "Test Program"
    - Start: "2026-03-01 10:00"
    - End: "2026-03-01 11:00"
    - Venue: "Stage A"
@@ -1033,7 +1038,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 3. Click "บันทึก"
 
 **Expected Result**:
-- ✅ Event created
+- ✅ Program created
 - ✅ Appears in list
 - ✅ Success toast
 
@@ -1042,7 +1047,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.2.2**: Validation - Empty title
 
 **Steps**:
-1. Click "+ เพิ่ม Event"
+1. Click "+ เพิ่ม Program"
 2. Leave title empty
 3. Fill other required fields
 4. Submit
@@ -1065,47 +1070,47 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-### 5.3 Update Event
+### 5.3 Update Program
 
-**Test Case 5.3.1**: Edit event
+**Test Case 5.3.1**: Edit program
 
 **Steps**:
-1. Click "แก้ไข" on event
-2. Change title to "Updated Event"
+1. Click "แก้ไข" on program
+2. Change title to "Updated Program"
 3. Click "บันทึก"
 
 **Expected Result**:
-- ✅ Event updated
+- ✅ Program updated
 - ✅ Changes visible in list
 - ✅ Success message
 
 ---
 
-### 5.4 Delete Event
+### 5.4 Delete Program
 
-**Test Case 5.4.1**: Delete single event
+**Test Case 5.4.1**: Delete single program
 
 **Steps**:
-1. Click "ลบ" on event
+1. Click "ลบ" on program
 2. Confirm deletion
 
 **Expected Result**:
-- ✅ Event removed
+- ✅ Program removed
 - ✅ Success message
 
 ---
 
-### 5.5 Bulk Operations - Events
+### 5.5 Bulk Operations - Programs
 
-**Test Case 5.5.1**: Bulk delete events
+**Test Case 5.5.1**: Bulk delete programs
 
 **Steps**:
-1. Select 3 events
+1. Select 3 programs
 2. Click "🗑️ ลบหลายรายการ"
 3. Confirm
 
 **Expected Result**:
-- ✅ All 3 events deleted
+- ✅ All 3 programs deleted
 - ✅ Success message with count
 
 ---
@@ -1113,13 +1118,13 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.5.2**: Bulk edit venue
 
 **Steps**:
-1. Select multiple events
+1. Select multiple programs
 2. Click "แก้ไขหลายรายการ"
 3. Change venue to "New Venue"
 4. Submit
 
 **Expected Result**:
-- ✅ All selected events updated
+- ✅ All selected programs updated
 - ✅ Venue changed for all
 
 ---
@@ -1127,7 +1132,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.5.3**: Bulk edit organizer
 
 **Steps**:
-1. Select events
+1. Select programs
 2. Bulk edit organizer only
 3. Submit
 
@@ -1514,10 +1519,10 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 9.1 Database Performance
 
-**Test Case 9.1.1**: Large dataset - Events
+**Test Case 9.1.1**: Large dataset - Programs
 
 **Steps**:
-1. Import 1000+ events
+1. Import 1000+ programs
 2. Load index.php
 3. Measure load time
 
@@ -1632,7 +1637,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 10.2.2**: Requests table not exists
 
 **Steps**:
-1. Drop event_requests table
+1. Drop program_requests table
 2. Submit request
 
 **Expected Result**:
@@ -1793,7 +1798,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### Performance Benchmarks
 
-- [ ] Index.php loads < 2 seconds (1000 events)
+- [ ] Index.php loads < 2 seconds (1000 programs)
 - [ ] Credits.php loads < 100ms (with cache)
 - [ ] Admin API responds < 500ms
 - [ ] Image export completes < 5 seconds
@@ -1883,7 +1888,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v1.2.5
+**Version**: v2.0.0
 
 **Result**: Pass / Fail
 
@@ -1918,7 +1923,7 @@ _________________________________
 **Expected Result**:
 - ❌ "👤 Users" tab NOT visible
 - ❌ "💾 Backup" tab NOT visible
-- ✅ Events, Requests, Import ICS, Credits, Conventions tabs visible
+- ✅ Programs, Requests, Import ICS, Credits, Events tabs visible
 
 ---
 
@@ -2009,15 +2014,15 @@ _________________________________
 
 ---
 
-**Test Case 12.2.3**: Agent can access events API
+**Test Case 12.2.3**: Agent can access programs API
 
 **Steps**:
 1. Login as agent user
-2. Call `GET /admin/api.php?action=list`
+2. Call `GET /admin/api.php?action=programs_list`
 
 **Expected Result**:
 - ✅ HTTP 200 OK
-- ✅ Events list returned
+- ✅ Programs list returned
 
 ---
 

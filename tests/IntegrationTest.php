@@ -406,8 +406,8 @@ function testMultiEventConstantsDefined($test) {
 function testMultiEventHelperFunctionsExist($test) {
     $functions = [
         'get_current_event_slug',
-        'get_event_meta_by_slug',
-        'get_event_meta_id',
+        'get_event_by_slug',
+        'get_event_id',
         'get_all_active_events',
         'get_event_venue_mode',
         'event_url'
@@ -504,6 +504,11 @@ function testMigrationToolExists($test) {
     $test->assertFileExists($migrationFile, 'Multi-event migration script should exist');
 }
 
+function testMigrationRenameToolExists($test) {
+    $migrationFile = dirname(__DIR__) . '/tools/migrate-rename-tables-columns.php';
+    $test->assertFileExists($migrationFile, 'Table/column rename migration script should exist');
+}
+
 function testIcsParserAcceptsEventMetaId($test) {
     require_once dirname(__DIR__) . '/IcsParser.php';
 
@@ -541,11 +546,11 @@ function testGetAllActiveEventsReturnsArray($test) {
 }
 
 function testGetEventMetaBySlugNonExistent($test) {
-    $meta = get_event_meta_by_slug('non_existent_slug_12345');
+    $meta = get_event_by_slug('non_existent_slug_12345');
     $test->assertNull($meta, 'Should return null for non-existent slug');
 }
 
 function testGetEventMetaIdNonExistent($test) {
-    $id = get_event_meta_id('non_existent_slug_12345');
+    $id = get_event_id('non_existent_slug_12345');
     $test->assertNull($id, 'Should return null for non-existent slug');
 }

@@ -27,11 +27,18 @@ if (is_logged_in()) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
+    $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
 
-    if (admin_login($username, $password)) {
+    $rateCheck = check_login_rate_limit($clientIp);
+    if ($rateCheck['blocked']) {
+        $waitMins = ceil($rateCheck['wait'] / 60);
+        $error = "พยายาม login หลายครั้งเกินไป กรุณารอ {$waitMins} นาทีแล้วลองใหม่";
+    } elseif (admin_login($username, $password)) {
+        clear_login_attempts($clientIp);
         header('Location: index.php');
         exit;
     } else {
+        record_failed_login($clientIp);
         $error = 'Username หรือ Password ไม่ถูกต้อง';
     }
 }

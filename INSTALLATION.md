@@ -342,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '1.2.1'); // Change to force cache refresh
+define('APP_VERSION', '2.0.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -372,41 +372,57 @@ Controls how often the "Last Updated" timestamp refreshes.
 
 ## ⚙️ Admin Panel Setup
 
-### Step 1: Create Database Tables
+### Option A: Setup Wizard (Recommended) 🧙
+
+Open `http://your-domain.com/setup.php` and follow the 5-step wizard:
+
+1. **System Requirements** — verifies PHP 8.1+, PDO SQLite, mbstring
+2. **Directories** — creates `data/`, `cache/`, `backups/`, `ics/`
+3. **Database** — creates all tables, seeds admin user, auto-login
+4. **Import Data** — imports `.ics` files from `ics/` folder
+5. **Admin & Security** — change default password, add indexes, lock setup page
+
+After completing the wizard, access `/admin/` to manage your events.
+
+See [SETUP.md](SETUP.md) for detailed guide.
+
+---
+
+### Option B: Manual CLI
+
+#### Step 1: Create Database Tables
 
 ```bash
 cd tools
 
-# Create request table
-php migrate-add-requests-table.php
-
-# Create credits table
-php migrate-add-credits-table.php
-
-# Create events_meta table (multi-event/conventions support)
-php migrate-add-events-meta-table.php
+php import-ics-to-sqlite.php           # Create tables + import ICS data
+php migrate-add-requests-table.php     # Request system
+php migrate-add-credits-table.php      # Credits management
+php migrate-add-events-meta-table.php  # Multi-event support
+php migrate-add-admin-users-table.php  # Database-based auth
+php migrate-add-role-column.php        # Role-based access control
+php migrate-rename-tables-columns.php  # Rename to v2.0.0 schema (idempotent)
+php migrate-add-indexes.php            # Performance indexes (idempotent)
 ```
 
-This creates the `event_requests`, `credits`, and `events_meta` tables in the database.
+This creates the database tables: `programs`, `events`, `program_requests`, `credits`, `admin_users`.
 
-### Step 2: Configure Admin Credentials
+#### Step 2: Configure Admin Credentials
 
-**Generate password hash first**:
+Admin credentials are seeded from `config/admin.php` during migration. To change the password, login to admin and use the **"🔑 Change Password"** button.
+
+To update the fallback credentials in `config/admin.php`:
 ```bash
-php -r "echo password_hash('your_secure_password', PASSWORD_DEFAULT);"
+php tools/generate-password-hash.php your_strong_password
 ```
 
 Then edit [config/admin.php](config/admin.php):
-
 ```php
-// Change these!
 define('ADMIN_USERNAME', 'your_username');
 define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 ```
 
-⚠️ **Important**: Do NOT use `password_hash()` directly in the config file. Always generate the hash first and paste the static hash value.
-
-### Step 3: Access Admin Panel
+#### Step 3: Access Admin Panel
 
 1. Navigate to `/admin/`
 2. Login with configured credentials
@@ -433,16 +449,16 @@ define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 - Search, sort by display order
 - Pagination
 
-**Conventions Tab**:
-- Create, edit, delete conventions
+**Events Tab** (Conventions/Meta-Events):
+- Create, edit, delete events (conventions)
 - Configure name, slug, dates, venue mode, active status
-- Per-convention venue mode (multi/single)
+- Per-event venue mode (multi/single)
 
 **Requests Tab**:
 - View pending user requests
 - Compare original vs. requested changes
 - Approve or reject requests
-- Filter by status and convention
+- Filter by status and event
 
 ---
 
@@ -761,7 +777,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **226 automated unit tests** for quality assurance:
+The project includes **324 automated unit tests** for quality assurance:
 
 ```bash
 # Run all tests
@@ -790,11 +806,12 @@ chmod +x quick-test.sh
 
 - **SecurityTest** (7 tests) - XSS protection, input sanitization, SQL injection prevention
 - **CacheTest** (17 tests) - Cache creation, invalidation, TTL behavior
-- **AdminAuthTest** (32 tests) - Authentication, session management, password security
-- **CreditsApiTest** (43 tests) - Database CRUD, bulk operations, validation
-- **IntegrationTest** (90 tests) - Configuration validation, file structure, workflows, API endpoints
+- **AdminAuthTest** (38 tests) - Authentication, session management, password security
+- **CreditsApiTest** (49 tests) - Database CRUD, bulk operations, validation
+- **IntegrationTest** (97 tests) - Configuration validation, file structure, workflows, API endpoints
+- **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
 
-✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 324 tests pass on PHP 8.1, 8.2, and 8.3**
 
 ### CI/CD Integration
 
@@ -820,9 +837,9 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 226 tests pass
+- [ ] Verify all 324 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, or 8.3)
-- [ ] Change admin credentials in `config/admin.php`
+- [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
 - [ ] Update `APP_VERSION` for cache busting
 - [ ] Enable IP whitelist if needed
@@ -833,6 +850,7 @@ Before deploying to production:
 ## 📚 Additional Resources
 
 - **Quick Start**: [QUICKSTART.md](QUICKSTART.md)
+- **Setup Wizard**: [SETUP.md](SETUP.md)
 - **Main Documentation**: [README.md](README.md)
 - **Database Guide**: [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md)
 - **Version History**: [CHANGELOG.md](CHANGELOG.md)

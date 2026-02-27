@@ -54,22 +54,22 @@ if (in_array($action, $adminOnlyActions)) {
 }
 
 switch ($action) {
-    case 'list':
-        listEvents();
+    case 'programs_list':
+        listPrograms();
         break;
-    case 'get':
-        getEvent();
+    case 'programs_get':
+        getProgram();
         break;
-    case 'create':
-        createEvent();
+    case 'programs_create':
+        createProgram();
         break;
-    case 'update':
-        updateEvent();
+    case 'programs_update':
+        updateProgram();
         break;
-    case 'delete':
-        deleteEvent();
+    case 'programs_delete':
+        deleteProgram();
         break;
-    case 'venues':
+    case 'programs_venues':
         getVenues();
         break;
     case 'requests':
@@ -90,11 +90,11 @@ switch ($action) {
     case 'import_ics_confirm':
         confirmIcsImport();
         break;
-    case 'bulk_delete':
-        bulkDeleteEvents();
+    case 'programs_bulk_delete':
+        bulkDeletePrograms();
         break;
-    case 'bulk_update':
-        bulkUpdateEvents();
+    case 'programs_bulk_update':
+        bulkUpdatePrograms();
         break;
     case 'credits_list':
         listCredits();
@@ -114,21 +114,21 @@ switch ($action) {
     case 'credits_bulk_delete':
         bulkDeleteCredits();
         break;
-    // Events Meta (Conventions) CRUD
-    case 'event_meta_list':
-        listEventMeta();
+    // Events CRUD
+    case 'events_list':
+        listEvents();
         break;
-    case 'event_meta_get':
-        getEventMeta();
+    case 'events_get':
+        getEvent();
         break;
-    case 'event_meta_create':
-        createEventMeta();
+    case 'events_create':
+        createEvent();
         break;
-    case 'event_meta_update':
-        updateEventMeta();
+    case 'events_update':
+        updateEvent();
         break;
-    case 'event_meta_delete':
-        deleteEventMeta();
+    case 'events_delete':
+        deleteEvent();
         break;
     // Change Password
     case 'change_password':
@@ -204,7 +204,7 @@ function changeAdminPassword() {
 /**
  * List events with pagination and filters
  */
-function listEvents() {
+function listPrograms() {
     global $db;
 
     $page = max(1, intval($_GET['page'] ?? 1));
@@ -220,15 +220,15 @@ function listEvents() {
     $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'start';
     $sortOrder = ($_GET['order'] ?? 'desc') === 'asc' ? 'ASC' : 'DESC';
 
-    // Event meta filter
-    $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
+    // Event filter
+    $eventId = isset($_GET['event_id']) ? intval($_GET['event_id']) : null;
 
     $where = [];
     $params = [];
 
-    if ($eventMetaId) {
-        $where[] = "event_meta_id = :event_meta_id";
-        $params[':event_meta_id'] = $eventMetaId;
+    if ($eventId) {
+        $where[] = "event_id = :event_id";
+        $params[':event_id'] = $eventId;
     }
 
     if ($search) {
@@ -255,14 +255,14 @@ function listEvents() {
 
     try {
         // Count total
-        $countSql = "SELECT COUNT(*) as total FROM events $whereClause";
+        $countSql = "SELECT COUNT(*) as total FROM programs $whereClause";
         $stmt = $db->prepare($countSql);
         $stmt->execute($params);
         $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
         // Get events with dynamic sorting
         $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, created_at, updated_at
-                FROM events
+                FROM programs
                 $whereClause
                 ORDER BY $sortColumn $sortOrder
                 LIMIT :limit OFFSET :offset";
@@ -300,7 +300,7 @@ function listEvents() {
 /**
  * Get single event by ID
  */
-function getEvent() {
+function getProgram() {
     global $db;
 
     $id = intval($_GET['id'] ?? 0);
@@ -311,7 +311,7 @@ function getEvent() {
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM events WHERE id = :id");
+        $stmt = $db->prepare("SELECT * FROM programs WHERE id = :id");
         $stmt->execute([':id' => $id]);
         $event = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -333,7 +333,7 @@ function getEvent() {
 /**
  * Create new event
  */
-function createEvent() {
+function createProgram() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -355,11 +355,11 @@ function createEvent() {
     $now = date('Y-m-d H:i:s');
 
     try {
-        $eventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
+        $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
         $stmt = $db->prepare("
-            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, :created_at, :updated_at)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -371,7 +371,7 @@ function createEvent() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
-            ':event_meta_id' => $eventMetaId,
+            ':event_id' => $eventId,
             ':created_at' => $now,
             ':updated_at' => $now
         ]);
@@ -387,7 +387,7 @@ function createEvent() {
 /**
  * Update existing event
  */
-function updateEvent() {
+function updateProgram() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
@@ -413,10 +413,10 @@ function updateEvent() {
     $now = date('Y-m-d H:i:s');
 
     try {
-        $updateEventMetaId = array_key_exists('event_meta_id', $input) ? (isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null) : null;
+        $updateEventId = array_key_exists('event_id', $input) ? (isset($input['event_id']) ? intval($input['event_id']) : null) : null;
 
         $stmt = $db->prepare("
-            UPDATE events
+            UPDATE programs
             SET title = :title,
                 start = :start,
                 end = :end,
@@ -424,7 +424,7 @@ function updateEvent() {
                 organizer = :organizer,
                 description = :description,
                 categories = :categories,
-                event_meta_id = :event_meta_id,
+                event_id = :event_id,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -438,7 +438,7 @@ function updateEvent() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
-            ':event_meta_id' => $updateEventMetaId,
+            ':event_id' => $updateEventId,
             ':updated_at' => $now
         ]);
 
@@ -456,7 +456,7 @@ function updateEvent() {
 /**
  * Delete event
  */
-function deleteEvent() {
+function deleteProgram() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
@@ -472,7 +472,7 @@ function deleteEvent() {
     }
 
     try {
-        $stmt = $db->prepare("DELETE FROM events WHERE id = :id");
+        $stmt = $db->prepare("DELETE FROM programs WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
         if ($stmt->rowCount() === 0) {
@@ -489,7 +489,7 @@ function deleteEvent() {
 /**
  * Bulk delete events
  */
-function bulkDeleteEvents() {
+function bulkDeletePrograms() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
@@ -524,7 +524,7 @@ function bulkDeleteEvents() {
         $db->beginTransaction();
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $stmt = $db->prepare("DELETE FROM events WHERE id IN ($placeholders)");
+        $stmt = $db->prepare("DELETE FROM programs WHERE id IN ($placeholders)");
         $stmt->execute($ids);
 
         $deletedCount = $stmt->rowCount();
@@ -547,7 +547,7 @@ function bulkDeleteEvents() {
 /**
  * Bulk update events (location, organizer, and categories)
  */
-function bulkUpdateEvents() {
+function bulkUpdatePrograms() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
@@ -612,7 +612,7 @@ function bulkUpdateEvents() {
         $params[':updated_at'] = date('Y-m-d H:i:s');
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = "UPDATE events SET " . implode(', ', $setClauses) . " WHERE id IN ($placeholders)";
+        $sql = "UPDATE programs SET " . implode(', ', $setClauses) . " WHERE id IN ($placeholders)";
 
         $stmt = $db->prepare($sql);
 
@@ -653,7 +653,7 @@ function getVenues() {
     try {
         $stmt = $db->query("
             SELECT DISTINCT location
-            FROM events
+            FROM programs
             WHERE location IS NOT NULL AND location != ''
             ORDER BY location ASC
         ");
@@ -676,7 +676,7 @@ function getVenues() {
 function listRequests() {
     global $db;
     $status = $_GET['status'] ?? '';
-    $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
+    $eventId = isset($_GET['event_id']) ? intval($_GET['event_id']) : null;
     $page = max(1, intval($_GET['page'] ?? 1));
     $limit = 20;
     $offset = ($page - 1) * $limit;
@@ -687,18 +687,18 @@ function listRequests() {
         $conditions[] = "status = :status";
         $params[':status'] = $status;
     }
-    if ($eventMetaId) {
-        $conditions[] = "event_meta_id = :event_meta_id";
-        $params[':event_meta_id'] = $eventMetaId;
+    if ($eventId) {
+        $conditions[] = "event_id = :event_id";
+        $params[':event_id'] = $eventId;
     }
     $where = $conditions ? "WHERE " . implode(' AND ', $conditions) : "";
 
     try {
-        $countStmt = $db->prepare("SELECT COUNT(*) as total FROM event_requests $where");
+        $countStmt = $db->prepare("SELECT COUNT(*) as total FROM program_requests $where");
         $countStmt->execute($params);
         $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-        $sql = "SELECT * FROM event_requests $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        $sql = "SELECT * FROM program_requests $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
         $stmt = $db->prepare($sql);
         foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -713,9 +713,9 @@ function listRequests() {
 
         // สำหรับ request ประเภท modify ให้ดึงข้อมูล event เดิมมาด้วย
         foreach ($requests as &$req) {
-            if ($req['type'] === 'modify' && !empty($req['event_id'])) {
-                $eventStmt = $db->prepare("SELECT id, title, start, end, location, organizer, description, categories FROM events WHERE id = :id");
-                $eventStmt->execute([':id' => $req['event_id']]);
+            if ($req['type'] === 'modify' && !empty($req['program_id'])) {
+                $eventStmt = $db->prepare("SELECT id, title, start, end, location, organizer, description, categories FROM programs WHERE id = :id");
+                $eventStmt->execute([':id' => $req['program_id']]);
                 $originalEvent = $eventStmt->fetch(PDO::FETCH_ASSOC);
                 // Escape original_event ด้วย
                 $req['original_event'] = $originalEvent ? escapeOutputData($originalEvent, $fieldsToEscape) : null;
@@ -751,7 +751,7 @@ function approveRequest() {
     try {
         $db->beginTransaction();
 
-        $stmt = $db->prepare("SELECT * FROM event_requests WHERE id = :id AND status = 'pending'");
+        $stmt = $db->prepare("SELECT * FROM program_requests WHERE id = :id AND status = 'pending'");
         $stmt->execute([':id' => $id]);
         $req = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$req) { $db->rollBack(); jsonResponse(false, null, 'Not found or processed'); }
@@ -760,21 +760,21 @@ function approveRequest() {
 
         if ($req['type'] === 'add') {
             $uid = uniqid('req-') . '@local';
-            $reqEventMetaId = $req['event_meta_id'] ?? null;
-            $stmt = $db->prepare("INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, :now, :now2)");
-            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':event_meta_id' => $reqEventMetaId, ':now' => $now, ':now2' => $now]);
-            $eventId = $db->lastInsertId();
+            $reqEventId = $req['event_id'] ?? null;
+            $stmt = $db->prepare("INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, :now, :now2)");
+            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':event_id' => $reqEventId, ':now' => $now, ':now2' => $now]);
+            $programId = $db->lastInsertId();
         } else {
-            $eventId = $req['event_id'];
-            $stmt = $db->prepare("UPDATE events SET title = :title, start = :start, end = :end, location = :location, organizer = :organizer, description = :description, categories = :categories, updated_at = :now WHERE id = :id");
-            $stmt->execute([':id' => $eventId, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now]);
+            $programId = $req['program_id'];
+            $stmt = $db->prepare("UPDATE programs SET title = :title, start = :start, end = :end, location = :location, organizer = :organizer, description = :description, categories = :categories, updated_at = :now WHERE id = :id");
+            $stmt->execute([':id' => $programId, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now]);
         }
 
-        $stmt = $db->prepare("UPDATE event_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id");
+        $stmt = $db->prepare("UPDATE program_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id");
         $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => $now, ':by' => $_SESSION['admin_username'] ?? 'admin']);
 
         $db->commit();
-        jsonResponse(true, ['event_id' => $eventId], 'Approved');
+        jsonResponse(true, ['program_id' => $programId], 'Approved');
     } catch (PDOException $e) {
         $db->rollBack();
         jsonResponse(false, null, 'Failed');
@@ -794,7 +794,7 @@ function rejectRequest() {
     $input = json_decode(file_get_contents('php://input'), true);
 
     try {
-        $stmt = $db->prepare("UPDATE event_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id AND status = 'pending'");
+        $stmt = $db->prepare("UPDATE program_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id AND status = 'pending'");
         $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => date('Y-m-d H:i:s'), ':by' => $_SESSION['admin_username'] ?? 'admin']);
         if ($stmt->rowCount() === 0) jsonResponse(false, null, 'Not found or processed');
         jsonResponse(true, null, 'Rejected');
@@ -809,7 +809,7 @@ function rejectRequest() {
 function getPendingCount() {
     global $db;
     try {
-        $stmt = $db->query("SELECT COUNT(*) as count FROM event_requests WHERE status = 'pending'");
+        $stmt = $db->query("SELECT COUNT(*) as count FROM program_requests WHERE status = 'pending'");
         jsonResponse(true, ['count' => intval($stmt->fetch(PDO::FETCH_ASSOC)['count'])]);
     } catch (PDOException $e) {
         jsonResponse(false, null, 'Failed');
@@ -900,7 +900,7 @@ function uploadAndParseIcs() {
         if (empty($event['end'])) $errors[] = 'Missing end time';
 
         // Check for duplicates
-        $stmt = $db->prepare("SELECT id FROM events WHERE uid = :uid");
+        $stmt = $db->prepare("SELECT id FROM programs WHERE uid = :uid");
         $stmt->execute([':uid' => $event['uid']]);
         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -949,7 +949,7 @@ function confirmIcsImport() {
 
     $events = $input['events'] ?? [];
     $saveFile = $input['save_file'] ?? true;
-    $eventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
+    $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
     if (empty($events)) {
         jsonResponse(false, null, 'No events to import');
@@ -962,12 +962,12 @@ function confirmIcsImport() {
         $db->beginTransaction();
 
         $insertStmt = $db->prepare("
-            INSERT INTO events (uid, title, start, end, location, organizer, description, categories, event_meta_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_meta_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ");
 
         $updateStmt = $db->prepare("
-            UPDATE events SET
+            UPDATE programs SET
                 title = :title, start = :start, end = :end,
                 location = :location, organizer = :organizer,
                 description = :description, categories = :categories,
@@ -1003,7 +1003,7 @@ function confirmIcsImport() {
                 ];
 
                 if ($action === 'insert') {
-                    $params[':event_meta_id'] = $eventMetaId;
+                    $params[':event_id'] = $eventId;
                     $insertStmt->execute($params);
                     $stats['inserted']++;
                 } elseif ($action === 'update') {
@@ -1106,16 +1106,16 @@ function listCredits() {
         $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'display_order';
         $sortOrder = ($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
 
-        // Event meta filter
-        $eventMetaId = isset($_GET['event_meta_id']) ? intval($_GET['event_meta_id']) : null;
+        // Event filter
+        $eventId = isset($_GET['event_id']) ? intval($_GET['event_id']) : null;
 
         // Build WHERE clause
         $where = [];
         $params = [];
 
-        if ($eventMetaId) {
-            $where[] = "(event_meta_id IS NULL OR event_meta_id = :event_meta_id)";
-            $params[':event_meta_id'] = $eventMetaId;
+        if ($eventId) {
+            $where[] = "(event_id IS NULL OR event_id = :event_id)";
+            $params[':event_id'] = $eventId;
         }
 
         if ($search) {
@@ -1226,7 +1226,7 @@ function createCredit() {
     $link = trim($input['link'] ?? '');
     $description = trim($input['description'] ?? '');
     $display_order = intval($input['display_order'] ?? 0);
-    $creditEventMetaId = isset($input['event_meta_id']) ? intval($input['event_meta_id']) : null;
+    $creditEventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
     if (strlen($title) > 200) {
         jsonResponse(false, null, 'Title is too long (max 200 characters)');
@@ -1242,8 +1242,8 @@ function createCredit() {
         $now = date('Y-m-d H:i:s');
 
         $stmt = $db->prepare("
-            INSERT INTO credits (title, link, description, display_order, event_meta_id, created_at, updated_at)
-            VALUES (:title, :link, :description, :display_order, :event_meta_id, :created_at, :updated_at)
+            INSERT INTO credits (title, link, description, display_order, event_id, created_at, updated_at)
+            VALUES (:title, :link, :description, :display_order, :event_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -1251,7 +1251,7 @@ function createCredit() {
             ':link' => $link,
             ':description' => $description,
             ':display_order' => $display_order,
-            ':event_meta_id' => $creditEventMetaId,
+            ':event_id' => $creditEventId,
             ':created_at' => $now,
             ':updated_at' => $now
         ]);
@@ -1259,7 +1259,7 @@ function createCredit() {
         $id = $db->lastInsertId();
 
         // Invalidate cache
-        invalidate_credits_cache($creditEventMetaId);
+        invalidate_credits_cache($creditEventId);
 
         jsonResponse(true, ['id' => $id], 'Credit created successfully');
 
@@ -1297,7 +1297,7 @@ function updateCredit() {
     $link = trim($input['link'] ?? '');
     $description = trim($input['description'] ?? '');
     $display_order = intval($input['display_order'] ?? 0);
-    $creditEventMetaId = isset($input['event_meta_id']) ? (is_null($input['event_meta_id']) ? null : intval($input['event_meta_id'])) : null;
+    $creditEventId = isset($input['event_id']) ? (is_null($input['event_id']) ? null : intval($input['event_id'])) : null;
 
     if (strlen($title) > 200) {
         jsonResponse(false, null, 'Title is too long (max 200 characters)');
@@ -1316,7 +1316,7 @@ function updateCredit() {
                 link = :link,
                 description = :description,
                 display_order = :display_order,
-                event_meta_id = :event_meta_id,
+                event_id = :event_id,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -1326,7 +1326,7 @@ function updateCredit() {
             ':link' => $link,
             ':description' => $description,
             ':display_order' => $display_order,
-            ':event_meta_id' => $creditEventMetaId,
+            ':event_id' => $creditEventId,
             ':updated_at' => date('Y-m-d H:i:s'),
             ':id' => $id
         ]);
@@ -1337,7 +1337,7 @@ function updateCredit() {
         }
 
         // Invalidate cache
-        invalidate_credits_cache($creditEventMetaId);
+        invalidate_credits_cache($creditEventId);
 
         jsonResponse(true, null, 'Credit updated successfully');
 
@@ -1448,18 +1448,18 @@ function bulkDeleteCredits() {
 // ============================================================================
 
 /**
- * List all events_meta (conventions)
+ * List all events (conventions)
  */
-function listEventMeta() {
+function listEvents() {
     global $db;
 
     try {
-        $stmt = $db->query("SELECT * FROM events_meta ORDER BY start_date DESC, name ASC");
+        $stmt = $db->query("SELECT * FROM events ORDER BY start_date DESC, name ASC");
         $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Add event count for each meta
         foreach ($metas as &$meta) {
-            $countStmt = $db->prepare("SELECT COUNT(*) as count FROM events WHERE event_meta_id = :id");
+            $countStmt = $db->prepare("SELECT COUNT(*) as count FROM programs WHERE event_id = :id");
             $countStmt->execute([':id' => $meta['id']]);
             $meta['event_count'] = intval($countStmt->fetch(PDO::FETCH_ASSOC)['count']);
         }
@@ -1479,7 +1479,7 @@ function listEventMeta() {
 /**
  * Get single event_meta by ID
  */
-function getEventMeta() {
+function getEvent() {
     global $db;
 
     $id = intval($_GET['id'] ?? 0);
@@ -1489,7 +1489,7 @@ function getEventMeta() {
     }
 
     try {
-        $stmt = $db->prepare("SELECT * FROM events_meta WHERE id = :id");
+        $stmt = $db->prepare("SELECT * FROM events WHERE id = :id");
         $stmt->execute([':id' => $id]);
         $meta = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -1510,7 +1510,7 @@ function getEventMeta() {
 /**
  * Create new event_meta (convention)
  */
-function createEventMeta() {
+function createEvent() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -1535,7 +1535,7 @@ function createEventMeta() {
 
     try {
         // Check unique slug
-        $check = $db->prepare("SELECT id FROM events_meta WHERE slug = :slug");
+        $check = $db->prepare("SELECT id FROM events WHERE slug = :slug");
         $check->execute([':slug' => $slug]);
         if ($check->fetch()) {
             jsonResponse(false, null, 'Slug already exists');
@@ -1544,7 +1544,7 @@ function createEventMeta() {
 
         $now = date('Y-m-d H:i:s');
         $stmt = $db->prepare("
-            INSERT INTO events_meta (slug, name, description, start_date, end_date, venue_mode, is_active, created_at, updated_at)
+            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, created_at, updated_at)
             VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :now, :now2)
         ");
         $stmt->execute([
@@ -1568,7 +1568,7 @@ function createEventMeta() {
 /**
  * Update existing event_meta
  */
-function updateEventMeta() {
+function updateEvent() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
@@ -1599,7 +1599,7 @@ function updateEventMeta() {
 
     try {
         // Check slug uniqueness (exclude self)
-        $check = $db->prepare("SELECT id FROM events_meta WHERE slug = :slug AND id != :id");
+        $check = $db->prepare("SELECT id FROM events WHERE slug = :slug AND id != :id");
         $check->execute([':slug' => $slug, ':id' => $id]);
         if ($check->fetch()) {
             jsonResponse(false, null, 'Slug already exists');
@@ -1607,7 +1607,7 @@ function updateEventMeta() {
         }
 
         $stmt = $db->prepare("
-            UPDATE events_meta
+            UPDATE events
             SET slug = :slug, name = :name, description = :description,
                 start_date = :start_date, end_date = :end_date,
                 venue_mode = :venue_mode, is_active = :is_active,
@@ -1640,7 +1640,7 @@ function updateEventMeta() {
 /**
  * Delete event_meta
  */
-function deleteEventMeta() {
+function deleteEvent() {
     global $db;
 
     if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
@@ -1655,8 +1655,8 @@ function deleteEventMeta() {
     }
 
     try {
-        // Check if there are events linked to this meta
-        $countStmt = $db->prepare("SELECT COUNT(*) as count FROM events WHERE event_meta_id = :id");
+        // Check if there are programs linked to this event
+        $countStmt = $db->prepare("SELECT COUNT(*) as count FROM programs WHERE event_id = :id");
         $countStmt->execute([':id' => $id]);
         $eventCount = intval($countStmt->fetch(PDO::FETCH_ASSOC)['count']);
 
@@ -1665,7 +1665,7 @@ function deleteEventMeta() {
             return;
         }
 
-        $stmt = $db->prepare("DELETE FROM events_meta WHERE id = :id");
+        $stmt = $db->prepare("DELETE FROM events WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
         if ($stmt->rowCount() === 0) {

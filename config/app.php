@@ -12,7 +12,7 @@
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '1.2.5');
+define('APP_VERSION', '2.0.0');
 
 /**
  * Production Mode

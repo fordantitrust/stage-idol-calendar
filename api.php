@@ -8,6 +8,29 @@ send_security_headers();
 header('Content-Type: application/json; charset=utf-8');
 
 /**
+ * Send JSON response with HTTP caching headers (ETag + Cache-Control)
+ * Supports 304 Not Modified for unchanged data
+ *
+ * @param mixed $data  Data to encode as JSON
+ * @param int   $maxAge Cache duration in seconds (default: 5 minutes)
+ */
+function sendJsonWithCache($data, $maxAge = 300) {
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    $etag = '"' . md5($json) . '"';
+
+    header('Cache-Control: public, max-age=' . $maxAge);
+    header('ETag: ' . $etag);
+
+    $ifNoneMatch = isset($_SERVER['HTTP_IF_NONE_MATCH']) ? trim($_SERVER['HTTP_IF_NONE_MATCH']) : '';
+    if ($ifNoneMatch === $etag) {
+        http_response_code(304);
+        exit;
+    }
+
+    echo $json;
+}
+
+/**
  * Escape HTML entities ในข้อมูลเพื่อป้องกัน XSS
  */
 function escapeApiData($data, $fields = []) {
@@ -30,18 +53,18 @@ function escapeApiData($data, $fields = []) {
 $eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET['event']) : null;
 $eventMetaId = null;
 if ($eventSlug) {
-    $eventMeta = get_event_meta_by_slug($eventSlug);
+    $eventMeta = get_event_by_slug($eventSlug);
     $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
 }
 
 $parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
 
-$action = $_GET['action'] ?? 'events';
+$action = $_GET['action'] ?? 'programs';
 $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
 
 try {
     switch ($action) {
-        case 'events':
+        case 'programs':
             $events = $parser->getAllEvents();
 
             // Filter by organizer
@@ -67,7 +90,7 @@ try {
                 return escapeApiData($event, $fieldsToEscape);
             }, $events);
 
-            echo json_encode($events, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            sendJsonWithCache($events);
             break;
 
         case 'organizers':
@@ -76,7 +99,7 @@ try {
             $organizers = array_map(function($org) {
                 return htmlspecialchars($org, ENT_QUOTES, 'UTF-8');
             }, $organizers);
-            echo json_encode($organizers, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            sendJsonWithCache($organizers);
             break;
 
         case 'locations':
@@ -85,7 +108,7 @@ try {
             $locations = array_map(function($loc) {
                 return htmlspecialchars($loc, ENT_QUOTES, 'UTF-8');
             }, $locations);
-            echo json_encode($locations, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            sendJsonWithCache($locations);
             break;
 
         case 'events_list':
@@ -101,13 +124,13 @@ try {
                     'venue_mode' => $ev['venue_mode'],
                 ];
             }, $activeEvents);
-            echo json_encode($activeEvents, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            sendJsonWithCache($activeEvents, 600); // events list เปลี่ยนไม่บ่อย cache 10 นาที
             break;
 
         default:
             http_response_code(400);
             echo json_encode([
-                'error' => 'Invalid action. Use: events, organizers, locations, or events_list'
+                'error' => 'Invalid action. Use: programs, organizers, locations, or events_list'
             ], JSON_UNESCAPED_UNICODE);
     }
 } catch (Exception $e) {
