@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin UI for Event Management
+ * Admin UI for Program Management
  */
 require_once __DIR__ . '/../config.php';
 send_security_headers();
@@ -302,13 +302,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             font-size: 1.5rem;
             cursor: pointer;
             color: white;
-            width: 32px;
-            height: 32px;
+            width: 44px;  /* iOS minimum touch target */
+            height: 44px;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.2s;
+            flex-shrink: 0;
         }
 
         .modal-close:hover {
@@ -456,7 +457,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             padding: 10px 15px;
             border: 2px solid var(--admin-border);
             border-radius: 8px;
-            font-size: 0.9rem;
+            font-size: 1rem; /* ≥16px: ป้องกัน iOS auto-zoom */
             transition: border-color 0.2s;
         }
 
@@ -535,6 +536,80 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         .btn-info:hover {
             background: #0284c7;
         }
+
+        /* Mobile tab dropdown (hamburger) */
+        .tab-mobile-menu {
+            display: none; /* shown only on mobile via media query */
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .tab-mobile-btn {
+            width: 100%;
+            padding: 13px 16px;
+            background: var(--admin-gradient);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-height: 48px;
+            box-shadow: 0 2px 8px rgba(37,99,235,.2);
+        }
+        .tab-mobile-btn-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-mobile-arrow {
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+            opacity: 0.85;
+        }
+        .tab-mobile-menu.open .tab-mobile-arrow { transform: rotate(180deg); }
+        .tab-mobile-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border-light);
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            z-index: 200;
+            overflow: hidden;
+        }
+        .tab-mobile-menu.open .tab-mobile-dropdown { display: block; }
+        .tab-mobile-item {
+            width: 100%;
+            padding: 13px 18px;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--admin-border-light);
+            text-align: left;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--admin-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 48px;
+            transition: background 0.15s;
+        }
+        .tab-mobile-item:last-child { border-bottom: none; }
+        .tab-mobile-item:hover { background: var(--admin-primary-light); color: var(--admin-primary); }
+        .tab-mobile-item.active {
+            background: var(--admin-primary-light);
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        .tab-mobile-item.active::before { content: '▶ '; font-size: 0.7rem; margin-right: 4px; }
 
         /* Tabs - Enhanced Design */
         .admin-tabs {
@@ -642,8 +717,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         .event-checkbox, #eventSelectAllCheckbox {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            min-height: 20px;
             cursor: pointer;
             accent-color: var(--admin-primary);
         }
@@ -696,19 +773,167 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             font-size: 0.85rem;
         }
 
-        /* Responsive */
+        /* =====================================================
+           RESPONSIVE - MOBILE (iOS + Android)
+           ===================================================== */
+
+        /* ── 768px: Tablet & large phones ── */
         @media (max-width: 768px) {
             .admin-container {
                 padding: 10px;
             }
 
-            .events-table {
-                display: block;
+            /* Tables: horizontal scroll via wrapper div (prevents iOS scroll capture) */
+            .table-scroll-wrapper {
                 overflow-x: auto;
+                -webkit-overflow-scrolling: touch; /* iOS momentum scroll */
+                width: 100%;
+            }
+            .events-table {
+                white-space: nowrap;
+            }
+            .events-table th,
+            .events-table td {
+                white-space: nowrap;
+                font-size: 0.85rem;
+                padding: 10px 12px;
+            }
+            /* Title column: ให้ text wrap ได้และมีความกว้างขั้นต่ำ */
+            .events-table td:nth-child(3) {
+                white-space: normal;
+                min-width: 140px;
+                max-width: 200px;
+            }
+            .events-table .actions {
+                white-space: nowrap;
             }
 
+            /* btn-sm: เพิ่ม touch target */
+            .btn-sm {
+                padding: 10px 14px;
+                min-height: 40px;
+            }
+        }
+
+        /* ── 600px: Small tablets & large phones ── */
+        @media (max-width: 600px) {
+            /* Header */
+            .admin-header {
+                padding: 14px;
+                gap: 10px;
+            }
+            .admin-header h1 {
+                font-size: 1.25rem;
+            }
+            .admin-header > div {
+                gap: 8px;
+                flex-wrap: wrap;
+            }
+            .admin-header a {
+                padding: 8px 10px;
+                font-size: 0.85rem;
+            }
+
+            /* Tab bar: ซ่อนบน mobile ใช้ dropdown แทน */
+            .admin-tabs { display: none; }
+            .tab-mobile-menu { display: block; }
+
+            /* Toolbar: better stacking */
+            .admin-toolbar {
+                padding: 12px;
+                gap: 8px;
+            }
+            .admin-toolbar select,
+            .admin-toolbar input[type="date"] {
+                min-width: 0;
+                flex: 1 1 calc(50% - 4px);
+            }
+            .search-wrapper {
+                flex: 1 1 100%;
+                min-width: 0;
+            }
+            .admin-toolbar .btn {
+                flex: 1 1 calc(50% - 4px);
+            }
+            .admin-toolbar .btn-primary {
+                flex: 1 1 100%;
+            }
+
+            /* Bulk actions bar: stack vertically */
+            .bulk-actions-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px;
+            }
+            .bulk-actions-buttons {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .bulk-actions-buttons .btn {
+                flex: 1 1 calc(50% - 4px);
+            }
+        }
+
+        /* ── 480px: Small phones (iPhone SE, Moto G) ── */
+        @media (max-width: 480px) {
+            .admin-container {
+                padding: 6px;
+            }
+            .admin-header {
+                border-radius: 8px;
+            }
+            .admin-header h1 {
+                font-size: 1.1rem;
+            }
+            .admin-tabs {
+                border-radius: 8px;
+                margin-bottom: 16px;
+            }
+            .admin-toolbar {
+                border-radius: 8px;
+                padding: 10px;
+            }
+
+            /* Table: smaller text on very small phones */
+            .events-table th,
+            .events-table td {
+                padding: 8px 10px;
+                font-size: 0.8rem;
+            }
+
+            /* Modal: ขยายให้ใกล้เต็มจอ */
+            .modal {
+                width: 96%;
+                border-radius: 10px;
+            }
+            .modal-body {
+                padding: 14px;
+            }
+            .modal-footer {
+                padding: 12px 14px;
+                gap: 8px;
+            }
+            .modal-footer .btn {
+                flex: 1;
+            }
+
+            /* Form row: stack เสมอบน mobile เล็ก */
             .form-row {
                 flex-direction: column;
+            }
+
+            /* Badge */
+            .badge {
+                min-width: 16px;
+                height: 16px;
+                font-size: 0.65rem;
+            }
+
+            /* Pagination */
+            .pagination {
+                gap: 6px;
+                padding: 10px;
             }
         }
     </style>
@@ -723,47 +948,75 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <?php if ($adminUserId !== null): ?>
                 <a href="#" onclick="showChangePasswordModal(); return false;" style="background: rgba(255, 255, 255, 0.15); color: white;">🔑 Change Password</a>
                 <?php endif; ?>
+                <a href="help.php">📖 Help</a>
                 <a href="../index.php">&larr; กลับหน้าหลัก</a>
                 <a href="login.php?logout=1" style="background: rgba(239, 68, 68, 0.2); color: white;">Logout</a>
             </div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Mobile Tab Dropdown (hamburger) -->
+        <div class="tab-mobile-menu" id="tabMobileMenu">
+            <button class="tab-mobile-btn" id="tabMobileBtn"
+                    onclick="toggleTabMobileMenu()"
+                    aria-haspopup="true" aria-expanded="false">
+                <span class="tab-mobile-btn-left">
+                    <span>☰</span>
+                    <span id="tabMobileLabel">Programs</span>
+                    <span class="badge" id="pendingBadgeMobile" style="display:none">0</span>
+                </span>
+                <span class="tab-mobile-arrow">▼</span>
+            </button>
+            <div class="tab-mobile-dropdown" id="tabMobileDropdown" role="menu">
+                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem">Programs</button>
+                <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem">Events</button>
+                <button class="tab-mobile-item" onclick="switchTab('requests')" data-tab="requests" role="menuitem">
+                    Requests <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
+                </button>
+                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem">Credits</button>
+                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem">Import ICS</button>
+                <?php if ($adminRole === 'admin'): ?>
+                <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">Users</button>
+                <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">Backup</button>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Tabs (desktop) -->
         <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('events')">Events</button>
+            <button class="tab-btn active" onclick="switchTab('programs')">Programs</button>
+            <button class="tab-btn" onclick="switchTab('events')">Events</button>
             <button class="tab-btn" onclick="switchTab('requests')">Requests <span class="badge" id="pendingBadge" style="display:none">0</span></button>
-            <button class="tab-btn" onclick="switchTab('import')">📤 Import ICS</button>
-            <button class="tab-btn" onclick="switchTab('credits')">📋 Credits</button>
-            <button class="tab-btn" onclick="switchTab('conventions')">🏟️ Conventions</button>
+            <button class="tab-btn" onclick="switchTab('credits')">Credits</button>
+            <button class="tab-btn" onclick="switchTab('import')">Import ICS</button>
             <?php if ($adminRole === 'admin'): ?>
-            <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
-            <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
+            <button class="tab-btn" onclick="switchTab('users')">Users</button>
+            <button class="tab-btn" onclick="switchTab('backup')">Backup</button>
             <?php endif; ?>
         </div>
 
-        <!-- Events Section -->
-        <div id="eventsSection">
+        <!-- Programs Section -->
+        <div id="programsSection">
         <!-- Toolbar -->
         <div class="admin-toolbar">
-            <select id="eventMetaFilter" onchange="currentPage=1;loadEvents()">
-                <option value="">All Conventions</option>
+            <select id="eventMetaFilter" onchange="currentPage=1;loadPrograms()">
+                <option value="">All Events</option>
             </select>
             <div class="search-wrapper">
                 <input type="text" id="searchInput" placeholder="ค้นหา..." onkeyup="handleSearch(event)">
                 <button type="button" class="clear-search" onclick="clearSearch()" title="Clear">&times;</button>
             </div>
-            <select id="venueFilter" onchange="loadEvents()">
+            <select id="venueFilter" onchange="loadPrograms()">
                 <option value="">ทุกเวที</option>
             </select>
-            <input type="date" id="dateFrom" onchange="loadEvents()" title="จากวันที่">
-            <input type="date" id="dateTo" onchange="loadEvents()" title="ถึงวันที่">
+            <input type="date" id="dateFrom" onchange="loadPrograms()" title="จากวันที่">
+            <input type="date" id="dateTo" onchange="loadPrograms()" title="ถึงวันที่">
             <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
             <select id="perPageSelect" onchange="changePerPage()" title="จำนวนต่อหน้า">
                 <option value="20" selected>20 / หน้า</option>
                 <option value="50">50 / หน้า</option>
                 <option value="100">100 / หน้า</option>
             </select>
-            <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่ม Event</button>
+            <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่ม Program</button>
         </div>
 
         <!-- Bulk Actions Toolbar (initially hidden) -->
@@ -780,6 +1033,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         </div>
 
         <!-- Events Table -->
+        <div class="table-scroll-wrapper">
         <table class="events-table">
             <thead>
                 <tr>
@@ -800,16 +1054,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </tr>
             </tbody>
         </table>
+        </div>
 
         <!-- Pagination -->
         <div class="pagination" id="pagination"></div>
-        </div><!-- End eventsSection -->
+        </div><!-- End programsSection -->
 
         <!-- Requests Section -->
         <div id="requestsSection" style="display:none">
             <div class="admin-toolbar">
                 <select id="reqEventMetaFilter" onchange="reqPage=1;loadRequests()">
-                    <option value="">All Conventions</option>
+                    <option value="">All Events</option>
                 </select>
                 <select id="reqStatusFilter" onchange="loadRequests()">
                     <option value="">ทุกสถานะ</option>
@@ -818,12 +1073,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <option value="rejected">ปฏิเสธแล้ว</option>
                 </select>
             </div>
+            <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
-                    <tr><th>#</th><th>ประเภท</th><th>ชื่อ Event</th><th>ผู้แจ้ง</th><th>วันที่</th><th>สถานะ</th><th>Actions</th></tr>
+                    <tr><th>#</th><th>ประเภท</th><th>ชื่อ Program</th><th>ผู้แจ้ง</th><th>วันที่</th><th>สถานะ</th><th>Actions</th></tr>
                 </thead>
                 <tbody id="requestsBody"><tr><td colspan="7">Loading...</td></tr></tbody>
             </table>
+            </div>
             <div class="pagination" id="reqPagination"></div>
         </div>
 
@@ -832,11 +1089,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Upload Area -->
             <div class="upload-area" id="uploadArea">
                 <div class="form-group" style="max-width: 400px; margin: 0 auto 20px;">
-                    <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Convention:</label>
+                    <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Event:</label>
                     <select id="icsImportEventMeta" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;">
-                        <option value="">-- เลือก Convention --</option>
+                        <option value="">-- เลือก Event --</option>
                     </select>
-                    <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก convention ที่ต้องการ import events เข้าไป</small>
+                    <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก event ที่ต้องการ import programs เข้าไป</small>
                 </div>
                 <div class="upload-box" id="uploadBox" onclick="document.getElementById('icsFileInput').click()">
                     <input type="file" id="icsFileInput" accept=".ics" style="display:none" onchange="handleFileSelect(event)">
@@ -857,7 +1114,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Preview Section (shown after upload) -->
             <div id="previewSection" style="display:none">
                 <div class="preview-header">
-                    <h3>📋 ตัวอย่าง Events (<span id="previewCount">0</span>)</h3>
+                    <h3>📋 ตัวอย่าง Programs (<span id="previewCount">0</span>)</h3>
                     <div class="preview-stats">
                         <span class="stat-badge" style="background:#e3f2fd;color:#1565c0;">📦 <span id="previewConventionName">-</span></span>
                         <span class="stat-badge stat-new">➕ <span id="statNew">0</span> ใหม่</span>
@@ -879,7 +1136,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <tr>
                                 <th style="width:40px"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()"></th>
                                 <th style="width:100px">สถานะ</th>
-                                <th>ชื่อ Event</th>
+                                <th>ชื่อ Program</th>
                                 <th>วันที่/เวลา</th>
                                 <th>สถานที่</th>
                                 <th>ผู้จัด</th>
@@ -895,7 +1152,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <div class="preview-footer">
                     <button class="btn btn-primary btn-lg" onclick="confirmImport()">
-                        ✅ ยืนยันการ Import (<span id="importCount">0</span> events)
+                        ✅ ยืนยันการ Import (<span id="importCount">0</span> programs)
                     </button>
                 </div>
             </div>
@@ -927,8 +1184,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         </div>
                     </div>
                     <div id="errorsList"></div>
-                    <button class="btn btn-primary" onclick="resetUpload(); switchTab('events')">
-                        ดู Events ที่ Import แล้ว
+                    <button class="btn btn-primary" onclick="resetUpload(); switchTab('programs')">
+                        ดู Programs ที่ Import แล้ว
                     </button>
                 </div>
             </div>
@@ -938,7 +1195,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div id="creditsSection" style="display:none">
             <div class="admin-toolbar">
                 <select id="creditsEventMetaFilter" onchange="creditsCurrentPage=1;loadCredits()">
-                    <option value="">All Conventions</option>
+                    <option value="">All Events</option>
                 </select>
                 <div class="search-wrapper">
                     <input type="text" id="creditsSearchInput" placeholder="ค้นหา credits..." onkeyup="handleCreditsSearch(event)">
@@ -965,6 +1222,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </div>
 
             <!-- Credits Table -->
+            <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
                     <tr>
@@ -983,22 +1241,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </tbody>
             </table>
+            </div>
 
             <!-- Pagination -->
             <div class="pagination" id="creditsPagination"></div>
         </div>
 
-        <!-- Conventions Section -->
-        <div id="conventionsSection" style="display:none">
+        <!-- Events Section -->
+        <div id="eventsSection" style="display:none">
             <div class="admin-toolbar">
                 <div class="search-wrapper">
-                    <input type="text" id="conventionsSearchInput" placeholder="ค้นหา conventions..." onkeyup="handleConventionsSearch(event)">
-                    <button type="button" class="clear-search" onclick="clearConventionsSearch()" title="Clear">&times;</button>
+                    <input type="text" id="conventionsSearchInput" placeholder="ค้นหา events..." onkeyup="handleEventsSearch(event)">
+                    <button type="button" class="clear-search" onclick="clearEventsSearch()" title="Clear">&times;</button>
                 </div>
-                <button class="btn btn-primary" onclick="openAddConventionModal()">+ เพิ่ม Convention</button>
+                <button class="btn btn-primary" onclick="openAddEventModal()">+ เพิ่ม Event</button>
             </div>
 
-            <!-- Conventions Table -->
+            <!-- Events Table -->
+            <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
                     <tr>
@@ -1009,7 +1269,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <th>End Date</th>
                         <th>Venue Mode</th>
                         <th>Active</th>
-                        <th>Events</th>
+                        <th>Programs</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -1019,6 +1279,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- Users Section (admin only) -->
@@ -1028,6 +1289,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="btn btn-primary" onclick="openAddUserModal()">+ Add User</button>
             </div>
 
+            <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
                     <tr>
@@ -1046,6 +1308,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
         <?php endif; ?>
 
@@ -1057,6 +1320,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="btn btn-secondary" onclick="openUploadRestoreModal()">📤 Upload & Restore</button>
             </div>
 
+            <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
                     <tr>
@@ -1073,6 +1337,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </tbody>
             </table>
+            </div>
         </div>
         <?php endif; ?>
     </div>
@@ -1105,7 +1370,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <label>Role</label>
                         <select id="userRole">
                             <option value="admin">Admin - Full access</option>
-                            <option value="agent">Agent - Events management only</option>
+                            <option value="agent">Agent - Programs management only</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1206,7 +1471,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="eventModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="modalTitle">เพิ่ม Event</h2>
+                <h2 id="modalTitle">เพิ่ม Program</h2>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1214,7 +1479,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <input type="hidden" id="eventId">
 
                     <div class="form-group">
-                        <label for="eventConvention">Convention</label>
+                        <label for="eventConvention">Event</label>
                         <select id="eventConvention">
                             <option value="">-- ไม่ระบุ --</option>
                             <!-- populated from event_meta_list -->
@@ -1222,7 +1487,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
-                        <label for="title">ชื่อ Event *</label>
+                        <label for="title">ชื่อ Program *</label>
                         <input type="text" id="title" required>
                     </div>
 
@@ -1281,7 +1546,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>คุณต้องการลบ event "<span id="deleteEventTitle"></span>" หรือไม่?</p>
+                <p>คุณต้องการลบ program "<span id="deleteEventTitle"></span>" หรือไม่?</p>
                 <input type="hidden" id="deleteEventId">
             </div>
             <div class="modal-footer">
@@ -1301,7 +1566,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <form id="bulkEditForm" onsubmit="submitBulkEdit(event)">
                 <div class="modal-body">
                     <div class="bulk-edit-info">
-                        กำลังแก้ไข <strong><span id="bulkEditCount">0</span></strong> events
+                        กำลังแก้ไข <strong><span id="bulkEditCount">0</span></strong> programs
                     </div>
 
                     <div class="form-group">
@@ -1319,18 +1584,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <label for="bulkEditOrganizer">Organizer (ผู้จัด)</label>
                         <input type="text" id="bulkEditOrganizer" class="form-control"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
-                        <small class="form-hint">กรอกเพื่ออัปเดต organizer ของ events ทั้งหมดที่เลือก</small>
+                        <small class="form-hint">กรอกเพื่ออัปเดต organizer ของ programs ทั้งหมดที่เลือก</small>
                     </div>
 
                     <div class="form-group">
                         <label for="bulkEditCategories">Categories</label>
                         <input type="text" id="bulkEditCategories" class="form-control"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
-                        <small class="form-hint">กรอกเพื่ออัปเดต categories ของ events ทั้งหมดที่เลือก</small>
+                        <small class="form-hint">กรอกเพื่ออัปเดต categories ของ programs ทั้งหมดที่เลือก</small>
                     </div>
 
                     <div class="form-warning">
-                        ⚠️ การแก้ไขจะเปลี่ยนค่าของ events ทั้งหมดที่เลือกทันที
+                        ⚠️ การแก้ไขจะเปลี่ยนค่าของ programs ทั้งหมดที่เลือกทันที
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1350,7 +1615,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </div>
             <div class="modal-body">
                 <p class="bulk-delete-warning">
-                    คุณกำลังจะลบ <strong><span id="bulkDeleteCount">0</span></strong> events
+                    คุณกำลังจะลบ <strong><span id="bulkDeleteCount">0</span></strong> programs
                 </p>
                 <p class="bulk-delete-message">
                     การกระทำนี้ไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่?
@@ -1398,11 +1663,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
-                        <label for="creditEventMetaId">Convention</label>
+                        <label for="creditEventMetaId">Event</label>
                         <select id="creditEventMetaId">
-                            <option value="">-- ทุก Convention (Global) --</option>
+                            <option value="">-- ทุก Event (Global) --</option>
                         </select>
-                        <small class="form-hint">เลือก convention ที่ credit นี้สังกัด (ว่าง = แสดงทุก convention)</small>
+                        <small class="form-hint">เลือก event ที่ credit นี้สังกัด (ว่าง = แสดงทุก event)</small>
                     </div>
                 </form>
             </div>
@@ -1469,25 +1734,25 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         </div>
     </div>
 
-    <!-- Add/Edit Convention Modal -->
+    <!-- Add/Edit Event Modal -->
     <div class="modal-overlay" id="conventionModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="conventionModalTitle">เพิ่ม Convention</h2>
-                <button class="modal-close" onclick="closeConventionModal()">&times;</button>
+                <h2 id="conventionModalTitle">เพิ่ม Event</h2>
+                <button class="modal-close" onclick="closeEventMetaModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="conventionForm" onsubmit="saveConvention(event)">
+                <form id="conventionForm" onsubmit="saveEventMeta(event)">
                     <input type="hidden" id="conventionId">
 
                     <div class="form-group">
                         <label for="conventionName">Name *</label>
-                        <input type="text" id="conventionName" required maxlength="200" placeholder="ชื่อ Convention">
+                        <input type="text" id="conventionName" required maxlength="200" placeholder="ชื่อ Event">
                     </div>
 
                     <div class="form-group">
                         <label for="conventionSlug">Slug *</label>
-                        <input type="text" id="conventionSlug" required maxlength="100" placeholder="convention-slug" pattern="[a-z0-9\-]+">
+                        <input type="text" id="conventionSlug" required maxlength="100" placeholder="event-slug" pattern="[a-z0-9\-]+">
                         <small class="form-hint">ตัวอักษรพิมพ์เล็ก ตัวเลข และ - เท่านั้น</small>
                     </div>
 
@@ -1526,27 +1791,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeConventionModal()">ยกเลิก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEventMetaModal()">ยกเลิก</button>
                 <button type="submit" form="conventionForm" class="btn btn-primary">บันทึก</button>
             </div>
         </div>
     </div>
 
-    <!-- Delete Convention Modal -->
+    <!-- Delete Event Modal -->
     <div class="modal-overlay" id="deleteConventionModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
                 <h2>ยืนยันการลบ</h2>
-                <button class="modal-close" onclick="closeDeleteConventionModal()">&times;</button>
+                <button class="modal-close" onclick="closeDeleteEventModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>คุณต้องการลบ convention "<span id="deleteConventionName"></span>" หรือไม่?</p>
-                <p class="form-warning">⚠️ Events ที่อยู่ใน convention นี้จะไม่ถูกลบ แต่จะไม่มี convention อ้างอิง</p>
+                <p>คุณกำลังจะลบ event "<span id="deleteConventionName"></span>" หรือไม่?</p>
+                <p class="form-warning">⚠️ Programs ที่อยู่ใน event นี้จะไม่ถูกลบ แต่จะไม่มี event อ้างอิง</p>
                 <input type="hidden" id="deleteConventionId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteConventionModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteConvention()">ลบ</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteEventModal()">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteEventMeta()">ลบ</button>
             </div>
         </div>
     </div>
@@ -1612,7 +1877,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         document.addEventListener('DOMContentLoaded', () => {
             loadEventMetaOptions();
             loadVenues();
-            loadEvents();
+            loadPrograms();
             loadPendingCount();
             setupFormChangeTracking();
             setupKeyboardShortcuts();
@@ -1620,35 +1885,80 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Tab switching
         function switchTab(tab) {
+            // Desktop tabs
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
-            document.getElementById('eventsSection').style.display = tab === 'events' ? 'block' : 'none';
+
+            // Mobile dropdown: update active item + label
+            document.querySelectorAll('.tab-mobile-item').forEach(b => b.classList.remove('active'));
+            const mobileItem = document.querySelector(`.tab-mobile-item[data-tab="${tab}"]`);
+            if (mobileItem) {
+                mobileItem.classList.add('active');
+                const labelMap = {
+                    programs: 'Programs', events: 'Events', requests: 'Requests',
+                    credits: 'Credits', import: 'Import ICS', users: 'Users', backup: 'Backup'
+                };
+                const labelEl = document.getElementById('tabMobileLabel');
+                if (labelEl) labelEl.textContent = labelMap[tab] || tab;
+            }
+            closeTabMobileMenu();
+
+            // Show/hide sections
+            document.getElementById('programsSection').style.display = tab === 'programs' ? 'block' : 'none';
             document.getElementById('requestsSection').style.display = tab === 'requests' ? 'block' : 'none';
             document.getElementById('importSection').style.display = tab === 'import' ? 'block' : 'none';
             document.getElementById('creditsSection').style.display = tab === 'credits' ? 'block' : 'none';
-            document.getElementById('conventionsSection').style.display = tab === 'conventions' ? 'block' : 'none';
+            document.getElementById('eventsSection').style.display = tab === 'events' ? 'block' : 'none';
             const usersEl = document.getElementById('usersSection');
             if (usersEl) usersEl.style.display = tab === 'users' ? 'block' : 'none';
             const backupEl = document.getElementById('backupSection');
             if (backupEl) backupEl.style.display = tab === 'backup' ? 'block' : 'none';
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
-            if (tab === 'conventions') loadConventions();
+            if (tab === 'events') loadEventsTab();
             if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
             if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
         }
 
-        // Pending count
+        // Mobile tab dropdown controls
+        function toggleTabMobileMenu() {
+            const menu = document.getElementById('tabMobileMenu');
+            const btn = document.getElementById('tabMobileBtn');
+            const isOpen = menu.classList.toggle('open');
+            btn.setAttribute('aria-expanded', isOpen);
+        }
+        function closeTabMobileMenu() {
+            const menu = document.getElementById('tabMobileMenu');
+            const btn = document.getElementById('tabMobileBtn');
+            menu.classList.remove('open');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        // Close when tapping outside
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('tabMobileMenu');
+            if (menu && !menu.contains(e.target)) closeTabMobileMenu();
+        });
+
+        // Pending count — sync to desktop tab, mobile label, and mobile dropdown item
         async function loadPendingCount() {
             try {
                 const res = await fetch('api.php?action=pending_count');
                 const result = await res.json();
+                const count = (result.success && result.data.count > 0) ? result.data.count : 0;
+                const show = count > 0;
+                // Desktop tab badge
                 const badge = document.getElementById('pendingBadge');
-                if (result.success && result.data.count > 0) {
-                    badge.textContent = result.data.count;
-                    badge.style.display = 'inline-flex';
-                } else {
-                    badge.style.display = 'none';
+                badge.textContent = count; badge.style.display = show ? 'inline-flex' : 'none';
+                // Mobile label badge (shown when Requests is active tab)
+                const badgeMobile = document.getElementById('pendingBadgeMobile');
+                badgeMobile.textContent = count; badgeMobile.style.display = show ? 'inline-flex' : 'none';
+                // Mobile dropdown item badge
+                const badgeMobile2 = document.getElementById('pendingBadgeMobile2');
+                badgeMobile2.textContent = count; badgeMobile2.style.display = show ? 'inline-flex' : 'none';
+                // Show label badge only when current tab is 'requests'
+                const currentTab = document.querySelector('.tab-mobile-item.active');
+                if (badgeMobile && currentTab && currentTab.dataset.tab !== 'requests') {
+                    badgeMobile.style.display = 'none';
                 }
             } catch (e) {}
         }
@@ -1659,12 +1969,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         async function loadRequests() {
             const status = document.getElementById('reqStatusFilter').value;
-            const eventMetaId = document.getElementById('reqEventMetaFilter').value;
+            const eventId = document.getElementById('reqEventMetaFilter').value;
             showLoading();
             try {
                 let reqUrl = `api.php?action=requests&page=${reqPage}`;
                 if (status) reqUrl += `&status=${status}`;
-                if (eventMetaId) reqUrl += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
+                if (eventId) reqUrl += `&event_id=${encodeURIComponent(eventId)}`;
                 const res = await fetch(reqUrl);
                 const result = await res.json();
                 if (result.success) {
@@ -1694,7 +2004,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (!r) { console.error('Request not found:', id, requestsData); return; }
 
             const formatDate = (d) => d ? new Date(d).toLocaleString('th-TH') : '-';
-            const typeText = r.type === 'add' ? '➕ เพิ่ม Event ใหม่' : '✏️ แก้ไข Event ที่มีอยู่';
+            const typeText = r.type === 'add' ? '➕ เพิ่ม Program ใหม่' : '✏️ แก้ไข Program ที่มีอยู่';
             const statusText = r.status === 'pending' ? '🟡 รอดำเนินการ' : r.status === 'approved' ? '✅ อนุมัติแล้ว' : '❌ ปฏิเสธแล้ว';
 
             // ฟังก์ชันเปรียบเทียบค่า
@@ -1708,7 +2018,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="req-detail-highlight">
                     <strong>ประเภท:</strong> ${typeText}<br>
                     <strong>สถานะ:</strong> ${statusText}
-                    ${r.event_id ? `<br><strong>Event ID อ้างอิง:</strong> ${r.event_id}` : ''}
+                    ${r.program_id ? `<br><strong>Event ID อ้างอิง:</strong> ${r.program_id}` : ''}
                 </div>
             `;
 
@@ -1716,7 +2026,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (r.type === 'modify' && r.original_event) {
                 const orig = r.original_event;
                 const fields = [
-                    { label: 'ชื่อ Event', key: 'title', format: 'text' },
+                    { label: 'ชื่อ Program', key: 'title', format: 'text' },
                     { label: 'Organizer', key: 'organizer', format: 'text' },
                     { label: 'เวที', key: 'location', format: 'text' },
                     { label: 'เวลาเริ่ม', key: 'start', format: 'date' },
@@ -1764,9 +2074,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 // แสดงแบบปกติสำหรับ add request หรือ modify ที่ไม่มี original_event
                 html += `
                     <div class="req-detail-section">
-                        <h4>📅 ข้อมูล Event ที่ขอ</h4>
+                        <h4>📅 ข้อมูล Program ที่ขอ</h4>
                         <div class="req-detail-grid">
-                            <div class="req-detail-row"><div class="req-detail-label">ชื่อ Event</div><div class="req-detail-value">${escapeHtml(r.title || '-')}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">ชื่อ Program</div><div class="req-detail-value">${escapeHtml(r.title || '-')}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">Organizer</div><div class="req-detail-value">${escapeHtml(r.organizer || '-')}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">เวที</div><div class="req-detail-value">${escapeHtml(r.location || '-')}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">วัน-เวลาเริ่ม</div><div class="req-detail-value">${formatDate(r.start)}</div></div>
@@ -1888,7 +2198,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function clearSearch() {
             document.getElementById('searchInput').value = '';
             currentPage = 1;
-            loadEvents();
+            loadPrograms();
         }
 
         // Clear all filters
@@ -1899,7 +2209,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('dateFrom').value = '';
             document.getElementById('dateTo').value = '';
             currentPage = 1;
-            loadEvents();
+            loadPrograms();
         }
 
         // Sort by column
@@ -1911,7 +2221,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 sortDirection = 'asc';
             }
             updateSortIcons();
-            loadEvents();
+            loadPrograms();
         }
 
         // Update sort icons
@@ -1927,7 +2237,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Load venues for filters and form
         async function loadVenues() {
             try {
-                const response = await fetch('api.php?action=venues');
+                const response = await fetch('api.php?action=programs_venues');
                 const result = await response.json();
 
                 if (result.success) {
@@ -1956,20 +2266,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
         }
 
-        // Load events
-        async function loadEvents() {
+        // Load programs
+        async function loadPrograms() {
             const search = document.getElementById('searchInput').value;
             const venue = document.getElementById('venueFilter').value;
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            const eventMetaId = document.getElementById('eventMetaFilter').value;
+            const eventId = document.getElementById('eventMetaFilter').value;
 
-            let url = `api.php?action=list&page=${currentPage}&limit=${perPage}`;
+            let url = `api.php?action=programs_list&page=${currentPage}&limit=${perPage}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
             if (venue) url += `&venue=${encodeURIComponent(venue)}`;
             if (dateFrom) url += `&date_from=${encodeURIComponent(dateFrom)}`;
             if (dateTo) url += `&date_to=${encodeURIComponent(dateTo)}`;
-            if (eventMetaId) url += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
+            if (eventId) url += `&event_id=${encodeURIComponent(eventId)}`;
             url += `&sort=${sortColumn}&order=${sortDirection}`;
 
             showLoading();
@@ -1978,7 +2288,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const result = await response.json();
 
                 if (result.success) {
-                    renderEvents(result.data.events);
+                    renderPrograms(result.data.events);
                     renderPagination(result.data.pagination);
                     attachCheckboxListeners();
                     updateBulkActionsBar();
@@ -1986,20 +2296,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to load events:', error);
-                showToast('Failed to load events', 'error');
+                console.error('Failed to load programs:', error);
+                showToast('Failed to load programs', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Render events table
-        function renderEvents(events) {
+        // Render programs table
+        function renderPrograms(events) {
             const tbody = document.getElementById('eventsTableBody');
 
             if (events.length === 0) {
                 const colspan = VENUE_MODE === 'multi' ? 7 : 6;
-                tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">ไม่พบ events</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">ไม่พบ programs</td></tr>`;
                 return;
             }
 
@@ -2065,14 +2375,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Go to page
         function goToPage(page) {
             currentPage = page;
-            loadEvents();
+            loadPrograms();
         }
 
         // Change per page
         function changePerPage() {
             perPage = parseInt(document.getElementById('perPageSelect').value);
             currentPage = 1; // Reset to first page
-            loadEvents();
+            loadPrograms();
         }
 
         // ========================================
@@ -2162,7 +2472,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function openBulkDeleteModal() {
             const selectedIds = getSelectedEventIds();
             if (selectedIds.length === 0) {
-                showToast('กรุณาเลือก events ที่ต้องการลบ', 'error');
+                showToast('กรุณาเลือก programs ที่ต้องการลบ', 'error');
                 return;
             }
             document.getElementById('bulkDeleteCount').textContent = selectedIds.length;
@@ -2183,7 +2493,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             showLoading();
 
             try {
-                const response = await fetch('api.php?action=bulk_delete', {
+                const response = await fetch('api.php?action=programs_bulk_delete', {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2203,7 +2513,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     } else {
                         showToast(`ลบสำเร็จ ${deleted_count} รายการ`, 'success');
                     }
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     showToast(result.message || 'เกิดข้อผิดพลาดในการลบ', 'error');
                 }
@@ -2222,7 +2532,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         async function openBulkEditModal() {
             const selectedIds = getSelectedEventIds();
             if (selectedIds.length === 0) {
-                showToast('กรุณาเลือก events ที่ต้องการแก้ไข', 'error');
+                showToast('กรุณาเลือก programs ที่ต้องการแก้ไข', 'error');
                 return;
             }
 
@@ -2241,7 +2551,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         async function loadVenuesForBulkEdit() {
             try {
-                const response = await fetch('api.php?action=venues');
+                const response = await fetch('api.php?action=programs_venues');
                 const result = await response.json();
 
                 if (result.success) {
@@ -2279,7 +2589,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             showLoading();
 
             try {
-                const response = await fetch('api.php?action=bulk_update', {
+                const response = await fetch('api.php?action=programs_bulk_update', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2299,7 +2609,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     } else {
                         showToast(`อัปเดตสำเร็จ ${updated_count} รายการ`, 'success');
                     }
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     showToast(result.message || 'เกิดข้อผิดพลาดในการอัปเดต', 'error');
                 }
@@ -2315,20 +2625,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function handleSearch(event) {
             if (event.key === 'Enter') {
                 currentPage = 1;
-                loadEvents();
+                loadPrograms();
                 return;
             }
 
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 currentPage = 1;
-                loadEvents();
+                loadPrograms();
             }, 300);
         }
 
         // Open add modal
         function openAddModal() {
-            document.getElementById('modalTitle').textContent = 'เพิ่ม Event';
+            document.getElementById('modalTitle').textContent = 'เพิ่ม Program';
             document.getElementById('eventForm').reset();
             document.getElementById('eventId').value = '';
 
@@ -2347,7 +2657,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         async function openEditModal(id) {
             showLoading();
             try {
-                const response = await fetch(`api.php?action=get&id=${id}`);
+                const response = await fetch(`api.php?action=programs_get&id=${id}`);
                 const result = await response.json();
 
                 if (!result.success) {
@@ -2359,9 +2669,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const startDate = new Date(event.start);
                 const endDate = new Date(event.end);
 
-                document.getElementById('modalTitle').textContent = 'แก้ไข Event';
+                document.getElementById('modalTitle').textContent = 'แก้ไข Program';
                 document.getElementById('eventId').value = event.id;
-                document.getElementById('eventConvention').value = event.event_meta_id || '';
+                document.getElementById('eventConvention').value = event.event_id || '';
                 document.getElementById('title').value = event.title;
                 document.getElementById('organizer').value = event.organizer || '';
                 document.getElementById('location').value = event.location || '';
@@ -2374,18 +2684,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
             } catch (error) {
-                console.error('Failed to load event:', error);
-                showToast('Failed to load event', 'error');
+                console.error('Failed to load program:', error);
+                showToast('Failed to load program', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Duplicate event
+        // Duplicate program
         async function duplicateEvent(id) {
             showLoading();
             try {
-                const response = await fetch(`api.php?action=get&id=${id}`);
+                const response = await fetch(`api.php?action=programs_get&id=${id}`);
                 const result = await response.json();
 
                 if (!result.success) {
@@ -2397,9 +2707,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const startDate = new Date(event.start);
                 const endDate = new Date(event.end);
 
-                document.getElementById('modalTitle').textContent = 'Duplicate Event';
+                document.getElementById('modalTitle').textContent = 'Duplicate Program';
                 document.getElementById('eventId').value = ''; // No ID = create new
-                document.getElementById('eventConvention').value = event.event_meta_id || '';
+                document.getElementById('eventConvention').value = event.event_id || '';
                 document.getElementById('title').value = event.title + ' (Copy)';
                 document.getElementById('organizer').value = event.organizer || '';
                 document.getElementById('location').value = event.location || '';
@@ -2412,8 +2722,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
             } catch (error) {
-                console.error('Failed to load event:', error);
-                showToast('Failed to load event', 'error');
+                console.error('Failed to load program:', error);
+                showToast('Failed to load program', 'error');
             } finally {
                 hideLoading();
             }
@@ -2430,7 +2740,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('eventModal').classList.remove('active');
         }
 
-        // Save event
+        // Save program
         async function saveEvent(e) {
             e.preventDefault();
 
@@ -2448,12 +2758,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 end: `${date}T${endTime}:00`,
                 description: document.getElementById('description').value,
                 categories: document.getElementById('categories').value,
-                event_meta_id: conventionVal ? parseInt(conventionVal) : null
+                event_id: conventionVal ? parseInt(conventionVal) : null
             };
 
             const isEdit = !!id;
 
-            const url = isEdit ? `api.php?action=update&id=${id}` : 'api.php?action=create';
+            const url = isEdit ? `api.php?action=programs_update&id=${id}` : 'api.php?action=programs_create';
             const method = isEdit ? 'PUT' : 'POST';
 
             try {
@@ -2471,13 +2781,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (result.success) {
                     showToast(result.message, 'success');
                     closeModal();
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to save event:', error);
-                showToast('Failed to save event', 'error');
+                console.error('Failed to save program:', error);
+                showToast('Failed to save program', 'error');
             }
         }
 
@@ -2498,7 +2808,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const id = document.getElementById('deleteEventId').value;
 
             try {
-                const response = await fetch(`api.php?action=delete&id=${id}`, {
+                const response = await fetch(`api.php?action=programs_delete&id=${id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-Token': CSRF_TOKEN
@@ -2510,13 +2820,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (result.success) {
                     showToast(result.message, 'success');
                     closeDeleteModal();
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to delete event:', error);
-                showToast('Failed to delete event', 'error');
+                console.error('Failed to delete program:', error);
+                showToast('Failed to delete program', 'error');
             }
         }
 
@@ -2680,7 +2990,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (!event) return;
 
             // Open event modal with preview data
-            document.getElementById('modalTitle').textContent = 'แก้ไข Event (Preview)';
+            document.getElementById('modalTitle').textContent = 'แก้ไข Program (Preview)';
             document.getElementById('eventId').value = ''; // No ID yet
             document.getElementById('eventTitle').value = event.title || '';
             document.getElementById('organizer').value = event.organizer || '';
@@ -2704,7 +3014,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Delete preview event
         function deletePreviewEvent(index) {
-            if (!confirm('ลบ event นี้จาก preview?')) return;
+            if (!confirm('ลบ program นี้จาก preview?')) return;
 
             uploadedEvents.splice(index, 1);
             renderPreviewTable();
@@ -2744,11 +3054,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             });
 
             if (selectedIndexes.length === 0) {
-                showToast('กรุณาเลือก events ที่ต้องการลบ', 'error');
+                showToast('กรุณาเลือก programs ที่ต้องการลบ', 'error');
                 return;
             }
 
-            if (!confirm(`ลบ ${selectedIndexes.length} events?`)) return;
+            if (!confirm(`ลบ ${selectedIndexes.length} programs?`)) return;
 
             // Sort descending to avoid index shift issues
             selectedIndexes.sort((a, b) => b - a);
@@ -2780,7 +3090,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             });
 
             if (checkedEvents.length === 0) {
-                showToast('กรุณาเลือก events ที่ต้องการ import', 'error');
+                showToast('กรุณาเลือก programs ที่ต้องการ import', 'error');
                 return;
             }
 
@@ -2797,7 +3107,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 return { ...event, action };
             });
 
-            if (!confirm(`Import ${eventsToImport.length} events?`)) return;
+            if (!confirm(`Import ${eventsToImport.length} programs?`)) return;
 
             showLoading();
 
@@ -2808,7 +3118,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 save_file: true
             };
             if (importEventMetaId) {
-                importBody.event_meta_id = parseInt(importEventMetaId);
+                importBody.event_id = parseInt(importEventMetaId);
             }
 
             try {
@@ -2827,7 +3137,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (result.success) {
                     showSummary(result.data);
                     showToast('Import สำเร็จ!', 'success');
-                    loadEvents(); // Reload events table
+                    loadPrograms(); // Reload events table
                 } else {
                     showToast(result.message, 'error');
                 }
@@ -2920,9 +3230,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             showLoading();
 
             const search = document.getElementById('creditsSearchInput')?.value || '';
-            const eventMetaId = document.getElementById('creditsEventMetaFilter')?.value || '';
+            const eventId = document.getElementById('creditsEventMetaFilter')?.value || '';
             let url = `api.php?action=credits_list&page=${creditsCurrentPage}&limit=${creditsPerPage}&sort=${creditsSortColumn}&order=${creditsSortDirection}&search=${encodeURIComponent(search)}`;
-            if (eventMetaId) url += `&event_meta_id=${encodeURIComponent(eventMetaId)}`;
+            if (eventId) url += `&event_id=${encodeURIComponent(eventId)}`;
 
             try {
                 const response = await fetch(url);
@@ -3086,7 +3396,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('creditLink').value = credit.link || '';
                 document.getElementById('creditDescription').value = credit.description || '';
                 document.getElementById('creditDisplayOrder').value = credit.display_order || 0;
-                document.getElementById('creditEventMetaId').value = credit.event_meta_id || '';
+                document.getElementById('creditEventMetaId').value = credit.event_id || '';
 
                 creditsFormChanged = false;
                 document.getElementById('creditModal').classList.add('active');
@@ -3117,7 +3427,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 link: document.getElementById('creditLink').value,
                 description: document.getElementById('creditDescription').value,
                 display_order: parseInt(document.getElementById('creditDisplayOrder').value) || 0,
-                event_meta_id: eventMetaVal ? parseInt(eventMetaVal) : null
+                event_id: eventMetaVal ? parseInt(eventMetaVal) : null
             };
 
             const isEdit = !!id;
@@ -3335,12 +3645,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         });
 
         // ========================================================================
-        // EVENT META (CONVENTIONS) - Populate filter dropdowns
+        // EVENT META (EVENTS) - Populate filter dropdowns
         // ========================================================================
 
         async function loadEventMetaOptions() {
             try {
-                const response = await fetch('api.php?action=event_meta_list');
+                const response = await fetch('api.php?action=events_list');
                 const result = await response.json();
 
                 if (result.success) {
@@ -3357,7 +3667,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     selectors.forEach(selectorId => {
                         const select = document.getElementById(selectorId);
                         if (!select) return;
-                        // Keep the first "All Conventions" option
+                        // Keep the first "All Events" option
                         while (select.options.length > 1) {
                             select.remove(1);
                         }
@@ -3375,17 +3685,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         // ========================================================================
-        // CONVENTIONS MANAGEMENT
+        // EVENTS MANAGEMENT (formerly Conventions)
         // ========================================================================
 
         let conventionsFormChanged = false;
 
-        // Load Conventions
-        async function loadConventions() {
+        // Load Events Tab
+        async function loadEventsTab() {
             showLoading();
 
             const search = document.getElementById('conventionsSearchInput')?.value || '';
-            let url = `api.php?action=event_meta_list`;
+            let url = `api.php?action=events_list`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
 
             try {
@@ -3393,24 +3703,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const result = await response.json();
 
                 if (result.success) {
-                    renderConventions(result.data);
+                    renderEventsTab(result.data);
                 } else {
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to load conventions:', error);
-                showToast('Failed to load conventions', 'error');
+                console.error('Failed to load events:', error);
+                showToast('Failed to load events', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Render Conventions Table
-        function renderConventions(conventions) {
+        // Render Events Table
+        function renderEventsTab(conventions) {
             const tbody = document.getElementById('conventionsTableBody');
 
             if (!conventions || conventions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">ไม่พบ conventions</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">ไม่พบ events</td></tr>';
                 return;
             }
 
@@ -3433,36 +3743,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td>${activeLabel}</td>
                         <td>${conv.event_count !== undefined ? conv.event_count : '-'}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditConventionModal(${conv.id})">แก้ไข</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteConventionModal(${conv.id}, '${escapeHtml(conv.name).replace(/'/g, "\\'")}')">ลบ</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditEventModal(${conv.id})">แก้ไข</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteEventModal(${conv.id}, '${escapeHtml(conv.name).replace(/'/g, "\\'")}')">ลบ</button>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // Search Conventions
+        // Search Events
         let conventionsSearchTimeout = null;
 
-        function handleConventionsSearch(event) {
+        function handleEventsSearch(event) {
             if (event.key === 'Enter') {
-                loadConventions();
+                loadEventsTab();
                 return;
             }
             clearTimeout(conventionsSearchTimeout);
             conventionsSearchTimeout = setTimeout(() => {
-                loadConventions();
+                loadEventsTab();
             }, 300);
         }
 
-        function clearConventionsSearch() {
+        function clearEventsSearch() {
             document.getElementById('conventionsSearchInput').value = '';
-            loadConventions();
+            loadEventsTab();
         }
 
-        // Open Add Convention Modal
-        function openAddConventionModal() {
-            document.getElementById('conventionModalTitle').textContent = 'เพิ่ม Convention';
+        // Open Add Event Modal
+        function openAddEventModal() {
+            document.getElementById('conventionModalTitle').textContent = 'เพิ่ม Event';
             document.getElementById('conventionForm').reset();
             document.getElementById('conventionId').value = '';
             document.getElementById('conventionIsActive').checked = true;
@@ -3471,11 +3781,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionModal').classList.add('active');
         }
 
-        // Open Edit Convention Modal
-        async function openEditConventionModal(id) {
+        // Open Edit Event Modal
+        async function openEditEventModal(id) {
             showLoading();
             try {
-                const response = await fetch(`api.php?action=event_meta_get&id=${id}`);
+                const response = await fetch(`api.php?action=events_get&id=${id}`);
                 const result = await response.json();
 
                 if (!result.success) {
@@ -3485,7 +3795,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 const conv = result.data;
 
-                document.getElementById('conventionModalTitle').textContent = 'แก้ไข Convention';
+                document.getElementById('conventionModalTitle').textContent = 'แก้ไข Event';
                 document.getElementById('conventionId').value = conv.id;
                 document.getElementById('conventionName').value = conv.name || '';
                 document.getElementById('conventionSlug').value = conv.slug || '';
@@ -3498,14 +3808,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 conventionsFormChanged = false;
                 document.getElementById('conventionModal').classList.add('active');
             } catch (error) {
-                showToast('Failed to load convention', 'error');
+                showToast('Failed to load event', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Close Convention Modal
-        function closeConventionModal() {
+        // Close Event Meta Modal
+        function closeEventMetaModal() {
             if (conventionsFormChanged) {
                 if (!confirm('คุณมีการแก้ไขที่ยังไม่ได้บันทึก ต้องการปิดหรือไม่?')) {
                     return;
@@ -3515,8 +3825,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionModal').classList.remove('active');
         }
 
-        // Save Convention
-        async function saveConvention(e) {
+        // Save Event Meta
+        async function saveEventMeta(e) {
             e.preventDefault();
 
             const id = document.getElementById('conventionId').value;
@@ -3531,7 +3841,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             };
 
             const isEdit = !!id;
-            const url = isEdit ? `api.php?action=event_meta_update&id=${id}` : 'api.php?action=event_meta_create';
+            const url = isEdit ? `api.php?action=events_update&id=${id}` : 'api.php?action=events_create';
             const method = isEdit ? 'PUT' : 'POST';
 
             showLoading();
@@ -3550,38 +3860,38 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 if (result.success) {
                     showToast(result.message || (isEdit ? 'อัปเดตสำเร็จ' : 'สร้างสำเร็จ'), 'success');
-                    closeConventionModal();
-                    loadConventions();
+                    closeEventMetaModal();
+                    loadEventsTab();
                     loadEventMetaOptions(); // Refresh filter dropdowns
                 } else {
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to save convention:', error);
-                showToast('Failed to save convention', 'error');
+                console.error('Failed to save event:', error);
+                showToast('Failed to save event', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Delete Convention
-        function openDeleteConventionModal(id, name) {
+        // Delete Event Meta
+        function openDeleteEventModal(id, name) {
             document.getElementById('deleteConventionId').value = id;
             document.getElementById('deleteConventionName').textContent = name;
             document.getElementById('deleteConventionModal').classList.add('active');
         }
 
-        function closeDeleteConventionModal() {
+        function closeDeleteEventModal() {
             document.getElementById('deleteConventionModal').classList.remove('active');
         }
 
-        async function confirmDeleteConvention() {
+        async function confirmDeleteEventMeta() {
             const id = document.getElementById('deleteConventionId').value;
 
             showLoading();
 
             try {
-                const response = await fetch(`api.php?action=event_meta_delete&id=${id}`, {
+                const response = await fetch(`api.php?action=events_delete&id=${id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-Token': CSRF_TOKEN
@@ -3592,21 +3902,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 if (result.success) {
                     showToast(result.message || 'ลบสำเร็จ', 'success');
-                    closeDeleteConventionModal();
-                    loadConventions();
+                    closeDeleteEventModal();
+                    loadEventsTab();
                     loadEventMetaOptions(); // Refresh filter dropdowns
                 } else {
                     showToast(result.message, 'error');
                 }
             } catch (error) {
-                console.error('Failed to delete convention:', error);
-                showToast('Failed to delete convention', 'error');
+                console.error('Failed to delete event:', error);
+                showToast('Failed to delete event', 'error');
             } finally {
                 hideLoading();
             }
         }
 
-        // Form Change Tracking for Conventions
+        // Form Change Tracking for Events
         document.addEventListener('DOMContentLoaded', function() {
             const convFormInputs = document.querySelectorAll('#conventionForm input, #conventionForm textarea, #conventionForm select');
             convFormInputs.forEach(input => {
@@ -3733,7 +4043,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (result.success) {
                     alert(result.message);
                     loadBackups();
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     alert('Error: ' + result.message);
                 }
@@ -3774,7 +4084,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (result.success) {
                     alert(result.message);
                     loadBackups();
-                    loadEvents();
+                    loadPrograms();
                 } else {
                     alert('Error: ' + result.message);
                 }

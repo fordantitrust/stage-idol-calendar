@@ -5,6 +5,87 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-02-27
+
+### ⚠️ Breaking Changes
+- 🗄️ **Database Schema Rename** — เปลี่ยนชื่อ tables/columns ทั้งหมด **(ต้องรัน migration script)**
+  - Table `events` → `programs` (individual shows)
+  - Table `events_meta` → `events` (meta events/conventions)
+  - Table `event_requests` → `program_requests`
+  - Column `programs.event_meta_id` → `programs.event_id` (FK to events)
+  - Column `program_requests.event_id` → `program_requests.program_id` (FK to programs)
+  - Column `program_requests.event_meta_id` → `program_requests.event_id` (FK to events)
+  - Column `credits.event_meta_id` → `credits.event_id` (FK to events)
+  - Migration script: `tools/migrate-rename-tables-columns.php` (idempotent)
+- 🔌 **API Action Names Renamed**
+  - Public API: `action=events` → `action=programs`
+  - Admin API Programs: `list`→`programs_list`, `get`→`programs_get`, `create`→`programs_create`, `update`→`programs_update`, `delete`→`programs_delete`, `venues`→`programs_venues`, `bulk_delete`→`programs_bulk_delete`, `bulk_update`→`programs_bulk_update`
+  - Admin API Events: `event_meta_list`→`events_list`, `event_meta_get`→`events_get`, `event_meta_create`→`events_create`, `event_meta_update`→`events_update`, `event_meta_delete`→`events_delete`
+  - Request API: `action=events` → `action=programs`
+- 🏷️ **Terminology Rename** — ปรับคำเรียกทั่วทั้งระบบ
+  - "Events" (individual shows) → **"Programs"**
+  - "Conventions" → **"Events"**
+
+### Added
+- 🛠️ **Setup Wizard** (`setup.php`) — ติดตั้งระบบแบบ interactive สำหรับ fresh install และ maintenance
+  - 5 ขั้นตอน: System Requirements → Directories → Database → Import Data → Admin & Security
+  - Auto-login หลัง Initialize Database, Inline password change, Default credentials box
+  - Lock/Unlock mechanism (`data/.setup_locked`), Auth gate (fresh install ไม่ต้อง login)
+- 📖 **Admin Help Pages** — คู่มือการใช้งาน Admin Panel
+  - `admin/help.php` (ไทย) + `admin/help-en.php` (English) พร้อม language switcher
+  - ครอบคลุม: Overview, Login, Header, Programs, Events, Requests, Credits, Import ICS, Users, Backup, Roles & Permissions, Tips & FAQ
+  - ปุ่ม "📖 Help" ใน Admin header
+- ⚡ **Database Indexes** (`tools/migrate-add-indexes.php`) — 7 indexes เพิ่มความเร็ว 2-5x
+  - `idx_programs_event_id`, `idx_programs_start`, `idx_programs_location`, `idx_programs_categories` บน `programs` table
+  - `idx_program_requests_status`, `idx_program_requests_event_id` บน `program_requests` table
+  - `idx_credits_event_id` บน `credits` table
+  - Migration script idempotent (`CREATE INDEX IF NOT EXISTS`)
+- 🚦 **Login Rate Limiting** — จำกัด login ไม่เกิน 5 ครั้ง/15 นาที/IP
+  - Functions: `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()`
+  - เก็บข้อมูลใน `cache/login_attempts.json`, แสดงเวลารอที่เหลือ
+- 🔑 **`get_db()` Singleton** (`functions/helpers.php`) — PDO singleton สำหรับ web context (1 connection/request)
+- `tools/migrate-rename-tables-columns.php` — Migration script (idempotent) for existing databases
+
+### Changed
+- 📱 **Admin UI Mobile Responsive** — รองรับ mobile อย่างสมบูรณ์ (iOS + Android)
+  - iOS Auto-Zoom Fix: date input `font-size: 0.9rem → 1rem` (ป้องกัน iOS zoom เมื่อ focus)
+  - Touch Targets: modal-close button `32×32px → 44×44px`, checkboxes `18px → 20px`, btn-sm `min-height: 40px`
+  - Hamburger Tab Menu: dropdown navigation บน mobile (≤600px) พร้อม badge + active state
+  - Table Scroll Fix: wrapper div pattern (`<div class="table-scroll-wrapper">`) ป้องกัน iOS scroll capture
+  - 3 Breakpoints: 768px (tablet), 600px (small phone), 480px (very small phone)
+  - Help page TOC mobile: Sidebar ซ่อนบน mobile ใช้ collapsible dropdown แทน
+- 🌐 **HTTP Cache Headers** (`api.php`) — ETag + Cache-Control + 304 Not Modified
+  - Programs/organizers/locations: max-age=300 (5 นาที), events_list: max-age=600 (10 นาที)
+- ⚡ **Pre-computed Timestamps** (`index.php`) — `start_ts`/`end_ts` คำนวณครั้งเดียวต่อ record
+  - ลด `strtotime()` calls ซ้ำในลูปจาก 6 จุด → คำนวณครั้งเดียวต่อ record
+- 🌐 **Translation Updates** (`js/translations.js`) — อัพเดท 3 ภาษา (TH/EN/JA)
+  - Key renames: `message.noEvents`→`message.noPrograms`, `table.event`→`table.program`, `gantt.noEvents`→`gantt.noPrograms`, `modal.eventName`→`modal.programName`
+- 🎨 **CSS Class Renames** — `.event-*`→`.program-*`, `.gantt-event-*`→`.gantt-program-*`
+- 🔧 **PHP Backend Function Renames**
+  - `admin/api.php`: `listEvents()`→`listPrograms()`, `getEvent()`→`getProgram()`, `createEvent()`→`createProgram()`, `updateEvent()`→`updateProgram()`, `deleteEvent()`→`deleteProgram()`, `bulkDeleteEvents()`→`bulkDeletePrograms()`, `bulkUpdateEvents()`→`bulkUpdatePrograms()`
+  - `admin/api.php`: `listEventMeta()`→`listEvents()`, `getEventMeta()`→`getEvent()`, `createEventMeta()`→`createEvent()`, `updateEventMeta()`→`updateEvent()`, `deleteEventMeta()`→`deleteEvent()`
+  - `functions/helpers.php`: `get_event_meta_by_slug()`→`get_event_by_slug()`, `get_event_meta_id()`→`get_event_id()`
+- ⚙️ **Admin Panel Tab Renames**: "Events"→"Programs", "🏟️ Conventions"→"🏟️ Events"
+- `config/app.php`: APP_VERSION → '2.0.0'
+
+### Documentation
+- 🔌 **[API.md](API.md)** — API endpoint documentation ครบถ้วน (Public / Request / Admin APIs) พร้อม request/response examples
+- 📁 **[PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)** — โครงสร้างไฟล์ + function list + config constants + file relationships
+- 📖 **[SETUP.md](SETUP.md)** — คู่มือการใช้งาน Setup Wizard ฉบับสมบูรณ์
+- อัพเดท README, QUICKSTART, INSTALLATION, SQLITE_MIGRATION, TESTING ให้สอดคล้องกับ schema ใหม่
+
+### Migration Guide (from v1.2.5)
+```bash
+# 1. รัน schema migration (Breaking change — ต้องทำก่อน)
+php tools/migrate-rename-tables-columns.php
+
+# 2. เพิ่ม database indexes (performance)
+php tools/migrate-add-indexes.php
+```
+
+### Testing
+- 🧪 **324 automated tests** ผ่านทั้งหมด (PHP 8.1, 8.2, 8.3)
+
 ## [1.2.5] - 2026-02-18
 
 ### Added

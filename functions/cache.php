@@ -7,7 +7,7 @@
 /**
  * Get data version from database with caching
  *
- * @param int|null $eventMetaId Filter by event_meta_id (null = all events)
+ * @param int|null $eventMetaId Filter by event_id (null = all events)
  * @return string Version string
  */
 function get_data_version($eventMetaId = null) {
@@ -34,10 +34,10 @@ function get_data_version($eventMetaId = null) {
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         if ($eventMetaId !== null) {
-            $stmt = $db->prepare("SELECT MAX(updated_at) as last_update FROM events WHERE event_meta_id = :id");
+            $stmt = $db->prepare("SELECT MAX(updated_at) as last_update FROM programs WHERE event_id = :id");
             $stmt->execute([':id' => $eventMetaId]);
         } else {
-            $stmt = $db->query("SELECT MAX(updated_at) as last_update FROM events");
+            $stmt = $db->query("SELECT MAX(updated_at) as last_update FROM programs");
         }
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -63,9 +63,9 @@ function get_data_version($eventMetaId = null) {
 
 /**
  * Get credits from database with caching
- * Returns global credits (event_meta_id IS NULL) + event-specific credits
+ * Returns global credits (event_id IS NULL) + event-specific credits
  *
- * @param int|null $eventMetaId Filter by event_meta_id (null = global only)
+ * @param int|null $eventMetaId Filter by event_id (null = global only)
  * @return array Array of credits ordered by display_order
  */
 function get_cached_credits($eventMetaId = null) {
@@ -97,7 +97,7 @@ function get_cached_credits($eventMetaId = null) {
 
         if ($eventMetaId !== null) {
             // Global credits (NULL) + event-specific credits
-            $stmt = $db->prepare("SELECT * FROM credits WHERE event_meta_id IS NULL OR event_meta_id = :id ORDER BY display_order ASC, created_at ASC");
+            $stmt = $db->prepare("SELECT * FROM credits WHERE event_id IS NULL OR event_id = :id ORDER BY display_order ASC, created_at ASC");
             $stmt->execute([':id' => $eventMetaId]);
         } else {
             $stmt = $db->query("SELECT * FROM credits ORDER BY display_order ASC, created_at ASC");

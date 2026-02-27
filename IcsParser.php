@@ -5,7 +5,7 @@ class IcsParser {
     private $useDatabase;
     private $db;
     private $dbPath;
-    private $eventMetaId;
+    private $eventId;
 
     /**
      * Constructor
@@ -13,13 +13,13 @@ class IcsParser {
      * @param string $icsFolder Path to ICS folder (default: 'ics')
      * @param bool $useDatabase Use SQLite database instead of reading files directly (default: true)
      * @param string $dbPath Path to SQLite database file (default: 'calendar.db')
-     * @param int|null $eventMetaId Filter by event_meta_id (null = all events)
+     * @param int|null $eventId Filter by event_id (null = all programs)
      */
-    public function __construct($icsFolder = 'ics', $useDatabase = true, $dbPath = 'data/calendar.db', $eventMetaId = null) {
+    public function __construct($icsFolder = 'ics', $useDatabase = true, $dbPath = 'data/calendar.db', $eventId = null) {
         $this->icsFolder = rtrim($icsFolder, '/');
         $this->useDatabase = $useDatabase;
         $this->dbPath = $dbPath;
-        $this->eventMetaId = $eventMetaId;
+        $this->eventId = $eventId;
 
         // เชื่อมต่อ database ถ้าเลือกใช้ database mode
         if ($this->useDatabase) {
@@ -60,18 +60,18 @@ class IcsParser {
         $events = [];
 
         try {
-            if ($this->eventMetaId !== null) {
+            if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_meta_id
-                    FROM events
-                    WHERE event_meta_id = :event_meta_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_id
+                    FROM programs
+                    WHERE event_id = :event_id
                     ORDER BY start ASC
                 ");
-                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+                $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_meta_id
-                    FROM events
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_id
+                    FROM programs
                     ORDER BY start ASC
                 ");
             }
@@ -293,18 +293,18 @@ class IcsParser {
         $organizers = [];
 
         try {
-            if ($this->eventMetaId !== null) {
+            if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
                     SELECT DISTINCT categories
-                    FROM events
+                    FROM programs
                     WHERE categories IS NOT NULL AND categories != ''
-                    AND event_meta_id = :event_meta_id
+                    AND event_id = :event_id
                 ");
-                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+                $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
                     SELECT DISTINCT categories
-                    FROM events
+                    FROM programs
                     WHERE categories IS NOT NULL AND categories != ''
                 ");
             }
@@ -340,7 +340,7 @@ class IcsParser {
             try {
                 // Query only categories column to reduce data transfer and memory
                 $stmt = $this->db->query("
-                    SELECT DISTINCT categories FROM events 
+                    SELECT DISTINCT categories FROM programs 
                     WHERE categories IS NOT NULL AND categories != ''
                     ORDER BY categories
                 ");
@@ -408,19 +408,19 @@ class IcsParser {
         $locations = [];
 
         try {
-            if ($this->eventMetaId !== null) {
+            if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
                     SELECT DISTINCT location
-                    FROM events
+                    FROM programs
                     WHERE location IS NOT NULL AND location != ''
-                    AND event_meta_id = :event_meta_id
+                    AND event_id = :event_id
                     ORDER BY location ASC
                 ");
-                $stmt->execute([':event_meta_id' => $this->eventMetaId]);
+                $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
                     SELECT DISTINCT location
-                    FROM events
+                    FROM programs
                     WHERE location IS NOT NULL AND location != ''
                     ORDER BY location ASC
                 ");
@@ -447,7 +447,7 @@ class IcsParser {
 
             try {
                 $stmt = $this->db->query("
-                    SELECT DISTINCT location FROM events 
+                    SELECT DISTINCT location FROM programs 
                     WHERE location IS NOT NULL AND location != ''
                     ORDER BY location ASC
                 ");

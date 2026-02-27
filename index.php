@@ -7,7 +7,7 @@ send_security_headers();
 
 // Multi-event support
 $eventSlug = get_current_event_slug();
-$eventMeta = get_event_meta_by_slug($eventSlug);
+$eventMeta = get_event_by_slug($eventSlug);
 $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
 $currentVenueMode = get_event_venue_mode($eventMeta);
 $activeEvents = get_all_active_events();
@@ -34,11 +34,13 @@ if (!$showEventListing) {
 $filterArtists = get_sanitized_array_param('artist', 200, 50);
 $filterVenues = get_sanitized_array_param('venue', 200, 50);
 
-// 🚀 Optimization P1: Pre-normalize categories + Create lookup arrays for O(1) search
+// 🚀 Optimization: Pre-normalize categories + Pre-compute timestamps (avoid repeated strtotime calls)
 $normalizedEvents = array_map(function($event) {
     $event['categoriesArray'] = !empty($event['categories'])
         ? array_map('trim', explode(',', $event['categories']))
         : [];
+    $event['start_ts'] = !empty($event['start']) ? strtotime($event['start']) : 0;
+    $event['end_ts']   = !empty($event['end'])   ? strtotime($event['end'])   : 0;
     return $event;
 }, $allEvents);
 
@@ -68,7 +70,7 @@ $filteredEvents = array_filter($normalizedEvents, function($event) use ($filterA
 // จัดกลุ่มข้อมูลตามวัน
 $eventsByDay = [];
 foreach ($filteredEvents as $event) {
-    $timestamp = strtotime($event['start']);
+    $timestamp = $event['start_ts'];
     $dayKey = date('Y-m-d', $timestamp);
     if (!isset($eventsByDay[$dayKey])) {
         $eventsByDay[$dayKey] = [];
@@ -81,7 +83,7 @@ ksort($eventsByDay);
 // เรียงลำดับ events ภายในแต่ละวันตามเวลา start
 foreach ($eventsByDay as $dayKey => &$dayEvents) {
     usort($dayEvents, function($a, $b) {
-        return strtotime($a['start']) - strtotime($b['start']);
+        return $a['start_ts'] - $b['start_ts'];
     });
 }
 unset($dayEvents); // ยกเลิก reference
@@ -111,13 +113,13 @@ unset($dayEvents); // ยกเลิก reference
         }
 
         /* ========================================
-           Event Listing (Homepage) Styles
+           Program Listing (Homepage) Styles
            ======================================== */
-        .event-listing {
+        .program-listing {
             padding: 30px;
         }
 
-        .event-listing-title {
+        .program-listing-title {
             text-align: center;
             font-size: 1.5em;
             color: #333;
@@ -125,13 +127,13 @@ unset($dayEvents); // ยกเลิก reference
             font-weight: 700;
         }
 
-        .event-cards {
+        .program-cards {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 24px;
         }
 
-        .event-card {
+        .program-card {
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
@@ -141,25 +143,25 @@ unset($dayEvents); // ยกเลิก reference
             flex-direction: column;
         }
 
-        .event-card:hover {
+        .program-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 30px rgba(233, 30, 99, 0.2);
         }
 
-        .event-card-header {
+        .program-card-header {
             background: var(--sakura-gradient);
             padding: 20px 24px;
             color: white;
         }
 
-        .event-card-name {
+        .program-card-name {
             font-size: 1.2em;
             font-weight: 700;
             margin: 0 0 8px 0;
             line-height: 1.3;
         }
 
-        .event-card-dates {
+        .program-card-dates {
             font-size: 0.9em;
             opacity: 0.9;
             display: flex;
@@ -167,14 +169,14 @@ unset($dayEvents); // ยกเลิก reference
             gap: 6px;
         }
 
-        .event-card-body {
+        .program-card-body {
             padding: 20px 24px;
             flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        .event-card-description {
+        .program-card-description {
             color: #555;
             font-size: 0.95em;
             line-height: 1.6;
@@ -182,7 +184,7 @@ unset($dayEvents); // ยกเลิก reference
             flex: 1;
         }
 
-        .event-card-badge {
+        .program-card-badge {
             display: inline-block;
             padding: 4px 12px;
             border-radius: 20px;
@@ -191,22 +193,22 @@ unset($dayEvents); // ยกเลิก reference
             margin-bottom: 12px;
         }
 
-        .event-card-badge.upcoming {
+        .program-card-badge.upcoming {
             background: #E8F5E9;
             color: #2E7D32;
         }
 
-        .event-card-badge.ongoing {
+        .program-card-badge.ongoing {
             background: #FFF3E0;
             color: #E65100;
         }
 
-        .event-card-badge.past {
+        .program-card-badge.past {
             background: #F5F5F5;
             color: #757575;
         }
 
-        .event-card-link {
+        .program-card-link {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -222,12 +224,12 @@ unset($dayEvents); // ยกเลิก reference
             justify-content: center;
         }
 
-        .event-card-link:hover {
+        .program-card-link:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(233, 30, 99, 0.4);
         }
 
-        .event-card-meta {
+        .program-card-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
@@ -236,7 +238,7 @@ unset($dayEvents); // ยกเลิก reference
             border-top: 1px solid #f0f0f0;
         }
 
-        .event-card-meta-item {
+        .program-card-meta-item {
             font-size: 0.85em;
             color: #777;
             display: inline-flex;
@@ -244,14 +246,14 @@ unset($dayEvents); // ยกเลิก reference
             gap: 4px;
         }
 
-        .event-card-meta-link {
+        .program-card-meta-link {
             color: var(--sakura-dark);
             text-decoration: none;
             font-weight: 500;
             transition: color 0.2s;
         }
 
-        .event-card-meta-link:hover {
+        .program-card-meta-link:hover {
             color: var(--sakura-deep);
             text-decoration: underline;
         }
@@ -263,28 +265,28 @@ unset($dayEvents); // ยกเลิก reference
         }
 
         @media (max-width: 768px) {
-            .event-listing {
+            .program-listing {
                 padding: 20px 15px;
             }
 
-            .event-cards {
+            .program-cards {
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
 
-            .event-card-header {
+            .program-card-header {
                 padding: 16px 18px;
             }
 
-            .event-card-name {
+            .program-card-name {
                 font-size: 1.1em;
             }
 
-            .event-card-body {
+            .program-card-body {
                 padding: 16px 18px;
             }
 
-            .event-listing-title {
+            .program-listing-title {
                 font-size: 1.2em;
             }
         }
@@ -318,11 +320,11 @@ unset($dayEvents); // ยกเลิก reference
             gap: 6px;
         }
 
-        .event-selector {
+        .program-selector {
             margin-bottom: 10px;
         }
 
-        .event-selector select {
+        .program-selector select {
             padding: 8px 16px;
             border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 8px;
@@ -336,7 +338,7 @@ unset($dayEvents); // ยกเลิก reference
             min-width: 200px;
         }
 
-        .event-selector select option {
+        .program-selector select option {
             background: #E91E63;
             color: white;
         }
@@ -725,18 +727,18 @@ unset($dayEvents); // ยกเลิก reference
             vertical-align: top;
         }
 
-        .event-datetime-cell {
+        .program-datetime-cell {
             white-space: nowrap;
             width: 12%;
             vertical-align: middle;
         }
 
-        .event-info-cell {
+        .program-info-cell {
             width: 30%;
             vertical-align: middle;
         }
 
-        .event-title-name {
+        .program-title-name {
             font-weight: 600;
             color: #212529;
             font-size: 1em;
@@ -751,17 +753,17 @@ unset($dayEvents); // ยกเลิก reference
             line-height: 1.4;
         }
 
-        .event-venue-cell {
+        .program-venue-cell {
             width: 35%;
             vertical-align: middle;
         }
 
-        .event-categories-cell {
+        .program-categories-cell {
             width: 23%;
             vertical-align: middle;
         }
 
-        .event-categories-badge {
+        .program-categories-badge {
             display: inline-block;
             padding: 6px 14px;
             border-radius: 20px;
@@ -933,7 +935,7 @@ unset($dayEvents); // ยกเลิก reference
                 border: none;
             }
 
-            .event-datetime-cell {
+            .program-datetime-cell {
                 font-size: 0.95em;
                 font-weight: 600;
                 color: #E91E63;
@@ -942,16 +944,16 @@ unset($dayEvents); // ยกเลิก reference
                 margin-bottom: 10px;
             }
 
-            .event-datetime-cell::before {
+            .program-datetime-cell::before {
                 content: "🕐 ";
                 margin-right: 4px;
             }
 
-            .event-info-cell {
+            .program-info-cell {
                 padding-bottom: 8px;
             }
 
-            .event-info-cell::before {
+            .program-info-cell::before {
                 content: "🎤 ";
                 margin-right: 4px;
                 vertical-align: top;
@@ -959,7 +961,7 @@ unset($dayEvents); // ยกเลิก reference
                 margin-top: 2px;
             }
 
-            .event-title-name {
+            .program-title-name {
                 font-size: 1.05em;
                 font-weight: 600;
                 color: #212529;
@@ -974,23 +976,23 @@ unset($dayEvents); // ยกเลิก reference
                 line-height: 1.5;
             }
 
-            .event-venue-cell {
+            .program-venue-cell {
                 font-size: 0.95em;
                 color: #495057;
                 padding: 8px 0;
             }
 
-            .event-venue-cell::before {
+            .program-venue-cell::before {
                 content: "📍 ";
                 margin-right: 4px;
                 font-size: 0.9em;
             }
 
-            .event-categories-cell {
+            .program-categories-cell {
                 padding-top: 10px;
             }
 
-            .event-categories-badge {
+            .program-categories-badge {
                 display: inline-block;
                 width: 100%;
                 text-align: center;
@@ -1283,7 +1285,7 @@ unset($dayEvents); // ยกเลิก reference
         }
 
         /* Event Bar */
-        .gantt-event {
+        .gantt-program {
             position: absolute;
             top: 5px;
             height: calc(100% - 10px);
@@ -1302,13 +1304,13 @@ unset($dayEvents); // ยกเลิก reference
             justify-content: center;
         }
 
-        .gantt-event:hover {
+        .gantt-program:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(233, 30, 99, 0.5);
             z-index: 10;
         }
 
-        .gantt-event-title {
+        .gantt-program-title {
             font-weight: 600;
             color: white;
             font-size: 0.75em;
@@ -1319,14 +1321,14 @@ unset($dayEvents); // ยกเลิก reference
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        .gantt-event-time {
+        .gantt-program-time {
             color: rgba(255,255,255,0.9);
             font-size: 0.65em;
             margin-top: 2px;
             white-space: nowrap;
         }
 
-        .gantt-event-categories {
+        .gantt-program-categories {
             color: rgba(255,255,255,0.85);
             font-size: 0.6em;
             margin-top: 2px;
@@ -1336,19 +1338,19 @@ unset($dayEvents); // ยกเลิก reference
         }
 
         /* Overlapping events indicator */
-        .gantt-event.has-overlap {
+        .gantt-program.has-overlap {
             border: 2px solid white;
         }
 
         /* Stack multiple events in same time slot */
-        .gantt-event.stack-1 { top: 5px; height: calc(50% - 7px); }
-        .gantt-event.stack-2 { top: calc(50% + 2px); height: calc(50% - 7px); }
-        .gantt-event.stack-3 { top: 5px; height: calc(33% - 5px); }
-        .gantt-event.stack-4 { top: calc(33% + 2px); height: calc(33% - 5px); }
-        .gantt-event.stack-5 { top: calc(66% + 2px); height: calc(33% - 5px); }
+        .gantt-program.stack-1 { top: 5px; height: calc(50% - 7px); }
+        .gantt-program.stack-2 { top: calc(50% + 2px); height: calc(50% - 7px); }
+        .gantt-program.stack-3 { top: 5px; height: calc(33% - 5px); }
+        .gantt-program.stack-4 { top: calc(33% + 2px); height: calc(33% - 5px); }
+        .gantt-program.stack-5 { top: calc(66% + 2px); height: calc(33% - 5px); }
 
         /* Gantt Tooltip */
-        .gantt-event-tooltip {
+        .gantt-program-tooltip {
             position: fixed;
             background: white;
             border-radius: 10px;
@@ -1361,24 +1363,24 @@ unset($dayEvents); // ยกเลิก reference
             border: 2px solid var(--sakura-light);
         }
 
-        .gantt-event-tooltip.show {
+        .gantt-program-tooltip.show {
             display: block;
         }
 
-        .gantt-event-tooltip h4 {
+        .gantt-program-tooltip h4 {
             color: var(--sakura-dark);
             margin: 0 0 10px 0;
             font-size: 1.1em;
             padding-right: 25px;
         }
 
-        .gantt-event-tooltip p {
+        .gantt-program-tooltip p {
             color: #495057;
             margin: 6px 0;
             line-height: 1.4;
         }
 
-        .gantt-event-tooltip p strong {
+        .gantt-program-tooltip p strong {
             color: #212529;
         }
 
@@ -1526,7 +1528,7 @@ unset($dayEvents); // ยกเลิก reference
         }
 
         /* Vertical Event Bar */
-        .gantt-event-vertical {
+        .gantt-program-vertical {
             position: absolute;
             left: 5px;
             right: 5px;
@@ -1542,31 +1544,31 @@ unset($dayEvents); // ยกเลิก reference
             min-height: 38px;
         }
 
-        .gantt-event-vertical:hover {
+        .gantt-program-vertical:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(233, 30, 99, 0.5);
             z-index: 10;
         }
 
-        .gantt-event-vertical.has-overlap {
+        .gantt-program-vertical.has-overlap {
             border: 2px solid white;
         }
 
         /* Horizontal stacking for overlaps in vertical layout */
-        .gantt-event-vertical.stack-h-1 { left: 5px; right: calc(50% + 2px); }
-        .gantt-event-vertical.stack-h-2 { left: calc(50% + 2px); right: 5px; }
-        .gantt-event-vertical.stack-h-3 { left: 5px; right: calc(66% + 2px); }
-        .gantt-event-vertical.stack-h-4 { left: calc(33% + 2px); right: calc(33% + 2px); }
-        .gantt-event-vertical.stack-h-5 { left: calc(66% + 2px); right: 5px; }
+        .gantt-program-vertical.stack-h-1 { left: 5px; right: calc(50% + 2px); }
+        .gantt-program-vertical.stack-h-2 { left: calc(50% + 2px); right: 5px; }
+        .gantt-program-vertical.stack-h-3 { left: 5px; right: calc(66% + 2px); }
+        .gantt-program-vertical.stack-h-4 { left: calc(33% + 2px); right: calc(33% + 2px); }
+        .gantt-program-vertical.stack-h-5 { left: calc(66% + 2px); right: 5px; }
 
-        .gantt-event-time-v {
+        .gantt-program-time-v {
             color: rgba(255,255,255,0.95);
             font-size: 0.7em;
             font-weight: 600;
             margin-bottom: 2px;
         }
 
-        .gantt-event-title-v {
+        .gantt-program-title-v {
             font-weight: 600;
             color: white;
             font-size: 0.75em;
@@ -1651,23 +1653,23 @@ unset($dayEvents); // ยกเลิก reference
                 height: 65px;
             }
 
-            .gantt-event-vertical {
+            .gantt-program-vertical {
                 left: 3px;
                 right: 3px;
                 padding: 4px 5px;
                 min-height: 32px;
             }
 
-            .gantt-event-time-v {
+            .gantt-program-time-v {
                 font-size: 0.65em;
             }
 
-            .gantt-event-title-v {
+            .gantt-program-title-v {
                 font-size: 0.65em;
                 -webkit-line-clamp: 1;
             }
 
-            .gantt-event-tooltip {
+            .gantt-program-tooltip {
                 max-width: 90%;
                 left: 5% !important;
                 right: 5%;
@@ -1677,15 +1679,15 @@ unset($dayEvents); // ยกเลิก reference
                 min-height: 50px;
             }
 
-            .gantt-event {
+            .gantt-program {
                 min-height: 40px;
             }
 
-            .gantt-event-title {
+            .gantt-program-title {
                 font-size: 0.7em;
             }
 
-            .gantt-event-time {
+            .gantt-program-time {
                 font-size: 0.6em;
             }
         }
@@ -1713,7 +1715,7 @@ unset($dayEvents); // ยกเลิก reference
         <div class="date-jump-buttons">
             <?php foreach ($eventsByDay as $djKey => $djEvents): ?>
             <?php
-                $djTimestamp = strtotime($djEvents[0]['start']);
+                $djTimestamp = $djEvents[0]['start_ts'];
                 $djDay = date('d', $djTimestamp);
                 $djMonth = date('m', $djTimestamp);
                 $djDayOfWeek = date('w', $djTimestamp);
@@ -1730,7 +1732,7 @@ unset($dayEvents); // ยกเลิก reference
     <div class="container">
         <?php if ($showEventListing): ?>
         <!-- ========================================
-             Event Listing (Homepage)
+             Program Listing (Homepage)
              ======================================== -->
         <header>
             <div class="version-display">
@@ -1751,8 +1753,8 @@ unset($dayEvents); // ยกเลิก reference
             </nav>
         </header>
 
-        <div class="event-listing">
-            <h3 class="event-listing-title" data-i18n="listing.title">Events</h3>
+        <div class="program-listing">
+            <h3 class="program-listing-title" data-i18n="listing.title">Events</h3>
             <?php
             // Sort events: ongoing first, then upcoming, then past
             $today = date('Y-m-d');
@@ -1783,7 +1785,7 @@ unset($dayEvents); // ยกเลิก reference
                     <h2 data-i18n="listing.noEvents">ยังไม่มี Event ในระบบ</h2>
                 </div>
             <?php else: ?>
-                <div class="event-cards">
+                <div class="program-cards">
                     <?php foreach ($sortedEvents as $ev): ?>
                     <?php
                         // Skip the 'default' event in listing
@@ -1809,40 +1811,40 @@ unset($dayEvents); // ยกเลิก reference
                         $evDataVersion = get_data_version($evMetaId);
                         $evCredits = get_cached_credits($evMetaId);
                     ?>
-                    <div class="event-card">
-                        <div class="event-card-header">
-                            <h4 class="event-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
-                            <div class="event-card-dates">
+                    <div class="program-card">
+                        <div class="program-card-header">
+                            <h4 class="program-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
+                            <div class="program-card-dates">
                                 📅 <?php echo $displayStart; ?> - <?php echo $displayEnd; ?>
                             </div>
                         </div>
-                        <div class="event-card-body">
+                        <div class="program-card-body">
                             <?php if ($evStatus === 'ongoing'): ?>
-                                <span class="event-card-badge ongoing" data-i18n="listing.ongoing">กำลังจัดงาน</span>
+                                <span class="program-card-badge ongoing" data-i18n="listing.ongoing">กำลังจัดงาน</span>
                             <?php elseif ($evStatus === 'upcoming'): ?>
-                                <span class="event-card-badge upcoming" data-i18n="listing.upcoming">กำลังจะมาถึง</span>
+                                <span class="program-card-badge upcoming" data-i18n="listing.upcoming">กำลังจะมาถึง</span>
                             <?php else: ?>
-                                <span class="event-card-badge past" data-i18n="listing.past">จบแล้ว</span>
+                                <span class="program-card-badge past" data-i18n="listing.past">จบแล้ว</span>
                             <?php endif; ?>
 
                             <?php if (!empty($ev['description'])): ?>
-                                <div class="event-card-description">
+                                <div class="program-card-description">
                                     <?php echo nl2br(htmlspecialchars($ev['description'])); ?>
                                 </div>
                             <?php endif; ?>
 
-                            <div class="event-card-meta">
-                                <span class="event-card-meta-item" title="Data Version">
+                            <div class="program-card-meta">
+                                <span class="program-card-meta-item" title="Data Version">
                                     🔄 <?php echo $evDataVersion; ?>
                                 </span>
                                 <?php if (!empty($evCredits)): ?>
-                                <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="event-card-meta-item event-card-meta-link" data-i18n="listing.credits">
+                                <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="program-card-meta-item program-card-meta-link" data-i18n="listing.credits">
                                     📋 Credits (<?php echo count($evCredits); ?>)
                                 </a>
                                 <?php endif; ?>
                             </div>
 
-                            <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="event-card-link" data-i18n="listing.viewSchedule">
+                            <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="program-card-link" data-i18n="listing.viewSchedule">
                                 📋 ดูตารางเวลา
                             </a>
                         </div>
@@ -1867,7 +1869,7 @@ unset($dayEvents); // ยกเลิก reference
                 <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
             </div>
             <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
-            <div class="event-selector">
+            <div class="program-selector">
                 <select id="eventSelector" onchange="switchEvent(this.value)">
                     <?php foreach ($activeEvents as $ev): ?>
                     <option value="<?php echo htmlspecialchars($ev['slug']); ?>"
@@ -1986,12 +1988,12 @@ unset($dayEvents); // ยกเลิก reference
             <?php if (empty($filteredEvents)): ?>
                 <div class="no-events">
                     <div class="no-events-icon">📅</div>
-                    <h2 data-i18n="message.noEvents">ไม่พบกิจกรรม</h2>
+                    <h2 data-i18n="message.noPrograms">ไม่พบกิจกรรม</h2>
                 </div>
             <?php else: ?>
                 <?php foreach ($eventsByDay as $dayKey => $events): ?>
                     <?php
-                        $firstEventTimestamp = strtotime($events[0]['start']);
+                        $firstEventTimestamp = $events[0]['start_ts'];
                         $day = date('d', $firstEventTimestamp);
                         $month = date('m', $firstEventTimestamp);
                         $year = date('Y', $firstEventTimestamp);
@@ -2008,7 +2010,7 @@ unset($dayEvents); // ยกเลิก reference
                                 <thead>
                                     <tr>
                                         <th data-i18n="table.time">เวลา</th>
-                                        <th data-i18n="table.event">การแสดง/ศิลปิน</th>
+                                        <th data-i18n="table.program">การแสดง/ศิลปิน</th>
                                         <?php if ($currentVenueMode === 'multi'): ?>
                                         <th data-i18n="table.venue">เวที</th>
                                         <?php endif; ?>
@@ -2019,14 +2021,14 @@ unset($dayEvents); // ยกเลิก reference
                                 <tbody>
                                     <?php foreach ($events as $event): ?>
                                         <tr>
-                                            <td class="event-datetime-cell">
-                                                <span class="event-time"
-                                                      data-start="<?php echo date('H:i', strtotime($event['start'])); ?>"
-                                                      data-end="<?php echo date('H:i', strtotime($event['end'])); ?>"></span>
+                                            <td class="program-datetime-cell">
+                                                <span class="program-time"
+                                                      data-start="<?php echo date('H:i', $event['start_ts']); ?>"
+                                                      data-end="<?php echo date('H:i', $event['end_ts']); ?>"></span>
                                             </td>
-                                            <td class="event-info-cell">
+                                            <td class="program-info-cell">
                                                 <?php if (!empty($event['title'])): ?>
-                                                    <div class="event-title-name">
+                                                    <div class="program-title-name">
                                                         <?php echo htmlspecialchars($event['title']); ?>
                                                     </div>
                                                     <?php if (!empty($event['description'])): ?>
@@ -2039,7 +2041,7 @@ unset($dayEvents); // ยกเลิก reference
                                                 <?php endif; ?>
                                             </td>
                                             <?php if ($currentVenueMode === 'multi'): ?>
-                                            <td class="event-venue-cell">
+                                            <td class="program-venue-cell">
                                                 <?php if (!empty($event['location'])): ?>
                                                     <span style="color: #212529; font-size: 0.95em;">
                                                         <?php echo htmlspecialchars($event['location']); ?>
@@ -2049,16 +2051,16 @@ unset($dayEvents); // ยกเลิก reference
                                                 <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
-                                            <td class="event-categories-cell">
+                                            <td class="program-categories-cell">
                                                 <?php if (!empty($event['categories'])): ?>
-                                                    <span class="event-categories-badge">
+                                                    <span class="program-categories-badge">
                                                         <?php echo htmlspecialchars($event['categories']); ?>
                                                     </span>
                                                 <?php else: ?>
                                                     <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="event-action-cell" style="text-align:center;">
+                                            <td class="program-action-cell" style="text-align:center;">
                                                 <button type="button" class="btn-edit-request"
                                                     data-event='<?php echo htmlspecialchars(json_encode([
                                                         'id' => $event['id'] ?? null,
@@ -2128,7 +2130,7 @@ unset($dayEvents); // ยกเลิก reference
                 <input type="hidden" id="reqEventId" value="">
                 <div class="req-modal-body">
                     <div class="req-row">
-                        <div class="req-group"><label data-i18n="modal.eventName">ชื่อ Event *</label><input type="text" id="reqTitle" required maxlength="200"></div>
+                        <div class="req-group"><label data-i18n="modal.programName">ชื่อ Event *</label><input type="text" id="reqTitle" required maxlength="200"></div>
                         <div class="req-group"><label data-i18n="modal.organizer">Organizer</label><input type="text" id="reqOrganizer" maxlength="200"></div>
                     </div>
                     <div class="req-row">
@@ -2185,10 +2187,10 @@ unset($dayEvents); // ยกเลิก reference
     @media(max-width:600px){.req-row{flex-direction:column;gap:0}}
     .btn-edit-request{background:none;border:1px solid #ddd;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:1rem;transition:all .2s}
     .btn-edit-request:hover{background:#fff3e0;border-color:#ff9800}
-    .event-action-cell{white-space:nowrap}
+    .program-action-cell{white-space:nowrap}
     @media(max-width:768px){
-        .event-action-cell{text-align:right!important;padding-top:5px;border-top:1px dashed #eee;margin-top:5px}
-        .event-action-cell::before{content:"";margin-right:0!important}
+        .program-action-cell{text-align:right!important;padding-top:5px;border-top:1px dashed #eee;margin-top:5px}
+        .program-action-cell::before{content:"";margin-right:0!important}
         .btn-edit-request{padding:8px 14px;font-size:1.1rem}
     }
     </style>
@@ -2318,7 +2320,7 @@ unset($dayEvents); // ยกเลิก reference
 
         const data = {
             type,
-            event_id: type === 'modify' ? document.getElementById('reqEventId').value : null,
+            program_id: type === 'modify' ? document.getElementById('reqEventId').value : null,
             title: document.getElementById('reqTitle').value,
             start: date + ' ' + document.getElementById('reqStart').value + ':00',
             end: date + ' ' + document.getElementById('reqEnd').value + ':00',

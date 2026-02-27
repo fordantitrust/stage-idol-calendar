@@ -63,7 +63,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Credits cache expiration
 - ✅ Cache fallback on error
 
-### AdminAuthTest (32 tests)
+### AdminAuthTest (38 tests)
 - ✅ Safe session start
 - ✅ Session idempotency
 - ✅ Session cookie parameters
@@ -75,7 +75,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Logout functionality
 - ✅ Password hash verification
 
-### CreditsApiTest (43 tests)
+### CreditsApiTest (49 tests)
 - ✅ Database connection
 - ✅ Credits table schema
 - ✅ Insert credit
@@ -87,7 +87,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Display order sorting
 - ✅ Validation (title, description length)
 
-### IntegrationTest (96 tests)
+### IntegrationTest (97 tests)
 - ✅ Configuration validation
 - ✅ IcsParser functionality
 - ✅ Database operations (CRUD, bulk)
@@ -97,14 +97,14 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Convention management (create, update, delete, slug uniqueness)
 - ✅ Per-convention venue mode and cache scoping
 
-### UserManagementTest (19 tests)
+### UserManagementTest (116 tests)
 - ✅ Role column schema (exists, default value, valid values)
 - ✅ Role helper functions (get_admin_role, is_admin_role)
 - ✅ User CRUD operations (create, update, delete, validation)
 - ✅ Permission checks (admin-only actions, agent restrictions)
 - ✅ Safety guards (cannot delete self, last admin protection)
 
-**Total: 226 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+**Total: 324 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
 
 ## 🎯 Expected Output
 
@@ -140,12 +140,12 @@ SecurityTest              ✓ PASS (7 passed, 0 failed)
 CacheTest                 ✓ PASS (17 passed, 0 failed)
 AdminAuthTest             ✓ PASS (38 passed, 0 failed)
 CreditsApiTest            ✓ PASS (49 passed, 0 failed)
-IntegrationTest           ✓ PASS (96 passed, 0 failed)
-UserManagementTest        ✓ PASS (19 passed, 0 failed)
+IntegrationTest           ✓ PASS (97 passed, 0 failed)
+UserManagementTest        ✓ PASS (116 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 226 tests
-Passed: 226
+Total: 324 tests
+Passed: 324
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 
@@ -369,9 +369,15 @@ chmod 755 cache/
 ### "Database file not found"
 
 ```bash
+# Option A: Setup Wizard
+# Open http://localhost:8000/setup.php
+
+# Option B: Manual CLI
 cd tools
 php import-ics-to-sqlite.php
 php migrate-add-credits-table.php
+php migrate-add-admin-users-table.php
+php migrate-rename-tables-columns.php
 ```
 
 ### "Session headers already sent"

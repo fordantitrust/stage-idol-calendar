@@ -5,6 +5,90 @@
  */
 
 // =============================================================================
+// LOGIN RATE LIMITING
+// =============================================================================
+
+/**
+ * Check if an IP is currently rate-limited for login attempts
+ *
+ * @param string $ip Client IP address
+ * @return array ['blocked' => bool, 'wait' => int (seconds remaining)]
+ */
+function check_login_rate_limit($ip) {
+    $limitFile = dirname(__DIR__) . '/cache/login_attempts.json';
+    $now       = time();
+    $window    = 900; // 15 minutes
+    $maxAttempts = 5;
+
+    $data = [];
+    if (file_exists($limitFile)) {
+        $content = @file_get_contents($limitFile);
+        if ($content) {
+            $data = json_decode($content, true) ?? [];
+        }
+    }
+
+    $attempts = isset($data[$ip]) ? array_values(array_filter($data[$ip], function($ts) use ($now, $window) {
+        return ($now - $ts) < $window;
+    })) : [];
+
+    if (count($attempts) >= $maxAttempts) {
+        $oldest = min($attempts);
+        return ['blocked' => true, 'wait' => max(0, $window - ($now - $oldest))];
+    }
+
+    return ['blocked' => false, 'wait' => 0];
+}
+
+/**
+ * Record a failed login attempt for an IP
+ *
+ * @param string $ip Client IP address
+ */
+function record_failed_login($ip) {
+    $limitFile = dirname(__DIR__) . '/cache/login_attempts.json';
+    $now    = time();
+    $window = 900;
+
+    $data = [];
+    if (file_exists($limitFile)) {
+        $content = @file_get_contents($limitFile);
+        if ($content) {
+            $data = json_decode($content, true) ?? [];
+        }
+    }
+
+    if (!isset($data[$ip])) {
+        $data[$ip] = [];
+    }
+    $data[$ip][] = $now;
+
+    // Keep only attempts within the window
+    $data[$ip] = array_values(array_filter($data[$ip], function($ts) use ($now, $window) {
+        return ($now - $ts) < $window;
+    }));
+
+    @file_put_contents($limitFile, json_encode($data), LOCK_EX);
+}
+
+/**
+ * Clear login attempt records for an IP (after successful login)
+ *
+ * @param string $ip Client IP address
+ */
+function clear_login_attempts($ip) {
+    $limitFile = dirname(__DIR__) . '/cache/login_attempts.json';
+    if (!file_exists($limitFile)) return;
+
+    $content = @file_get_contents($limitFile);
+    if (!$content) return;
+
+    $data = json_decode($content, true) ?? [];
+    unset($data[$ip]);
+    @file_put_contents($limitFile, json_encode($data), LOCK_EX);
+}
+
+// =============================================================================
 // SESSION MANAGEMENT
 // =============================================================================
 

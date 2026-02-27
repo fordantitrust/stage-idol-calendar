@@ -12,6 +12,33 @@ function asset_url($path) {
 }
 
 // =============================================================================
+// DATABASE CONNECTION (SINGLETON)
+// =============================================================================
+
+/**
+ * Get singleton PDO database connection
+ * Creates connection once per request and reuses it
+ *
+ * @return PDO|null PDO instance or null if unavailable
+ */
+function get_db() {
+    static $db       = null;
+    static $attempted = false;
+    if (!$attempted) {
+        $attempted = true;
+        if (defined('DB_PATH') && file_exists(DB_PATH)) {
+            try {
+                $db = new PDO('sqlite:' . DB_PATH);
+                $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            } catch (PDOException $e) {
+                error_log("Database connection failed: " . $e->getMessage());
+            }
+        }
+    }
+    return $db;
+}
+
+// =============================================================================
 // MULTI-EVENT HELPER FUNCTIONS
 // =============================================================================
 
@@ -35,12 +62,12 @@ function get_current_event_slug() {
  * @param string $slug Event slug
  * @return array|null Event meta data or null if not found
  */
-function get_event_meta_by_slug($slug) {
+function get_event_by_slug($slug) {
     try {
         $db = new PDO('sqlite:' . DB_PATH);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $stmt = $db->prepare("SELECT * FROM events_meta WHERE slug = :slug AND is_active = 1");
+        $stmt = $db->prepare("SELECT * FROM events WHERE slug = :slug AND is_active = 1");
         $stmt->execute([':slug' => $slug]);
         $meta = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -57,28 +84,28 @@ function get_event_meta_by_slug($slug) {
  * @param string $slug Event slug
  * @return int|null Event meta ID or null
  */
-function get_event_meta_id($slug) {
-    $meta = get_event_meta_by_slug($slug);
+function get_event_id($slug) {
+    $meta = get_event_by_slug($slug);
     return $meta ? intval($meta['id']) : null;
 }
 
 /**
  * Get all active events (for event selector dropdown)
  *
- * @return array List of active events_meta
+ * @return array List of active events
  */
 function get_all_active_events() {
     try {
         $db = new PDO('sqlite:' . DB_PATH);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Check if events_meta table exists
-        $tableCheck = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='events_meta'");
+        // Check if events table exists
+        $tableCheck = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='events'");
         if (!$tableCheck->fetch()) {
             return [];
         }
 
-        $stmt = $db->query("SELECT * FROM events_meta WHERE is_active = 1 ORDER BY start_date DESC, name ASC");
+        $stmt = $db->query("SELECT * FROM events WHERE is_active = 1 ORDER BY start_date DESC, name ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Failed to get active events: " . $e->getMessage());

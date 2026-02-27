@@ -10,7 +10,7 @@ function populateDomCache() {
     domCache.placeholders = document.querySelectorAll('[data-i18n-placeholder]');
     domCache.dayHeaders = document.querySelectorAll('.day-header');
     domCache.dayNames = document.querySelectorAll('.day-name');
-    domCache.eventTimes = document.querySelectorAll('.event-time');
+    domCache.eventTimes = document.querySelectorAll('.program-time');
 }
 document.addEventListener('DOMContentLoaded', populateDomCache);
 
@@ -97,7 +97,7 @@ function updateLanguage() {
     });
 
     // Update time format (for index page)
-    const eventTimeEls = domCache.eventTimes || document.querySelectorAll('.event-time');
+    const eventTimeEls = domCache.eventTimes || document.querySelectorAll('.program-time');
     eventTimeEls.forEach(el => {
         const startTime = el.dataset.start;
         const endTime = el.dataset.end;
@@ -253,7 +253,7 @@ async function saveAsImage() {
                     }
                 }
                 // ซ่อน column แจ้งแก้ไข
-                clonedDoc.querySelectorAll('.col-edit-request, .event-action-cell').forEach(function(el) {
+                clonedDoc.querySelectorAll('.col-edit-request, .program-action-cell').forEach(function(el) {
                     el.style.display = 'none';
                 });
             }
@@ -626,7 +626,7 @@ function renderGanttChart(events) {
             const stackClass = overlapInfo.hasOverlap ? ` has-overlap stack-h-${overlapInfo.stackIndex + 1}` : '';
 
             html += `
-                <div class="gantt-event-vertical${stackClass}"
+                <div class="gantt-program-vertical${stackClass}"
                      style="top: ${position.top}%; height: ${position.height}%;"
                      data-start="${startTime}"
                      data-end="${endTime}"
@@ -635,8 +635,8 @@ function renderGanttChart(events) {
                      data-categories="${escapeHtml(categories)}"
                      data-description="${escapeHtml(description)}"
                      onclick="showEventTooltip(this, event)">
-                    <div class="gantt-event-time-v">${startTime}</div>
-                    <div class="gantt-event-title-v">${escapeHtml(title)}</div>
+                    <div class="gantt-program-time-v">${startTime}</div>
+                    <div class="gantt-program-title-v">${escapeHtml(title)}</div>
                 </div>
             `;
         });
@@ -651,7 +651,7 @@ function renderGanttChart(events) {
         <div class="gantt-legend">
             <div class="gantt-legend-item">
                 <div class="gantt-legend-bar"></div>
-                <span>Event</span>
+                <span>Program</span>
             </div>
             <div class="gantt-legend-item">
                 <div class="gantt-legend-bar overlap"></div>
@@ -756,7 +756,7 @@ function showEventTooltip(element, e) {
     }
 
     const tooltip = document.createElement('div');
-    tooltip.className = 'gantt-event-tooltip show';
+    tooltip.className = 'gantt-program-tooltip show';
     currentTooltip = tooltip;
 
     const title = element.dataset.title;
@@ -855,7 +855,7 @@ function closeTooltip() {
 // Close tooltip when clicking outside
 document.addEventListener('click', function(e) {
     if (currentTooltip && !currentTooltip.contains(e.target) &&
-        !e.target.closest('.gantt-event') && !e.target.closest('.gantt-event-vertical')) {
+        !e.target.closest('.gantt-program') && !e.target.closest('.gantt-program-vertical')) {
         closeTooltip();
     }
 });

@@ -18,23 +18,23 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔍 **Advanced Filtering** | Filter by artists, venues, or search keywords |
 | 📸 **Save as Image** | Export filtered schedule as PNG image |
 | 📅 **Export to Calendar** | Download as ICS file for Google Calendar, Apple Calendar, etc. |
-| 📝 **Request Changes** | Submit requests to add or modify events |
+| 📝 **Request Changes** | Submit requests to add or modify programs |
 | 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based selection |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description |
 |---------|-------------|
-| ⚙️ **Full CRUD** | Create, read, update, and delete events via web interface |
+| ⚙️ **Full CRUD** | Create, read, update, and delete programs via web interface |
 | 📦 **Bulk Operations** | Select and edit/delete multiple events at once (up to 100) |
 | ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple events |
 | 🎯 **Flexible Venue** | Add new venues on-the-fly with autocomplete suggestions |
 | 📊 **Custom Pagination** | Choose 20, 50, or 100 events per page |
-| 📋 **Request Management** | Review and approve user-submitted event requests |
+| 📋 **Request Management** | Review and approve user-submitted program requests |
 | 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes |
 | 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations |
 | 📤 **ICS Upload** | Upload and preview ICS files before importing |
 | 💾 **Backup/Restore** | Backup and restore database with auto-safety backup |
-| 🎪 **Convention Management** | Full CRUD for managing multiple events/conventions |
+| 🎪 **Events Management** | Full CRUD for managing multiple events |
 | 🔐 **DB Auth & Multi-user** | Admin credentials in SQLite, supports multiple admin users |
 | 🔑 **Change Password** | Change admin password via UI with current password verification |
 | 👤 **User Management** | Full CRUD for admin users with role assignment |
@@ -50,8 +50,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
-| 🎪 **Multi-Event** | Support multiple conventions with per-event venue mode and caching |
-| 🧪 **226 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🎪 **Multi-Event** | Support multiple events with per-event venue mode and caching |
+| 🧪 **324 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -61,13 +61,11 @@ A beautiful, responsive event calendar system designed for idol performances and
 - [Quick Start](#-quick-start)
 - [Requirements](#-requirements)
 - [Installation](#-installation)
-  - [Docker (Recommended)](#option-1-docker-recommended-)
-  - [PHP Built-in Server](#option-2-quick-setup-php-built-in-server)
-  - [Apache/Nginx](#option-3-apachenginx)
 - [Usage](#-usage)
 - [Admin Panel](#️-admin-panel)
-- [API Documentation](#-api-documentation)
+- [API Documentation](#-api-documentation) → [API.md](API.md)
 - [Configuration](#-configuration)
+- [Project Structure](#-project-structure) → [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)
 - [Testing](#-testing)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -108,45 +106,26 @@ php -S localhost:8000
 
 ## 📦 Installation
 
-### Option 1: Docker (Recommended) 🐳
+| วิธี | เหมาะสำหรับ | คู่มือ |
+|------|-----------|-------|
+| 🐳 **Docker** | Production, ง่ายที่สุด | [DOCKER.md](DOCKER.md) |
+| 🧙 **Setup Wizard** | Fresh install ทุกประเภท | [SETUP.md](SETUP.md) |
+| 💻 **PHP Built-in** | Development/Local | [QUICKSTART.md](QUICKSTART.md) |
+| 🌐 **Apache/Nginx** | Production server | [INSTALLATION.md](INSTALLATION.md) |
 
-**Fastest way to get started!**
-
+**Docker (fastest):**
 ```bash
-# 1. Clone repository
-git clone https://github.com/yourusername/stage-idol-calendar.git
-cd stage-idol-calendar
-
-# 2. Place ICS files in ics/ folder
-cp your-events.ics ics/
-
-# 3. Start with Docker Compose
 docker-compose up -d
-
-# 4. Open browser
 # http://localhost:8000
 ```
 
-**That's it!** ✨ See [DOCKER.md](DOCKER.md) for detailed Docker guide.
+**PHP Built-in:**
+```bash
+php -S localhost:8000
+# แล้วเปิด http://localhost:8000/setup.php
+```
 
-### Option 2: Quick Setup (PHP Built-in Server)
-
-1. **Clone or download** this repository
-2. **Place ICS files** in the `ics/` folder
-3. **Import to database** (recommended):
-   ```bash
-   cd tools
-   php import-ics-to-sqlite.php
-   ```
-4. **Start server**:
-   ```bash
-   php -S localhost:8000
-   ```
-5. **Open browser**: `http://localhost:8000`
-
-### Option 3: Apache/Nginx
-
-See [INSTALLATION.md](INSTALLATION.md) for detailed deployment instructions.
+ดูรายละเอียดทั้งหมดที่ [INSTALLATION.md](INSTALLATION.md)
 
 ---
 
@@ -240,159 +219,67 @@ Users can request to add new events or modify existing ones:
 
 ### Initial Setup
 
-1. **Create request table**:
-   ```bash
-   cd tools
-   php migrate-add-requests-table.php
-   ```
+#### Option A: Setup Wizard (Recommended) 🧙
 
-2. **Create credits table**:
-   ```bash
-   cd tools
-   php migrate-add-credits-table.php
-   ```
+Open `http://localhost:8000/setup.php` and follow the 5-step wizard:
 
-3. **Create events_meta table** (multi-event support):
-   ```bash
-   cd tools
-   php migrate-add-events-meta-table.php
-   ```
+1. **System Requirements** — checks PHP version, extensions, permissions
+2. **Directories** — creates `data/`, `cache/`, `backups/`, `ics/`
+3. **Database** — creates all tables and seeds admin user (auto-login)
+4. **Import Data** — imports `.ics` files from `ics/` folder
+5. **Admin & Security** — change default password, add indexes, lock setup
 
-4. **Create admin_users table** (database-based auth):
-   ```bash
-   cd tools
-   php migrate-add-admin-users-table.php
-   ```
-   This migrates credentials from `config/admin.php` into SQLite.
-   After migration, change password via Admin UI → "🔑 Change Password".
+See [SETUP.md](SETUP.md) for detailed guide.
 
-5. **Add role column** (role-based access control):
-   ```bash
-   cd tools
-   php migrate-add-role-column.php
-   ```
-   Adds `role` column to `admin_users` table. Existing users default to `admin` role.
+#### Option B: Manual CLI
 
-5. **(Alternative) Configure admin credentials** in `config/admin.php` (fallback):
-   ```bash
-   php tools/generate-password-hash.php your_strong_password
-   ```
-   Then update in `config/admin.php`:
-   ```php
-   define('ADMIN_USERNAME', 'your_username');
-   define('ADMIN_PASSWORD_HASH', '$2y$10$...generated_hash_here...');
-   ```
+```bash
+cd tools
 
-3. **(Optional) Enable IP whitelist** in `config/admin.php`:
-   ```php
-   define('ADMIN_IP_WHITELIST_ENABLED', true);
-   define('ADMIN_ALLOWED_IPS', [
-       '127.0.0.1',
-       '192.168.1.0/24',  // Your office network
-   ]);
-   ```
+# Create all tables
+php import-ics-to-sqlite.php
+php migrate-add-requests-table.php
+php migrate-add-credits-table.php
+php migrate-add-events-meta-table.php
+php migrate-add-admin-users-table.php
+php migrate-add-role-column.php
+php migrate-rename-tables-columns.php
+php migrate-add-indexes.php
+```
 
-For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่า-admin-panel).
+**(Optional) Enable IP whitelist** in `config/admin.php`:
+```php
+define('ADMIN_IP_WHITELIST_ENABLED', true);
+define('ADMIN_ALLOWED_IPS', [
+    '127.0.0.1',
+    '192.168.1.0/24',  // Your office network
+]);
+```
+
+For more details, see [INSTALLATION.md](INSTALLATION.md) and [SETUP.md](SETUP.md).
 
 ---
 
 ## 🔌 API Documentation
 
-### Public API (`/api.php`)
+ระบบมี 3 API groups:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api.php?action=events` | GET | Get all events |
-| `/api.php?action=events&event=slug` | GET | Filter by convention |
-| `/api.php?action=events&organizer=X` | GET | Filter by artist |
-| `/api.php?action=events&location=X` | GET | Filter by venue |
-| `/api.php?action=organizers` | GET | Get all artists |
-| `/api.php?action=locations` | GET | Get all venues |
-| `/api.php?action=events_list` | GET | Get all active conventions |
+| API | URL | Auth | Description |
+|-----|-----|------|-------------|
+| **Public** | `/api.php` | ❌ | Programs, organizers, locations, events list |
+| **Request** | `/api/request.php` | ❌ | User request submission (rate limited) |
+| **Admin** | `/admin/api.php` | ✅ Session + CSRF | Full CRUD ทั้งระบบ |
 
-### Request API (`/api/request.php`)
+**Public API ตัวอย่าง:**
+```http
+GET /api.php?action=programs&event=idol-stage-feb-2026
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/request.php?action=submit` | POST | Submit event request |
-| `/api/request.php?action=events` | GET | Get events for selection |
+**Admin API ต้องการ:**
+- Session cookie (login ที่ `/admin/login`)
+- Header `X-CSRF-Token` สำหรับ POST/PUT/DELETE
 
-### Admin API (`/admin/api.php`) - Authentication Required
-
-**Events Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=list` | GET | List events with pagination, search, filter, sort |
-| `/admin/api.php?action=get&id=X` | GET | Get single event |
-| `/admin/api.php?action=create` | POST | Create new event |
-| `/admin/api.php?action=update&id=X` | PUT | Update event |
-| `/admin/api.php?action=delete&id=X` | DELETE | Delete event |
-| `/admin/api.php?action=bulk_delete` | DELETE | Delete multiple events (max 100) |
-| `/admin/api.php?action=bulk_update` | PUT | Bulk edit venue/organizer/categories |
-| `/admin/api.php?action=venues` | GET | Get all distinct venues (autocomplete) |
-
-**Requests Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=requests` | GET | List user requests with status filter |
-| `/admin/api.php?action=pending_count` | GET | Get pending request count (badge) |
-| `/admin/api.php?action=request_approve&id=X` | PUT | Approve request |
-| `/admin/api.php?action=request_reject&id=X` | PUT | Reject request |
-
-**ICS Import Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=upload_ics` | POST | Upload and parse ICS file |
-| `/admin/api.php?action=import_ics_confirm` | POST | Confirm import with action choices |
-
-**Conventions Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=event_meta_list` | GET | List all conventions |
-| `/admin/api.php?action=event_meta_get&id=X` | GET | Get single convention |
-| `/admin/api.php?action=event_meta_create` | POST | Create convention |
-| `/admin/api.php?action=event_meta_update&id=X` | PUT | Update convention |
-| `/admin/api.php?action=event_meta_delete&id=X` | DELETE | Delete convention |
-
-**Credits Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=credits_list` | GET | List credits with pagination and search |
-| `/admin/api.php?action=credits_get&id=X` | GET | Get single credit |
-| `/admin/api.php?action=credits_create` | POST | Create new credit |
-| `/admin/api.php?action=credits_update&id=X` | PUT | Update credit |
-| `/admin/api.php?action=credits_delete&id=X` | DELETE | Delete credit |
-| `/admin/api.php?action=credits_bulk_delete` | DELETE | Delete multiple credits |
-
-**Backup/Restore Endpoints:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=backup_create` | POST | Create database backup |
-| `/admin/api.php?action=backup_list` | GET | List all backups |
-| `/admin/api.php?action=backup_download&filename=X` | GET | Download backup file |
-| `/admin/api.php?action=backup_delete` | DELETE | Delete backup file |
-| `/admin/api.php?action=backup_restore` | POST | Restore from server backup |
-| `/admin/api.php?action=backup_upload_restore` | POST | Upload .db file and restore |
-
-**User Management Endpoints** (admin role only):
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=users_list` | GET | List all admin users |
-| `/admin/api.php?action=users_get&id=X` | GET | Get single user |
-| `/admin/api.php?action=users_create` | POST | Create new user |
-| `/admin/api.php?action=users_update&id=X` | PUT | Update user |
-| `/admin/api.php?action=users_delete&id=X` | DELETE | Delete user |
-
-**Account Endpoint:**
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/api.php?action=change_password` | POST | Change admin password (requires DB auth) |
-
-**Authentication**: All admin API endpoints require a valid session cookie + IP whitelist check. Credentials are stored in SQLite `admin_users` table (with fallback to `config/admin.php`).
-
-**CSRF Protection**: POST/PUT/DELETE requests require `X-CSRF-Token` header.
-
-**Cache Invalidation**: Credits cache is automatically cleared after create/update/delete operations.
+ดู **[API.md](API.md)** สำหรับ endpoint documentation ครบถ้วนพร้อม request/response examples
 
 ---
 
@@ -402,7 +289,7 @@ For more details, see [INSTALLATION.md](INSTALLATION.md#️-ตั้งค่�
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '1.2.5'); // Change this to force cache refresh
+define('APP_VERSION', '2.0.0'); // Change this to force cache refresh
 ```
 
 ### Multi-Event Mode
@@ -414,7 +301,7 @@ define('MULTI_EVENT_MODE', true);       // Enable multi-event support
 define('DEFAULT_EVENT_SLUG', 'default'); // Default convention slug
 ```
 
-Access conventions via URL: `/event/slug` (e.g., `/event/idol-stage-feb-2026`)
+Access events via URL: `/event/slug` (e.g., `/event/idol-stage-feb-2026`)
 
 ### Venue Mode
 
@@ -505,94 +392,22 @@ Place `.ics` files in the `ics/` folder and run the import script.
 
 ```
 stage-idol-calendar/
-├── index.php              # Main calendar page
-├── how-to-use.php         # User guide (3 languages)
-├── contact.php            # Contact page (3 languages)
-├── credits.php            # Credits & data sources
-├── export.php             # ICS export handler
-├── api.php                # Public API endpoint
-├── config.php             # Bootstrap file (loads config/ files)
-├── IcsParser.php          # ICS parser class
-├── .htaccess              # Apache clean URL rewrite rules
-├── nginx-clean-url.conf   # Nginx clean URL config example
-│
-├── config/                # Configuration files
-│   ├── app.php            # Application settings
-│   ├── admin.php          # Admin & authentication
-│   ├── security.php       # Security settings
-│   ├── database.php       # Database configuration
-│   └── cache.php          # Cache settings
-│
-├── functions/             # Helper functions
-│   ├── helpers.php        # General utilities
-│   ├── cache.php          # Cache functions
-│   ├── admin.php          # Auth functions
-│   └── security.php       # Security functions
-│
-├── styles/                # CSS files
-│   └── common.css         # Sakura theme styles
-│
-├── js/                    # JavaScript files
-│   ├── translations.js    # Multi-language translations
-│   └── common.js          # Shared utilities
-│
-├── data/                  # Database storage
-│   └── calendar.db        # SQLite database
-│
-├── backups/               # Backup storage (auto-created by admin)
-│   └── backup_*.db        # Backup files
-│
-├── ics/                   # ICS data files (place your .ics files here)
-│
-├── api/                   # Public APIs
-│   └── request.php        # User request submission
-│
-├── admin/                 # Admin interface (login required)
-│   ├── index.php          # Admin dashboard (Events + Requests + Credits + Conventions + Users + Backup)
-│   ├── api.php            # Admin CRUD API (+ conventions + users + backup/restore)
-│   └── login.php          # Login page
-│
-├── tools/                 # Development tools
-│   ├── import-ics-to-sqlite.php
-│   ├── update-ics-categories.php
-│   ├── migrate-add-requests-table.php
-│   ├── migrate-add-credits-table.php
-│   ├── migrate-add-events-meta-table.php
-│   ├── migrate-add-admin-users-table.php
-│   ├── migrate-add-role-column.php
-│   ├── generate-password-hash.php
-│   ├── debug-parse.php
-│   └── test-parse.php
-│
-├── tests/                 # Automated test suite (226 tests)
-│   ├── TestRunner.php     # Test framework (20 assertion methods)
-│   ├── run-tests.php      # Test runner with colored output
-│   ├── SecurityTest.php   # Security tests (7 tests)
-│   ├── CacheTest.php      # Cache tests (17 tests)
-│   ├── AdminAuthTest.php  # Auth tests (38 tests)
-│   ├── CreditsApiTest.php # Credits API tests (49 tests)
-│   ├── IntegrationTest.php # Integration tests (96 tests)
-│   └── UserManagementTest.php # User management & role tests (19 tests)
-│
-├── Dockerfile             # Docker image (PHP 8.1-apache)
-├── docker-compose.yml     # Production Docker Compose
-├── docker-compose.dev.yml # Development Docker Compose
-├── .dockerignore          # Docker build exclusions
-│
-├── README.md              # This file
-├── QUICKSTART.md          # Quick start guide
-├── INSTALLATION.md        # Detailed installation guide
-├── DOCKER.md              # Docker deployment guide
-├── SQLITE_MIGRATION.md    # Database migration guide
-├── TESTING.md             # Manual testing checklist (129 cases)
-├── CHANGELOG.md           # Version history
-├── LICENSE                # MIT License
-├── CONTRIBUTING.md        # Contribution guidelines
-├── SECURITY.md            # Security guidelines
-├── .gitignore             # Git ignore rules
-└── .github/workflows/     # CI/CD
-    └── tests.yml          # GitHub Actions (PHP 8.1, 8.2, 8.3)
+├── index.php / api.php / setup.php / ...   # Root PHP pages
+├── config/          Configuration constants (app, admin, security, database, cache)
+├── functions/       Helper functions (helpers, cache, admin, security)
+├── styles/ / js/   CSS + JavaScript (Sakura theme, translations)
+├── data/            SQLite database (calendar.db, .setup_locked)
+├── backups/         Database backups (auto-created)
+├── cache/           Cache files (data_version, credits, login_attempts)
+├── ics/             ICS source files
+├── api/             Public API (request.php)
+├── admin/           Admin panel (login.php, index.php, api.php)
+├── tools/           CLI migration scripts
+├── tests/           324 automated tests
+└── *.md             Documentation
 ```
+
+ดู **[PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)** สำหรับรายละเอียดไฟล์ทั้งหมด ความสัมพันธ์ระหว่างไฟล์ และคำอธิบาย functions
 
 ---
 
@@ -649,6 +464,8 @@ Located in `tools/` folder:
 | `migrate-add-requests-table.php` | Create event_requests table |
 | `migrate-add-credits-table.php` | Create credits table |
 | `migrate-add-events-meta-table.php` | Create events_meta table (multi-event support) |
+| `migrate-rename-tables-columns.php` | Rename tables/columns to v1.2.9 schema (idempotent) |
+| `migrate-add-indexes.php` | Add DB performance indexes (idempotent, run once) |
 | `migrate-add-admin-users-table.php` | Create admin_users table + seed from config |
 | `migrate-add-role-column.php` | Add role column to admin_users (RBAC) |
 | `generate-password-hash.php` | Generate bcrypt password hash for admin |
@@ -658,7 +475,7 @@ Located in `tools/` folder:
 ### Running Tests
 
 ```bash
-# Run all 226 automated tests
+# Run all 324 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -717,10 +534,6 @@ See [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) for database schema, migration gu
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
 ### Quick Guidelines
 
 1. Fork the repository
@@ -730,16 +543,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 5. Open a Pull Request
 
 ---
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-**TL;DR**: You can use, modify, and distribute this software freely, even for commercial purposes.
-
----
-
-## 🙏 Credits
 
 ### Built With
 
@@ -758,15 +561,15 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **226 automated unit tests** covering all critical functionality:
+The project includes **324 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
 - 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
 - 💾 **CacheTest** (17 tests) - Cache creation, invalidation, TTL, fallback behavior
 - 🔐 **AdminAuthTest** (38 tests) - Authentication, session management, timing attack resistance, DB auth, change password
 - 📋 **CreditsApiTest** (49 tests) - Database CRUD operations, bulk operations
-- 🔗 **IntegrationTest** (96 tests) - File structure, configuration, full workflows, API endpoints
-- 👤 **UserManagementTest** (19 tests) - Role column schema, role helpers, user CRUD, permission checks
+- 🔗 **IntegrationTest** (97 tests) - File structure, configuration, full workflows, API endpoints
+- 👤 **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
 
 **Run All Tests:**
 ```bash
@@ -804,14 +607,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 226 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 324 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 226 tests
-Passed: 226
+Total: 324 tests
+Passed: 324
 Pass Rate: 100.0%
 ```
 
@@ -819,19 +622,33 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 ---
 
+## 📜 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+**Current Version**: 2.0.0
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
 ## 📞 Support
 
-- **Documentation**: [Full documentation](README.md) | [Quick Start](QUICKSTART.md) | [Installation Guide](INSTALLATION.md)
+- **Documentation**: [README](README.md) | [Quick Start](QUICKSTART.md) | [Setup](SETUP.md) | [Install](INSTALLATION.md) | [API](API.md) | [Structure](PROJECT-STRUCTURE.md)
 - **Issues**: [GitHub Issues](https://github.com/yourusername/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ---
 
-## 📜 Changelog
+## 📝 License
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**Current Version**: 1.2.5
+**TL;DR**: You can use, modify, and distribute this software freely, even for commercial purposes.
 
 ---
 

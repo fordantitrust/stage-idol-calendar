@@ -4,9 +4,8 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 1.2.x   | :white_check_mark: |
-| 1.1.x   | :white_check_mark: |
-| 1.0.x   | :white_check_mark: |
+| 2.0.x   | :white_check_mark: |
+| 1.x.x   | :x:                |
 
 ---
 
@@ -229,7 +228,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Session-based login
 - Optional IP whitelist
 
-✅ **Role-Based Access Control** (Added in v1.2.5)
+✅ **Role-Based Access Control** (Added in v1.2.5, updated in v2.0.0)
 - Two roles: `admin` (full access) and `agent` (events management only)
 - Defense in depth: Server-side HTML hiding + API-level role enforcement
 - Admin-only actions: user management, backup/restore
@@ -239,7 +238,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (1.2.5)
+### Current Version (2.0.0)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -310,5 +309,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-02-18
-**Version:** 1.2.5
+**Last Updated:** 2026-02-27
+**Version:** 2.0.0
