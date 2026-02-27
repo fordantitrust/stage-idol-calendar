@@ -25,15 +25,8 @@ $eventSlug = get_current_event_slug();
     <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
-    <style>
-        /* Page specific styles */
-        .screenshot {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }
-    </style>
+    <!-- How-to-use page CSS -->
+    <link rel="stylesheet" href="<?php echo asset_url('styles/how-to-use.css'); ?>">
 </head>
 <body>
     <div class="container">

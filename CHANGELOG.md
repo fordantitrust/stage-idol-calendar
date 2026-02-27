@@ -5,6 +5,16 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-02-27
+
+### Changed
+- 🎨 **CSS Extracted to External Files** — ย้าย inline `<style>` blocks ออกจาก PHP files เป็น external CSS files เพื่อรองรับ Theme system
+  - `index.php` → `styles/index.css` (ลดขนาดไฟล์จาก ~90KB → ~43KB)
+  - `credits.php` → `styles/credits.css`
+  - `how-to-use.php` → `styles/how-to-use.css`
+  - แก้ไข `var(--sakura-primary)` ที่ไม่ได้ define → `var(--sakura-dark)` ใน credits.css
+  - CSS ทุกหน้า public อยู่ใน external files ครบทั้งหมด พร้อมสำหรับ Theme system
+
 ## [2.0.1] - 2026-02-27
 
 ### Changed
