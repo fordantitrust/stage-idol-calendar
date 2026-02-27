@@ -104,7 +104,17 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Permission checks (admin-only actions, agent restrictions)
 - ✅ Safety guards (cannot delete self, last admin protection)
 
-**Total: 324 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+### ThemeTest (16 tests)
+- ✅ get_site_theme() function exists and returns correct values
+- ✅ Default fallback to 'sakura' when no cache file exists
+- ✅ Reads all 7 valid themes from cache file
+- ✅ Invalid/malformed/missing-key cache falls back to 'sakura'
+- ✅ Theme CSS files exist on disk (ocean, forest, midnight, sunset, dark, gray)
+- ✅ Admin API has theme_get / theme_save cases + functions defined
+- ✅ saveThemeSetting() does not call undefined validate_csrf_token()
+- ✅ Public pages have server-side theme link, no theme-switcher UI
+
+**Total: 340 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
 
 ## 🎯 Expected Output
 
@@ -142,10 +152,11 @@ AdminAuthTest             ✓ PASS (38 passed, 0 failed)
 CreditsApiTest            ✓ PASS (49 passed, 0 failed)
 IntegrationTest           ✓ PASS (97 passed, 0 failed)
 UserManagementTest        ✓ PASS (116 passed, 0 failed)
+ThemeTest                 ✓ PASS (16 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 324 tests
-Passed: 324
+Total: 340 tests
+Passed: 340
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 

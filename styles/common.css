@@ -2,15 +2,55 @@
 /* Sakura (桜) Theme - Japanese Cherry Blossom */
 
 :root {
+    /* === Sakura Core Colors === */
     --sakura-light: #FFB7C5;
     --sakura-medium: #F48FB1;
     --sakura-dark: #E91E63;
     --sakura-deep: #C2185B;
+    --sakura-deeper: #880E4F;
+
+    /* === Gradients === */
     --sakura-gradient: linear-gradient(135deg, #FFB7C5 0%, #E91E63 100%);
     --sakura-gradient-hover: linear-gradient(135deg, #F8BBD9 0%, #EC407A 100%);
+    --sakura-gradient-soft: linear-gradient(135deg, #FFB7C5 0%, #F48FB1 100%);
+    --sakura-gradient-full: linear-gradient(135deg, #FFB7C5 0%, #F48FB1 50%, #E91E63 100%);
+    --sakura-gradient-vertical: linear-gradient(180deg, #FFB7C5 0%, #F48FB1 50%, #E91E63 100%);
+    --sakura-gradient-pale: linear-gradient(135deg, #fff5f7, #fce4ec);
+
+    /* === Sakura Backgrounds === */
     --sakura-bg: #FFF0F3;
+    --sakura-bg-soft: #FFF8F9;
+    --sakura-bg-hover: #fef7f9;
+    --sakura-bg-medium: #ffe0eb;
+    --sakura-bg-dark: #ffd1e0;
+    --sakura-border: #FCE4EC;
+
+    /* === Sakura Alpha Variants === */
+    --sakura-dark-10: rgba(233, 30, 99, 0.1);
+    --sakura-dark-15: rgba(233, 30, 99, 0.15);
+    --sakura-dark-18: rgba(233, 30, 99, 0.18);
+    --sakura-dark-20: rgba(233, 30, 99, 0.2);
+    --sakura-dark-30: rgba(233, 30, 99, 0.3);
+    --sakura-dark-40: rgba(233, 30, 99, 0.4);
+    --sakura-dark-50: rgba(233, 30, 99, 0.5);
+    --sakura-deeper-20: rgba(136, 14, 79, 0.2);
+
+    /* === Text === */
     --text-dark: #4A4A4A;
     --text-light: #6c757d;
+
+    /* === Status Colors === */
+    --color-success-bg: #E8F5E9;
+    --color-success-text: #2E7D32;
+    --color-warning-bg: #FFF3E0;
+    --color-warning-text: #E65100;
+    --color-error-bg: #ffebee;
+    --color-error-text: #c62828;
+
+    /* === Neutral === */
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --bg-light: #f8f9fa;
 }
 
 * {
@@ -31,7 +71,7 @@ body {
     margin: 0 auto;
     background: white;
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(233, 30, 99, 0.3);
+    box-shadow: 0 20px 60px var(--sakura-dark-30);
     overflow: hidden;
 }
 
@@ -186,11 +226,11 @@ h1 {
     background: white;
     border-radius: 8px;
     transition: all 0.3s;
-    border: 1px solid rgba(233, 30, 99, 0.1);
+    border: 1px solid var(--sakura-dark-10);
 }
 
 .contact-item:hover {
-    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
+    box-shadow: 0 4px 12px var(--sakura-dark-15);
     transform: translateY(-2px);
 }
 
@@ -247,7 +287,7 @@ h1 {
 /* Footer */
 footer {
     background: var(--sakura-bg);
-    border-top: 2px solid rgba(233, 30, 99, 0.1);
+    border-top: 2px solid var(--sakura-dark-10);
     padding: 20px;
     text-align: center;
 }
@@ -413,17 +453,17 @@ footer {
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: #fef7f9;
+    background: var(--sakura-bg-hover);
 }
 
 .upload-box:hover {
     border-color: var(--sakura-medium);
-    background: #ffe0eb;
+    background: var(--sakura-bg-medium);
 }
 
 .upload-box.dragover {
     border-color: var(--sakura-dark);
-    background: #ffd1e0;
+    background: var(--sakura-bg-dark);
     transform: scale(1.02);
 }
 
@@ -458,7 +498,7 @@ footer {
     width: 100%;
     max-width: 500px;
     height: 8px;
-    background: #eee;
+    background: var(--border-color);
     border-radius: 4px;
     overflow: hidden;
     margin: 15px auto;
@@ -509,18 +549,18 @@ footer {
 }
 
 .stat-new {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
 }
 
 .stat-duplicate {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
 }
 
 .stat-error {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
 }
 
 .preview-toolbar {
@@ -544,7 +584,7 @@ footer {
     text-align: center;
     margin: 25px 0;
     padding: 25px;
-    background: #fef7f9;
+    background: var(--sakura-bg-hover);
     border-radius: 12px;
     border: 2px solid var(--sakura-light);
 }
@@ -561,18 +601,18 @@ footer {
 }
 
 .status-new {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
 }
 
 .status-duplicate {
-    background: #fff3e0;
-    color: #e65100;
+    background: var(--color-warning-bg);
+    color: var(--color-warning-text);
 }
 
 .status-invalid {
-    background: #ffebee;
-    color: #c62828;
+    background: var(--color-error-bg);
+    color: var(--color-error-text);
 }
 
 /* Duplicate Action Dropdown */
@@ -625,9 +665,9 @@ footer {
     align-items: center;
     gap: 12px;
     padding: 18px;
-    background: #f8f9fa;
+    background: var(--bg-light);
     border-radius: 10px;
-    border: 2px solid #eee;
+    border: 2px solid var(--border-color);
     transition: transform 0.2s ease;
 }
 
@@ -653,16 +693,16 @@ footer {
 }
 
 .errors-box {
-    background: #ffebee;
+    background: var(--color-error-bg);
     padding: 15px;
     border-radius: 8px;
     margin: 20px 0;
-    border-left: 4px solid #c62828;
+    border-left: 4px solid var(--color-error-text);
 }
 
 .errors-box h4 {
     margin-top: 0;
-    color: #c62828;
+    color: var(--color-error-text);
 }
 
 .errors-box ul {
@@ -673,6 +713,44 @@ footer {
 .errors-box li {
     color: #666;
     margin: 5px 0;
+}
+
+/* ===== Theme Switcher ===== */
+.theme-switcher {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.theme-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.theme-btn.active,
+.theme-btn:hover {
+    border-color: white;
+    transform: scale(1.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 480px) {
+    .theme-switcher {
+        top: auto;
+        left: auto;
+        position: static;
+        justify-content: center;
+        margin-top: 10px;
+    }
 }
 
 /* Responsive Adjustments for Import */

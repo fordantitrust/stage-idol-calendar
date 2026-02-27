@@ -799,7 +799,7 @@ SELECT COUNT(*) FROM programs;
 # Verify all features work with database
 php tests/run-tests.php
 
-# Expected: 324 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
+# Expected: 340 tests pass (all tests pass on PHP 8.1, 8.2, 8.3)
 # If any tests fail, check:
 # - Database file exists at data/calendar.db
 # - All tables are created (programs, events, program_requests, credits, admin_users)
@@ -823,7 +823,7 @@ ls -la cache/
 ### Manual Verification Checklist
 
 After migration:
-- [ ] Run `php tests/run-tests.php` — all 324 tests pass
+- [ ] Run `php tests/run-tests.php` — all 340 tests pass
 - [ ] Visit index.php — programs display correctly
 - [ ] Check `cache/` folder — cache files created
 - [ ] Login to admin — can view/edit programs

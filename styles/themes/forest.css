@@ -1,0 +1,28 @@
+/* Forest Theme 🌿 — Green */
+:root {
+    --sakura-light: #A5D6A7;
+    --sakura-medium: #66BB6A;
+    --sakura-dark: #2E7D32;
+    --sakura-deep: #1B5E20;
+    --sakura-deeper: #0A3D0C;
+    --sakura-gradient: linear-gradient(135deg, #A5D6A7 0%, #2E7D32 100%);
+    --sakura-gradient-hover: linear-gradient(135deg, #C8E6C9 0%, #43A047 100%);
+    --sakura-gradient-soft: linear-gradient(135deg, #A5D6A7 0%, #66BB6A 100%);
+    --sakura-gradient-full: linear-gradient(135deg, #A5D6A7 0%, #66BB6A 50%, #2E7D32 100%);
+    --sakura-gradient-vertical: linear-gradient(180deg, #A5D6A7 0%, #66BB6A 50%, #2E7D32 100%);
+    --sakura-gradient-pale: linear-gradient(135deg, #f5fff5, #d4edda);
+    --sakura-bg: #F1F8E9;
+    --sakura-bg-soft: #F8FFF5;
+    --sakura-bg-hover: #EFF7EA;
+    --sakura-bg-medium: #C8E6C9;
+    --sakura-bg-dark: #A5D6A7;
+    --sakura-border: #C8E6C9;
+    --sakura-dark-10: rgba(46, 125, 50, 0.1);
+    --sakura-dark-15: rgba(46, 125, 50, 0.15);
+    --sakura-dark-18: rgba(46, 125, 50, 0.18);
+    --sakura-dark-20: rgba(46, 125, 50, 0.2);
+    --sakura-dark-30: rgba(46, 125, 50, 0.3);
+    --sakura-dark-40: rgba(46, 125, 50, 0.4);
+    --sakura-dark-50: rgba(46, 125, 50, 0.5);
+    --sakura-deeper-20: rgba(27, 94, 32, 0.2);
+}

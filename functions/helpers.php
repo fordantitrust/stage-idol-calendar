@@ -12,6 +12,27 @@ function asset_url($path) {
 }
 
 // =============================================================================
+// THEME HELPER
+// =============================================================================
+
+/**
+ * Get the site-wide theme set by admin
+ *
+ * @return string Theme name (sakura|ocean|forest|midnight|sunset)
+ */
+function get_site_theme() {
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $themeFile = dirname(__DIR__) . '/cache/site-theme.json';
+    if (file_exists($themeFile)) {
+        $data = json_decode(file_get_contents($themeFile), true);
+        if (isset($data['theme']) && in_array($data['theme'], $validThemes)) {
+            return $data['theme'];
+        }
+    }
+    return 'sakura';
+}
+
+// =============================================================================
 // DATABASE CONNECTION (SINGLETON)
 // =============================================================================
 

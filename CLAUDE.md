@@ -41,7 +41,7 @@
 - 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
 - 🔗 **Clean URLs** - ลบ .php extension จาก public URLs พร้อม .htaccess และ Nginx config
 - 📅 **Date Jump Bar** - แถบกระโดดไปวันที่ต้องการ (fixed-position, IntersectionObserver)
-- 🧪 **324 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
+- 🧪 **340 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
 
 ## 🚀 การติดตั้ง
 
@@ -152,7 +152,8 @@ stage-idol-calendar/
 │   ├── AdminAuthTest.php  # Auth tests (38 tests)
 │   ├── CreditsApiTest.php # Credits API tests (49 tests)
 │   ├── IntegrationTest.php # Integration tests (97 tests)
-│   └── UserManagementTest.php # User management & role tests (116 tests)
+│   ├── UserManagementTest.php # User management & role tests (116 tests)
+│   └── ThemeTest.php      # Theme system tests (16 tests)
 │
 ├── tools/                 # Development tools
 │   ├── import-ics-to-sqlite.php
@@ -397,7 +398,7 @@ docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php  # import dat
 
 ### Automated Test Suite
 
-ระบบมี **324 automated unit tests** ครอบคลุมทุก feature:
+ระบบมี **340 automated unit tests** ครอบคลุมทุก feature:
 
 ```bash
 # รัน test ทั้งหมด
@@ -410,6 +411,7 @@ php tests/run-tests.php AdminAuthTest         # 38 tests
 php tests/run-tests.php CreditsApiTest        # 49 tests
 php tests/run-tests.php IntegrationTest       # 97 tests
 php tests/run-tests.php UserManagementTest    # 116 tests
+php tests/run-tests.php ThemeTest             # 16 tests
 
 # รัน test เฉพาะ function
 php tests/run-tests.php SecurityTest::testSanitizeString
@@ -433,8 +435,9 @@ quick-test.bat
 - **CreditsApiTest**: Database CRUD operations, bulk operations
 - **IntegrationTest**: Configuration validation, workflow testing, API endpoints, multi-event support
 - **UserManagementTest**: Role column schema, role helpers, user CRUD, permission checks
+- **ThemeTest**: Theme system, get_site_theme(), CSS files, admin API, public pages
 
-✅ **ผ่านทั้งหมด 324 tests บน PHP 8.1, 8.2, และ 8.3**
+✅ **ผ่านทั้งหมด 340 tests บน PHP 8.1, 8.2, และ 8.3**
 
 ### Manual Testing
 

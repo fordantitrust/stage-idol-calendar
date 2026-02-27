@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-โครงสร้างไฟล์และโฟลเดอร์ของ Idol Stage Timetable v2.0.2
+โครงสร้างไฟล์และโฟลเดอร์ของ Idol Stage Timetable v2.1.0
 
 ---
 
@@ -156,7 +156,7 @@ CLI scripts สำหรับ developer — รันผ่าน `php tools/sc
 
 ## 🧪 tests/
 
-Automated test suite — 324 tests, PHP 8.1/8.2/8.3
+Automated test suite — 340 tests, PHP 8.1/8.2/8.3
 
 | ไฟล์ | Tests | Coverage |
 |------|-------|---------|
@@ -168,9 +168,10 @@ Automated test suite — 324 tests, PHP 8.1/8.2/8.3
 | `CreditsApiTest.php` | 49 | Credits CRUD, bulk delete, SQL injection prevention |
 | `IntegrationTest.php` | 97 | Config, file structure, workflows, API, multi-event |
 | `UserManagementTest.php` | 116 | Role schema, RBAC helpers, user CRUD, permission guards |
+| `ThemeTest.php` | 16 | Theme system, get_site_theme(), CSS files, admin API, public pages |
 
 ```bash
-# Run all 324 tests
+# Run all 340 tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -249,4 +250,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v2.0.2*
+*Idol Stage Timetable v2.1.0*

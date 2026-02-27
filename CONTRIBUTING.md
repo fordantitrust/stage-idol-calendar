@@ -389,7 +389,7 @@ Before submitting PR, test:
 
 ### Automated Testing
 
-The project includes **324 automated tests** covering security, cache, authentication, database operations, user management, and integration:
+The project includes **340 automated tests** covering security, cache, authentication, database operations, user management, theme system, and integration:
 
 ```bash
 # Run all tests
@@ -402,6 +402,7 @@ php tests/run-tests.php AdminAuthTest         # 38 tests
 php tests/run-tests.php CreditsApiTest        # 49 tests
 php tests/run-tests.php IntegrationTest       # 97 tests
 php tests/run-tests.php UserManagementTest    # 116 tests
+php tests/run-tests.php ThemeTest             # 16 tests
 ```
 
 All tests must pass before submitting a PR. See [tests/README.md](tests/README.md) for details.

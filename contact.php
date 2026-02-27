@@ -25,6 +25,10 @@ $eventSlug = get_current_event_slug();
     <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
+    <?php $siteTheme = get_site_theme(); ?>
+    <?php if ($siteTheme !== 'sakura'): ?>
+    <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
+    <?php endif; ?>
 </head>
 <body>
     <div class="container">

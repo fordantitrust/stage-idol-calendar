@@ -359,9 +359,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#events">Tab: Events</a>
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
-            <a href="#import">Tab: Import ICS</a>
+            <a href="#import">Tab: Import</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
+            <a href="#settings">Tab: Settings</a>
             <a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a>
             <a href="#tips">เคล็ดลับ &amp; FAQ</a>
         </div>
@@ -388,9 +389,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#events">Tab: Events</a></li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import ICS</a></li>
+                <li><a href="#import">Tab: Import</a></li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
+                <li><a href="#settings">Tab: Settings</a></li>
                 <li><a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a></li>
                 <li><a href="#tips">เคล็ดลับ &amp; FAQ</a></li>
             </ul>
@@ -406,19 +408,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     Admin Panel ของ <strong>Idol Stage Timetable</strong> ใช้สำหรับจัดการข้อมูลทั้งหมดที่แสดงบนเว็บไซต์
                     รวมถึง Programs (รายการแสดง), Events (งาน/convention), คำขอจากผู้ใช้, Credits และการสำรองข้อมูล
                 </p>
-                <p>Admin Panel ประกอบด้วย <strong>7 แท็บหลัก</strong>:</p>
+                <p>Admin Panel ประกอบด้วย <strong>8 แท็บหลัก</strong>:</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
-                    <span class="tab-chip">Programs</span>
-                    <span class="tab-chip">Events</span>
-                    <span class="tab-chip">Requests</span>
-                    <span class="tab-chip">Credits</span>
-                    <span class="tab-chip">Import ICS</span>
-                    <span class="tab-chip">Users <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">🎵 Programs</span>
+                    <span class="tab-chip">🎪 Events</span>
+                    <span class="tab-chip">📝 Requests</span>
+                    <span class="tab-chip">✨ Credits</span>
+                    <span class="tab-chip">📤 Import</span>
+                    <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>แท็บ <strong>Users</strong> และ <strong>Backup</strong> มองเห็นได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</div>
+                    <div>แท็บ <strong>👤 Users</strong>, <strong>💾 Backup</strong> และ <strong>⚙️ Settings</strong> มองเห็นได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</div>
                 </div>
             </section>
 
@@ -658,7 +661,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             <!-- Import ICS Tab -->
             <section class="help-section" id="import">
-                <h2>📤 Tab: Import ICS</h2>
+                <h2>📤 Tab: Import</h2>
                 <p>
                     นำเข้าข้อมูล Programs จากไฟล์ <strong>.ics</strong> (iCalendar format)
                     ระบบจะ parse ไฟล์และแสดง Preview ก่อนยืนยันการ import
@@ -776,6 +779,51 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <p>คลิก <strong>🗑️ ลบ</strong> ที่ backup ที่ต้องการ → ยืนยัน → ไฟล์จะถูกลบถาวร</p>
             </section>
 
+            <!-- Settings Tab -->
+            <section class="help-section" id="settings">
+                <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
+                <p>ตั้งค่า <strong>Site Theme</strong> สำหรับหน้าเว็บ public ทั้งหมด เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+
+                <h3>🎨 Site Theme คืออะไร</h3>
+                <p>
+                    Admin สามารถเลือก theme สีสำหรับหน้าเว็บ public ทั้งหมด (หน้าหลัก, วิธีใช้, ติดต่อ, credits)
+                    โดย server จะโหลด CSS ของ theme ที่เลือกโดยอัตโนมัติ ผู้ใช้ทุกคนจะเห็น theme เดียวกัน
+                </p>
+
+                <h3>Themes ที่ใช้ได้</h3>
+                <table class="help-table">
+                    <thead><tr><th>Theme</th><th>สี</th></tr></thead>
+                    <tbody>
+                        <tr><td>🌸 Sakura</td><td>ชมพู (ค่าเริ่มต้น)</td></tr>
+                        <tr><td>🌊 Ocean</td><td>ฟ้า</td></tr>
+                        <tr><td>🌿 Forest</td><td>เขียว</td></tr>
+                        <tr><td>🌙 Midnight</td><td>ม่วง</td></tr>
+                        <tr><td>☀️ Sunset</td><td>ส้ม</td></tr>
+                        <tr><td>🖤 Dark</td><td>น้ำเงิน-เทา (Charcoal)</td></tr>
+                        <tr><td>🩶 Gray</td><td>เทา (Silver)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>ขั้นตอนการเปลี่ยน Theme</h3>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>⚙️ Settings</strong></li>
+                    <li>ระบบจะโหลด theme ปัจจุบันและแสดง palette สี</li>
+                    <li>คลิกที่วงกลมสีของ theme ที่ต้องการ (กรอบจะเปลี่ยนเป็น selected)</li>
+                    <li>กด <strong>💾 บันทึก Theme</strong></li>
+                    <li>เห็นข้อความ <strong>✅ บันทึกแล้ว</strong> → เปิดหน้าเว็บ public เพื่อดูผล</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Theme มีผลทันทีเมื่อ reload หน้าเว็บ public ไม่ต้อง restart server ใดๆ</div>
+                </div>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>ข้อมูล theme ถูกเก็บไว้ใน <code>cache/site-theme.json</code> และ server จะอ่านไฟล์นี้ทุกครั้งที่โหลดหน้าเว็บ</div>
+                </div>
+            </section>
+
             <!-- Roles -->
             <section class="help-section" id="roles">
                 <h2>🛡️ สิทธิ์ผู้ใช้ (Roles)</h2>
@@ -790,6 +838,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Theme)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -818,6 +867,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>ตรวจสอบว่าไฟล์ .ics มี field <code>DTSTART</code>, <code>DTEND</code>, <code>SUMMARY</code> ครบ</li>
                     <li>ขนาดไฟล์ต้องไม่เกิน <strong>5MB</strong></li>
                     <li>ดู error log ใน browser console หรือ PHP error log</li>
+                </ul>
+
+                <h3>Q: เปลี่ยน Theme แล้วหน้าเว็บยังไม่เปลี่ยนสี</h3>
+                <ul>
+                    <li>ตรวจสอบว่ากด <strong>💾 บันทึก Theme</strong> แล้วเห็น "✅ บันทึกแล้ว"</li>
+                    <li>Reload หน้าเว็บ <em>public</em> (ไม่ใช่หน้า Admin) ด้วย <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
+                    <li>ตรวจสอบว่าไดเรกทอรี <code>cache/</code> มีสิทธิ์เขียน (writable)</li>
                 </ul>
 
                 <h3>Q: ต้องการ backup ฐานข้อมูลสำรองอัตโนมัติ</h3>

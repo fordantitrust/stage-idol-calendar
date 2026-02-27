@@ -342,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.0.2'); // Change to force cache refresh
+define('APP_VERSION', '2.1.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -777,7 +777,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **324 automated unit tests** for quality assurance:
+The project includes **340 automated unit tests** for quality assurance:
 
 ```bash
 # Run all tests
@@ -810,8 +810,9 @@ chmod +x quick-test.sh
 - **CreditsApiTest** (49 tests) - Database CRUD, bulk operations, validation
 - **IntegrationTest** (97 tests) - Configuration validation, file structure, workflows, API endpoints
 - **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
+- **ThemeTest** (16 tests) - Theme system, get_site_theme(), CSS files, admin API, public pages
 
-✅ **All 324 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 340 tests pass on PHP 8.1, 8.2, and 8.3**
 
 ### CI/CD Integration
 
@@ -837,7 +838,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 324 tests pass
+- [ ] Verify all 340 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, or 8.3)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
