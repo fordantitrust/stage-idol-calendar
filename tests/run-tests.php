@@ -41,6 +41,7 @@ $testFiles = [
     'CreditsApiTest' => __DIR__ . '/CreditsApiTest.php',
     'IntegrationTest' => __DIR__ . '/IntegrationTest.php',
     'UserManagementTest' => __DIR__ . '/UserManagementTest.php',
+    'ThemeTest' => __DIR__ . '/ThemeTest.php',
 ];
 
 // Filter test files if specific test requested

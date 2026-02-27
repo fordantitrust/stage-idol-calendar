@@ -961,36 +961,38 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     aria-haspopup="true" aria-expanded="false">
                 <span class="tab-mobile-btn-left">
                     <span>☰</span>
-                    <span id="tabMobileLabel">Programs</span>
+                    <span id="tabMobileLabel">🎵 Programs</span>
                     <span class="badge" id="pendingBadgeMobile" style="display:none">0</span>
                 </span>
                 <span class="tab-mobile-arrow">▼</span>
             </button>
             <div class="tab-mobile-dropdown" id="tabMobileDropdown" role="menu">
-                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem">Programs</button>
-                <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem">Events</button>
+                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem">🎵 Programs</button>
+                <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem">🎪 Events</button>
                 <button class="tab-mobile-item" onclick="switchTab('requests')" data-tab="requests" role="menuitem">
-                    Requests <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
+                    📝 Requests <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
                 </button>
-                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem">Credits</button>
-                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem">Import ICS</button>
+                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem">✨ Credits</button>
+                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem">📤 Import</button>
                 <?php if ($adminRole === 'admin'): ?>
-                <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">Users</button>
-                <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">Backup</button>
+                <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">👤 Users</button>
+                <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">💾 Backup</button>
+                <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem">⚙️ Settings</button>
                 <?php endif; ?>
             </div>
         </div>
 
         <!-- Tabs (desktop) -->
         <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('programs')">Programs</button>
-            <button class="tab-btn" onclick="switchTab('events')">Events</button>
-            <button class="tab-btn" onclick="switchTab('requests')">Requests <span class="badge" id="pendingBadge" style="display:none">0</span></button>
-            <button class="tab-btn" onclick="switchTab('credits')">Credits</button>
-            <button class="tab-btn" onclick="switchTab('import')">Import ICS</button>
+            <button class="tab-btn active" onclick="switchTab('programs')">🎵 Programs</button>
+            <button class="tab-btn" onclick="switchTab('events')">🎪 Events</button>
+            <button class="tab-btn" onclick="switchTab('requests')">📝 Requests <span class="badge" id="pendingBadge" style="display:none">0</span></button>
+            <button class="tab-btn" onclick="switchTab('credits')">✨ Credits</button>
+            <button class="tab-btn" onclick="switchTab('import')">📤 Import</button>
             <?php if ($adminRole === 'admin'): ?>
-            <button class="tab-btn" onclick="switchTab('users')">Users</button>
-            <button class="tab-btn" onclick="switchTab('backup')">Backup</button>
+            <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
+            <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
+            <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
             <?php endif; ?>
         </div>
 
@@ -1337,6 +1339,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </tbody>
             </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Settings Section -->
+        <?php if ($adminRole === 'admin'): ?>
+        <div id="settingsSection" style="display:none">
+            <div style="max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px">🎨 Site Theme</h3>
+                <p style="color:#6c757d;margin-bottom:24px">เลือก theme สำหรับหน้าเว็บ public ทั้งหมด</p>
+
+                <div id="themePicker" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+                    <!-- populated by loadThemeSettings() -->
+                </div>
+
+                <button class="btn btn-primary" onclick="saveThemeSetting()" id="themeSaveBtn">💾 บันทึก Theme</button>
+                <span id="themeSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
             </div>
         </div>
         <?php endif; ?>
@@ -1895,8 +1914,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (mobileItem) {
                 mobileItem.classList.add('active');
                 const labelMap = {
-                    programs: 'Programs', events: 'Events', requests: 'Requests',
-                    credits: 'Credits', import: 'Import ICS', users: 'Users', backup: 'Backup'
+                    programs: '🎵 Programs', events: '🎪 Events', requests: '📝 Requests',
+                    credits: '✨ Credits', import: '📤 Import', users: '👤 Users',
+                    backup: '💾 Backup', settings: '⚙️ Settings'
                 };
                 const labelEl = document.getElementById('tabMobileLabel');
                 if (labelEl) labelEl.textContent = labelMap[tab] || tab;
@@ -1913,11 +1933,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (usersEl) usersEl.style.display = tab === 'users' ? 'block' : 'none';
             const backupEl = document.getElementById('backupSection');
             if (backupEl) backupEl.style.display = tab === 'backup' ? 'block' : 'none';
+            const settingsEl = document.getElementById('settingsSection');
+            if (settingsEl) settingsEl.style.display = tab === 'settings' ? 'block' : 'none';
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
             if (tab === 'events') loadEventsTab();
             if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
             if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
+            if (tab === 'settings' && ADMIN_ROLE === 'admin') loadThemeSettings();
         }
 
         // Mobile tab dropdown controls
@@ -4392,6 +4415,76 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 errorEl.textContent = 'Network error';
                 errorEl.style.display = 'block';
             }
+        }
+
+        // =====================================================================
+        // Theme Settings
+        // =====================================================================
+
+        const THEME_OPTIONS = [
+            { id: 'sakura',   label: '🌸 Sakura',   color: 'linear-gradient(135deg,#FFB7C5,#E91E63)' },
+            { id: 'ocean',    label: '🌊 Ocean',    color: 'linear-gradient(135deg,#B3E5FC,#0288D1)' },
+            { id: 'forest',   label: '🌿 Forest',   color: 'linear-gradient(135deg,#A5D6A7,#2E7D32)' },
+            { id: 'midnight', label: '🌙 Midnight', color: 'linear-gradient(135deg,#CE93D8,#7B1FA2)' },
+            { id: 'sunset',   label: '☀️ Sunset',   color: 'linear-gradient(135deg,#FFCC80,#F57C00)' },
+            { id: 'dark',     label: '🖤 Dark',     color: 'linear-gradient(135deg,#78909C,#37474F)' },
+            { id: 'gray',     label: '🩶 Gray',     color: 'linear-gradient(135deg,#BDBDBD,#757575)' },
+        ];
+        let currentTheme = 'sakura';
+
+        function loadThemeSettings() {
+            fetch('api.php?action=theme_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        currentTheme = data.data.theme;
+                        renderThemePicker(currentTheme);
+                    }
+                });
+        }
+
+        function renderThemePicker(selected) {
+            const container = document.getElementById('themePicker');
+            if (!container) return;
+            container.innerHTML = THEME_OPTIONS.map(t => `
+                <div onclick="selectTheme('${t.id}')" id="theme_opt_${t.id}"
+                     style="cursor:pointer;text-align:center;padding:12px;border-radius:12px;
+                            border:3px solid ${t.id === selected ? '#333' : '#dee2e6'};
+                            background:${t.id === selected ? '#f8f9fa' : 'white'};
+                            min-width:100px;transition:all 0.2s">
+                    <div style="width:60px;height:60px;border-radius:50%;background:${t.color};
+                                margin:0 auto 8px;border:3px solid ${t.id === selected ? '#333' : 'transparent'}"></div>
+                    <div style="font-weight:${t.id === selected ? '700' : '500'};font-size:0.9rem">${t.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectTheme(themeId) {
+            currentTheme = themeId;
+            renderThemePicker(themeId);
+            document.getElementById('themeSaveMsg').style.display = 'none';
+        }
+
+        function saveThemeSetting() {
+            const btn = document.getElementById('themeSaveBtn');
+            btn.disabled = true;
+            fetch('api.php?action=theme_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({ theme: currentTheme })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('themeSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
         }
 
     </script>

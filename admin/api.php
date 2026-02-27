@@ -169,6 +169,12 @@ switch ($action) {
     case 'backup_upload_restore':
         uploadAndRestoreBackup();
         break;
+    case 'theme_get':
+        getThemeSetting();
+        break;
+    case 'theme_save':
+        saveThemeSetting();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
 }
@@ -2279,6 +2285,47 @@ function uploadAndRestoreBackup() {
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
+
+/**
+ * Get site theme setting
+ */
+function getThemeSetting() {
+    require_api_admin_role();
+    $themeFile = dirname(__DIR__) . '/cache/site-theme.json';
+    $theme = 'sakura';
+    if (file_exists($themeFile)) {
+        $data = json_decode(file_get_contents($themeFile), true);
+        if (isset($data['theme'])) $theme = $data['theme'];
+    }
+    jsonResponse(true, ['theme' => $theme]);
+}
+
+/**
+ * Save site theme setting (admin only)
+ */
+function saveThemeSetting() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    $input = json_decode(file_get_contents('php://input'), true);
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $theme = $input['theme'] ?? 'sakura';
+    if (!in_array($theme, $validThemes)) {
+        jsonResponse(false, null, 'Invalid theme');
+        return;
+    }
+    $themeFile = dirname(__DIR__) . '/cache/site-theme.json';
+    $cacheDir = dirname($themeFile);
+    if (!is_dir($cacheDir)) mkdir($cacheDir, 0755, true);
+    $ok = file_put_contents($themeFile, json_encode(['theme' => $theme, 'updated_at' => time()]));
+    if ($ok !== false) {
+        jsonResponse(true, ['theme' => $theme], 'Theme saved');
+    } else {
+        jsonResponse(false, null, 'Failed to save theme setting');
+    }
+}
 
 /**
  * Send JSON response

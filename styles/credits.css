@@ -6,7 +6,7 @@
 
 .reference-item {
     padding: 15px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-light);
     transition: background-color 0.2s;
 }
 
@@ -20,7 +20,7 @@
 
 .reference-title {
     font-weight: 600;
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 8px;
     line-height: 1.4;
 }

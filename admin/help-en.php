@@ -323,9 +323,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#events">Tab: Events</a>
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
-            <a href="#import">Tab: Import ICS</a>
+            <a href="#import">Tab: Import</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
+            <a href="#settings">Tab: Settings</a>
             <a href="#roles">User Roles</a>
             <a href="#tips">Tips &amp; FAQ</a>
         </div>
@@ -352,9 +353,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#events">Tab: Events</a></li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import ICS</a></li>
+                <li><a href="#import">Tab: Import</a></li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
+                <li><a href="#settings">Tab: Settings</a></li>
                 <li><a href="#roles">User Roles</a></li>
                 <li><a href="#tips">Tips &amp; FAQ</a></li>
             </ul>
@@ -371,19 +373,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     on the website — Programs (individual performances), Events (conventions/shows),
                     user-submitted Requests, Credits, and database Backups.
                 </p>
-                <p>The Admin Panel has <strong>7 main tabs</strong>:</p>
+                <p>The Admin Panel has <strong>8 main tabs</strong>:</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
-                    <span class="tab-chip">Programs</span>
-                    <span class="tab-chip">Events</span>
-                    <span class="tab-chip">Requests</span>
-                    <span class="tab-chip">Credits</span>
-                    <span class="tab-chip">Import ICS</span>
-                    <span class="tab-chip">Users <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">🎵 Programs</span>
+                    <span class="tab-chip">🎪 Events</span>
+                    <span class="tab-chip">📝 Requests</span>
+                    <span class="tab-chip">✨ Credits</span>
+                    <span class="tab-chip">📤 Import</span>
+                    <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>The <strong>Users</strong> and <strong>Backup</strong> tabs are only visible to users with the <strong>admin</strong> role.</div>
+                    <div>The <strong>👤 Users</strong>, <strong>💾 Backup</strong>, and <strong>⚙️ Settings</strong> tabs are only visible to users with the <strong>admin</strong> role.</div>
                 </div>
             </section>
 
@@ -625,7 +628,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             <!-- Import ICS Tab -->
             <section class="help-section" id="import">
-                <h2>📤 Tab: Import ICS</h2>
+                <h2>📤 Tab: Import</h2>
                 <p>
                     Import Programs from an <strong>.ics</strong> file (iCalendar format).
                     The system parses the file and shows a Preview before you confirm the import.
@@ -743,6 +746,51 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <p>Click <strong>🗑️ Delete</strong> next to a backup → confirm → the file is permanently removed.</p>
             </section>
 
+            <!-- Settings Tab -->
+            <section class="help-section" id="settings">
+                <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
+                <p>Configure the <strong>Site Theme</strong> for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
+
+                <h3>🎨 What is Site Theme?</h3>
+                <p>
+                    Admins can choose a color theme for all public pages (home, how-to-use, contact, credits).
+                    The server loads the selected theme's CSS automatically — every visitor sees the same theme.
+                </p>
+
+                <h3>Available Themes</h3>
+                <table class="help-table">
+                    <thead><tr><th>Theme</th><th>Color</th></tr></thead>
+                    <tbody>
+                        <tr><td>🌸 Sakura</td><td>Pink (default)</td></tr>
+                        <tr><td>🌊 Ocean</td><td>Blue</td></tr>
+                        <tr><td>🌿 Forest</td><td>Green</td></tr>
+                        <tr><td>🌙 Midnight</td><td>Purple</td></tr>
+                        <tr><td>☀️ Sunset</td><td>Orange</td></tr>
+                        <tr><td>🖤 Dark</td><td>Blue-Gray (Charcoal)</td></tr>
+                        <tr><td>🩶 Gray</td><td>Gray (Silver)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>How to Change the Theme</h3>
+                <ol class="steps">
+                    <li>Click the <strong>⚙️ Settings</strong> tab</li>
+                    <li>The current theme loads and the color palette is displayed</li>
+                    <li>Click the color circle of the theme you want (a border highlights the selected one)</li>
+                    <li>Click <strong>💾 Save Theme</strong></li>
+                    <li>You will see <strong>✅ Saved</strong> — open a public page to verify the change</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>The theme takes effect immediately when the public page is reloaded — no server restart required.</div>
+                </div>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The theme setting is stored in <code>cache/site-theme.json</code> and is read by the server on every page load.</div>
+                </div>
+            </section>
+
             <!-- Roles -->
             <section class="help-section" id="roles">
                 <h2>🛡️ User Roles</h2>
@@ -757,6 +805,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Theme)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -785,6 +834,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>Confirm the <code>.ics</code> file contains the required fields: <code>DTSTART</code>, <code>DTEND</code>, <code>SUMMARY</code></li>
                     <li>File size must not exceed <strong>5 MB</strong></li>
                     <li>Check the browser console or PHP error log for details</li>
+                </ul>
+
+                <h3>Q: I changed the theme but the website color didn't change</h3>
+                <ul>
+                    <li>Make sure you clicked <strong>💾 Save Theme</strong> and saw the "✅ Saved" confirmation</li>
+                    <li>Reload the <em>public</em> page (not the Admin panel) with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
+                    <li>Check that the <code>cache/</code> directory is writable on the server</li>
                 </ul>
 
                 <h3>Q: How do I schedule automatic database backups?</h3>

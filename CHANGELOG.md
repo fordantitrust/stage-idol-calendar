@@ -5,15 +5,30 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.2] - 2026-02-27
+## [2.1.0] - 2026-02-27
+
+### Added
+- 🎨 **Theme System** — Admin กำหนด theme สีสำหรับหน้าเว็บ public ทั้งหมด
+  - Theme CSS files: `ocean.css` 🌊 Blue, `forest.css` 🌿 Green, `midnight.css` 🌙 Purple, `sunset.css` ☀️ Orange, `dark.css` 🖤 Charcoal, `gray.css` 🩶 Silver
+  - Tab "⚙️ Settings" ใน Admin panel (admin role only) พร้อม theme picker UI
+  - Admin API: `theme_get`, `theme_save` actions ใน `admin/api.php`
+  - Helper: `get_site_theme()` ใน `functions/helpers.php` (อ่าน `cache/site-theme.json` + validate + fallback sakura)
+  - Public pages โหลด theme CSS server-side ใน `<head>`
+- 📖 **Admin Help Pages — อัพเดทครอบคลุมทุก feature** (`admin/help.php` ไทย + `admin/help-en.php` English)
+  - เพิ่ม section ⚙️ Settings: อธิบาย Site Theme, 7 themes ที่ใช้ได้, ขั้นตอนการเปลี่ยน theme
+  - อัพเดท overview: 8 แท็บ (เพิ่ม Settings), tab chips พร้อม emoji icons ครบ
+  - อัพเดท Roles table: เพิ่มแถว Settings (Theme) — admin ✅, agent ❌
+  - เพิ่ม FAQ: เปลี่ยน Theme แล้วหน้าเว็บไม่เปลี่ยนสี
+  - TOC (mobile + desktop): เพิ่มลิงก์ Settings, ปรับ "Import ICS" → "Import"
 
 ### Changed
-- 🎨 **CSS Extracted to External Files** — ย้าย inline `<style>` blocks ออกจาก PHP files เป็น external CSS files เพื่อรองรับ Theme system
+- 🎨 **CSS Extracted to External Files** — ย้าย inline `<style>` blocks ออกจาก PHP files เป็น external CSS files
   - `index.php` → `styles/index.css` (ลดขนาดไฟล์จาก ~90KB → ~43KB)
   - `credits.php` → `styles/credits.css`
   - `how-to-use.php` → `styles/how-to-use.css`
-  - แก้ไข `var(--sakura-primary)` ที่ไม่ได้ define → `var(--sakura-dark)` ใน credits.css
-  - CSS ทุกหน้า public อยู่ใน external files ครบทั้งหมด พร้อมสำหรับ Theme system
+- 🧭 **Admin Nav Icons** — เพิ่ม emoji icons ครบทุก tab ใน Admin panel (desktop + mobile)
+  - 🎵 Programs, 🎪 Events, 📝 Requests, ✨ Credits, 📤 Import, 👤 Users, 💾 Backup, ⚙️ Settings
+  - เปลี่ยนชื่อ "Import ICS" → "Import" ใน nav (เนื้อหา section ยังคงอธิบาย ICS format)
 
 ## [2.0.1] - 2026-02-27
 

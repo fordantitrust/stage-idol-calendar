@@ -1,0 +1,28 @@
+/* Dark Theme 🖤 — Charcoal */
+:root {
+    --sakura-light: #78909C;
+    --sakura-medium: #546E7A;
+    --sakura-dark: #37474F;
+    --sakura-deep: #263238;
+    --sakura-deeper: #161E22;
+    --sakura-gradient: linear-gradient(135deg, #78909C 0%, #37474F 100%);
+    --sakura-gradient-hover: linear-gradient(135deg, #90A4AE 0%, #455A64 100%);
+    --sakura-gradient-soft: linear-gradient(135deg, #78909C 0%, #546E7A 100%);
+    --sakura-gradient-full: linear-gradient(135deg, #78909C 0%, #546E7A 50%, #37474F 100%);
+    --sakura-gradient-vertical: linear-gradient(180deg, #78909C 0%, #546E7A 50%, #37474F 100%);
+    --sakura-gradient-pale: linear-gradient(135deg, #f4f6f7, #dde3e7);
+    --sakura-bg: #ECEFF1;
+    --sakura-bg-soft: #F5F7F8;
+    --sakura-bg-hover: #EEF1F3;
+    --sakura-bg-medium: #CFD8DC;
+    --sakura-bg-dark: #B0BEC5;
+    --sakura-border: #CFD8DC;
+    --sakura-dark-10: rgba(55, 71, 79, 0.1);
+    --sakura-dark-15: rgba(55, 71, 79, 0.15);
+    --sakura-dark-18: rgba(55, 71, 79, 0.18);
+    --sakura-dark-20: rgba(55, 71, 79, 0.2);
+    --sakura-dark-30: rgba(55, 71, 79, 0.3);
+    --sakura-dark-40: rgba(55, 71, 79, 0.4);
+    --sakura-dark-50: rgba(55, 71, 79, 0.5);
+    --sakura-deeper-20: rgba(38, 50, 56, 0.2);
+}

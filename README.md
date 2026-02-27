@@ -51,7 +51,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode and caching |
-| 🧪 **324 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🧪 **340 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -289,7 +289,7 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.0.2'); // Change this to force cache refresh
+define('APP_VERSION', '2.1.0'); // Change this to force cache refresh
 ```
 
 ### Multi-Event Mode
@@ -403,7 +403,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           324 automated tests
+├── tests/           340 automated tests
 └── *.md             Documentation
 ```
 
@@ -475,7 +475,7 @@ Located in `tools/` folder:
 ### Running Tests
 
 ```bash
-# Run all 324 automated tests
+# Run all 340 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -561,7 +561,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **324 automated unit tests** covering all critical functionality:
+The project includes **340 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
 - 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
@@ -570,6 +570,7 @@ The project includes **324 automated unit tests** covering all critical function
 - 📋 **CreditsApiTest** (49 tests) - Database CRUD operations, bulk operations
 - 🔗 **IntegrationTest** (97 tests) - File structure, configuration, full workflows, API endpoints
 - 👤 **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
+- 🎨 **ThemeTest** (16 tests) - Theme system, get_site_theme(), CSS files, admin API, public pages
 
 **Run All Tests:**
 ```bash
@@ -607,14 +608,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 324 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 340 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 324 tests
-Passed: 324
+Total: 340 tests
+Passed: 340
 Pass Rate: 100.0%
 ```
 
@@ -626,7 +627,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.0.2
+**Current Version**: 2.1.0
 
 ---
 

@@ -27,6 +27,10 @@ $eventSlug = get_current_event_slug();
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <!-- How-to-use page CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/how-to-use.css'); ?>">
+    <?php $siteTheme = get_site_theme(); ?>
+    <?php if ($siteTheme !== 'sakura'): ?>
+    <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
+    <?php endif; ?>
 </head>
 <body>
     <div class="container">

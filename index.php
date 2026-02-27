@@ -110,6 +110,10 @@ unset($dayEvents); // ยกเลิก reference
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <!-- Index page CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/index.css'); ?>">
+    <?php $siteTheme = get_site_theme(); ?>
+    <?php if ($siteTheme !== 'sakura'): ?>
+    <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
+    <?php endif; ?>
 
 </head>
 <body>
