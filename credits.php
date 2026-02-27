@@ -31,58 +31,8 @@ $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
     <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
-    <style>
-        .reference-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .reference-item {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            transition: background-color 0.2s;
-        }
-
-        .reference-item:last-child {
-            border-bottom: none;
-        }
-
-        .reference-item:hover {
-            background-color: var(--sakura-bg);
-        }
-
-        .reference-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-
-        .reference-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--sakura-primary);
-            text-decoration: none;
-            font-size: 0.9rem;
-            word-break: break-all;
-        }
-
-        .reference-link:hover {
-            text-decoration: underline;
-        }
-
-        .reference-link svg {
-            flex-shrink: 0;
-        }
-
-        @media (max-width: 768px) {
-            .reference-item {
-                padding: 12px 10px;
-            }
-        }
-    </style>
+    <!-- Credits page CSS -->
+    <link rel="stylesheet" href="<?php echo asset_url('styles/credits.css'); ?>">
 </head>
 <body>
     <div class="container">

@@ -216,4 +216,4 @@ php tools/import-ics-to-sqlite.php --event=my-event-slug
 
 ---
 
-*Idol Stage Timetable v2.0.1*
+*Idol Stage Timetable v2.0.2*
