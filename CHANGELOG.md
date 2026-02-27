@@ -5,6 +5,13 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-02-27
+
+### Changed
+- ⚙️ **Google Analytics ID configurable** — ย้าย Measurement ID จาก hardcode ในแต่ละ PHP file มาตั้งค่าใน `config/app.php`
+  - เพิ่ม constant `GOOGLE_ANALYTICS_ID` — ตั้งค่าเป็น `''` เพื่อปิด Analytics
+  - อัพเดท `index.php`, `how-to-use.php`, `contact.php`, `credits.php` ให้ใช้ constant แทน hardcode
+
 ## [2.0.0] - 2026-02-27
 
 ### ⚠️ Breaking Changes

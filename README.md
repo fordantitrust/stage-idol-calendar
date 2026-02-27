@@ -289,7 +289,7 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.0.0'); // Change this to force cache refresh
+define('APP_VERSION', '2.0.1'); // Change this to force cache refresh
 ```
 
 ### Multi-Event Mode
@@ -626,7 +626,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.0.0
+**Current Version**: 2.0.1
 
 ---
 
