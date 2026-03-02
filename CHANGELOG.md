@@ -5,6 +5,23 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.4] - 2026-03-03
+
+### Added
+- 🔧 **`tools/update-version.php`** — automated version update script; updates `APP_VERSION` in `config/app.php` and 8 documentation files in a single command (`php tools/update-version.php X.Y.Z`); excludes `CHANGELOG.md` and `CLAUDE.md` which require manual content
+- 📅 **ICS Export: 15-minute reminder** — every exported VEVENT now includes a `VALARM` component (`TRIGGER:-PT15M`, `ACTION:DISPLAY`) so Google Calendar, Apple Calendar, and other RFC 5545-compliant apps will show a notification 15 minutes before each program
+
+### Fixed
+- 🧪 **`IntegrationTest::testDocumentationExists`** — removed `QUICKSTART.md` and `SQLITE_MIGRATION.md` from the docs list after both files were deleted (merged into README.md and PROJECT-STRUCTURE.md in this version)
+
+### Documentation
+- 🌐 **Full English translation** — translated `SETUP.md`, `CHANGELOG.md`, `API.md`, and `PROJECT-STRUCTURE.md` from Thai/mixed to English
+- 📝 **README.md Features section updated** — added missing v2.4.x features: Program Types, Quick Filter Badges, Date Jump Bar, Per-Event Theme, Site Title Setting, Setup Wizard; corrected Venue Mode table (List/Timeline toggle is `Visible` in single-venue mode, per v2.3.4 change); updated unit test count to 999 across 10 suites
+- 🔀 **Documentation consolidation** — merged `QUICKSTART.md` into `README.md` (expanded Quick Start + Core Features table + Pro Tips section); merged `SQLITE_MIGRATION.md` into `PROJECT-STRUCTURE.md` (Database Schema, Performance benchmarks, and Management sections); deleted both merged source files
+- ➕ **`API.md` updates** — added `?type=X` public API filter and `programs_types` admin endpoint (both introduced in v2.4.0 but missing from docs); translated all remaining Thai text
+
+---
+
 ## [2.4.3] - 2026-03-02
 
 ### Added

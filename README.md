@@ -82,24 +82,55 @@ A beautiful, responsive event calendar system designed for idol performances and
 
 ## 🚀 Quick Start
 
-See [QUICKSTART.md](QUICKSTART.md) for a 3-step quick start guide.
+### 🐳 Method 1: Docker (Recommended)
 
-**TL;DR:**
 ```bash
 # 1. Navigate to project folder
 cd stage-idol-calendar
 
-# 2. Import ICS files to database (optional but recommended)
-cd tools
-php import-ics-to-sqlite.php
-cd ..
+# 2. Start with Docker Compose
+docker-compose up -d
 
-# 3. Start PHP server
+# 3. Open browser: http://localhost:8000
+```
+
+**That's it!** 🎉 See [DOCKER.md](DOCKER.md) for more options.
+
+### 💻 Method 2: PHP Built-in Server
+
+```bash
+# 1. Navigate to project folder
+cd stage-idol-calendar
+
+# 2. Start PHP server
 php -S localhost:8000
 
-# 4. Open browser
-# http://localhost:8000
+# 3. Open setup wizard: http://localhost:8000/setup.php
+# 4. Follow the 6-step wizard to initialize the database
 ```
+
+### ⚡ For Better Performance (Recommended)
+
+Import ICS files to SQLite for 10–20x faster page loads:
+
+```bash
+php tools/import-ics-to-sqlite.php
+```
+
+### 🎯 Core Features at a Glance
+
+| Feature | How to Use |
+|---------|-----------|
+| 🔍 **Search** | Type artist/event name in search box |
+| 🏷️ **Filter by Artist** | Check artist checkboxes |
+| 🏢 **Filter by Venue** | Check venue checkboxes |
+| 🏷️ **Filter by Type** | Check program type checkboxes |
+| 🖱️ **Quick Filter** | Click any badge in results to append filter |
+| 📊 **Switch Views** | Toggle List / Gantt Chart |
+| 📅 **Jump to Date** | Use the fixed Date Jump Bar |
+| 📸 **Save Image** | Click "Save as Image" button |
+| 📅 **Export Calendar** | Click "Export to Calendar" button |
+| 📝 **Request Changes** | Click "Request to Add Event" or ✏️ button |
 
 ---
 
@@ -117,7 +148,7 @@ php -S localhost:8000
 |------|-----------|-------|
 | 🐳 **Docker** | Production, ง่ายที่สุด | [DOCKER.md](DOCKER.md) |
 | 🧙 **Setup Wizard** | Fresh install ทุกประเภท | [SETUP.md](SETUP.md) |
-| 💻 **PHP Built-in** | Development/Local | [QUICKSTART.md](QUICKSTART.md) |
+| 💻 **PHP Built-in** | Development/Local | [INSTALLATION.md](INSTALLATION.md) |
 | 🌐 **Apache/Nginx** | Production server | [INSTALLATION.md](INSTALLATION.md) |
 
 **Docker (fastest):**
@@ -232,7 +263,7 @@ Users can request to add new events or modify existing ones:
 
 #### Option A: Setup Wizard (Recommended) 🧙
 
-Open `http://localhost:8000/setup.php` and follow the 5-step wizard:
+Open `http://localhost:8000/setup.php` and follow the 6-step wizard:
 
 1. **System Requirements** — checks PHP version, extensions, permissions
 2. **Directories** — creates `data/`, `cache/`, `backups/`, `ics/`
@@ -300,7 +331,7 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.4.3'); // Change this to force cache refresh
+define('APP_VERSION', '2.4.4'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -520,7 +551,18 @@ See [DOCKER.md](DOCKER.md) for complete Docker guide.
 
 ### Database Management
 
-See [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) for database schema, migration guide, and performance benchmarks.
+See [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) for database schema, migration guide, and performance benchmarks.
+
+---
+
+## 💡 Pro Tips
+
+1. **Multiple ICS Files**: Put as many `.ics` files as you want in `ics/` — the system combines them all.
+2. **File Names Don't Matter**: `event1.ics`, `concert.ics`, `xyz.ics` — all work the same.
+3. **Cache Busting**: If changes don't appear, edit `APP_VERSION` in `config/app.php`.
+4. **Performance**: Use `php tools/import-ics-to-sqlite.php` for large datasets — 10–20x faster.
+5. **Backup**: Keep your `.ics` files — they're your source of truth.
+6. **Quick Tests**: Run `php tests/run-tests.php` (or `quick-test.bat` on Windows) before deploying.
 
 ---
 
@@ -648,7 +690,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.4.3
+**Current Version**: 2.4.4
 
 ---
 
@@ -660,7 +702,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 
 ## 📞 Support
 
-- **Documentation**: [README](README.md) | [Quick Start](QUICKSTART.md) | [Setup](SETUP.md) | [Install](INSTALLATION.md) | [API](API.md) | [Structure](PROJECT-STRUCTURE.md)
+- **Documentation**: [README](README.md) | [Setup](SETUP.md) | [Install](INSTALLATION.md) | [API](API.md) | [Structure](PROJECT-STRUCTURE.md)
 - **Issues**: [GitHub Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
 
