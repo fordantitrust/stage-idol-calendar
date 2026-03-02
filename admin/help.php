@@ -16,7 +16,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Help - Idol Stage Timetable</title>
+    <title>Admin Help - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <link rel="stylesheet" href="<?php echo asset_url('../styles/common.css'); ?>">
     <style>
         :root {
@@ -360,6 +360,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
+            <a href="#import-type">↳ Program Type</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
@@ -389,7 +390,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#events">Tab: Events</a></li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import</a></li>
+                <li><a href="#import">Tab: Import</a>
+                    <ul class="toc-sub">
+                        <li><a href="#import-type">Program Type</a></li>
+                    </ul>
+                </li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
@@ -514,6 +519,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>เวลาเริ่ม / สิ้นสุด <span style="color:red">*</span></td><td>เวลาในรูปแบบ HH:MM</td></tr>
                         <tr><td>Description</td><td>รายละเอียดเพิ่มเติม</td></tr>
                         <tr><td>Categories</td><td>แท็ก/หมวดหมู่ คั่นด้วยเครื่องหมาย comma (<code>,</code>)</td></tr>
+                        <tr><td>Program Type</td><td>ประเภทของ program เช่น <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (ไม่บังคับ รองรับ autocomplete จาก type ที่มีในระบบ)</td></tr>
                     </tbody>
                 </table>
                 <ol class="steps" start="3">
@@ -542,7 +548,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tbody>
                         <tr><td>เลือกทั้งหมด</td><td>เลือก program ทุกรายการในหน้าปัจจุบัน</td></tr>
                         <tr><td>ยกเลิกทั้งหมด</td><td>ยกเลิกการเลือกทั้งหมด</td></tr>
-                        <tr><td>✏️ แก้ไขหลายรายการ</td><td>เปลี่ยน Venue / Organizer / Categories ของรายการที่เลือกพร้อมกัน (สูงสุด 100)</td></tr>
+                        <tr><td>✏️ แก้ไขหลายรายการ</td><td>เปลี่ยน Venue / Organizer / Categories / Program Type ของรายการที่เลือกพร้อมกัน (สูงสุด 100)</td></tr>
                         <tr><td>🗑️ ลบหลายรายการ</td><td>ลบรายการที่เลือกทั้งหมดพร้อมกัน (สูงสุด 100)</td></tr>
                     </tbody>
                 </table>
@@ -577,6 +583,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Description</td><td>รายละเอียดงาน</td></tr>
                         <tr><td>Start Date / End Date</td><td>วันเริ่มและวันสิ้นสุดของงาน</td></tr>
                         <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายเวที (แสดง venue filter, Gantt) | <strong>single</strong> = เวทีเดียว</td></tr>
+                        <tr><td>Theme</td><td>Theme สีสำหรับ event นี้โดยเฉพาะ (ถ้าไม่เลือกจะใช้ global theme จาก Settings)</td></tr>
                         <tr><td>Active</td><td>เปิด/ปิดการแสดงผล event บนหน้าเว็บ</td></tr>
                     </tbody>
                 </table>
@@ -588,6 +595,28 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-warn">
                     <span class="callout-icon">⚠️</span>
                     <div>การลบ Event จะ <strong>ไม่ลบ Programs</strong> ที่สังกัดอยู่ แต่ Programs เหล่านั้นจะไม่มี Event อ้างอิง ควรย้ายหรือลบ Programs ก่อน</div>
+                </div>
+
+                <h3>Default Event และหน้ารวม Events</h3>
+                <p>
+                    เมื่อ Initialize Database ระบบจะสร้าง <strong>Default Event</strong> โดยอัตโนมัติ
+                    (slug ตรงกับค่า <code>DEFAULT_EVENT_SLUG</code> ใน <code>config/app.php</code> ค่าเริ่มต้นคือ <code>default</code>)
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>สถานการณ์</th><th>ผลที่เกิดขึ้น</th></tr></thead>
+                    <tbody>
+                        <tr><td>มีเฉพาะ Default Event (ยังไม่ได้สร้าง event จริง)</td><td>หน้าหลัก (<code>/</code>) แสดง <strong>calendar view</strong> ของ default event โดยตรง — ไม่แสดงหน้ารวม</td></tr>
+                        <tr><td>มี Event จริงอย่างน้อย 1 รายการ (slug ≠ default)</td><td>หน้าหลัก (<code>/</code>) แสดง <strong>หน้ารวม Events</strong> (event cards) — default event ถูกซ่อน</td></tr>
+                        <tr><td>เข้า URL <code>/event/default</code> โดยตรง</td><td>แสดง calendar view ของ default event เสมอ</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>Default Event ถูกซ่อนจากหน้ารวม Events โดยตั้งใจ</strong> — มันทำหน้าที่เป็น container
+                        รับ Programs ที่ import โดยไม่ระบุ event ถ้าต้องการให้แสดงในหน้ารวม ให้สร้าง Event ใหม่ที่มี slug ต่างออกไป
+                        แล้ว import Programs ไปที่ event นั้นแทน
+                    </div>
                 </div>
             </section>
 
@@ -696,12 +725,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>CATEGORIES</td><td>หมวดหมู่ (categories)</td></tr>
                         <tr><td>DESCRIPTION</td><td>รายละเอียด</td></tr>
                         <tr><td>UID</td><td>Unique ID (ใช้ตรวจจับ duplicate)</td></tr>
+                        <tr><td>X-PROGRAM-TYPE</td><td>ประเภท program (<code>program_type</code>) — custom field เฉพาะระบบนี้ กำหนดได้แต่ละ event</td></tr>
                     </tbody>
                 </table>
 
+                <h3 id="import-type">🏷️ การกำหนด Program Type ตอน Import</h3>
+                <p>ระบบรองรับการกำหนด Program Type ระหว่าง import ด้วย 3 วิธี (เรียงตามลำดับความสำคัญ):</p>
+                <table class="help-table">
+                    <thead><tr><th>วิธี</th><th>รายละเอียด</th></tr></thead>
+                    <tbody>
+                        <tr><td>1. <code>X-PROGRAM-TYPE:</code> ในไฟล์ ICS</td><td>กำหนด type แยกตาม event แต่ละรายการ — มีความสำคัญสูงสุด</td></tr>
+                        <tr><td>2. ช่อง "🏷️ Program Type (default)" ใน UI</td><td>ใช้กับ programs ที่ไม่มี <code>X-PROGRAM-TYPE</code> ในไฟล์ (batch default)</td></tr>
+                        <tr><td>3. <code>--type=value</code> (command line)</td><td>ใช้ค่านี้เป็น default สำหรับทุก program เมื่อ import ผ่าน CLI</td></tr>
+                    </tbody>
+                </table>
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
-                    <div>สามารถ import ICS ผ่าน command line ได้ด้วย: <code>php tools/import-ics-to-sqlite.php --event=slug</code></div>
+                    <div>สามารถ import ICS ผ่าน command line ได้ด้วย: <code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></div>
                 </div>
             </section>
 
@@ -782,7 +822,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>ตั้งค่า <strong>Site Theme</strong> สำหรับหน้าเว็บ public ทั้งหมด เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+                <p>ตั้งค่าทั่วไปของเว็บไซต์ ได้แก่ <strong>Site Title</strong> และ <strong>Site Theme</strong> เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+
+                <h3>📝 Site Title คืออะไร</h3>
+                <p>
+                    ชื่อเว็บไซต์ที่แสดงใน <strong>browser tab</strong>, <strong>header</strong> ของทุกหน้า public
+                    และ <strong>ICS export</strong> (ชื่อปฏิทิน) ค่าเริ่มต้นคือ "Idol Stage Timetable"
+                </p>
+
+                <h3>ขั้นตอนการเปลี่ยน Site Title</h3>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>⚙️ Settings</strong></li>
+                    <li>พิมพ์ชื่อใหม่ในช่อง <strong>Site Title</strong> (สูงสุด 100 ตัวอักษร)</li>
+                    <li>กด <strong>💾 บันทึก Title</strong></li>
+                    <li>เห็นข้อความ <strong>✅ บันทึกแล้ว</strong> → reload หน้าเว็บ public เพื่อดูผล</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>ชื่อเว็บไซต์ถูกเก็บไว้ใน <code>cache/site-settings.json</code> และมีผลกับ browser tab, header, footer copyright และ ICS calendar name</div>
+                </div>
 
                 <h3>🎨 Site Theme คืออะไร</h3>
                 <p>
@@ -794,12 +853,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <table class="help-table">
                     <thead><tr><th>Theme</th><th>สี</th></tr></thead>
                     <tbody>
-                        <tr><td>🌸 Sakura</td><td>ชมพู (ค่าเริ่มต้น)</td></tr>
+                        <tr><td>🌸 Sakura</td><td>ชมพู</td></tr>
                         <tr><td>🌊 Ocean</td><td>ฟ้า</td></tr>
                         <tr><td>🌿 Forest</td><td>เขียว</td></tr>
                         <tr><td>🌙 Midnight</td><td>ม่วง</td></tr>
                         <tr><td>☀️ Sunset</td><td>ส้ม</td></tr>
-                        <tr><td>🖤 Dark</td><td>น้ำเงิน-เทา (Charcoal)</td></tr>
+                        <tr><td>🖤 Dark</td><td>น้ำเงิน-เทา (Charcoal) — <em>ค่า fallback เมื่อไม่มีการตั้งค่า</em></td></tr>
                         <tr><td>🩶 Gray</td><td>เทา (Silver)</td></tr>
                     </tbody>
                 </table>
@@ -822,6 +881,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">ℹ️</span>
                     <div>ข้อมูล theme ถูกเก็บไว้ใน <code>cache/site-theme.json</code> และ server จะอ่านไฟล์นี้ทุกครั้งที่โหลดหน้าเว็บ</div>
                 </div>
+
+                <h3>🎨 Per-Event Theme (Theme ตาม Event)</h3>
+                <p>
+                    นอกจาก global theme แล้ว ยังสามารถกำหนด theme เฉพาะสำหรับแต่ละ Event ได้
+                    โดยระบบจะเลือก theme ตาม <strong>ลำดับความสำคัญ</strong> ดังนี้:
+                </p>
+                <ol class="steps">
+                    <li><strong>Theme ของ Event</strong> — ถ้า Event มี theme ที่ตั้งค่าไว้ จะใช้ theme นั้นสำหรับทุกหน้าใน event นั้น</li>
+                    <li><strong>Global theme</strong> — ถ้า Event ไม่ได้เลือก theme จะใช้ global theme จากแท็บ Settings</li>
+                    <li><strong>Fallback: <code>dark</code></strong> — ถ้าทั้งสองข้อข้างต้นไม่มีการตั้งค่า จะใช้ theme <code>dark</code> โดยอัตโนมัติ</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>ตั้งค่า theme ของ Event ได้ที่แท็บ <strong>🎪 Events</strong> → คลิก <strong>➕ เพิ่ม Event</strong> หรือ <strong>✏️</strong> แก้ไข → ช่อง <strong>Theme</strong></div>
+                </div>
             </section>
 
             <!-- Roles -->
@@ -838,7 +913,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Theme)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -869,12 +944,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>ดู error log ใน browser console หรือ PHP error log</li>
                 </ul>
 
+                <h3>Q: ต้องการกำหนด Program Type ตอน import ICS</h3>
+                <ul>
+                    <li>เพิ่ม <code>X-PROGRAM-TYPE:stage</code> ในแต่ละ VEVENT ของไฟล์ ICS เพื่อกำหนด type แยกรายการ</li>
+                    <li>หรือพิมพ์ค่า type ในช่อง <strong>🏷️ Program Type (default)</strong> ก่อนอัปโหลดไฟล์ ใน Admin → Import</li>
+                    <li>หรือใช้ argument <code>--type=value</code> เมื่อรัน CLI: <br><code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></li>
+                    <li>ค่าจาก <code>X-PROGRAM-TYPE:</code> ในไฟล์ ICS จะมีความสำคัญสูงกว่า default type เสมอ</li>
+                </ul>
+
+                <h3>Q: เปลี่ยน Site Title แล้วหน้าเว็บยังแสดงชื่อเก่า</h3>
+                <ul>
+                    <li>ตรวจสอบว่ากด <strong>💾 บันทึก Title</strong> แล้วเห็น "✅ บันทึกแล้ว"</li>
+                    <li>Reload หน้าเว็บ <em>public</em> ด้วย <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
+                    <li>ตรวจสอบว่าไดเรกทอรี <code>cache/</code> มีสิทธิ์เขียน (writable)</li>
+                </ul>
+
                 <h3>Q: เปลี่ยน Theme แล้วหน้าเว็บยังไม่เปลี่ยนสี</h3>
                 <ul>
                     <li>ตรวจสอบว่ากด <strong>💾 บันทึก Theme</strong> แล้วเห็น "✅ บันทึกแล้ว"</li>
                     <li>Reload หน้าเว็บ <em>public</em> (ไม่ใช่หน้า Admin) ด้วย <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
                     <li>ตรวจสอบว่าไดเรกทอรี <code>cache/</code> มีสิทธิ์เขียน (writable)</li>
+                    <li>หากเข้าผ่าน URL <code>/event/slug</code> และ Event นั้นมี theme ตั้งค่าไว้ theme ของ Event จะ <strong>override</strong> global theme เสมอ</li>
                 </ul>
+
+                <h3>Q: ต้องการให้แต่ละ Event มีสีต่างกัน</h3>
+                <ol class="steps">
+                    <li>ไปที่แท็บ <strong>🎪 Events</strong></li>
+                    <li>คลิก <strong>✏️</strong> ที่ Event ที่ต้องการ</li>
+                    <li>เลือก theme จากช่อง <strong>Theme</strong> (หรือเลือก "— ใช้ Global Theme —" เพื่อใช้ global)</li>
+                    <li>กด <strong>💾 บันทึก</strong></li>
+                </ol>
 
                 <h3>Q: ต้องการ backup ฐานข้อมูลสำรองอัตโนมัติ</h3>
                 <p>ตั้ง cron job เรียก endpoint backup_create หรือรัน script backup เองเป็นประจำ

@@ -60,7 +60,7 @@ if ($eventSlug) {
 $parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
 
 $action = $_GET['action'] ?? 'programs';
-$fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+$fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
 
 try {
     switch ($action) {
@@ -81,6 +81,15 @@ try {
                 $location = $_GET['location'];
                 $events = array_filter($events, function($event) use ($location) {
                     return $event['location'] === $location;
+                });
+                $events = array_values($events); // Re-index array
+            }
+
+            // Filter by program type
+            if (!empty($_GET['type'])) {
+                $typeFilter = $_GET['type'];
+                $events = array_filter($events, function($event) use ($typeFilter) {
+                    return ($event['program_type'] ?? '') === $typeFilter;
                 });
                 $events = array_values($events); // Re-index array
             }
@@ -111,6 +120,14 @@ try {
             sendJsonWithCache($locations);
             break;
 
+        case 'types':
+            $types = $parser->getAllTypes();
+            $types = array_map(function($t) {
+                return htmlspecialchars($t, ENT_QUOTES, 'UTF-8');
+            }, $types);
+            sendJsonWithCache($types);
+            break;
+
         case 'events_list':
             $activeEvents = get_all_active_events();
             $activeEvents = array_map(function($ev) {
@@ -130,7 +147,7 @@ try {
         default:
             http_response_code(400);
             echo json_encode([
-                'error' => 'Invalid action. Use: programs, organizers, locations, or events_list'
+                'error' => 'Invalid action. Use: programs, organizers, locations, types, or events_list'
             ], JSON_UNESCAPED_UNICODE);
     }
 } catch (Exception $e) {

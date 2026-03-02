@@ -22,7 +22,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Idol Stage Timetable</title>
+    <title>Admin - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <link rel="stylesheet" href="<?php echo asset_url('../styles/common.css'); ?>">
     <style>
         /* Admin Color Palette - Professional Blue/Gray Theme */
@@ -236,6 +236,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         .events-table .actions button {
             margin-right: 5px;
+        }
+
+        .program-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: #e3f0ff;
+            color: #1565c0;
+            white-space: nowrap;
         }
 
         /* Pagination */
@@ -942,7 +953,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="admin-container">
         <!-- Header -->
         <div class="admin-header">
-            <h1>Admin - Idol Stage Timetable</h1>
+            <h1>Admin - <?php echo htmlspecialchars(get_site_title()); ?></h1>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span style="color: rgba(255, 255, 255, 0.95); font-weight: 600;">สวัสดี, <?php echo htmlspecialchars($adminUsername); ?> <small style="opacity:0.7; font-weight:400;">(<?php echo htmlspecialchars($adminRole); ?>)</small></span>
                 <?php if ($adminUserId !== null): ?>
@@ -1046,7 +1057,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <?php if (VENUE_MODE === 'multi'): ?>
                     <th class="sortable" onclick="sortBy('location')">Venue <span class="sort-icon" data-col="location"></span></th>
                     <?php endif; ?>
-                    <th class="sortable" onclick="sortBy('organizer')">Organizer <span class="sort-icon" data-col="organizer"></span></th>
+                    <th class="sortable" onclick="sortBy('categories')">Categories <span class="sort-icon" data-col="categories"></span></th>
+                    <th>Type</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -1090,12 +1102,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div id="importSection" style="display:none">
             <!-- Upload Area -->
             <div class="upload-area" id="uploadArea">
-                <div class="form-group" style="max-width: 400px; margin: 0 auto 20px;">
-                    <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Event:</label>
-                    <select id="icsImportEventMeta" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;">
-                        <option value="">-- เลือก Event --</option>
-                    </select>
-                    <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก event ที่ต้องการ import programs เข้าไป</small>
+                <div style="max-width: 400px; margin: 0 auto 20px; display: flex; flex-direction: column; gap: 14px;">
+                    <div class="form-group">
+                        <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Event:</label>
+                        <select id="icsImportEventMeta" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;">
+                            <option value="">-- เลือก Event --</option>
+                        </select>
+                        <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก event ที่ต้องการ import programs เข้าไป</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="icsDefaultType" style="font-weight: 600; margin-bottom: 6px; display: block;">🏷️ Program Type (default):</label>
+                        <input type="text" id="icsDefaultType" list="icsDefaultTypeList"
+                               style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;"
+                               placeholder="stage, booth, meet &amp; greet, ... (ไม่บังคับ)">
+                        <datalist id="icsDefaultTypeList"></datalist>
+                        <small class="form-hint" style="color: #888; font-size: 0.85em;">ใช้สำหรับ programs ที่ไม่มี <code>X-PROGRAM-TYPE</code> ในไฟล์ ICS</small>
+                    </div>
                 </div>
                 <div class="upload-box" id="uploadBox" onclick="document.getElementById('icsFileInput').click()">
                     <input type="file" id="icsFileInput" accept=".ics" style="display:none" onchange="handleFileSelect(event)">
@@ -1141,7 +1163,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                                 <th>ชื่อ Program</th>
                                 <th>วันที่/เวลา</th>
                                 <th>สถานที่</th>
-                                <th>ผู้จัด</th>
+                                <th>ศิลปินที่เกี่ยวข้อง</th>
                                 <th style="width:140px">การจัดการซ้ำ</th>
                                 <th style="width:100px">Actions</th>
                             </tr>
@@ -1347,6 +1369,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <?php if ($adminRole === 'admin'): ?>
         <div id="settingsSection" style="display:none">
             <div style="max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px">📝 Site Title</h3>
+                <p style="color:#6c757d;margin-bottom:12px">ชื่อเว็บไซต์ที่แสดงใน browser tab, header และ ICS export</p>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:32px;flex-wrap:wrap">
+                    <input type="text" id="siteTitleInput" maxlength="100"
+                           style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;flex:1;min-width:200px"
+                           placeholder="Idol Stage Timetable">
+                    <button class="btn btn-primary" onclick="saveTitleSetting()" id="titleSaveBtn">💾 บันทึก Title</button>
+                    <span id="titleSaveMsg" style="display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
+                </div>
+
                 <h3 style="margin-bottom:8px">🎨 Site Theme</h3>
                 <p style="color:#6c757d;margin-bottom:24px">เลือก theme สำหรับหน้าเว็บ public ทั้งหมด</p>
 
@@ -1548,6 +1580,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <label for="categories">Categories</label>
                         <input type="text" id="categories" placeholder="แยกด้วย comma">
                     </div>
+
+                    <div class="form-group">
+                        <label for="programType">ประเภท (Program Type)</label>
+                        <input type="text" id="programType" list="programTypesListMain" placeholder="stage, booth, meet &amp; greet, ...">
+                        <datalist id="programTypesListMain">
+                            <!-- Program types loaded dynamically -->
+                        </datalist>
+                        <small class="form-hint">เลือกจาก dropdown หรือพิมพ์ประเภทใหม่ได้</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -1611,6 +1652,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <input type="text" id="bulkEditCategories" class="form-control"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
                         <small class="form-hint">กรอกเพื่ออัปเดต categories ของ programs ทั้งหมดที่เลือก</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bulkEditProgramType">Program Type (ประเภท)</label>
+                        <input type="text" id="bulkEditProgramType" class="form-control"
+                               list="bulkProgramTypesList"
+                               placeholder="-- ไม่เปลี่ยนแปลง --">
+                        <datalist id="bulkProgramTypesList">
+                            <!-- Program types loaded dynamically -->
+                        </datalist>
+                        <small class="form-hint">กรอกเพื่ออัปเดต program type ของ programs ทั้งหมดที่เลือก</small>
                     </div>
 
                     <div class="form-warning">
@@ -1776,6 +1828,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
+                        <label for="conventionEmail">Contact Email</label>
+                        <input type="email" id="conventionEmail" maxlength="200" placeholder="contact@event.com">
+                        <small class="form-hint">ใช้ใน ICS export — <code>ORGANIZER;CN="ชื่องาน":mailto:email</code></small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="conventionDescription">Description</label>
                         <textarea id="conventionDescription" rows="3" maxlength="1000" placeholder="รายละเอียด"></textarea>
                     </div>
@@ -1806,6 +1864,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                                 <label for="conventionIsActive" style="display: inline; font-weight: normal;">เปิดใช้งาน</label>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conventionTheme">Theme</label>
+                        <select id="conventionTheme">
+                            <option value="">-- ใช้ Global Theme (จาก Settings) --</option>
+                            <option value="sakura">🌸 Sakura</option>
+                            <option value="ocean">🌊 Ocean</option>
+                            <option value="forest">🌿 Forest</option>
+                            <option value="midnight">🌙 Midnight</option>
+                            <option value="sunset">☀️ Sunset</option>
+                            <option value="dark">🖤 Dark</option>
+                            <option value="gray">🩶 Gray</option>
+                        </select>
+                        <small class="form-hint">ธีมเฉพาะ event นี้ — ถ้าไม่เลือก จะใช้ Global Theme จาก Settings (fallback: Dark)</small>
                     </div>
                 </form>
             </div>
@@ -1896,6 +1969,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         document.addEventListener('DOMContentLoaded', () => {
             loadEventMetaOptions();
             loadVenues();
+            loadTypesForDatalist();
             loadPrograms();
             loadPendingCount();
             setupFormChangeTracking();
@@ -1940,7 +2014,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (tab === 'events') loadEventsTab();
             if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
             if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
-            if (tab === 'settings' && ADMIN_ROLE === 'admin') loadThemeSettings();
+            if (tab === 'settings' && ADMIN_ROLE === 'admin') { loadThemeSettings(); loadTitleSetting(); }
         }
 
         // Mobile tab dropdown controls
@@ -2331,7 +2405,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const tbody = document.getElementById('eventsTableBody');
 
             if (events.length === 0) {
-                const colspan = VENUE_MODE === 'multi' ? 7 : 6;
+                const colspan = VENUE_MODE === 'multi' ? 8 : 7;
                 tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">ไม่พบ programs</td></tr>`;
                 return;
             }
@@ -2363,7 +2437,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td>${escapeHtml(event.title)}</td>
                         <td>${dateStr}<br>${startTime} - ${endTime}</td>
                         ${VENUE_MODE === 'multi' ? `<td>${escapeHtml(event.location || '-')}</td>` : ''}
-                        <td>${escapeHtml(event.organizer || '-')}</td>
+                        <td>${escapeHtml(event.categories || '-')}</td>
+                        <td>${event.program_type ? `<span class="program-type-badge">${escapeHtml(event.program_type)}</span>` : '<span style="color:#adb5bd">-</span>'}</td>
                         <td class="actions">
                             <button class="btn btn-secondary btn-sm" onclick="openEditModal(${event.id})">แก้ไข</button>
                             <button class="btn btn-info btn-sm" onclick="duplicateEvent(${event.id})" title="Duplicate">Copy</button>
@@ -2563,8 +2638,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('bulkEditVenue').value = '';
             document.getElementById('bulkEditOrganizer').value = '';
             document.getElementById('bulkEditCategories').value = '';
+            document.getElementById('bulkEditProgramType').value = '';
 
             await loadVenuesForBulkEdit();
+            await loadTypesForDatalist();
             document.getElementById('bulkEditModal').classList.add('active');
         }
 
@@ -2591,6 +2668,30 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
         }
 
+        async function loadTypesForDatalist() {
+            try {
+                const response = await fetch('api.php?action=programs_types');
+                const result = await response.json();
+
+                if (result.success) {
+                    const ids = ['programTypesListMain', 'bulkProgramTypesList', 'icsDefaultTypeList'];
+                    ids.forEach(id => {
+                        const datalist = document.getElementById(id);
+                        if (datalist) {
+                            datalist.innerHTML = '';
+                            result.data.forEach(type => {
+                                const option = document.createElement('option');
+                                option.value = type;
+                                datalist.appendChild(option);
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load program types:', error);
+            }
+        }
+
         async function submitBulkEdit(event) {
             event.preventDefault();
 
@@ -2598,8 +2699,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const venue = document.getElementById('bulkEditVenue').value;
             const organizer = document.getElementById('bulkEditOrganizer').value.trim();
             const categories = document.getElementById('bulkEditCategories').value.trim();
+            const programType = document.getElementById('bulkEditProgramType').value.trim();
 
-            if (!venue && !organizer && !categories) {
+            if (!venue && !organizer && !categories && !programType) {
                 showToast('กรุณาเลือกอย่างน้อย 1 ฟิลด์ที่ต้องการเปลี่ยนแปลง', 'error');
                 return;
             }
@@ -2608,6 +2710,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (venue) updateData.location = venue;
             if (organizer) updateData.organizer = organizer;
             if (categories) updateData.categories = categories;
+            if (programType) updateData.program_type = programType;
 
             showLoading();
 
@@ -2703,6 +2806,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
                 document.getElementById('categories').value = event.categories || '';
+                document.getElementById('programType').value = event.program_type || '';
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -2741,6 +2845,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
                 document.getElementById('categories').value = event.categories || '';
+                document.getElementById('programType').value = event.program_type || '';
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -2781,6 +2886,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 end: `${date}T${endTime}:00`,
                 description: document.getElementById('description').value,
                 categories: document.getElementById('categories').value,
+                program_type: document.getElementById('programType').value,
                 event_id: conventionVal ? parseInt(conventionVal) : null
             };
 
@@ -2983,7 +3089,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td>${escapeHtml(event.title || '')}</td>
                         <td>${formatDateTime(event.start)} - ${formatDateTime(event.end)}</td>
                         <td>${escapeHtml(event.location || '')}</td>
-                        <td>${escapeHtml(event.organizer || '')}</td>
+                        <td>${escapeHtml(event.categories || '')}</td>
                         <td>${dupAction}</td>
                         <td>
                             <button class="btn btn-sm btn-secondary" onclick="editPreviewEvent(${index})" ${hasErrors ? 'disabled' : ''}>✏️</button>
@@ -3134,14 +3240,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             showLoading();
 
-            // Include event_meta_id from ICS import selector
+            // Include event_meta_id and default_type from ICS import selectors
             const importEventMetaId = document.getElementById('icsImportEventMeta').value;
+            const importDefaultType = (document.getElementById('icsDefaultType')?.value || '').trim();
             const importBody = {
                 events: eventsToImport,
                 save_file: true
             };
             if (importEventMetaId) {
                 importBody.event_id = parseInt(importEventMetaId);
+            }
+            if (importDefaultType) {
+                importBody.default_type = importDefaultType;
             }
 
             try {
@@ -3800,6 +3910,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionId').value = '';
             document.getElementById('conventionIsActive').checked = true;
             document.getElementById('conventionVenueMode').value = 'multi';
+            document.getElementById('conventionTheme').value = '';
             conventionsFormChanged = false;
             document.getElementById('conventionModal').classList.add('active');
         }
@@ -3822,11 +3933,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('conventionId').value = conv.id;
                 document.getElementById('conventionName').value = conv.name || '';
                 document.getElementById('conventionSlug').value = conv.slug || '';
+                document.getElementById('conventionEmail').value = conv.email || '';
                 document.getElementById('conventionDescription').value = conv.description || '';
                 document.getElementById('conventionStartDate').value = conv.start_date || '';
                 document.getElementById('conventionEndDate').value = conv.end_date || '';
                 document.getElementById('conventionVenueMode').value = conv.venue_mode || 'multi';
                 document.getElementById('conventionIsActive').checked = !!conv.is_active;
+                document.getElementById('conventionTheme').value = conv.theme || '';
 
                 conventionsFormChanged = false;
                 document.getElementById('conventionModal').classList.add('active');
@@ -3853,14 +3966,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             e.preventDefault();
 
             const id = document.getElementById('conventionId').value;
+            const themeVal = document.getElementById('conventionTheme').value;
             const data = {
                 name: document.getElementById('conventionName').value,
                 slug: document.getElementById('conventionSlug').value,
+                email: document.getElementById('conventionEmail').value || null,
                 description: document.getElementById('conventionDescription').value,
                 start_date: document.getElementById('conventionStartDate').value,
                 end_date: document.getElementById('conventionEndDate').value,
                 venue_mode: document.getElementById('conventionVenueMode').value,
-                is_active: document.getElementById('conventionIsActive').checked ? 1 : 0
+                is_active: document.getElementById('conventionIsActive').checked ? 1 : 0,
+                theme: themeVal || null
             };
 
             const isEdit = !!id;
@@ -4478,6 +4594,41 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 btn.disabled = false;
                 if (data.success) {
                     const msg = document.getElementById('themeSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function loadTitleSetting() {
+            fetch('api.php?action=title_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('siteTitleInput').value = data.data.site_title || '';
+                    }
+                });
+        }
+
+        function saveTitleSetting() {
+            const input = document.getElementById('siteTitleInput');
+            const title = input.value.trim();
+            if (!title) { alert('กรุณากรอก Site Title'); return; }
+            const btn = document.getElementById('titleSaveBtn');
+            btn.disabled = true;
+            fetch('api.php?action=title_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({ site_title: title })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('titleSaveMsg');
                     msg.style.display = 'inline';
                     setTimeout(() => msg.style.display = 'none', 3000);
                 } else {

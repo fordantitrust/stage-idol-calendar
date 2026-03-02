@@ -9,10 +9,23 @@
 // =============================================================================
 
 /**
+ * Application Timezone
+ * Must be set before any date/time functions are called.
+ * All stored datetimes are in Asia/Bangkok (UTC+7).
+ */
+date_default_timezone_set('Asia/Bangkok');
+
+/**
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '2.1.0');
+define('APP_VERSION', '2.4.3');
+
+/**
+ * Application Name (Site Title)
+ * Default/fallback when no custom title is saved via admin Settings
+ */
+define('APP_NAME', 'Idol Stage Timetable');
 
 /**
  * Production Mode

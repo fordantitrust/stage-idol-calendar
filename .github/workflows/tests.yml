@@ -41,6 +41,12 @@ jobs:
           php migrate-add-requests-table.php || true
           php migrate-add-credits-table.php || true
           php migrate-add-admin-users-table.php || true
+          php migrate-add-role-column.php || true
+          php migrate-rename-tables-columns.php || true
+          php migrate-add-indexes.php || true
+          php migrate-add-theme-column.php || true
+          php migrate-add-event-email-column.php || true
+          php migrate-add-program-type-column.php || true
           cd ..
 
       - name: Run tests
@@ -93,6 +99,12 @@ jobs:
           php migrate-add-requests-table.php || true
           php migrate-add-credits-table.php || true
           php migrate-add-admin-users-table.php || true
+          php migrate-add-role-column.php || true
+          php migrate-rename-tables-columns.php || true
+          php migrate-add-indexes.php || true
+          php migrate-add-theme-column.php || true
+          php migrate-add-event-email-column.php || true
+          php migrate-add-program-type-column.php || true
 
       - name: Run integration tests
         run: php tests/run-tests.php IntegrationTest

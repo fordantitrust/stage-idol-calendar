@@ -42,6 +42,9 @@ $testFiles = [
     'IntegrationTest' => __DIR__ . '/IntegrationTest.php',
     'UserManagementTest' => __DIR__ . '/UserManagementTest.php',
     'ThemeTest' => __DIR__ . '/ThemeTest.php',
+    'SiteSettingsTest' => __DIR__ . '/SiteSettingsTest.php',
+    'EventEmailTest' => __DIR__ . '/EventEmailTest.php',
+    'ProgramTypeTest' => __DIR__ . '/ProgramTypeTest.php',
 ];
 
 // Filter test files if specific test requested

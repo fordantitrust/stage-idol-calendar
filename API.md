@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-API endpoints ทั้งหมดของ Idol Stage Timetable v2.1.0
+API endpoints ทั้งหมดของ Idol Stage Timetable v2.4.3
 
 ---
 
@@ -358,7 +358,8 @@ X-CSRF-Token: <token>
   "start_date": "2026-02-07",
   "end_date": "2026-02-08",
   "venue_mode": "multi",
-  "is_active": true
+  "is_active": true,
+  "email": "contact@idol-stage.com"
 }
 ```
 
@@ -559,4 +560,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v2.1.0*
+*Idol Stage Timetable v2.4.3*

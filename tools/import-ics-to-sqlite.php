@@ -9,16 +9,23 @@ require_once __DIR__ . '/../IcsParser.php';
 
 echo "=== ICS to SQLite Import Script ===\n\n";
 
-// Parse --event=slug argument
+// Parse --event=slug and --type=value arguments
 $eventSlug = null;
+$defaultType = null;
 foreach ($argv ?? [] as $arg) {
     if (strpos($arg, '--event=') === 0) {
         $eventSlug = substr($arg, 8);
+    }
+    if (strpos($arg, '--type=') === 0) {
+        $defaultType = substr($arg, 7);
     }
 }
 
 if ($eventSlug) {
     echo "Event slug: $eventSlug\n";
+}
+if ($defaultType) {
+    echo "Default type: $defaultType\n";
 }
 
 // กำหนด path
@@ -99,8 +106,8 @@ $stats = [
 
 // เตรียม SQL statements
 $insertSQL = "
-INSERT INTO programs(uid, title, start, end, location, organizer, description, categories, event_id)
-VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id)
+INSERT INTO programs(uid, title, start, end, location, organizer, description, categories, program_type, event_id)
+VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :event_id)
 ";
 
 $updateSQL = "
@@ -112,6 +119,7 @@ SET title = :title,
     organizer = :organizer,
     description = :description,
     categories = :categories,
+    program_type = :program_type,
     updated_at = CURRENT_TIMESTAMP
 WHERE uid = :uid
 ";
@@ -148,6 +156,9 @@ foreach ($files as $file) {
         $checkStmt->execute([':uid' => $event['uid']]);
         $exists = $checkStmt->fetch();
 
+        // program_type: ใช้จาก X-PROGRAM-TYPE field ในไฟล์ หรือ --type= argument เป็น fallback
+        $programType = !empty($event['program_type']) ? $event['program_type'] : ($defaultType ?: null);
+
         try {
             if ($exists) {
                 // Update existing event
@@ -159,10 +170,11 @@ foreach ($files as $file) {
                     ':location' => $event['location'],
                     ':organizer' => $event['organizer'],
                     ':description' => $event['description'],
-                    ':categories' => $event['categories']
+                    ':categories' => $event['categories'],
+                    ':program_type' => $programType
                 ]);
                 $stats['updated']++;
-                echo "  🔄 Updated: " . $event['title'] . "\n";
+                echo "  🔄 Updated: " . $event['title'] . ($programType ? " [$programType]" : "") . "\n";
             } else {
                 // Insert new event
                 $insertStmt->execute([
@@ -174,10 +186,11 @@ foreach ($files as $file) {
                     ':organizer' => $event['organizer'],
                     ':description' => $event['description'],
                     ':categories' => $event['categories'],
+                    ':program_type' => $programType,
                     ':event_id' => $eventMetaId
                 ]);
                 $stats['inserted']++;
-                echo "  ✅ Inserted: " . $event['title'] . "\n";
+                echo "  ✅ Inserted: " . $event['title'] . ($programType ? " [$programType]" : "") . "\n";
             }
         } catch (PDOException $e) {
             echo "  ❌ Error: " . $e->getMessage() . "\n";

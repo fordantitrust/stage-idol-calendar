@@ -20,9 +20,10 @@ $allEvents = $parser->getAllEvents();
 // รับค่า filter จาก GET parameters with sanitization
 $filterArtists = get_sanitized_array_param('artist', 200, 50);
 $filterVenues = get_sanitized_array_param('venue', 200, 50);
+$filterTypes = get_sanitized_array_param('type', 200, 50);
 
 // กรองข้อมูล (ใช้ CATEGORIES - รองรับหลายค่าแยกด้วย comma)
-$filteredEvents = array_filter($allEvents, function($event) use ($filterArtists, $filterVenues) {
+$filteredEvents = array_filter($allEvents, function($event) use ($filterArtists, $filterVenues, $filterTypes) {
     // ตรวจสอบ artist/categories (รองรับหลายค่าแยกด้วย comma)
     $artistMatch = empty($filterArtists);
     if (!$artistMatch && isset($event['categories'])) {
@@ -38,7 +39,8 @@ $filteredEvents = array_filter($allEvents, function($event) use ($filterArtists,
     }
 
     $venueMatch = empty($filterVenues) || (isset($event['location']) && in_array($event['location'], $filterVenues));
-    return $artistMatch && $venueMatch;
+    $typeMatch = empty($filterTypes) || in_array($event['program_type'] ?? '', $filterTypes);
+    return $artistMatch && $venueMatch && $typeMatch;
 });
 
 // สร้างชื่อไฟล์
@@ -59,12 +61,13 @@ $exportedEvents = count($filteredEvents);
 // เริ่มสร้างเนื้อหา ICS
 echo "BEGIN:VCALENDAR\r\n";
 echo "VERSION:2.0\r\n";
-echo "PRODID:-//Idol Stage Timetable//NONSGML v1.0//EN\r\n";
+$siteTitle = get_site_title();
+echo "PRODID:-//" . $siteTitle . "//NONSGML v1.0//EN\r\n";
 echo "CALSCALE:GREGORIAN\r\n";
 echo "METHOD:PUBLISH\r\n";
-echo "X-WR-CALNAME:" . ($eventName ? $eventName . " - " : "") . "Idol Stage Timetable\r\n";
+echo "X-WR-CALNAME:" . ($eventName ? $eventName . " - " : "") . $siteTitle . "\r\n";
 echo "X-WR-TIMEZONE:Asia/Bangkok\r\n";
-echo "X-WR-CALDESC:Exported events from Idol Stage Timetable ($exportedEvents of $totalEvents events)\r\n";
+echo "X-WR-CALDESC:Exported events from " . $siteTitle . " ($exportedEvents of $totalEvents events)\r\n";
 
 // เพิ่ม events
 foreach ($filteredEvents as $event) {
@@ -88,19 +91,29 @@ foreach ($filteredEvents as $event) {
         echo "LOCATION:" . escapeIcsValue($event['location']) . "\r\n";
     }
 
-    // if (!empty($event['organizer'])) {
-    //     // Format: ORGANIZER;CN="Artist Name":mailto:noreply@stageidol.local
-    //     $organizerName = escapeIcsValue($event['organizer']);
-    //     echo "ORGANIZER;CN=\"" . $organizerName . "\":mailto:noreply@stageidol.local\r\n";
-    // }
+    // ORGANIZER = ข้อมูลของงาน (event) ที่ program นี้สังกัด
+    if ($eventMeta && !empty($eventMeta['name'])) {
+        $orgName  = escapeIcsValue($eventMeta['name']);
+        $orgEmail = (!empty($eventMeta['email']) && filter_var($eventMeta['email'], FILTER_VALIDATE_EMAIL))
+            ? $eventMeta['email']
+            : 'noreply@stageidol.local';
+        echo "ORGANIZER;CN=\"" . $orgName . "\":mailto:" . $orgEmail . "\r\n";
+    }
 
     if (!empty($event['description'])) {
         echo "DESCRIPTION:" . escapeIcsValue($event['description']) . "\r\n";
     }
 
-    // เพิ่ม CATEGORIES (ถ้ามีจากไฟล์ต้นฉบับ หรือใช้ชื่อศิลปิน)
+    // เพิ่ม CATEGORIES (ถ้ามีจากไฟล์ต้นฉบับ หรือใช้ชื่อศิลปิน) + program_type ถ้ามี
+    $categoriesParts = [];
     if (!empty($event['categories'])) {
-        echo "CATEGORIES:" . escapeIcsValue($event['categories']) . "\r\n";
+        $categoriesParts[] = $event['categories'];
+    }
+    if (!empty($event['program_type'])) {
+        $categoriesParts[] = $event['program_type'];
+    }
+    if (!empty($categoriesParts)) {
+        echo "CATEGORIES:" . escapeIcsValue(implode(',', $categoriesParts)) . "\r\n";
     }
 
     echo "STATUS:CONFIRMED\r\n";

@@ -11,14 +11,14 @@
 - 🌏 **3 ภาษา** - ไทย, English, 日本語 (พร้อม html lang attribute)
 - 📱 **Responsive Design** - รองรับทุกขนาดหน้าจอ รวมถึง iOS
 - 📊 **Dual View Modes** - สลับมุมมอง List / Gantt Chart Timeline
-- 🔍 **กรองข้อมูล** - ตามศิลปิน/วง และเวที (รองรับหลายค่า)
+- 🔍 **กรองข้อมูล** - ตามศิลปิน/วง, เวที และประเภท program (รองรับหลายค่า)
 - 📸 **บันทึกเป็นรูปภาพ** - Lazy-load html2canvas (PNG)
 - 📅 **Export ICS** - ส่งออกเป็นไฟล์ปฏิทิน (Google Calendar / Apple Calendar)
 - 📝 **Request System** - ผู้ใช้แจ้งเพิ่ม/แก้ไข event ได้ + Admin อนุมัติ
 - 🎪 **Multi-Event Support** - รองรับหลาย conventions/events ในระบบเดียว เลือกผ่าน URL หรือ dropdown
 
 ### สำหรับ Admin
-- 🛠️ **Setup Wizard** - (`setup.php`) ติดตั้งระบบ fresh install + maintenance แบบ 5 ขั้นตอน + lock/unlock
+- 🛠️ **Setup Wizard** - (`setup.php`) ติดตั้งระบบ fresh install + maintenance แบบ 6 ขั้นตอน + Production Cleanup + lock/unlock
 - ⚙️ **Admin UI** - จัดการ events, requests, credits และ conventions ผ่านหน้าเว็บ (CRUD)
 - 🎪 **Events Management** - Tab "Events" สำหรับจัดการหลายงาน (CRUD)
 - 🔐 **Database Auth** - Admin credentials ใน SQLite รองรับหลาย users + เปลี่ยนรหัสผ่านผ่าน UI
@@ -41,7 +41,7 @@
 - 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
 - 🔗 **Clean URLs** - ลบ .php extension จาก public URLs พร้อม .htaccess และ Nginx config
 - 📅 **Date Jump Bar** - แถบกระโดดไปวันที่ต้องการ (fixed-position, IntersectionObserver)
-- 🧪 **340 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
+- 🧪 **999 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
 
 ## 🚀 การติดตั้ง
 
@@ -153,7 +153,8 @@ stage-idol-calendar/
 │   ├── CreditsApiTest.php # Credits API tests (49 tests)
 │   ├── IntegrationTest.php # Integration tests (97 tests)
 │   ├── UserManagementTest.php # User management & role tests (116 tests)
-│   └── ThemeTest.php      # Theme system tests (16 tests)
+│   ├── ThemeTest.php      # Theme system tests (24 tests)
+│   └── SiteSettingsTest.php # Site title settings tests (14 tests)
 │
 ├── tools/                 # Development tools
 │   ├── import-ics-to-sqlite.php
@@ -165,6 +166,7 @@ stage-idol-calendar/
 │   ├── migrate-add-role-column.php
 │   ├── migrate-rename-tables-columns.php
 │   ├── migrate-add-indexes.php
+│   ├── migrate-add-event-email-column.php
 │   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
@@ -192,7 +194,7 @@ stage-idol-calendar/
 ### เปลี่ยน Version (Cache Busting)
 แก้ไขในไฟล์ `config/app.php`:
 ```php
-define('APP_VERSION', '1.2.9'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
+define('APP_VERSION', '2.4.3'); // เปลี่ยนเลขนี้เพื่อ force cache refresh
 ```
 
 ### Multi-Event Mode (โหมดหลาย Convention)
@@ -361,6 +363,7 @@ POST   ?action=backup_upload_restore     # Upload .db แล้ว restore
 | `migrate-add-role-column.php` | เพิ่ม role column ใน admin_users |
 | `migrate-rename-tables-columns.php` | Rename tables/columns เป็น v1.2.9 schema (idempotent) |
 | `migrate-add-indexes.php` | DB performance indexes (idempotent, รันซ้ำได้) |
+| `migrate-add-event-email-column.php` | เพิ่ม email column ใน events table (idempotent) |
 | `generate-password-hash.php` | สร้าง password hash สำหรับ admin |
 | `debug-parse.php` | Debug การ parse ICS |
 | `test-parse.php` | ทดสอบ parse ไฟล์ |
@@ -398,7 +401,7 @@ docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php  # import dat
 
 ### Automated Test Suite
 
-ระบบมี **340 automated unit tests** ครอบคลุมทุก feature:
+ระบบมี **999 automated unit tests** ครอบคลุมทุก feature:
 
 ```bash
 # รัน test ทั้งหมด
@@ -411,7 +414,10 @@ php tests/run-tests.php AdminAuthTest         # 38 tests
 php tests/run-tests.php CreditsApiTest        # 49 tests
 php tests/run-tests.php IntegrationTest       # 97 tests
 php tests/run-tests.php UserManagementTest    # 116 tests
-php tests/run-tests.php ThemeTest             # 16 tests
+php tests/run-tests.php ThemeTest             # 140 tests
+php tests/run-tests.php SiteSettingsTest      # 154 tests
+php tests/run-tests.php EventEmailTest        # 19 tests
+php tests/run-tests.php ProgramTypeTest       # 35 tests
 
 # รัน test เฉพาะ function
 php tests/run-tests.php SecurityTest::testSanitizeString
@@ -436,8 +442,11 @@ quick-test.bat
 - **IntegrationTest**: Configuration validation, workflow testing, API endpoints, multi-event support
 - **UserManagementTest**: Role column schema, role helpers, user CRUD, permission checks
 - **ThemeTest**: Theme system, get_site_theme(), CSS files, admin API, public pages
+- **SiteSettingsTest**: Site title, get_site_title(), APP_NAME, admin API, public pages
+- **EventEmailTest**: events.email schema, CRUD, validation logic, ICS ORGANIZER logic, migration idempotency
+- **ProgramTypeTest**: programs.program_type schema, CRUD, migration idempotency, public API type filter, admin API programs_types, index.php UI (appendFilter, hasTypes, event-subtitle, clickable badges), translations (table.type TH/EN/JA), admin UI v2.4.2 categories column
 
-✅ **ผ่านทั้งหมด 340 tests บน PHP 8.1, 8.2, และ 8.3**
+✅ **ผ่านทั้งหมด 999 tests บน PHP 8.1, 8.2, และ 8.3**
 
 ### Manual Testing
 
@@ -502,6 +511,73 @@ END:VCALENDAR
 - Twitter (X): [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ## 📝 Changelog
+
+### v2.4.3 (2026-03-02)
+
+- 🧪 **ProgramTypeTest** — 35 automated tests ครอบคลุม v2.4.x (schema, migration, CRUD, public API type filter, admin API programs_types, index.php UI features, translations, admin UI v2.4.2 categories column); total 999 tests (10 suites)
+- 🐛 **setup.php `fix_programs_title` bug fix** — CREATE TABLE recreate ไม่มี `program_type` column; แก้โดยเพิ่ม column ใน schema ใหม่เสมอ + ตรวจสอบ `programs_old` แล้ว copy ค่าถ้ามี
+
+### v2.4.2 (2026-03-02)
+
+- 🗂️ **Admin Programs List: Organizer → Categories** — เปลี่ยน column "Organizer" ในตาราง Programs ของ Admin เป็น "Categories" (ศิลปินที่เกี่ยวข้อง); sort key `organizer` → `categories`; ICS import preview header `ผู้จัด` → `ศิลปินที่เกี่ยวข้อง`
+
+### v2.4.1 (2026-03-02)
+
+- 🏷️ **Event Name Subtitle** — ชื่องานแสดงเป็น `<div class="event-subtitle">` แยกใต้ `<h1>` เสมอ (ไม่ขึ้นกับ dropdown)
+- 🖱️ **Clickable Filter Badges** — badge ศิลปิน (categories cell) และ badge ประเภท (type cell) กดได้เพื่อ append filter; `appendFilter(type, value)` JS function; `htmlspecialchars(json_encode(...), ENT_QUOTES)` fix SyntaxError
+- 📋 **Program Type Column** — แยก column "ประเภท" เป็นของตัวเอง; แสดงเมื่อ `$hasTypes = !empty($types)` (มีอย่างน้อย 1 program มี type); `table.type` key ใน translations.js (TH/EN/JA)
+- 📖 **how-to-use.php อัพเดท** — เพิ่มหัวข้อ "5. กรองด่วนจาก badge" ครบ 3 ภาษา
+
+### v2.4.0 (2026-03-02)
+
+- 🏷️ **Program Type System** — `program_type TEXT DEFAULT NULL` column ใน `programs` table; free-text entry พร้อม autocomplete; filter checkbox UI (เหมือน artist filter); badge บน program rows; type label บน Gantt bars; `?type=` filter ใน public API + export; migration script `tools/migrate-add-program-type-column.php`
+
+### v2.3.4 (2026-03-02)
+
+- 🗓️ **Gantt Chart ใน Single Venue Mode** — ลบ `if ($currentVenueMode === 'multi')` wrapper ออก; toggle switch แสดงทุก venue mode
+
+### v2.3.3 (2026-03-02)
+
+- 🗓️ **Gantt Chart overlap fix** — program ที่ 4+ ไม่แสดงเมื่อ overlap >3; แก้จาก CSS `stack-h-N` เป็น inline style dynamic `stackIndex/stackTotal` (หารเท่ากัน ไม่จำกัดจำนวน)
+
+### v2.3.2 (2026-03-02)
+
+- 🕐 **Timezone fix** — เพิ่ม `date_default_timezone_set('Asia/Bangkok')` ใน `config/app.php`; แก้ `IcsParser::parseDateTime()` แปลง UTC (Z suffix) → Asia/Bangkok ก่อนเก็บ DB
+
+### v2.3.1 (2026-03-02)
+
+- 🐛 **Bulk Edit Programs ไม่บันทึก** — `bulkUpdatePrograms()` ผสม named + positional PDO parameters → silent fail; แก้เป็น named params ล้วน (`:id_0`, `:id_1`, ...)
+
+### v2.3.0 (2026-03-02)
+
+- 📧 **Event Email Field** — `email TEXT DEFAULT NULL` ใน `events` table; Admin Event form มี Contact Email input; invalid email → stored as NULL (`FILTER_VALIDATE_EMAIL`)
+- 📅 **ICS ORGANIZER redesign** — `ORGANIZER;CN="ชื่องาน":mailto:email` แทนการใส่ชื่อศิลปิน; fallback `noreply@stageidol.local` เมื่อไม่มี email
+- 🧹 **Production Cleanup (Step 6 ใน setup.php)** — ลบไฟล์ dev/docs ผ่าน grouped checkbox (Docs, Tests, Tools, Docker, Nginx, CI/CD); whitelist-based security
+- 🧪 **EventEmailTest** — 19 tests ใหม่ (รวม 637 ทั้งระบบ)
+- 🔧 **Migration** — `tools/migrate-add-event-email-column.php` (idempotent)
+
+### v2.2.1 (2026-02-28)
+
+- 🐛 **setup.php schema fix** — `programs` table ถูกสร้างด้วย `summary` แทน `title` → Admin สร้าง program ไม่ได้ ("Failed to create event")
+  - แก้ `CREATE TABLE programs` + migration action `fix_programs_title` + UI button + `$allTablesOk` ตรวจ `$hasTitleColumn`
+- 🐛 **หน้ารวม Events ว่างหลัง init** — `$showEventListing` ใช้ `$nonDefaultEvents` แทน `$activeEvents` ทั้งหมด
+- 🌱 **Seed 3 sample programs** เมื่อ init_database (Opening Ceremony, Artist Performance, Closing Stage)
+- 📖 **Admin Help Pages** เพิ่ม "Default Event" behavior documentation (TH + EN)
+
+### v2.2.0 (2026-02-27)
+
+- 📝 **Site Title** — แก้ไขชื่อเว็บได้จาก Admin › Settings (`get_site_title()`, `cache/site-settings.json`, `APP_NAME`)
+- 🌐 **JS IIFE patching** — `translations.js` patch `window.SITE_TITLE` ทุก translation key
+- 🧪 **618 automated tests** (SiteSettingsTest เพิ่ม 14 tests)
+
+### v2.1.1 (2026-02-27)
+
+- 🎨 **Per-Event Theme** — กำหนด theme แยกตาม event ได้
+  - คอลัมน์ `theme TEXT DEFAULT NULL` ใน `events` table
+  - `get_site_theme($eventMeta = null)` — priority: event.theme → global → `dark` fallback
+  - Admin Event form: theme picker (7 themes)
+  - Migration: `tools/migrate-add-theme-column.php` + setup.php รองรับ fresh install / existing install
+- 🧪 **464 automated tests** (ThemeTest เพิ่มจาก 16 → 24)
 
 ### v1.2.12 (2026-02-26)
 

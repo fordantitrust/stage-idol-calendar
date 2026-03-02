@@ -4,6 +4,7 @@ send_security_headers();
 
 // Multi-event support
 $eventSlug = get_current_event_slug();
+$eventMeta = get_event_by_slug($eventSlug);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -12,7 +13,7 @@ $eventSlug = get_current_event_slug();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>วิธีการใช้งาน - Idol Stage Event Calendar</title>
+    <title>วิธีการใช้งาน - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
@@ -27,7 +28,7 @@ $eventSlug = get_current_event_slug();
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <!-- How-to-use page CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/how-to-use.css'); ?>">
-    <?php $siteTheme = get_site_theme(); ?>
+    <?php $siteTheme = get_site_theme($eventMeta); ?>
     <?php if ($siteTheme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
     <?php endif; ?>
@@ -78,6 +79,17 @@ $eventSlug = get_current_event_slug();
                 <div class="feature-box">
                     <strong data-i18n="section2.selectedTags.tip">💡 เคล็ดลับ:</strong>
                     <span data-i18n="section2.selectedTags.tipText">กดปุ่ม ✕ ที่ tag เพื่อลบออกและ reload หน้าอัตโนมัติ</span>
+                </div>
+
+                <h3 data-i18n="section2.quickFilter.title">5. กรองด่วนจาก badge ในตาราง</h3>
+                <p data-i18n="section2.quickFilter.desc">คลิกที่ badge ในตารางรายการเพื่อ append filter ได้ทันที โดยไม่ต้องเลื่อนขึ้นไปใช้ช่อง filter ด้านบน</p>
+                <ul>
+                    <li data-i18n="section2.quickFilter.item1"><strong>🎤 Badge ศิลปิน (สีชมพู)</strong> — คอลัมน์ "ศิลปินที่เกี่ยวข้อง": คลิกชื่อศิลปินเพื่อเพิ่มเข้า filter</li>
+                    <li data-i18n="section2.quickFilter.item2"><strong>🏷️ Badge ประเภท (สีน้ำเงิน)</strong> — คอลัมน์ "ประเภท": คลิกเพื่อกรองตามประเภท program</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section2.quickFilter.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section2.quickFilter.tipText">filter ที่คลิกจะ append ต่อจาก filter ที่มีอยู่ — เลือกหลายศิลปิน/ประเภทได้โดยไม่ลบการเลือกเดิม</span>
                 </div>
             </div>
 
@@ -176,6 +188,7 @@ $eventSlug = get_current_event_slug();
     </div>
 
     <!-- Shared JavaScript -->
+    <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 </body>
