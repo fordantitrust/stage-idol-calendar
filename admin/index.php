@@ -2435,7 +2435,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td><input type="checkbox" class="event-checkbox" data-event-id="${event.id}"></td>
                         <td>${event.id}</td>
                         <td>${escapeHtml(event.title)}</td>
-                        <td>${dateStr}<br>${startTime} - ${endTime}</td>
+                        <td>${dateStr}<br>${startTime === endTime ? startTime : startTime + ' - ' + endTime}</td>
                         ${VENUE_MODE === 'multi' ? `<td>${escapeHtml(event.location || '-')}</td>` : ''}
                         <td>${escapeHtml(event.categories || '-')}</td>
                         <td>${event.program_type ? `<span class="program-type-badge">${escapeHtml(event.program_type)}</span>` : '<span style="color:#adb5bd">-</span>'}</td>
@@ -3087,7 +3087,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td><input type="checkbox" ${hasErrors ? 'disabled' : 'checked'} data-index="${index}" onchange="updateImportCount()"></td>
                         <td><span class="status-indicator ${statusClass}">${statusText}</span></td>
                         <td>${escapeHtml(event.title || '')}</td>
-                        <td>${formatDateTime(event.start)} - ${formatDateTime(event.end)}</td>
+                        <td>${formatDateTimeRange(event.start, event.end)}</td>
                         <td>${escapeHtml(event.location || '')}</td>
                         <td>${escapeHtml(event.categories || '')}</td>
                         <td>${dupAction}</td>
@@ -3111,6 +3111,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 hour: '2-digit',
                 minute: '2-digit'
             });
+        }
+
+        // Format a start–end datetime range (collapses same-date and same-time)
+        function formatDateTimeRange(start, end) {
+            if (!start) return '';
+            if (!end || start === end) return formatDateTime(start);
+            const s = new Date(start);
+            const e = new Date(end);
+            const dateOpts = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const timeOpts = { hour: '2-digit', minute: '2-digit' };
+            const sDate = s.toLocaleDateString('th-TH', dateOpts);
+            const eDate = e.toLocaleDateString('th-TH', dateOpts);
+            const sTime = s.toLocaleTimeString('th-TH', timeOpts);
+            const eTime = e.toLocaleTimeString('th-TH', timeOpts);
+            if (sDate === eDate) {
+                return sTime === eTime ? `${sDate} ${sTime}` : `${sDate} ${sTime} - ${eTime}`;
+            }
+            return `${formatDateTime(start)} - ${formatDateTime(end)}`;
         }
 
         // Edit preview event

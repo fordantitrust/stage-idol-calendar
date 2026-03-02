@@ -512,6 +512,11 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.4.5 (2026-03-03)
+
+- 🕐 **Collapse same-time** — start == end time → แสดงแค่เวลาเริ่ม (List view, Gantt tooltip, Admin Programs list)
+- 📅 **Collapse same-date** — event start_date == end_date → แสดงแค่วันเริ่ม (event listing card); Admin ICS preview มี `formatDateTimeRange()` helper รวม same-date + same-time
+
 ### v2.4.4 (2026-03-03)
 
 - 🔧 **Version update script** — `tools/update-version.php X.Y.Z` อัปเดต 9 files อัตโนมัติ (`config/app.php` + 8 .md files); ยกเว้น `CHANGELOG.md` และ `CLAUDE.md` (ต้องเขียน content เอง)

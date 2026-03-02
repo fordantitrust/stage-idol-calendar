@@ -237,7 +237,7 @@ $hasTypes = !empty($types);
                         <div class="program-card-header">
                             <h4 class="program-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
                             <div class="program-card-dates">
-                                📅 <?php echo $displayStart; ?> - <?php echo $displayEnd; ?>
+                                📅 <?php echo $displayStart; ?><?php if ($displayStart !== $displayEnd): ?> - <?php echo $displayEnd; ?><?php endif; ?>
                             </div>
                         </div>
                         <div class="program-card-body">
