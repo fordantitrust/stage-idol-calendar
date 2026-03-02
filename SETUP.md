@@ -1,224 +1,246 @@
 # Setup & Installation Guide
 
-คู่มือการติดตั้งระบบ Idol Stage Timetable ผ่านหน้า Setup Wizard (`setup.php`)
+A step-by-step guide for installing Idol Stage Timetable using the Setup Wizard (`setup.php`).
 
 ---
 
-## ภาพรวม
+## Overview
 
-`setup.php` คือหน้า Setup Wizard สำหรับ:
-- **Fresh Install** — ติดตั้งระบบครั้งแรก ทำ 6 ขั้นตอนจบในหน้าเดียว (รวม Production Cleanup)
-- **Maintenance** — ตรวจสอบสถานะระบบ, import ข้อมูลเพิ่ม, เปลี่ยน password
+`setup.php` is the interactive Setup Wizard for:
+- **Fresh Install** — Install the system for the first time, completing all 6 steps in a single page (including Production Cleanup)
+- **Maintenance** — Check system status, import additional data, or change the admin password
 
 ---
 
-## การเข้าถึง
+## Accessing the Setup Wizard
 
-เปิด `https://your-domain.com/setup.php` (หรือ `http://localhost:8000/setup.php`)
+Open `https://your-domain.com/setup.php` (or `http://localhost:8000/setup.php`)
 
 ### Auth Gate
 
-| สถานะระบบ | การเข้าถึง |
-|-----------|-----------|
-| Fresh install (ยังไม่มี `admin_users` table) | เข้าได้โดยไม่ต้อง login |
-| Existing install (มี admin users แล้ว) | ต้อง login admin ก่อน |
-| Setup ถูก Lock | แสดงข้อความ locked, เข้าไม่ได้ |
+| System State | Access |
+|-------------|--------|
+| Fresh install (no `admin_users` table yet) | Accessible without login |
+| Existing install (admin users exist) | Must login as admin first |
+| Setup is Locked | Shows locked message, access denied |
 
 ---
 
-## 6 ขั้นตอน Setup
+## 6-Step Setup Process
 
-### ขั้นตอนที่ 1 — System Requirements
+### Step 1 — System Requirements
 
-ตรวจสอบว่าระบบพร้อมใช้งาน:
+Verifies that the system is ready to run:
 
-| รายการ | ต้องการ |
-|--------|--------|
-| PHP Version | 8.1 ขึ้นไป |
-| Extension: PDO | ✅ ต้องติดตั้ง |
-| Extension: PDO_SQLite | ✅ ต้องติดตั้ง |
-| Extension: mbstring | ✅ ต้องติดตั้ง |
-| เขียนไฟล์ได้ | `data/`, `cache/`, `backups/` ต้อง writable |
+| Check | Required |
+|-------|----------|
+| PHP Version | 8.1 or higher |
+| Extension: PDO | ✅ Must be installed |
+| Extension: PDO_SQLite | ✅ Must be installed |
+| Extension: mbstring | ✅ Must be installed |
+| Write permissions | `data/`, `cache/`, `backups/` must be writable |
 
-หากพบ ❌ ให้แก้ไข PHP configuration ก่อนดำเนินการต่อ
+If any item shows ❌, fix the PHP configuration before proceeding.
 
 ---
 
-### ขั้นตอนที่ 2 — Directories & Permissions
+### Step 2 — Directories & Permissions
 
-ตรวจสอบและสร้างโฟลเดอร์ที่จำเป็น:
+Checks and creates the required folders:
 
-| โฟลเดอร์ | หน้าที่ |
-|---------|--------|
-| `data/` | เก็บ SQLite database (`calendar.db`) |
-| `cache/` | เก็บ cache files (data version, credits, login attempts) |
-| `backups/` | เก็บไฟล์ backup database |
-| `ics/` | เก็บไฟล์ `.ics` สำหรับ import |
+| Directory | Purpose |
+|-----------|---------|
+| `data/` | Stores the SQLite database (`calendar.db`) |
+| `cache/` | Stores cache files (data version, credits, login attempts) |
+| `backups/` | Stores database backup files |
+| `ics/` | Stores `.ics` files for import |
 
-กดปุ่ม **"สร้าง Directories"** เพื่อสร้างโฟลเดอร์ที่ยังไม่มีอัตโนมัติ
+Click **"Create Directories"** to automatically create any missing folders.
 
-> **หมายเหตุ**: หากมีปัญหา permission บน Linux/Mac ให้รัน:
+> **Note**: If you encounter permission issues on Linux/Mac, run:
 > ```bash
 > chmod 755 data/ cache/ backups/ ics/
 > ```
 
 ---
 
-### ขั้นตอนที่ 3 — Database Setup
+### Step 3 — Database Setup
 
-สร้างตาราง SQLite ทั้งหมดและ seed ข้อมูลเริ่มต้น
+Creates all SQLite tables and seeds initial data.
 
-กดปุ่ม **"Initialize Database"** เพื่อ:
-1. สร้างไฟล์ `data/calendar.db`
-2. สร้างตารางทั้งหมด:
-   - `programs` — ตารางแสดง (individual shows)
-   - `events` — งาน/events (meta, เดิมเรียก conventions)
-   - `program_requests` — คำขอเพิ่ม/แก้ไขจากผู้ใช้
-   - `credits` — เครดิต/อ้างอิง
-   - `admin_users` — admin users
-3. Seed admin user เริ่มต้น (จาก `config/admin.php`)
-4. Seed default event (slug: `default`) และ **3 sample programs** ตัวอย่าง เพื่อให้เห็น layout จริงทันที
-   - Opening Ceremony, Artist Performance, Closing Stage (วันปัจจุบัน)
-   - แก้ไขหรือลบได้ภายหลังจาก Admin › Programs
-5. **Auto-login** — session จะ login อัตโนมัติหลัง initialize สำเร็จ
+Click **"Initialize Database"** to:
+1. Create the `data/calendar.db` file
+2. Create all required tables:
+   - `programs` — Individual show/performance records
+   - `events` — Event/convention metadata
+   - `program_requests` — User-submitted add/edit requests
+   - `credits` — Credits and references
+   - `admin_users` — Admin user accounts
+3. Seed the default admin user (from `config/admin.php`)
+4. Seed a default event (slug: `default`) and **3 sample programs** so you can see the real layout immediately:
+   - Opening Ceremony, Artist Performance, Closing Stage (dated today)
+   - These can be edited or deleted later from Admin › Programs
+5. **Auto-login** — The session will be logged in automatically after a successful initialization
 
-**Credentials เริ่มต้น:**
+**Default Credentials:**
 
-ระบบจะแสดงกล่อง credentials หลัง initialize สำเร็จ เช่น:
+After a successful initialization, the system will display a credentials box:
 
 ```
 Username: admin
 Password: admin123
 ```
 
-> ⚠️ **สำคัญ**: จด credentials ไว้ก่อนออกจากหน้านี้ แล้วเปลี่ยนรหัสผ่านทันทีใน Step 5 / ลบไฟล์ dev ใน Step 6
+> ⚠️ **Important**: Note down the credentials before leaving this page, then change the password immediately in Step 5 and clean up dev files in Step 6.
 
 ---
 
-### ขั้นตอนที่ 4 — Import ข้อมูล Programs
+### Step 4 — Import Programs Data
 
-Import ข้อมูลจากไฟล์ `.ics` เข้าฐานข้อมูล
+Imports data from `.ics` files into the database.
 
-**วิธีใช้:**
+**How to use:**
 
-1. วางไฟล์ `.ics` ในโฟลเดอร์ `ics/`
-2. กดปุ่ม **"Import ICS Files"**
-3. ระบบจะ parse และ import events ทั้งหมด
-4. แสดงจำนวน programs ที่ import สำเร็จ
+1. Place `.ics` files in the `ics/` folder
+2. Click **"Import ICS Files"**
+3. The system will parse and import all events
+4. The number of successfully imported programs will be displayed
 
-**ถ้าไม่มีไฟล์ .ics:**
+**If you have no `.ics` files:**
 
-สามารถข้ามขั้นตอนนี้ไปก่อน แล้วเพิ่มข้อมูลผ่าน Admin Panel ภายหลัง (`/admin`)
+You can skip this step and add data later through the Admin Panel (`/admin`).
 
-**Import ผ่าน command line** (ทางเลือก):
+**Import via command line** (alternative):
 
 ```bash
 php tools/import-ics-to-sqlite.php
-# หรือระบุ event slug:
+# Or specify an event slug:
 php tools/import-ics-to-sqlite.php --event=my-event-slug
 ```
 
 ---
 
-### ขั้นตอนที่ 5 — Admin & Security Setup
+### Step 5 — Admin & Security Setup
 
-#### 5.1 ตรวจสอบและเปลี่ยน Admin Password
+#### 5.1 Change Admin Password
 
-หากใช้รหัสผ่านเริ่มต้น ระบบจะแสดงแบบฟอร์มเปลี่ยนรหัสผ่าน inline:
+If the default password is still in use, the system will display an inline password change form:
 
-1. กรอก **New Password** (ขั้นต่ำ 8 ตัวอักษร)
-2. กรอก **Confirm Password** (ต้องตรงกัน)
-3. กด **"บันทึก Password ใหม่"**
-4. กล่องเตือนจะหายไปเมื่อเปลี่ยนสำเร็จ
+1. Enter **New Password** (minimum 8 characters)
+2. Enter **Confirm Password** (must match)
+3. Click **"Save New Password"**
+4. The warning box will disappear after a successful change
 
-> หลังเปลี่ยน password แล้ว ให้ทดสอบ login ที่ `/admin/login` ก่อน lock setup
+> After changing the password, test your login at `/admin/login` before locking setup.
 
-#### 5.2 เพิ่ม Database Indexes (แนะนำ)
+#### 5.2 Add Database Indexes (Recommended)
 
-กดปุ่ม **"Add Indexes"** เพื่อเพิ่ม performance indexes ใน SQLite:
-- เพิ่มความเร็ว query 2–5x สำหรับ queries ที่ใช้บ่อย
-- Idempotent — รันซ้ำได้ปลอดภัย
+Click **"Add Indexes"** to add performance indexes to SQLite:
+- Speeds up frequent queries by 2–5x
+- Idempotent — safe to run multiple times
 
 #### 5.3 Lock Setup Page
 
-เมื่อ setup เสร็จสมบูรณ์ ให้ล็อกหน้านี้ทันที:
+Once setup is complete, lock the page immediately:
 
-กดปุ่ม **"🔒 Lock Setup"** → สร้างไฟล์ `data/.setup_locked`
+Click **"🔒 Lock Setup"** → Creates the `data/.setup_locked` file.
 
-หลัง lock แล้ว ผู้อื่นจะเข้าหน้า setup ไม่ได้
+After locking, no one can access the setup page.
 
-**Unlock** (กรณีต้องการ maintenance):
-1. ลบไฟล์ `data/.setup_locked` (ผ่าน SSH/FTP) หรือ
-2. Login admin แล้วเข้า setup อีกครั้ง → กดปุ่ม **"🔓 Unlock"**
+**Unlocking** (for future maintenance):
+1. Delete the `data/.setup_locked` file (via SSH/FTP), or
+2. Log in as admin, open setup again → click **"🔓 Unlock"**
 
 ---
 
-## Flow สำหรับ Fresh Install
+### Step 6 — Production Cleanup
+
+Removes development and documentation files that are not needed in production.
+
+Files are grouped by category with checkboxes:
+
+| Group | Files Included |
+|-------|---------------|
+| **Docs** | `*.md` documentation files |
+| **Tests** | `tests/` directory and test scripts |
+| **Tools** | `tools/` directory and migration scripts |
+| **Docker** | `Dockerfile`, `docker-compose*.yml`, `.dockerignore` |
+| **Nginx** | `nginx-*.conf` configuration files |
+| **CI/CD** | `.github/` workflows directory |
+
+Select the groups you want to remove and click **"Delete Selected Files"**.
+
+> ⚠️ This action is irreversible. Only remove files you are certain are not needed.
+
+---
+
+## Fresh Install Flow
 
 ```
-เปิด setup.php
+Open setup.php
     ↓
-[Step 1] ตรวจสอบ PHP ✅
+[Step 1] Check PHP requirements ✅
     ↓
-[Step 2] สร้าง Directories ✅
+[Step 2] Create Directories ✅
     ↓
-[Step 3] Initialize Database → Auto-login → บันทึก credentials
+[Step 3] Initialize Database → Auto-login → Note credentials
     ↓
-[Step 4] Import .ics files (ถ้ามี)
+[Step 4] Import .ics files (if available)
     ↓
-[Step 5] เปลี่ยน password → Add indexes → Lock setup
+[Step 5] Change password → Add indexes → Lock setup
     ↓
-[Step 6] Production Cleanup — ลบ dev/docs files (checkbox grouped)
+[Step 6] Production Cleanup — Remove dev/docs files
     ↓
-เข้าใช้งาน /admin ✅
+Access /admin ✅
 ```
 
 ---
 
 ## Troubleshooting
 
-### หน้า setup ไม่ขึ้น / redirect ไป login
-- มี admin users ใน DB แล้ว → ต้อง login admin ก่อน
-- ไปที่ `/admin/login` แล้ว login จากนั้นกลับมา `/setup.php`
+### Setup page not loading / redirects to login
+- Admin users already exist in the DB → must login as admin first
+- Go to `/admin/login`, login, then return to `/setup.php`
 
 ### "Setup is Locked"
-- ไฟล์ `data/.setup_locked` มีอยู่
-- Login admin แล้วเปิด `setup.php` → กดปุ่ม Unlock หรือลบไฟล์ lock ผ่าน SSH/FTP
+- The file `data/.setup_locked` exists
+- Login as admin and open `setup.php` → click Unlock, or delete the lock file via SSH/FTP
 
-### Initialize Database ไม่สำเร็จ
-- ตรวจสอบว่าโฟลเดอร์ `data/` มีอยู่และ writable
-- ตรวจสอบ PHP มี extension `pdo_sqlite`
+### Initialize Database fails
+- Verify that the `data/` folder exists and is writable
+- Check that PHP has the `pdo_sqlite` extension enabled
 
-### Import ICS ไม่มีข้อมูล
-- ตรวจสอบว่าไฟล์ `.ics` อยู่ใน `ics/` directory
-- ตรวจสอบ format ไฟล์ ดู [README.md](README.md) สำหรับ ICS format
+### Import ICS returns no data
+- Verify that `.ics` files are present in the `ics/` directory
+- Check the file format — see [README.md](README.md) for the expected ICS format
 
-### กล่องเตือน password ไม่หายหลังเปลี่ยน
-- ตรวจสอบว่ากรอก password ถูกต้อง (ขั้นต่ำ 8 ตัวอักษร และต้องตรงกัน)
-- หน้าจะ reload อัตโนมัติหลังเปลี่ยนสำเร็จ กล่องเตือนจะหายไป
+### Password warning box does not disappear after changing
+- Verify the password meets requirements (minimum 8 characters, both fields must match)
+- The page will reload automatically after a successful change and the warning will disappear
 
 ---
 
 ## Security Notes
 
-- **ล็อก setup ทุกครั้ง** หลัง setup เสร็จ — setup.php มีอำนาจ initialize/override ฐานข้อมูล
-- **เปลี่ยน default password** ก่อนใช้งานจริงใน production
-- หากต้องการ maintenance ให้ unlock ผ่าน admin session เท่านั้น ไม่ควรลบไฟล์ lock โดยตรงใน production
+- **Always lock setup** after completing installation — `setup.php` has the power to initialize or override the database
+- **Change the default password** before going live in production
+- For maintenance, unlock through an admin session rather than deleting the lock file directly on a production server
 
 ---
 
-## ไฟล์ที่เกี่ยวข้อง
+## Related Files
 
-| ไฟล์ | หน้าที่ |
-|------|--------|
-| `setup.php` | Setup Wizard หลัก |
-| `data/.setup_locked` | Lock file (มีอยู่ = locked) |
+| File | Purpose |
+|------|---------|
+| `setup.php` | Main Setup Wizard |
+| `data/.setup_locked` | Lock file (if present = locked) |
 | `data/calendar.db` | SQLite database |
 | `config/admin.php` | Admin credentials (fallback) |
-| `config/app.php` | App version และ settings |
+| `config/app.php` | App version and settings |
 | `tools/import-ics-to-sqlite.php` | CLI import tool |
 | `tools/migrate-add-indexes.php` | DB performance indexes |
-| `tools/migrate-add-event-email-column.php` | เพิ่ม email column ใน events table |
+| `tools/migrate-add-event-email-column.php` | Adds email column to events table |
+| `tools/migrate-add-program-type-column.php` | Adds program_type column to programs table |
 
 ---
 
