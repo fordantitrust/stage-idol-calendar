@@ -262,4 +262,4 @@ See [tests/README.md](tests/README.md) for details.
 
 **Happy Scheduling!** 🎉
 
-[⭐ Star on GitHub](https://github.com/yourusername/stage-idol-calendar) | [🐛 Report Issues](https://github.com/yourusername/stage-idol-calendar/issues) | [📖 Full Docs](README.md)
+[⭐ Star on GitHub](https://github.com/fordantitrust/stage-idol-calendar) | [🐛 Report Issues](https://github.com/fordantitrust/stage-idol-calendar/issues) | [📖 Full Docs](README.md)
