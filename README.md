@@ -14,44 +14,51 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🌸 **Sakura Theme** | Beautiful cherry blossom-themed UI with Japanese aesthetics |
 | 🌏 **Multi-language** | Full support for Thai, English, and Japanese (日本語) |
 | 📱 **Mobile Optimized** | Responsive design works perfectly on all devices including iOS |
-| 📊 **Dual View Modes** | Switch between List and Gantt Chart timeline views |
-| 🔍 **Advanced Filtering** | Filter by artists, venues, or search keywords |
-| 📸 **Save as Image** | Export filtered schedule as PNG image |
-| 📅 **Export to Calendar** | Download as ICS file for Google Calendar, Apple Calendar, etc. |
-| 📝 **Request Changes** | Submit requests to add or modify programs |
-| 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based selection |
+| 📊 **Dual View Modes** | Switch between List and Gantt Chart timeline views (all venue modes) |
+| 🔍 **Advanced Filtering** | Filter by artists, venues, program types, or search keywords; multi-value support |
+| 🏷️ **Program Types** | Filter programs by type with badge display on rows and Gantt bars |
+| 🖱️ **Quick Filter Badges** | Click any artist or type badge in results to instantly append that filter |
+| 📅 **Date Jump Bar** | Fixed-position navigation bar to jump quickly to any date in the schedule |
+| 📸 **Save as Image** | Export filtered schedule as PNG image (lazy-loaded html2canvas) |
+| 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. |
+| 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) |
+| 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based or dropdown selection |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description |
 |---------|-------------|
+| 🛠️ **Setup Wizard** | Interactive 6-step install/maintenance wizard with Production Cleanup (`setup.php`) |
 | ⚙️ **Full CRUD** | Create, read, update, and delete programs via web interface |
-| 📦 **Bulk Operations** | Select and edit/delete multiple events at once (up to 100) |
-| ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple events |
+| 🏷️ **Program Types** | Assign free-text program types with autocomplete; filter by type in admin and public UI |
+| 📦 **Bulk Operations** | Select and edit/delete multiple programs at once (up to 100) |
+| ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple programs simultaneously |
 | 🎯 **Flexible Venue** | Add new venues on-the-fly with autocomplete suggestions |
-| 📊 **Custom Pagination** | Choose 20, 50, or 100 events per page |
+| 📊 **Custom Pagination** | Choose 20, 50, or 100 programs per page |
 | 📋 **Request Management** | Review and approve user-submitted program requests |
 | 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes |
 | 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations |
 | 📤 **ICS Upload** | Upload and preview ICS files before importing |
-| 💾 **Backup/Restore** | Backup and restore database with auto-safety backup |
-| 🎪 **Events Management** | Full CRUD for managing multiple events |
+| 💾 **Backup/Restore** | Backup and restore database with auto-safety backup before every restore |
+| 🎪 **Events Management** | Full CRUD for managing multiple events/conventions |
+| 🎨 **Per-Event Theme** | Assign a separate color theme to each event (7 themes); global theme fallback |
+| 📝 **Site Title Setting** | Customize site title from Admin Settings without editing code |
 | 🔐 **DB Auth & Multi-user** | Admin credentials in SQLite, supports multiple admin users |
 | 🔑 **Change Password** | Change admin password via UI with current password verification |
 | 👤 **User Management** | Full CRUD for admin users with role assignment |
-| 🛡️ **Role-Based Access** | Admin (full access) / Agent (events only) role system |
+| 🛡️ **Role-Based Access** | Admin (full access) / Agent (programs management only) role system |
 | 🔒 **Secure Access** | Session-based authentication with optional IP whitelist |
 | 🔐 **CSRF Protection** | Token-based CSRF validation for all admin operations |
 
 ### ⚡ Technical Highlights
 | Feature | Description |
 |---------|-------------|
-| 🗄️ **SQLite Database** | 10-20x faster than parsing ICS files |
+| 🗄️ **SQLite Database** | Lightweight, high-performance storage via PDO SQLite |
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers |
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
-| 📁 **ICS Compatible** | Import events from standard .ics calendar files |
+| 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
-| 🎪 **Multi-Event** | Support multiple events with per-event venue mode and caching |
-| 🧪 **999 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching |
+| 🧪 **999 Unit Tests** | Automated test suite across 10 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -322,7 +329,7 @@ define('VENUE_MODE', 'single');  // Single venue: hides venue filter, Gantt view
 | Feature | `multi` | `single` |
 |---------|---------|----------|
 | Venue filter (checkboxes) | Visible | Hidden |
-| List/Timeline toggle switch | Visible | Hidden |
+| List/Timeline toggle switch | Visible | Visible |
 | Venue column in event table | Visible | Hidden |
 | Venue column in admin table | Visible | Hidden |
 
@@ -476,6 +483,7 @@ Located in `tools/` folder:
 | `migrate-rename-tables-columns.php` | Rename tables/columns to v1.2.9 schema (idempotent) |
 | `migrate-add-indexes.php` | Add DB performance indexes (idempotent, run once) |
 | `migrate-add-event-email-column.php` | Add email column to events table (idempotent) |
+| `migrate-add-program-type-column.php` | Add program_type column to programs table (idempotent) |
 | `migrate-add-admin-users-table.php` | Create admin_users table + seed from config |
 | `migrate-add-role-column.php` | Add role column to admin_users (RBAC) |
 | `generate-password-hash.php` | Generate bcrypt password hash for admin |
