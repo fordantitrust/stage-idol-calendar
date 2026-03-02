@@ -661,7 +661,7 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 ## 📞 Support
 
 - **Documentation**: [README](README.md) | [Quick Start](QUICKSTART.md) | [Setup](SETUP.md) | [Install](INSTALLATION.md) | [API](API.md) | [Structure](PROJECT-STRUCTURE.md)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/stage-idol-calendar/issues)
+- **Issues**: [GitHub Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ---
@@ -680,6 +680,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Made with ❤️ for event organizers and idol fans everywhere
 
-[⭐ Star this repo](https://github.com/yourusername/stage-idol-calendar) | [🐛 Report Bug](https://github.com/yourusername/stage-idol-calendar/issues) | [✨ Request Feature](https://github.com/yourusername/stage-idol-calendar/issues)
+[⭐ Star this repo](https://github.com/fordantitrust/stage-idol-calendar) | [🐛 Report Bug](https://github.com/fordantitrust/stage-idol-calendar/issues) | [✨ Request Feature](https://github.com/fordantitrust/stage-idol-calendar/issues)
 
 </div>

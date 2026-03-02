@@ -861,4 +861,4 @@ SQLite provides:
 
 ---
 
-**Questions?** Open an issue on [GitHub](https://github.com/yourusername/stage-idol-calendar/issues) or contact [@FordAntiTrust](https://x.com/FordAntiTrust).
+**Questions?** Open an issue on [GitHub](https://github.com/fordantitrust/stage-idol-calendar/issues) or contact [@FordAntiTrust](https://x.com/FordAntiTrust).
