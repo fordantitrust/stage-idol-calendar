@@ -5,6 +5,14 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.5] - 2026-03-03
+
+### Changed
+- 🕐 **Collapse same-time display** — when a program's start time equals its end time (HH:MM), only the start time is shown (no `- end time`); applies to List view, Gantt tooltip, and Admin Programs list
+- 📅 **Collapse same-date display** — when a convention's start date equals its end date, only the start date is shown on the event listing card (no `- end date`); Admin ICS import preview also collapses same-date and same-time ranges via new `formatDateTimeRange()` helper
+
+---
+
 ## [2.4.4] - 2026-03-03
 
 ### Added

@@ -331,7 +331,7 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.4.4'); // Change this to force cache refresh
+define('APP_VERSION', '2.4.5'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -690,7 +690,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.4.4
+**Current Version**: 2.4.5
 
 ---
 

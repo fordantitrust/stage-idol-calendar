@@ -103,7 +103,7 @@ function updateLanguage() {
         const endTime = el.dataset.end;
         const formattedStart = formatTime(startTime, lang.timeFormat, lang['time.unit']);
         const formattedEnd = formatTime(endTime, lang.timeFormat, lang['time.unit']);
-        el.textContent = formattedStart + ' - ' + formattedEnd;
+        el.textContent = formattedStart === formattedEnd ? formattedStart : formattedStart + ' - ' + formattedEnd;
     });
 }
 
@@ -804,7 +804,7 @@ function showEventTooltip(element, e) {
     const timeStrong = document.createElement('strong');
     timeStrong.textContent = (lang['table.time'] || 'Time') + ':';
     timeP.appendChild(timeStrong);
-    timeP.appendChild(document.createTextNode(' ' + startTime + ' - ' + endTime));
+    timeP.appendChild(document.createTextNode(' ' + (startTime === endTime ? startTime : startTime + ' - ' + endTime)));
     tooltip.appendChild(timeP);
 
     if (categories) {
