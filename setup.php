@@ -516,10 +516,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ลบไฟล์ dev/documentation ที่ไม่จำเป็นใน production
     if ($action === 'cleanup_dev_files') {
         $allowedFileList = [
-            'README.md', 'DOCKER.md', 'INSTALLATION.md', 'QUICKSTART.md',
-            'SETUP.md', 'API.md', 'CHANGELOG.md', 'TESTING.md', 'SECURITY.md',
-            'CONTRIBUTING.md', 'PROJECT-STRUCTURE.md', 'SQLITE_MIGRATION.md',
-            'SAAS-MIGRATION.md', 'CLAUDE.md', 'StaticSitePublisher.md', 'LICENSE',
+            'README.md', 'DOCKER.md', 'INSTALLATION.md', 'SETUP.md', 'API.md', 'CHANGELOG.md', 'TESTING.md', 'SECURITY.md',
+            'CONTRIBUTING.md', 'PROJECT-STRUCTURE.md', 'CLAUDE.md', 'LICENSE',
             '.env.example', 'Dockerfile', 'docker-compose.yml', 'docker-compose.dev.yml',
             '.dockerignore', 'nginx-clean-url.conf', 'quick-test.bat', 'quick-test.sh',
             '.gitignore',
@@ -708,7 +706,6 @@ $devFileGroups = [
             ['name' => 'README.md',            'type' => 'file'],
             ['name' => 'DOCKER.md',            'type' => 'file'],
             ['name' => 'INSTALLATION.md',      'type' => 'file'],
-            ['name' => 'QUICKSTART.md',        'type' => 'file'],
             ['name' => 'SETUP.md',             'type' => 'file'],
             ['name' => 'API.md',               'type' => 'file'],
             ['name' => 'CHANGELOG.md',         'type' => 'file'],
@@ -716,10 +713,7 @@ $devFileGroups = [
             ['name' => 'SECURITY.md',          'type' => 'file'],
             ['name' => 'CONTRIBUTING.md',      'type' => 'file'],
             ['name' => 'PROJECT-STRUCTURE.md', 'type' => 'file'],
-            ['name' => 'SQLITE_MIGRATION.md',  'type' => 'file'],
-            ['name' => 'SAAS-MIGRATION.md',    'type' => 'file'],
             ['name' => 'CLAUDE.md',            'type' => 'file'],
-            ['name' => 'StaticSitePublisher.md','type' => 'file'],
             ['name' => 'LICENSE',              'type' => 'file'],
         ],
     ],

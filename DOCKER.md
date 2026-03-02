@@ -618,11 +618,11 @@ git pull && docker-compose up -d --build
 ## 🙏 Support
 
 - **Documentation**: [README.md](README.md)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/stage-idol-calendar/issues)
+- **Issues**: [GitHub Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Docker Hub**: (Coming soon)
 
 ---
 
 **Happy Dockerizing!** 🐳
 
-[⭐ Star on GitHub](https://github.com/yourusername/stage-idol-calendar) | [🐛 Report Issues](https://github.com/yourusername/stage-idol-calendar/issues) | [📖 Full Docs](README.md)
+[⭐ Star on GitHub](https://github.com/fordantitrust/stage-idol-calendar) | [🐛 Report Issues](https://github.com/fordantitrust/stage-idol-calendar/issues) | [📖 Full Docs](README.md)

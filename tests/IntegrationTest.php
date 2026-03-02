@@ -366,12 +366,10 @@ function testIPWhitelistConfiguration($test) {
 function testDocumentationExists($test) {
     $docs = [
         'README.md',
-        'QUICKSTART.md',
         'INSTALLATION.md',
         'CHANGELOG.md',
         'CLAUDE.md',
         'TESTING.md',
-        'SQLITE_MIGRATION.md'
     ];
 
     foreach ($docs as $doc) {

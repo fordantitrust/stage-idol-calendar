@@ -512,6 +512,15 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.4.4 (2026-03-03)
+
+- 🔧 **Version update script** — `tools/update-version.php X.Y.Z` อัปเดต 9 files อัตโนมัติ (`config/app.php` + 8 .md files); ยกเว้น `CHANGELOG.md` และ `CLAUDE.md` (ต้องเขียน content เอง)
+- 📅 **ICS Export VALARM** — ทุก VEVENT มี `VALARM` 15 นาทีก่อนเวลา (`TRIGGER:-PT15M`, `ACTION:DISPLAY`); รองรับ Google Calendar, Apple Calendar
+- 🌐 **Full English translation** — แปล `SETUP.md`, `CHANGELOG.md`, `API.md`, `PROJECT-STRUCTURE.md` เป็นภาษาอังกฤษ
+- 📝 **README.md Features updated** — เพิ่ม features ที่หายไป (Program Types, Quick Filter Badges, Date Jump Bar, Per-Event Theme, Site Title Setting, Setup Wizard); แก้ Venue Mode table (List/Timeline toggle ของ `single` mode = Visible ตาม v2.3.4); อัปเดต test count เป็น 999 / 10 suites
+- 🔀 **Doc consolidation** — รวม `QUICKSTART.md` → `README.md` (Quick Start + Core Features + Pro Tips); รวม `SQLITE_MIGRATION.md` → `PROJECT-STRUCTURE.md` (DB Schema + Performance + Management); ลบไฟล์ต้นทาง
+- 🐛 **IntegrationTest fix** — ลบ `QUICKSTART.md` และ `SQLITE_MIGRATION.md` ออกจาก `testDocumentationExists` หลังลบไฟล์จริงไปแล้ว
+
 ### v2.4.3 (2026-03-02)
 
 - 🧪 **ProgramTypeTest** — 35 automated tests ครอบคลุม v2.4.x (schema, migration, CRUD, public API type filter, admin API programs_types, index.php UI features, translations, admin UI v2.4.2 categories column); total 999 tests (10 suites)

@@ -118,6 +118,11 @@ foreach ($filteredEvents as $event) {
 
     echo "STATUS:CONFIRMED\r\n";
     echo "SEQUENCE:0\r\n";
+    echo "BEGIN:VALARM\r\n";
+    echo "TRIGGER:-PT15M\r\n";
+    echo "ACTION:DISPLAY\r\n";
+    echo "DESCRIPTION:Reminder\r\n";
+    echo "END:VALARM\r\n";
     echo "END:VEVENT\r\n";
 }
 

@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-API endpoints ทั้งหมดของ Idol Stage Timetable v2.4.3
+All API endpoints for Idol Stage Timetable v2.4.4
 
 ---
 
@@ -23,19 +23,20 @@ API endpoints ทั้งหมดของ Idol Stage Timetable v2.4.3
 
 ## 🌐 Public API (`api.php`)
 
-ไม่ต้อง login — รองรับ HTTP cache (ETag + 304 Not Modified)
+No login required — supports HTTP cache (ETag + 304 Not Modified)
 
 ### Endpoints
 
 | Endpoint | Method | Cache | Description |
 |----------|--------|-------|-------------|
-| `/api.php?action=programs` | GET | 5 min | Programs ทั้งหมด |
-| `/api.php?action=programs&event=slug` | GET | 5 min | Filter ตาม event slug |
-| `/api.php?action=programs&organizer=X` | GET | 5 min | Filter ตามศิลปิน |
-| `/api.php?action=programs&location=X` | GET | 5 min | Filter ตามเวที |
-| `/api.php?action=organizers` | GET | 5 min | รายชื่อศิลปินทั้งหมด |
-| `/api.php?action=locations` | GET | 5 min | รายชื่อเวทีทั้งหมด |
-| `/api.php?action=events_list` | GET | 10 min | รายการ events ที่ active ทั้งหมด |
+| `/api.php?action=programs` | GET | 5 min | All programs |
+| `/api.php?action=programs&event=slug` | GET | 5 min | Filter by event slug |
+| `/api.php?action=programs&organizer=X` | GET | 5 min | Filter by artist |
+| `/api.php?action=programs&location=X` | GET | 5 min | Filter by venue |
+| `/api.php?action=programs&type=X` | GET | 5 min | Filter by program type |
+| `/api.php?action=organizers` | GET | 5 min | All artist names |
+| `/api.php?action=locations` | GET | 5 min | All venue names |
+| `/api.php?action=events_list` | GET | 10 min | All active events |
 
 ### Response Format
 
@@ -47,7 +48,7 @@ API endpoints ทั้งหมดของ Idol Stage Timetable v2.4.3
 }
 ```
 
-### ตัวอย่าง: Programs
+### Example: Programs
 
 ```http
 GET /api.php?action=programs&event=idol-stage-feb-2026
@@ -80,18 +81,18 @@ ETag: "abc123"
 Cache-Control: public, max-age=300
 ```
 
-ส่ง `If-None-Match: "abc123"` → รับ `304 Not Modified` ถ้าข้อมูลไม่เปลี่ยน
+Send `If-None-Match: "abc123"` → receives `304 Not Modified` if data has not changed.
 
 ---
 
 ## 📝 Request API (`api/request.php`)
 
-ผู้ใช้ส่งคำขอเพิ่ม/แก้ไข program — Rate limited: **10 requests/ชั่วโมง/IP**
+Users submit requests to add/modify programs — Rate limited: **10 requests/hour/IP**
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/request.php?action=submit` | POST | ส่งคำขอ |
-| `/api/request.php?action=programs` | GET | ดึงรายการ programs (สำหรับ modal) |
+| `/api/request.php?action=submit` | POST | Submit a request |
+| `/api/request.php?action=programs` | GET | Get program list (for modal) |
 
 ### Submit Request
 
@@ -115,7 +116,7 @@ Content-Type: application/json
 }
 ```
 
-**type**: `"add"` (เพิ่มใหม่) หรือ `"modify"` (แก้ไข — ต้องมี `program_id`)
+**type**: `"add"` (new entry) or `"modify"` (edit — requires `program_id`)
 
 Response:
 ```json
@@ -131,35 +132,36 @@ Response:
 
 ### Authentication
 
-ทุก endpoint ต้องผ่าน:
-1. **Session** — `$_SESSION['admin_logged_in'] === true` (login ที่ `/admin/login`)
-2. **IP Whitelist** — ถ้าเปิดใช้ใน `config/admin.php`
+All endpoints require:
+1. **Session** — `$_SESSION['admin_logged_in'] === true` (login at `/admin/login`)
+2. **IP Whitelist** — if enabled in `config/admin.php`
 
 ### CSRF Protection
 
-POST/PUT/DELETE requests ต้องส่ง header:
+POST/PUT/DELETE requests must include the header:
 ```http
 X-CSRF-Token: <token>
 ```
 
-Token ได้จาก `generate_csrf_token()` — ฝังใน HTML ของ Admin Panel
+Token is obtained from `generate_csrf_token()` — embedded in the Admin Panel HTML.
 
 ---
 
 ### Programs Endpoints
 
-Programs = รายการแสดง (individual shows) ใน `programs` table
+Programs = individual shows in the `programs` table
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `programs_list` | GET | รายการ programs (pagination, search, filter, sort) |
-| `programs_get` | GET | ดึง program เดียว |
-| `programs_create` | POST | สร้าง program ใหม่ |
-| `programs_update` | PUT | แก้ไข program |
-| `programs_delete` | DELETE | ลบ program |
-| `programs_bulk_delete` | DELETE | ลบหลาย programs (สูงสุด 100) |
-| `programs_bulk_update` | PUT | แก้ไขหลาย programs (venue/organizer/categories) |
-| `programs_venues` | GET | รายชื่อเวทีทั้งหมด (สำหรับ autocomplete) |
+| `programs_list` | GET | List programs (pagination, search, filter, sort) |
+| `programs_get` | GET | Get a single program |
+| `programs_create` | POST | Create a new program |
+| `programs_update` | PUT | Update a program |
+| `programs_delete` | DELETE | Delete a program |
+| `programs_bulk_delete` | DELETE | Delete multiple programs (up to 100) |
+| `programs_bulk_update` | PUT | Update multiple programs (venue/organizer/categories) |
+| `programs_venues` | GET | All venue names (for autocomplete) |
+| `programs_types` | GET | All program types (for autocomplete) |
 
 #### List Programs
 
@@ -170,11 +172,11 @@ GET /admin/api.php?action=programs_list&page=1&limit=20&search=keyword&location=
 Parameters:
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `page` | int | หน้า (default: 1) |
+| `page` | int | Page number (default: 1) |
 | `limit` | int | 20/50/100 (default: 20) |
-| `search` | string | ค้นหา title/organizer |
-| `location` | string | กรองเวที |
-| `event_meta_id` | int | กรองตาม event ID |
+| `search` | string | Search by title/organizer |
+| `location` | string | Filter by venue |
+| `event_meta_id` | int | Filter by event ID |
 | `sort` | string | start/title/location/organizer |
 | `order` | string | asc/desc |
 
@@ -257,14 +259,14 @@ X-CSRF-Token: <token>
 
 ### Requests Endpoints
 
-User requests สำหรับเพิ่ม/แก้ไข programs
+User requests to add/modify programs
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `requests` | GET | รายการ requests (filter by status, event_meta_id) |
-| `pending_count` | GET | จำนวน pending requests (สำหรับ badge) |
-| `request_approve` | PUT | อนุมัติ request → auto-create/update program |
-| `request_reject` | PUT | ปฏิเสธ request |
+| `requests` | GET | List requests (filter by status, event_meta_id) |
+| `pending_count` | GET | Count of pending requests (for badge) |
+| `request_approve` | PUT | Approve request → auto-create/update program |
+| `request_reject` | PUT | Reject request |
 
 #### List Requests
 
@@ -272,7 +274,7 @@ User requests สำหรับเพิ่ม/แก้ไข programs
 GET /admin/api.php?action=requests&status=pending&event_meta_id=1
 ```
 
-**status**: `pending` / `approved` / `rejected` / (ไม่ระบุ = ทั้งหมด)
+**status**: `pending` / `approved` / `rejected` / (omit for all)
 
 #### Approve / Reject
 
@@ -286,9 +288,9 @@ PUT /admin/api.php?action=request_reject&id=10
 X-CSRF-Token: <token>
 ```
 
-เมื่ออนุมัติ (`approve`) ระบบจะ:
-- `type=add` → INSERT ลง `programs` table
-- `type=modify` → UPDATE program ที่มี `program_id` ตรงกัน
+When approved (`approve`), the system will:
+- `type=add` → INSERT into `programs` table
+- `type=modify` → UPDATE program matching `program_id`
 
 ---
 
@@ -296,8 +298,8 @@ X-CSRF-Token: <token>
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `upload_ics` | POST | อัพโหลด + parse .ics (สูงสุด 5MB) |
-| `import_ics_confirm` | POST | ยืนยัน import (เลือก insert/update/skip แต่ละ event) |
+| `upload_ics` | POST | Upload + parse .ics file (max 5MB) |
+| `import_ics_confirm` | POST | Confirm import (choose insert/update/skip per event) |
 
 #### Upload ICS
 
@@ -310,7 +312,7 @@ ics_file: <file.ics>
 event_meta_id: 1
 ```
 
-Response: รายการ events ที่ parse ได้ + สถานะ (new/duplicate)
+Response: list of parsed events + status (new/duplicate)
 
 #### Confirm Import
 
@@ -334,15 +336,15 @@ X-CSRF-Token: <token>
 
 ### Events (Meta) Endpoints
 
-Events = งาน/convention metadata ใน `events` table (formerly `events_meta`)
+Events = convention/event metadata in the `events` table (formerly `events_meta`)
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `events_list` | GET | รายการ events ทั้งหมด |
-| `events_get` | GET | ดึง event เดียว |
-| `events_create` | POST | สร้าง event ใหม่ |
-| `events_update` | PUT | แก้ไข event |
-| `events_delete` | DELETE | ลบ event |
+| `events_list` | GET | List all events |
+| `events_get` | GET | Get a single event |
+| `events_create` | POST | Create a new event |
+| `events_update` | PUT | Update an event |
+| `events_delete` | DELETE | Delete an event |
 
 #### Create Event
 
@@ -363,11 +365,11 @@ X-CSRF-Token: <token>
 }
 ```
 
-**venue_mode**: `"multi"` (หลายเวที) หรือ `"single"` (เวทีเดียว)
+**venue_mode**: `"multi"` (multiple venues) or `"single"` (single venue)
 
-#### Events ใน Public URL
+#### Events in Public URL
 
-เข้าถึง event ผ่าน URL: `/event/{slug}` เช่น `/event/idol-stage-feb-2026`
+Access an event via URL: `/event/{slug}` e.g. `/event/idol-stage-feb-2026`
 
 ---
 
@@ -375,12 +377,12 @@ X-CSRF-Token: <token>
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `credits_list` | GET | รายการ credits (pagination, search, sort) |
-| `credits_get` | GET | ดึง credit เดียว |
-| `credits_create` | POST | สร้าง credit ใหม่ |
-| `credits_update` | PUT | แก้ไข credit |
-| `credits_delete` | DELETE | ลบ credit |
-| `credits_bulk_delete` | DELETE | ลบหลาย credits |
+| `credits_list` | GET | List credits (pagination, search, sort) |
+| `credits_get` | GET | Get a single credit |
+| `credits_create` | POST | Create a new credit |
+| `credits_update` | PUT | Update a credit |
+| `credits_delete` | DELETE | Delete a credit |
+| `credits_bulk_delete` | DELETE | Delete multiple credits |
 
 #### List Credits
 
@@ -404,22 +406,22 @@ X-CSRF-Token: <token>
 }
 ```
 
-> **Cache**: Credits cache (`cache/credits.json`) จะถูก invalidate อัตโนมัติหลัง create/update/delete
+> **Cache**: Credits cache (`cache/credits.json`) is automatically invalidated after create/update/delete.
 
 ---
 
 ### Backup/Restore Endpoints
 
-**admin role only** — agent ไม่มีสิทธิ์
+**admin role only** — not available to agent role
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `backup_create` | POST | สร้าง backup ใหม่ (เก็บใน `backups/`) |
-| `backup_list` | GET | รายการ backup ทั้งหมด |
-| `backup_download` | GET | ดาวน์โหลดไฟล์ backup |
-| `backup_delete` | DELETE | ลบไฟล์ backup |
-| `backup_restore` | POST | Restore จากไฟล์บน server |
-| `backup_upload_restore` | POST | Upload .db แล้ว restore ทันที |
+| `backup_create` | POST | Create a new backup (stored in `backups/`) |
+| `backup_list` | GET | List all backups |
+| `backup_download` | GET | Download a backup file |
+| `backup_delete` | DELETE | Delete a backup file |
+| `backup_restore` | POST | Restore from a file on the server |
+| `backup_upload_restore` | POST | Upload .db file and restore immediately |
 
 #### Create Backup
 
@@ -447,7 +449,7 @@ X-CSRF-Token: <token>
 { "filename": "backup_20260301_100000.db" }
 ```
 
-> **Auto-backup**: ระบบจะสร้าง backup อัตโนมัติก่อนทุกการ restore
+> **Auto-backup**: The system automatically creates a backup before every restore.
 
 #### Upload & Restore
 
@@ -463,15 +465,15 @@ db_file: <calendar.db>
 
 ### User Management Endpoints (admin only)
 
-**admin role only** — ใช้สำหรับจัดการ admin users
+**admin role only** — for managing admin users
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `users_list` | GET | รายการ users ทั้งหมด |
-| `users_get` | GET | ดึง user เดียว |
-| `users_create` | POST | สร้าง user ใหม่ |
-| `users_update` | PUT | แก้ไข user (password optional) |
-| `users_delete` | DELETE | ลบ user |
+| `users_list` | GET | List all users |
+| `users_get` | GET | Get a single user |
+| `users_create` | POST | Create a new user |
+| `users_update` | PUT | Update a user (password optional) |
+| `users_delete` | DELETE | Delete a user |
 
 #### Create User
 
@@ -488,7 +490,7 @@ X-CSRF-Token: <token>
 }
 ```
 
-**role**: `"admin"` (full access) หรือ `"agent"` (programs management only)
+**role**: `"admin"` (full access) or `"agent"` (programs management only)
 
 #### Update User
 
@@ -505,12 +507,12 @@ X-CSRF-Token: <token>
 }
 ```
 
-`password` — optional: ถ้าไม่ส่ง ไม่เปลี่ยน password
+`password` — optional: if not provided, the password remains unchanged.
 
 **Safety guards**:
-- ห้ามลบตัวเอง
-- ห้ามเปลี่ยน role ตัวเอง
-- ต้องเหลือ admin อย่างน้อย 1 คน
+- Cannot delete yourself
+- Cannot change your own role
+- At least one admin must remain
 
 ---
 
@@ -518,7 +520,7 @@ X-CSRF-Token: <token>
 
 | Action | Method | Description |
 |--------|--------|-------------|
-| `change_password` | POST | เปลี่ยน password ตัวเอง |
+| `change_password` | POST | Change your own password |
 
 ```http
 POST /admin/api.php?action=change_password
@@ -532,7 +534,7 @@ X-CSRF-Token: <token>
 }
 ```
 
-> ต้อง login ผ่าน `admin_users` table (ไม่รองรับ config fallback)
+> Must be logged in via the `admin_users` table (config fallback not supported).
 
 ---
 
@@ -553,11 +555,11 @@ X-CSRF-Token: <token>
 
 ## 🔗 Related Documentation
 
-- [README.md](README.md) — ภาพรวม + Quick Start
-- [INSTALLATION.md](INSTALLATION.md) — การติดตั้งโดยละเอียด
+- [README.md](README.md) — Project overview + Quick Start
+- [INSTALLATION.md](INSTALLATION.md) — Detailed installation guide
 - [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) — Database schema
 - [SECURITY.md](SECURITY.md) — Security policy
 
 ---
 
-*Idol Stage Timetable v2.4.3*
+*Idol Stage Timetable v2.4.4*

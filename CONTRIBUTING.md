@@ -41,7 +41,7 @@ Before creating a bug report:
 3. **Gather information** - Error messages, browser console logs, etc.
 
 **Create a bug report**:
-1. Open a [new issue](https://github.com/yourusername/stage-idol-calendar/issues/new)
+1. Open a [new issue](https://github.com/fordantitrust/stage-idol-calendar/issues/new)
 2. Use a clear, descriptive title
 3. Describe the expected vs. actual behavior
 4. Provide reproduction steps
@@ -75,7 +75,7 @@ Before suggesting a feature:
 2. **Consider the scope** - Should it be core feature or plugin?
 
 **Create a feature request**:
-1. Open a [new issue](https://github.com/yourusername/stage-idol-calendar/issues/new)
+1. Open a [new issue](https://github.com/fordantitrust/stage-idol-calendar/issues/new)
 2. Use prefix `[Feature Request]` in title
 3. Explain the use case
 4. Describe the proposed solution
@@ -463,7 +463,7 @@ When contributing code:
 
 ## 📞 Contact
 
-- **GitHub Issues**: [Project Issues](https://github.com/yourusername/stage-idol-calendar/issues)
+- **GitHub Issues**: [Project Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
 - **Email**: [Insert contact email]
 
@@ -492,4 +492,4 @@ Every contribution helps make Idol Stage Timetable better. Whether it's code, do
 
 **Happy Contributing!** 🚀
 
-[Back to README](README.md) | [View Issues](https://github.com/yourusername/stage-idol-calendar/issues) | [View Pull Requests](https://github.com/yourusername/stage-idol-calendar/pulls)
+[Back to README](README.md) | [View Issues](https://github.com/fordantitrust/stage-idol-calendar/issues) | [View Pull Requests](https://github.com/fordantitrust/stage-idol-calendar/pulls)
