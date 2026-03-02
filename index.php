@@ -14,7 +14,10 @@ $activeEvents = get_all_active_events();
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
 // Check if we should show event listing (homepage) or calendar view
-$showEventListing = MULTI_EVENT_MODE && $eventSlug === DEFAULT_EVENT_SLUG && count($activeEvents) > 0;
+// The default slug event is intentionally hidden from the listing (it is a container for un-assigned programs).
+// Only show the listing when there is at least one non-default active event.
+$nonDefaultEvents = array_filter($activeEvents, fn($e) => $e['slug'] !== DEFAULT_EVENT_SLUG);
+$showEventListing = MULTI_EVENT_MODE && $eventSlug === DEFAULT_EVENT_SLUG && count($nonDefaultEvents) > 0;
 
 // Only load calendar data when showing calendar view
 if (!$showEventListing) {
@@ -24,15 +27,18 @@ if (!$showEventListing) {
     $allEvents = $parser->getAllEvents();
     $artists = $parser->getAllOrganizers();
     $venues = $parser->getAllLocations();
+    $types = $parser->getAllTypes();
 } else {
     $allEvents = [];
     $artists = [];
     $venues = [];
+    $types = [];
 }
 
 // รับค่า filter จาก GET parameters (รองรับหลายค่า) with sanitization
 $filterArtists = get_sanitized_array_param('artist', 200, 50);
 $filterVenues = get_sanitized_array_param('venue', 200, 50);
+$filterTypes = get_sanitized_array_param('type', 200, 50);
 
 // 🚀 Optimization: Pre-normalize categories + Pre-compute timestamps (avoid repeated strtotime calls)
 $normalizedEvents = array_map(function($event) {
@@ -47,9 +53,10 @@ $normalizedEvents = array_map(function($event) {
 // Create lookup arrays (O(1) search instead of O(n) with in_array)
 $filterArtistsSet = array_flip($filterArtists);
 $filterVenuesSet = array_flip($filterVenues);
+$filterTypesSet = array_flip($filterTypes);
 
 // กรองข้อมูล (ใช้ CATEGORIES สำหรับศิลปิน - รองรับหลายค่าแยกด้วย comma)
-$filteredEvents = array_filter($normalizedEvents, function($event) use ($filterArtistsSet, $filterVenuesSet) {
+$filteredEvents = array_filter($normalizedEvents, function($event) use ($filterArtistsSet, $filterVenuesSet, $filterTypesSet) {
     // ตรวจสอบ artist/categories (รองรับหลายค่าแยกด้วย comma)
     $artistMatch = empty($filterArtistsSet);
     if (!$artistMatch) {
@@ -64,7 +71,11 @@ $filteredEvents = array_filter($normalizedEvents, function($event) use ($filterA
 
     // Check venue with O(1) lookup
     $venueMatch = empty($filterVenuesSet) || isset($filterVenuesSet[$event['location'] ?? null]);
-    return $artistMatch && $venueMatch;
+
+    // Check program type with O(1) lookup
+    $typeMatch = empty($filterTypesSet) || isset($filterTypesSet[$event['program_type'] ?? '']);
+
+    return $artistMatch && $venueMatch && $typeMatch;
 });
 
 // จัดกลุ่มข้อมูลตามวัน
@@ -87,6 +98,9 @@ foreach ($eventsByDay as $dayKey => &$dayEvents) {
     });
 }
 unset($dayEvents); // ยกเลิก reference
+
+// แสดง column "ประเภท" เมื่อมี program ที่มี program_type อย่างน้อย 1 รายการ
+$hasTypes = !empty($types);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -95,7 +109,7 @@ unset($dayEvents); // ยกเลิก reference
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Idol Stage Timetable - Event Schedule Management</title>
+    <title><?php echo htmlspecialchars(get_site_title()); ?> - Event Schedule</title>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
@@ -110,7 +124,7 @@ unset($dayEvents); // ยกเลิก reference
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <!-- Index page CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/index.css'); ?>">
-    <?php $siteTheme = get_site_theme(); ?>
+    <?php $siteTheme = get_site_theme($eventMeta); ?>
     <?php if ($siteTheme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
     <?php endif; ?>
@@ -152,7 +166,7 @@ unset($dayEvents); // ยกเลิก reference
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
                 <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
             </div>
-            <h1 data-i18n="header.title">Idol Stage Timetable</h1>
+            <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <nav class="header-nav">
                 <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
@@ -288,7 +302,10 @@ unset($dayEvents); // ยกเลิก reference
                 </select>
             </div>
             <?php endif; ?>
-            <h1 data-i18n="header.title">Idol Stage Timetable - <?php echo htmlspecialchars($eventName); ?></h1>
+            <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
+            <?php if ($eventMeta): ?>
+            <div class="event-subtitle"><?php echo htmlspecialchars($eventName); ?></div>
+            <?php endif; ?>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
             <nav class="header-nav">
@@ -335,6 +352,31 @@ unset($dayEvents); // ยกเลิก reference
                         </div>
                     </div>
 
+                    <?php if (!empty($types)): ?>
+                    <div class="filter-item">
+                        <label data-i18n="filter.type">🏷️ กรองตามประเภท:</label>
+                        <?php if (!empty($filterTypes)): ?>
+                        <div class="selected-tags" id="selectedTypes">
+                            <?php foreach ($filterTypes as $type): ?>
+                            <span class="selected-tag">
+                                <?php echo htmlspecialchars($type); ?>
+                                <button type="button" class="tag-remove" onclick="removeFilter('type', '<?php echo htmlspecialchars(addslashes($type)); ?>')" title="ลบ">✕</button>
+                            </span>
+                            <?php endforeach; ?>
+                        </div>
+                        <?php endif; ?>
+                        <div class="checkbox-group" id="typeCheckboxes">
+                            <?php foreach ($types as $type): ?>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="type[]" value="<?php echo htmlspecialchars($type); ?>"
+                                           <?php echo (in_array($type, $filterTypes)) ? 'checked' : ''; ?>>
+                                    <span><?php echo htmlspecialchars($type); ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                     <?php if ($currentVenueMode === 'multi'): ?>
                     <div class="filter-item">
                         <label data-i18n="filter.venue">🏛️ กรองตามเวที:</label>
@@ -377,7 +419,6 @@ unset($dayEvents); // ยกเลิก reference
                 </div>
 
                 <!-- View Toggle Switch -->
-                <?php if ($currentVenueMode === 'multi'): ?>
                 <div class="view-toggle">
                     <label class="toggle-label">
                         <span class="toggle-text active" data-i18n="view.list">รายการ</span>
@@ -388,7 +429,6 @@ unset($dayEvents); // ยกเลิก reference
                         <span class="toggle-text" data-i18n="view.gantt">ไทม์ไลน์</span>
                     </label>
                 </div>
-                <?php endif; ?>
             </form>
         </div>
 
@@ -421,6 +461,9 @@ unset($dayEvents); // ยกเลิก reference
                                         <th data-i18n="table.program">การแสดง/ศิลปิน</th>
                                         <?php if ($currentVenueMode === 'multi'): ?>
                                         <th data-i18n="table.venue">เวที</th>
+                                        <?php endif; ?>
+                                        <?php if ($hasTypes): ?>
+                                        <th data-i18n="table.type">ประเภท</th>
                                         <?php endif; ?>
                                         <th data-i18n="table.categories">ศิลปินที่เกี่ยวข้อง</th>
                                         <th class="col-edit-request" style="width:80px;text-align:center;" data-i18n="table.editRequest">แจ้งแก้ไข</th>
@@ -459,12 +502,26 @@ unset($dayEvents); // ยกเลิก reference
                                                 <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
-                                            <td class="program-categories-cell">
-                                                <?php if (!empty($event['categories'])): ?>
-                                                    <span class="program-categories-badge">
-                                                        <?php echo htmlspecialchars($event['categories']); ?>
-                                                    </span>
+                                            <?php if ($hasTypes): ?>
+                                            <td class="program-type-cell">
+                                                <?php if (!empty($event['program_type'])): ?>
+                                                <button type="button" class="program-type-badge" onclick="appendFilter('type', <?php echo htmlspecialchars(json_encode($event['program_type']), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามประเภท: <?php echo htmlspecialchars($event['program_type']); ?>">
+                                                    <?php echo htmlspecialchars($event['program_type']); ?>
+                                                </button>
                                                 <?php else: ?>
+                                                <span style="color: #adb5bd;">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php endif; ?>
+                                            <td class="program-categories-cell">
+                                                <?php
+                                                $cats = array_filter(array_map('trim', $event['categoriesArray']));
+                                                if (!empty($cats)):
+                                                    foreach ($cats as $cat): ?>
+                                                    <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($cat), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($cat); ?>">
+                                                        <?php echo htmlspecialchars($cat); ?>
+                                                    </button>
+                                                <?php endforeach; else: ?>
                                                     <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
@@ -512,6 +569,7 @@ unset($dayEvents); // ยกเลิก reference
     </div>
 
     <!-- Shared JavaScript (includes translations and common functions) -->
+    <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 
@@ -737,7 +795,17 @@ unset($dayEvents); // ยกเลิก reference
         }
     }
 
-    // ลบ filter และ reload หน้า
+    // เพิ่ม filter value และ reload หน้า (ไม่ duplicate, ใช้ได้ทั้งมีและไม่มี filter อยู่ก่อน)
+    function appendFilter(type, value) {
+        const url = new URL(window.location.href);
+        const params = url.searchParams;
+        const currentValues = params.getAll(type + '[]');
+        if (!currentValues.includes(value)) {
+            params.append(type + '[]', value);
+        }
+        window.location.href = url.toString();
+    }
+
     function removeFilter(type, value) {
         const url = new URL(window.location.href);
         const params = url.searchParams;

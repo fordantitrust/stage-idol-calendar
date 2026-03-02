@@ -64,6 +64,17 @@ if (!$_isFreshInstall) {
 }
 unset($_isFreshInstall);
 
+// Helper: ลบโฟลเดอร์แบบ recursive (ใช้ใน cleanup_dev_files)
+function setup_delete_directory(string $dir): bool {
+    if (!is_dir($dir)) return true;
+    $items = array_diff(scandir($dir), ['.', '..']);
+    foreach ($items as $item) {
+        $path = $dir . DIRECTORY_SEPARATOR . $item;
+        is_dir($path) ? setup_delete_directory($path) : @unlink($path);
+    }
+    return @rmdir($dir);
+}
+
 // ============================================================
 // Handle POST Actions
 // ============================================================
@@ -135,16 +146,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // programs table — รายการ shows/performances
             $db->exec("CREATE TABLE IF NOT EXISTS programs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                uid TEXT UNIQUE,
-                summary TEXT,
-                start DATETIME,
-                end DATETIME,
+                uid TEXT UNIQUE NOT NULL,
+                title TEXT NOT NULL,
+                start DATETIME NOT NULL,
+                end DATETIME NOT NULL,
                 location TEXT,
                 organizer TEXT,
-                categories TEXT,
                 description TEXT,
-                status TEXT DEFAULT 'CONFIRMED',
-                event_id INTEGER,
+                categories TEXT,
+                program_type TEXT DEFAULT NULL,
+                event_id INTEGER REFERENCES events(id),
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -159,6 +170,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 end_date DATE,
                 venue_mode TEXT DEFAULT 'multi',
                 is_active BOOLEAN DEFAULT 1,
+                theme TEXT DEFAULT NULL,
+                email TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -239,7 +252,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $now = date('Y-m-d H:i:s');
                 $stmt = $db->prepare("INSERT INTO events (slug, name, venue_mode, is_active, created_at, updated_at) VALUES (?, 'Idol Stage Event', ?, 1, ?, ?)");
                 $stmt->execute([$slug, $venueMode, $now, $now]);
+                $eventId = $db->lastInsertId();
                 $messages[] = ['type' => 'success', 'text' => "สร้าง default event (slug: <strong>$slug</strong>)"];
+
+                // Seed sample programs เพื่อให้เห็นหน้าตาระบบทันที
+                $programCount = $db->query("SELECT COUNT(*) FROM programs")->fetchColumn();
+                if ($programCount == 0) {
+                    $today = date('Y-m-d');
+                    $samples = [
+                        [
+                            'uid'         => 'sample-001@idol-stage.local',
+                            'title'       => 'Opening Ceremony',
+                            'start'       => $today . ' 10:00:00',
+                            'end'         => $today . ' 10:30:00',
+                            'location'    => 'Main Stage',
+                            'organizer'   => 'Idol Stage',
+                            'description' => 'ตัวอย่าง program — แก้ไขหรือลบได้จาก Admin › Programs',
+                            'categories'  => 'Idol Stage',
+                        ],
+                        [
+                            'uid'         => 'sample-002@idol-stage.local',
+                            'title'       => 'Artist Performance',
+                            'start'       => $today . ' 11:00:00',
+                            'end'         => $today . ' 12:00:00',
+                            'location'    => 'Main Stage',
+                            'organizer'   => 'Sample Artist',
+                            'description' => 'ตัวอย่าง program — แก้ไขหรือลบได้จาก Admin › Programs',
+                            'categories'  => 'Sample Artist',
+                        ],
+                        [
+                            'uid'         => 'sample-003@idol-stage.local',
+                            'title'       => 'Closing Stage',
+                            'start'       => $today . ' 17:00:00',
+                            'end'         => $today . ' 18:00:00',
+                            'location'    => 'Sub Stage',
+                            'organizer'   => 'All Artists',
+                            'description' => 'ตัวอย่าง program — แก้ไขหรือลบได้จาก Admin › Programs',
+                            'categories'  => 'All Artists',
+                        ],
+                    ];
+                    $pstmt = $db->prepare("INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    foreach ($samples as $s) {
+                        $pstmt->execute([$s['uid'], $s['title'], $s['start'], $s['end'], $s['location'], $s['organizer'], $s['description'], $s['categories'], $eventId, $now, $now]);
+                    }
+                    $messages[] = ['type' => 'info', 'text' => "เพิ่ม <strong>" . count($samples) . " sample programs</strong> — แก้ไขหรือลบได้จาก Admin › Programs"];
+                }
             }
 
             $messages[] = ['type' => 'success', 'text' => "สร้างตาราง database และ indexes ทั้งหมดเรียบร้อย"];
@@ -331,6 +388,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // เพิ่ม theme column (migration สำหรับ existing install)
+    if ($action === 'add_theme_column') {
+        try {
+            $db = new PDO('sqlite:' . $dbPath);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('theme', $ecols)) {
+                $db->exec("ALTER TABLE events ADD COLUMN theme TEXT DEFAULT NULL");
+                $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>theme column</strong> ใน events เรียบร้อย"];
+            } else {
+                $messages[] = ['type' => 'info', 'text' => "theme column มีอยู่แล้ว"];
+            }
+        } catch (PDOException $e) {
+            $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    // เพิ่ม email column ใน events (migration สำหรับ existing install)
+    if ($action === 'add_event_email_column') {
+        try {
+            $db = new PDO('sqlite:' . $dbPath);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('email', $ecols)) {
+                $db->exec("ALTER TABLE events ADD COLUMN email TEXT DEFAULT NULL");
+                $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>email column</strong> ใน events เรียบร้อย"];
+            } else {
+                $messages[] = ['type' => 'info', 'text' => "email column มีอยู่แล้ว"];
+            }
+        } catch (PDOException $e) {
+            $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    // เพิ่ม program_type column ใน programs (migration สำหรับ existing install)
+    if ($action === 'add_program_type_column') {
+        try {
+            $db = new PDO('sqlite:' . $dbPath);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pcols = $db->query("PRAGMA table_info(programs)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('program_type', $pcols)) {
+                $db->exec("ALTER TABLE programs ADD COLUMN program_type TEXT DEFAULT NULL");
+                $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>program_type column</strong> ใน programs เรียบร้อย"];
+            } else {
+                $messages[] = ['type' => 'info', 'text' => "program_type column มีอยู่แล้ว"];
+            }
+        } catch (PDOException $e) {
+            $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    // แก้ไข programs.summary → programs.title (fresh install ด้วย setup.php เก่า)
+    if ($action === 'fix_programs_title') {
+        try {
+            $db = new PDO('sqlite:' . $dbPath);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pcols = $db->query("PRAGMA table_info(programs)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (in_array('summary', $pcols) && !in_array('title', $pcols)) {
+                // SQLite ไม่รองรับ RENAME COLUMN ใน PHP 8 เก่า → สร้างตารางใหม่แทน
+                $db->exec("BEGIN");
+                $db->exec("ALTER TABLE programs RENAME TO programs_old");
+                // ตรวจว่า programs_old มี program_type หรือไม่ (อาจมีถ้าเคยรัน migration มาก่อน)
+                $oldCols = $db->query("PRAGMA table_info(programs_old)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                $hasOldProgramType = in_array('program_type', $oldCols);
+                $db->exec("CREATE TABLE programs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    uid TEXT UNIQUE NOT NULL,
+                    title TEXT NOT NULL,
+                    start DATETIME NOT NULL,
+                    end DATETIME NOT NULL,
+                    location TEXT,
+                    organizer TEXT,
+                    description TEXT,
+                    categories TEXT,
+                    program_type TEXT DEFAULT NULL,
+                    event_id INTEGER REFERENCES events(id),
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )");
+                if ($hasOldProgramType) {
+                    $db->exec("INSERT INTO programs (id, uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
+                               SELECT id, COALESCE(uid, 'uid-' || id || '@local'), COALESCE(summary, '(no title)'), start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at
+                               FROM programs_old");
+                } else {
+                    $db->exec("INSERT INTO programs (id, uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
+                               SELECT id, COALESCE(uid, 'uid-' || id || '@local'), COALESCE(summary, '(no title)'), start, end, location, organizer, description, categories, event_id, created_at, updated_at
+                               FROM programs_old");
+                }
+                $db->exec("DROP TABLE programs_old");
+                $db->exec("COMMIT");
+                $messages[] = ['type' => 'success', 'text' => "แก้ไข <strong>programs.summary → programs.title</strong> เรียบร้อย (รวม program_type column)"];
+            } elseif (in_array('title', $pcols)) {
+                $messages[] = ['type' => 'info', 'text' => "programs.title มีอยู่แล้ว (ไม่ต้องแก้ไข)"];
+            } else {
+                $messages[] = ['type' => 'warning', 'text' => "ไม่พบ column summary หรือ title ใน programs table"];
+            }
+        } catch (PDOException $e) {
+            if (isset($db)) $db->exec("ROLLBACK");
+            $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
     // เพิ่ม performance indexes
     if ($action === 'add_indexes') {
         try {
@@ -351,6 +510,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messages[] = ['type' => 'success', 'text' => "เพิ่ม performance indexes ทั้งหมดเรียบร้อย"];
         } catch (PDOException $e) {
             $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    // ลบไฟล์ dev/documentation ที่ไม่จำเป็นใน production
+    if ($action === 'cleanup_dev_files') {
+        $allowedFileList = [
+            'README.md', 'DOCKER.md', 'INSTALLATION.md', 'QUICKSTART.md',
+            'SETUP.md', 'API.md', 'CHANGELOG.md', 'TESTING.md', 'SECURITY.md',
+            'CONTRIBUTING.md', 'PROJECT-STRUCTURE.md', 'SQLITE_MIGRATION.md',
+            'SAAS-MIGRATION.md', 'CLAUDE.md', 'StaticSitePublisher.md', 'LICENSE',
+            '.env.example', 'Dockerfile', 'docker-compose.yml', 'docker-compose.dev.yml',
+            '.dockerignore', 'nginx-clean-url.conf', 'quick-test.bat', 'quick-test.sh',
+            '.gitignore',
+        ];
+        $allowedDirList = ['tests', 'tools', '.github'];
+
+        $selectedItems = $_POST['cleanup_items'] ?? [];
+        $deleted = [];
+        $failed  = [];
+
+        foreach ($selectedItems as $raw) {
+            $raw = trim((string)$raw);
+            if ($raw === '') continue;
+
+            if (str_ends_with($raw, '/')) {
+                // Directory
+                $dirName = rtrim($raw, '/');
+                if (!in_array($dirName, $allowedDirList)) continue;
+                $path = __DIR__ . DIRECTORY_SEPARATOR . $dirName;
+                if (!is_dir($path)) continue;
+                if (setup_delete_directory($path)) {
+                    $deleted[] = $raw;
+                } else {
+                    $failed[] = $raw;
+                }
+            } else {
+                // File
+                if (!in_array($raw, $allowedFileList)) continue;
+                $path = __DIR__ . DIRECTORY_SEPARATOR . $raw;
+                if (!file_exists($path)) continue;
+                if (@unlink($path)) {
+                    $deleted[] = $raw;
+                } else {
+                    $failed[] = $raw;
+                }
+            }
+        }
+
+        if (!empty($deleted)) {
+            $messages[] = ['type' => 'success', 'text' => '🗑️ ลบเรียบร้อย (' . count($deleted) . ' รายการ): <code>' . implode('</code>, <code>', array_map('htmlspecialchars', $deleted)) . '</code>'];
+        }
+        if (!empty($failed)) {
+            $messages[] = ['type' => 'error', 'text' => '⚠️ ลบไม่สำเร็จ (ตรวจสอบ permissions): <code>' . implode('</code>, <code>', array_map('htmlspecialchars', $failed)) . '</code>'];
+        }
+        if (empty($selectedItems)) {
+            $messages[] = ['type' => 'info', 'text' => 'ไม่ได้เลือกรายการที่จะลบ'];
         }
     }
 }
@@ -411,6 +626,10 @@ $programCount = 0;
 $eventCount = 0;
 $adminCount = 0;
 $hasRoleColumn = false;
+$hasThemeColumn = false;
+$hasEventEmailColumn = false;
+$hasTitleColumn = false;
+$hasProgramTypeColumn = false;
 $hasIndexes = false;
 $dbError = '';
 $existingIndexes = [];
@@ -437,6 +656,18 @@ if ($dbExists) {
             $cols = $db->query("PRAGMA table_info(admin_users)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasRoleColumn = in_array('role', $cols);
         }
+        if ($tableStatus['events'] ?? false) {
+            $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            $hasThemeColumn = in_array('theme', $ecols);
+            $hasEventEmailColumn = in_array('email', $ecols);
+        }
+        $hasTitleColumn = false;
+        $hasProgramTypeColumn = false;
+        if ($tableStatus['programs'] ?? false) {
+            $pcols = $db->query("PRAGMA table_info(programs)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            $hasTitleColumn = in_array('title', $pcols);
+            $hasProgramTypeColumn = in_array('program_type', $pcols);
+        }
 
         $existingIndexes = $db->query("SELECT name FROM sqlite_master WHERE type='index'")->fetchAll(PDO::FETCH_COLUMN);
         $requiredIndexes = ['idx_programs_event_id', 'idx_programs_start', 'idx_credits_event_id'];
@@ -448,7 +679,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasIndexes;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn;
 
 // 4. ICS Files
 $icsDir = __DIR__ . '/ics';
@@ -468,6 +699,80 @@ $configInfo = [
 $setupComplete = $allPhpOk && $allDirsOk && $allTablesOk;
 $needsDbInit   = $allPhpOk && $allDirsOk && (!$dbExists || !$allTablesOk); // ผ่าน PHP+dirs แต่ยังไม่มี DB
 $lockClass  = $isLocked ? ' locked-overlay' : ''; // CSS class สำหรับ action-bar เมื่อ locked
+
+// 6. Dev files check — ไฟล์ที่ไม่จำเป็นใน production
+$devFileGroups = [
+    'docs' => [
+        'label' => '📄 เอกสาร (Markdown)',
+        'items' => [
+            ['name' => 'README.md',            'type' => 'file'],
+            ['name' => 'DOCKER.md',            'type' => 'file'],
+            ['name' => 'INSTALLATION.md',      'type' => 'file'],
+            ['name' => 'QUICKSTART.md',        'type' => 'file'],
+            ['name' => 'SETUP.md',             'type' => 'file'],
+            ['name' => 'API.md',               'type' => 'file'],
+            ['name' => 'CHANGELOG.md',         'type' => 'file'],
+            ['name' => 'TESTING.md',           'type' => 'file'],
+            ['name' => 'SECURITY.md',          'type' => 'file'],
+            ['name' => 'CONTRIBUTING.md',      'type' => 'file'],
+            ['name' => 'PROJECT-STRUCTURE.md', 'type' => 'file'],
+            ['name' => 'SQLITE_MIGRATION.md',  'type' => 'file'],
+            ['name' => 'SAAS-MIGRATION.md',    'type' => 'file'],
+            ['name' => 'CLAUDE.md',            'type' => 'file'],
+            ['name' => 'StaticSitePublisher.md','type' => 'file'],
+            ['name' => 'LICENSE',              'type' => 'file'],
+        ],
+    ],
+    'tests' => [
+        'label' => '🧪 Test Suite',
+        'items' => [
+            ['name' => 'tests/', 'type' => 'dir'],
+        ],
+    ],
+    'tools' => [
+        'label' => '🔧 Development Tools',
+        'items' => [
+            ['name' => 'tools/', 'type' => 'dir'],
+        ],
+    ],
+    'docker' => [
+        'label' => '🐳 Docker Files',
+        'items' => [
+            ['name' => 'Dockerfile',             'type' => 'file'],
+            ['name' => 'docker-compose.yml',     'type' => 'file'],
+            ['name' => 'docker-compose.dev.yml', 'type' => 'file'],
+            ['name' => '.dockerignore',          'type' => 'file'],
+            ['name' => '.env.example',           'type' => 'file'],
+        ],
+    ],
+    'nginx' => [
+        'label' => '🌐 Nginx Config',
+        'items' => [
+            ['name' => 'nginx-clean-url.conf', 'type' => 'file'],
+        ],
+    ],
+    'cicd' => [
+        'label' => '🔄 CI/CD &amp; Scripts',
+        'items' => [
+            ['name' => '.github/', 'type' => 'dir'],
+            ['name' => '.gitignore',     'type' => 'file'],
+            ['name' => 'quick-test.bat', 'type' => 'file'],
+            ['name' => 'quick-test.sh',  'type' => 'file'],
+        ],
+    ],
+];
+
+$devFilesExistCount = 0;
+foreach ($devFileGroups as &$_dg) {
+    foreach ($_dg['items'] as &$_di) {
+        $checkPath = __DIR__ . '/' . rtrim($_di['name'], '/');
+        $_di['exists'] = ($_di['type'] === 'dir') ? is_dir($checkPath) : file_exists($checkPath);
+        if ($_di['exists']) $devFilesExistCount++;
+    }
+    unset($_di);
+}
+unset($_dg);
+$allDevFilesClean = ($devFilesExistCount === 0);
 
 // ตรวจสอบว่า admin ใช้ password เริ่มต้นหรือไม่
 // ตรวจจาก DB ก่อน แล้ว fallback ไป config
@@ -525,7 +830,7 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Setup & Installation - Idol Stage Timetable</title>
+    <title>Setup & Installation - <?php echo htmlspecialchars(function_exists('get_site_title') ? get_site_title() : (defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable')); ?></title>
     <?php if ($configLoaded): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <?php else: ?>
@@ -826,7 +1131,7 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
         <div class="icon">🌸</div>
         <div style="flex:1;">
             <h1>Setup &amp; Installation</h1>
-            <p>Idol Stage Timetable — ตรวจสอบความพร้อมและ setup ก่อนเริ่มใช้งาน</p>
+            <p><?php echo htmlspecialchars(function_exists('get_site_title') ? get_site_title() : (defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable')); ?> — ตรวจสอบความพร้อมและ setup ก่อนเริ่มใช้งาน</p>
         </div>
         <?php if ($configLoaded && function_exists('is_logged_in') && is_logged_in()): ?>
         <div style="font-size:0.82rem; opacity:0.9; text-align:right; white-space:nowrap;">
@@ -959,6 +1264,16 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                 <div class="step-content">
                     <strong>ตั้งค่า Admin Password</strong>
                     <p>เข้า Admin Panel และเปลี่ยน password เริ่มต้น</p>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-num <?php echo $allDevFilesClean ? 'done' : ''; ?>"
+                     style="<?php echo !$allDevFilesClean ? 'background:#9e9e9e;' : ''; ?>">
+                    <?php echo $allDevFilesClean ? '✓' : '6'; ?>
+                </div>
+                <div class="step-content">
+                    <strong>Production Cleanup <span style="font-size:0.78rem; font-weight:normal; color:#888; background:#f5f5f5; padding:1px 6px; border-radius:10px;">optional</span></strong>
+                    <p>ลบไฟล์ dev/documentation ที่ไม่จำเป็นใน production environment</p>
                 </div>
             </div>
         </div>
@@ -1129,6 +1444,28 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
             </div>
             <?php endif; ?>
 
+            <!-- Event Email Column -->
+            <?php if ($tableStatus['events'] ?? false): ?>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasEventEmailColumn ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>events.email</code> <span style="color:#999;font-size:0.82rem;">ใช้ใน ICS export ORGANIZER mailto</span></span>
+                <span class="check-value <?php echo $hasEventEmailColumn ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasEventEmailColumn ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
+            <?php endif; ?>
+
+            <!-- Program Type Column -->
+            <?php if ($tableStatus['programs'] ?? false): ?>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasProgramTypeColumn ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>programs.program_type</code> <span style="color:#999;font-size:0.82rem;">ประเภท program (stage, booth, ฯลฯ)</span></span>
+                <span class="check-value <?php echo $hasProgramTypeColumn ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasProgramTypeColumn ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
+            <?php endif; ?>
+
             <!-- Indexes -->
             <div class="check-row">
                 <span class="check-icon"><?php echo $hasIndexes ? '✅' : '⚠️'; ?></span>
@@ -1169,6 +1506,34 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                         </button>
                     </form>
                     <?php endif; ?>
+                    <?php if (($tableStatus['events'] ?? false) && !$hasThemeColumn): ?>
+                    <form method="POST">
+                        <button type="submit" name="action" value="add_theme_column" class="btn btn-warning">
+                            + theme column
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if (($tableStatus['events'] ?? false) && !$hasEventEmailColumn): ?>
+                    <form method="POST">
+                        <button type="submit" name="action" value="add_event_email_column" class="btn btn-warning">
+                            + events.email column
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if (($tableStatus['programs'] ?? false) && !$hasProgramTypeColumn): ?>
+                    <form method="POST">
+                        <button type="submit" name="action" value="add_program_type_column" class="btn btn-warning">
+                            + programs.program_type column
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if (($tableStatus['programs'] ?? false) && !$hasTitleColumn): ?>
+                    <form method="POST">
+                        <button type="submit" name="action" value="fix_programs_title" class="btn btn-warning">
+                            Fix programs.title
+                        </button>
+                    </form>
+                    <?php endif; ?>
                     <?php if (!$hasIndexes && ($tableStatus['programs'] ?? false)): ?>
                     <form method="POST">
                         <button type="submit" name="action" value="add_indexes" class="btn btn-secondary">
@@ -1191,7 +1556,10 @@ php migrate-add-events-meta-table.php
 php migrate-add-admin-users-table.php
 php migrate-add-role-column.php
 php migrate-rename-tables-columns.php
-php migrate-add-indexes.php</div>
+php migrate-add-indexes.php
+php migrate-add-theme-column.php
+php migrate-add-event-email-column.php
+php migrate-add-program-type-column.php</div>
             </div>
         </div>
         <?php endif; ?>
@@ -1420,6 +1788,74 @@ php tools/generate-password-hash.php your_new_password</div>
         <?php endif; ?>
     </div>
 
+    <!-- Step 6: Production Cleanup -->
+    <div class="section">
+        <div class="section-header">
+            <span class="section-title">
+                <?php echo $allDevFilesClean ? '✅' : '🧹'; ?> ขั้นตอนที่ 6 — Production Cleanup
+            </span>
+            <span class="section-badge <?php echo $allDevFilesClean ? 'badge-ok' : 'badge-info'; ?>">
+                <?php echo $allDevFilesClean ? 'Clean' : "มี $devFilesExistCount รายการ"; ?>
+            </span>
+        </div>
+        <?php if ($allDevFilesClean): ?>
+        <div class="section-body">
+            <div class="check-row">
+                <span class="check-icon">✅</span>
+                <span class="check-label">ไม่มีไฟล์ dev/documentation เหลืออยู่ในระบบ</span>
+                <span class="check-value ok">clean</span>
+            </div>
+        </div>
+        <?php else: ?>
+        <div class="section-body">
+            <div style="padding:12px 20px; font-size:0.88rem; color:#555; background:#f9f9f9; border-bottom:1px solid #f0f0f0;">
+                ไฟล์ด้านล่างไม่จำเป็นสำหรับ production — เลือกและลบเพื่อลดพื้นที่และเพิ่มความปลอดภัย
+                <span style="color:#e65100; font-weight:500; margin-left:4px;">⚠️ การลบไม่สามารถย้อนกลับได้</span>
+            </div>
+            <form method="POST" id="cleanup-form">
+                <input type="hidden" name="action" value="cleanup_dev_files">
+                <?php foreach ($devFileGroups as $gKey => $group):
+                    $groupExisting = array_filter($group['items'], fn($i) => $i['exists']);
+                    if (empty($groupExisting)) continue;
+                ?>
+                <div style="border-bottom:1px solid #f5f5f5;">
+                    <div style="padding:10px 20px; background:#fafafa; display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" id="grp-<?php echo $gKey; ?>"
+                               onchange="cleanupToggleGroup('<?php echo $gKey; ?>', this.checked)"
+                               style="width:16px;height:16px;cursor:pointer;accent-color:#E91E63;">
+                        <label for="grp-<?php echo $gKey; ?>" style="font-size:0.88rem; font-weight:600; color:#444; cursor:pointer;">
+                            <?php echo $group['label']; ?>
+                            <span style="font-size:0.78rem; font-weight:normal; color:#888; margin-left:4px;">(<?php echo count($groupExisting); ?> รายการ)</span>
+                        </label>
+                    </div>
+                    <?php foreach ($groupExisting as $item): ?>
+                    <?php $cbId = 'cb-' . preg_replace('/[^a-z0-9]/i', '-', $item['name']); ?>
+                    <div class="check-row" style="padding-left:44px;">
+                        <input type="checkbox" name="cleanup_items[]" value="<?php echo htmlspecialchars($item['name']); ?>"
+                               class="cleanup-cb grp-cb-<?php echo $gKey; ?>" id="<?php echo $cbId; ?>"
+                               style="width:15px;height:15px;cursor:pointer;accent-color:#E91E63;margin-right:4px;"
+                               onchange="cleanupUpdateGroupState('<?php echo $gKey; ?>')">
+                        <label for="<?php echo $cbId; ?>" style="cursor:pointer; flex:1; font-size:0.88rem;">
+                            <code><?php echo htmlspecialchars($item['name']); ?></code>
+                        </label>
+                        <span class="check-value warning"><?php echo $item['type'] === 'dir' ? 'directory' : 'file'; ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </form>
+        </div>
+        <div class="action-bar<?php echo $lockClass; ?>">
+            <p style="font-size:0.85rem; color:#666; flex:1;">เลือกไฟล์ที่ต้องการลบ — ไม่กระทบการทำงานของระบบ</p>
+            <button type="button" class="btn btn-secondary" onclick="cleanupSelectAll(true)">เลือกทั้งหมด</button>
+            <button type="button" class="btn btn-secondary" onclick="cleanupSelectAll(false)">ยกเลิกทั้งหมด</button>
+            <button type="button" class="btn btn-warning" onclick="cleanupSubmit()">
+                🗑️ ลบไฟล์ที่เลือก
+            </button>
+        </div>
+        <?php endif; ?>
+    </div>
+
     <!-- Config Summary -->
     <div class="section">
         <div class="section-header">
@@ -1482,6 +1918,29 @@ php tools/generate-password-hash.php your_new_password</div>
 </div>
 
 <script>
+function cleanupToggleGroup(gKey, checked) {
+    document.querySelectorAll('.grp-cb-' + gKey).forEach(function(cb) { cb.checked = checked; });
+}
+function cleanupUpdateGroupState(gKey) {
+    var cbs = document.querySelectorAll('.grp-cb-' + gKey);
+    var grpCb = document.getElementById('grp-' + gKey);
+    if (!grpCb || !cbs.length) return;
+    var checkedCount = Array.from(cbs).filter(function(cb) { return cb.checked; }).length;
+    grpCb.checked = checkedCount === cbs.length;
+    grpCb.indeterminate = checkedCount > 0 && checkedCount < cbs.length;
+}
+function cleanupSelectAll(checked) {
+    document.querySelectorAll('.cleanup-cb').forEach(function(cb) { cb.checked = checked; });
+    document.querySelectorAll('[id^="grp-"]').forEach(function(cb) { cb.checked = checked; cb.indeterminate = false; });
+}
+function cleanupSubmit() {
+    var selected = document.querySelectorAll('.cleanup-cb:checked');
+    if (selected.length === 0) { alert('กรุณาเลือกไฟล์ที่ต้องการลบก่อน'); return; }
+    var names = Array.from(selected).map(function(cb) { return cb.value; });
+    if (confirm('ยืนยันลบ ' + selected.length + ' รายการ?\n\n' + names.join('\n') + '\n\n⚠️ การลบไม่สามารถย้อนกลับได้!')) {
+        document.getElementById('cleanup-form').submit();
+    }
+}
 function setupValidatePasswords() {
     var p1  = document.getElementById('setup_new_password');
     var p2  = document.getElementById('setup_confirm_password');

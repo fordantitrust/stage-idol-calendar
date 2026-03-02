@@ -234,6 +234,21 @@ header p {
     color: white;
 }
 
+.event-subtitle {
+    font-size: 1.25em;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 8px;
+    padding: 6px 20px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    display: inline-block;
+    backdrop-filter: blur(10px);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    letter-spacing: 0.03em;
+}
+
 .filters {
     padding: 30px;
     background: var(--sakura-bg-soft);
@@ -649,6 +664,12 @@ header p {
     vertical-align: middle;
 }
 
+.program-type-cell {
+    width: 12%;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
 .program-categories-cell {
     width: 23%;
     vertical-align: middle;
@@ -662,6 +683,39 @@ header p {
     font-weight: 600;
     background: var(--sakura-bg);
     color: var(--sakura-deep);
+    border: none;
+    cursor: pointer;
+    margin: 2px 2px 2px 0;
+    transition: opacity 0.15s, transform 0.1s;
+}
+.program-categories-badge:hover {
+    opacity: 0.75;
+    transform: scale(1.04);
+}
+.program-categories-badge:active {
+    transform: scale(0.97);
+}
+
+.program-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.78em;
+    font-weight: 600;
+    background: #e3f0ff;
+    color: #1565c0;
+    margin-bottom: 4px;
+    vertical-align: middle;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+}
+.program-type-badge:hover {
+    opacity: 0.75;
+    transform: scale(1.04);
+}
+.program-type-badge:active {
+    transform: scale(0.97);
 }
 
 .no-events {
@@ -879,14 +933,16 @@ header p {
         font-size: 0.9em;
     }
 
+    .program-type-cell {
+        padding-top: 10px;
+        white-space: normal;
+    }
+
     .program-categories-cell {
         padding-top: 10px;
     }
 
     .program-categories-badge {
-        display: inline-block;
-        width: 100%;
-        text-align: center;
         padding: 8px 12px;
         margin-top: 5px;
     }
@@ -1445,18 +1501,26 @@ header p {
     border: 2px solid white;
 }
 
-/* Horizontal stacking for overlaps in vertical layout */
-.gantt-program-vertical.stack-h-1 { left: 5px; right: calc(50% + 2px); }
-.gantt-program-vertical.stack-h-2 { left: calc(50% + 2px); right: 5px; }
-.gantt-program-vertical.stack-h-3 { left: 5px; right: calc(66% + 2px); }
-.gantt-program-vertical.stack-h-4 { left: calc(33% + 2px); right: calc(33% + 2px); }
-.gantt-program-vertical.stack-h-5 { left: calc(66% + 2px); right: 5px; }
+/* Overlapping stacking: left/right set dynamically via inline style in renderGanttChart() */
 
 .gantt-program-time-v {
     color: rgba(255,255,255,0.95);
     font-size: 0.7em;
     font-weight: 600;
     margin-bottom: 2px;
+}
+
+.gantt-program-type-v {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    color: white;
+    font-size: 0.65em;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .gantt-program-title-v {

@@ -5,6 +5,247 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] - 2026-03-02
+
+### Added
+- 🧪 **ProgramTypeTest** — 35 automated tests ครอบคลุมการเปลี่ยนแปลงทั้งหมดใน v2.4.x
+  - **Schema**: `programs.program_type` column มีอยู่และ nullable
+  - **Migration**: `tools/migrate-add-program-type-column.php` มีอยู่และ idempotent
+  - **CRUD**: insert/read/update/delete ค่า `program_type` รวมถึง NULL
+  - **Public API**: `?type=` filter ทำงานผ่าน `$typeFilter` variable
+  - **Admin API**: `programs_types` action, `SELECT DISTINCT program_type`, CREATE/UPDATE/bulk-update handle program_type
+  - **index.php UI**: `appendFilter()` function, `URLSearchParams`, `$hasTypes` flag, `.event-subtitle`, `data-i18n="table.type"`, clickable badges, `htmlspecialchars(json_encode())` pattern
+  - **Translations**: `'table.type'` key ครบทั้ง 3 ภาษา (ประเภท / Type / タイプ) ปรากฏ 3 ครั้ง
+  - **Admin UI v2.4.2**: `sortBy('categories')`, ไม่มี `sortBy('organizer')`, `event.categories`, ไม่มี `<th>ผู้จัด</th>`
+- 📊 **Total tests: 999** (เพิ่มจาก 964 → 999 tests, ผ่านทั้งหมด 10 suites)
+
+### Fixed
+- 🐛 **setup.php `fix_programs_title` — program_type column หายหลัง fix** — action นี้ recreate `programs` table จาก `summary` → `title` แต่ CREATE TABLE ใหม่ไม่มี `program_type` column ทำให้ column หายทันที
+  - เพิ่ม `program_type TEXT DEFAULT NULL` ใน CREATE TABLE ที่ recreate เสมอ
+  - ตรวจสอบว่า `programs_old` มี `program_type` อยู่แล้วหรือไม่: ถ้ามี → copy ค่าใน INSERT SELECT ด้วย, ถ้าไม่มี → INSERT โดยไม่รวม column (ค่า default เป็น NULL)
+
+---
+
+## [2.4.2] - 2026-03-02
+
+### Changed
+- 🗂️ **Admin Programs List: Organizer → Categories** — เปลี่ยน column "Organizer" ในตาราง Programs ของ Admin เป็น "Categories" (ศิลปินที่เกี่ยวข้อง)
+  - Programs list table: header `Organizer` → `Categories`, sort key `organizer` → `categories`, data `event.organizer` → `event.categories`
+  - ICS import preview table: header `ผู้จัด` → `ศิลปินที่เกี่ยวข้อง`, data `event.organizer` → `event.categories`
+  - ฟอร์มเพิ่ม/แก้ไข Program ยังคงมีช่อง Organizer สำหรับแก้ไขข้อมูลเดิมได้
+
+---
+
+## [2.4.1] - 2026-03-02
+
+### Added
+- 🖱️ **Clickable Filter Badges** — กด badge ในตารางเพื่อ append filter ได้ทันที ไม่ต้องใช้ช่อง filter ด้านบน
+  - **ศิลปินที่เกี่ยวข้อง**: categories ถูกแยกเป็น badge แต่ละศิลปิน — กดเพื่อ append `artist[]` filter
+  - **ประเภท**: badge ประเภทใน column "ประเภท" — กดเพื่อ append `type[]` filter
+  - `appendFilter(type, value)` JS function: เพิ่ม filter เข้า URL แบบ append (ไม่ลบ filter เดิม) รองรับทั้งมีและไม่มี filter อยู่ก่อน ไม่เพิ่มซ้ำ
+- 📋 **Program Type Column** — แยก column "ประเภท" ออกจาก title cell เป็น column ของตัวเอง
+  - แสดง column เมื่อ event นั้นมี program ที่กำหนด `program_type` ไว้อย่างน้อย 1 รายการ (`$hasTypes = !empty($types)`)
+  - รองรับ 3 ภาษา (`table.type`: ประเภท / Type / タイプ)
+  - Badge คลิกได้ → append filter ตามประเภท, row ที่ไม่มีประเภท → แสดง `-`
+
+### Changed
+- 🏷️ **Event Name Subtitle** — แสดงชื่องานเป็น subtitle แยกต่างหากใต้ชื่อเว็บไซต์ในหน้าตาราง
+  - ย้ายชื่องานออกจาก `<h1>` (เดิม "Site Title - Event Name") เป็น `<div class="event-subtitle">` แยกต่างหาก
+  - แสดงผลเสมอเมื่อดูตารางของ event ใดๆ — ไม่ขึ้นกับว่า dropdown selector จะแสดงหรือไม่
+  - ประโยชน์: เมื่อมีงานเดียวในระบบ dropdown จะไม่แสดง แต่ชื่องานยังคงปรากฏชัดเจนใต้ชื่อเว็บ
+
+### Documentation
+- 📖 **how-to-use.php อัพเดท** — เพิ่มหัวข้อ "5. กรองด่วนจาก badge ในตาราง" ใน section การกรองข้อมูล ครบทั้ง 3 ภาษา (TH/EN/JA)
+  - อธิบาย badge ศิลปิน (สีชมพู) และ badge ประเภท (สีน้ำเงิน)
+  - อธิบายพฤติกรรม append filter (ไม่ลบ filter เดิม)
+
+### Fixed
+- 🐛 **SyntaxError ใน onclick badge** — `json_encode()` คืน string ที่มี `"` ทำให้ปิด HTML attribute กลางคัน แก้ด้วย `htmlspecialchars(json_encode(...), ENT_QUOTES, 'UTF-8')`
+
+## [2.4.0] - 2026-03-02
+
+### Added
+- 🏷️ **Program Type System** — ระบบแยกประเภทโปรแกรม (stage, booth, meet & greet, ฯลฯ)
+  - `program_type TEXT DEFAULT NULL` column ใน `programs` table (backward compatible — NULL = ไม่มีประเภท)
+  - Free-text entry: พิมพ์ประเภทได้อิสระ พร้อม autocomplete จากข้อมูลที่มีอยู่ในระบบ
+  - **Admin form**: input + datalist ใน create/edit modal, badge ในรายการ, bulk edit option
+  - **Public filter UI**: checkbox group กรองตามประเภท (เหมือนกับ artist/venue filter) — แสดงเฉพาะเมื่อมีข้อมูล
+  - **Program badge**: แสดง badge สีฟ้าเหนือชื่อ program ในตารางหลัก
+  - **Gantt Chart**: แสดง type label บน program bar (เล็กๆ ด้านบน)
+  - **Public API**: `?type=` filter parameter + `action=types` endpoint
+  - **ICS Export**: `?type[]=` filter + program_type ถูก append เข้า CATEGORIES field
+  - Migration script: `tools/migrate-add-program-type-column.php` (idempotent)
+  - GitHub Actions: เพิ่ม migration ใน workflow
+- 🏷️ **Program Type ใน ICS Import** — กำหนดประเภทได้ 3 วิธี (เรียงตามลำดับความสำคัญ)
+  - `X-PROGRAM-TYPE:` field ใน VEVENT block (per-event, highest priority)
+  - ช่อง "🏷️ Program Type (default)" ใน Admin → Import UI (batch default สำหรับ web upload)
+  - `--type=value` argument เมื่อ import ผ่าน CLI: `php tools/import-ics-to-sqlite.php --event=slug --type=stage`
+  - `IcsParser::parseEvent()` รองรับ `X-PROGRAM-TYPE:` field แล้ว
+
+### Fixed
+- 🐛 **setup.php `init_database` ขาด `program_type` column** — `CREATE TABLE programs` ใน fresh install ไม่มี `program_type TEXT DEFAULT NULL` ทำให้ status check `$allTablesOk = false` และ bottom button แสดงผิด
+  - เพิ่ม `program_type TEXT DEFAULT NULL` ใน CREATE TABLE statement ของ `init_database` handler
+
+### Documentation
+- 📖 **Admin Help Pages อัพเดท** (`admin/help.php`, `admin/help-en.php`)
+  - เพิ่ม Program Type field ในตาราง Add/Edit Program form
+  - เพิ่ม X-PROGRAM-TYPE ในตาราง Supported ICS Fields
+  - เพิ่มหัวข้อ "การกำหนด Program Type ตอน Import" พร้อมตาราง 3 วิธี
+  - เพิ่ม FAQ: การกำหนด Program Type ตอน import ICS
+  - อัพเดท Bulk Edit description ให้รวม Program Type
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.4.0` (cache busting)
+
+## [2.3.4] - 2026-03-02
+
+### Fixed
+- 🗓️ **Gantt Chart ไม่แสดงใน Single Venue Mode** — toggle switch ถูกซ่อนด้วย `if ($currentVenueMode === 'multi')` ทำให้ `#viewToggle` element ไม่มีอยู่ใน DOM และ `initializeView()` ไม่ทำงาน
+  - ลบเงื่อนไข `venue_mode === 'multi'` ออก — Toggle switch แสดงทุก mode
+  - Gantt Chart ทำงานได้ใน single venue mode (แสดง 1 column)
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.3.4` (cache busting)
+
+## [2.3.3] - 2026-03-02
+
+### Fixed
+- 🗓️ **Gantt Chart: program ที่ 4+ ไม่แสดงเมื่อ overlap มากกว่า 3** — CSS class `stack-h-N` ออกแบบไว้สำหรับ 2 หรือ 3 overlap เท่านั้น แต่ JS assign ตาม `stackIndex + 1` ตรงๆ ทำให้ program ที่ 4 ได้ `stack-h-4` (1/3 กลาง) ซึ่งทับซ้อนกับ `stack-h-1` และ `stack-h-2` อย่างมองไม่เห็น
+  - แก้โดยเปลี่ยนจาก CSS class เป็น inline style คำนวณจาก `stackIndex / stackTotal` แบบ dynamic
+  - หารพื้นที่ column เท่าๆ กันทุก program ไม่จำกัดจำนวน (N=4 → 25% ต่อช่อง, N=5 → 20% ต่อช่อง, ...)
+  - ลบ CSS classes `stack-h-1` ถึง `stack-h-5` ออก (ไม่ใช้แล้ว)
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.3.3` (cache busting)
+
+## [2.3.2] - 2026-03-02
+
+### Fixed
+- 🕐 **Timezone ไม่สม่ำเสมอทั่วระบบ** — ไม่มีการกำหนด timezone ทำให้ PHP ใช้ timezone ของ server (Linux/Docker = UTC) ส่งผลให้ `export.php` แปลงเวลาผิด ±7 ชั่วโมง
+  - เพิ่ม `date_default_timezone_set('Asia/Bangkok')` ใน `config/app.php` ก่อน constant ทั้งหมด
+- 🕐 **IcsParser ทิ้ง Z suffix** — `DTSTART:20260207T100000Z` (UTC 10:00 = ไทย 17:00) ถูกเก็บเป็น `10:00:00` แทน `17:00:00`
+  - แก้ `IcsParser::parseDateTime()` ให้ detect Z suffix และแปลง UTC → Asia/Bangkok ก่อนเก็บลง DB
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.3.2` (cache busting)
+
+## [2.3.1] - 2026-03-02
+
+### Fixed
+- 🐛 **Bulk Edit Programs ไม่บันทึกลงฐานข้อมูล** — `bulkUpdatePrograms()` ใน `admin/api.php` ผสม named parameters (`:location`, `:updated_at`) กับ positional `?` ใน WHERE IN clause เดียวกัน
+  - PDO ไม่รองรับการผสมสองแบบ — `execute()` รันสำเร็จแต่ไม่มีแถวใดถูก update (silent fail)
+  - แก้ไขให้ใช้ named parameters ล้วน: ID ทุกตัวใช้ `:id_0`, `:id_1`, ... แทน `?`
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.3.1` (cache busting)
+
+## [2.3.0] - 2026-03-02
+
+### Added
+- 📧 **Event Email Field** — เพิ่ม `email` column ใน `events` table
+  - Admin › Events form มี "Contact Email" input field
+  - Stored as TEXT DEFAULT NULL; invalid email → stored as NULL (server-side `FILTER_VALIDATE_EMAIL`)
+  - Migration script: `tools/migrate-add-event-email-column.php` (idempotent, รันซ้ำได้)
+- 📅 **ICS ORGANIZER Redesign** — เปลี่ยน ORGANIZER ใน ICS export ให้สื่อถึงงาน (convention) แทนศิลปิน
+  - `ORGANIZER;CN="ชื่องาน":mailto:email@event.com` — ตาม RFC 5545 semantics
+  - Fallback: `noreply@stageidol.local` เมื่อไม่ได้ตั้ง email (ไม่ใช้ email ศิลปิน)
+- 🧹 **Production Cleanup (Setup Wizard Step 6)** — ระบบลบไฟล์ dev/docs ผ่าน `setup.php`
+  - ตรวจสอบ/ลบไฟล์แบบ grouped checkbox (Docs, Tests, Tools, Docker, Nginx, CI/CD)
+  - Whitelist-based security (ป้องกัน path traversal); locked เมื่อ setup locked
+  - กลุ่มไฟล์:
+    - **Docs**: `README.md`, `QUICKSTART.md`, `INSTALLATION.md`, `DOCKER.md`, `CHANGELOG.md`, `TESTING.md`, `SQLITE_MIGRATION.md`, `SECURITY.md`, `CONTRIBUTING.md`, `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `LICENSE`
+    - **Tests**: `tests/` directory
+    - **Tools**: `tools/` directory
+    - **Docker**: `Dockerfile`, `docker-compose.yml`, `docker-compose.dev.yml`, `.dockerignore`, `.env.example`
+    - **Nginx**: `nginx-clean-url.conf`
+    - **CI/CD**: `.github/`, `.gitignore`, `quick-test.bat`, `quick-test.sh`
+- 🧪 **EventEmailTest** — 19 automated tests สำหรับ email field (รวม 637 ทั้งระบบ)
+  - Schema: email column nullable, TEXT type
+  - CRUD: insert valid/null email, update email, update to null, read-back via SELECT *
+  - Validation logic: accepts valid emails, rejects invalid/empty (returns null)
+  - ICS ORGANIZER logic: uses event email, falls back to noreply, skips when no event meta
+  - Migration: script exists, idempotent when column already present
+
+### Changed
+- ⬆️ **APP_VERSION** → `2.3.0` (cache busting)
+- 🔧 **`tools/migrate-add-event-email-column.php`** table ที่ migrate คือ `events` (ไม่ใช่ `programs`)
+
+## [2.2.1] - 2026-02-28
+
+### Fixed
+- 🐛 **setup.php สร้าง programs table ผิด schema** — `CREATE TABLE programs` ใช้ `summary TEXT` แทน `title TEXT NOT NULL`
+  ทำให้ Admin › Programs › สร้าง program ใหม่ล้มเหลว (`"Failed to create event"`) เพราะ PDOException ถูกซ่อนด้วย `PRODUCTION_MODE`
+  - แก้ไข `CREATE TABLE programs` ให้ตรงกับ schema จริง (`title`, `uid NOT NULL`, `start NOT NULL`, `end NOT NULL`, FK `event_id`)
+  - เพิ่ม migration action `fix_programs_title` ใน `setup.php` สำหรับ DB ที่ install ด้วย setup.php เก่า
+  - เพิ่ม Setup Wizard UI button **"Fix programs.title"** (แสดงเมื่อ programs table มี `summary` แทน `title`)
+  - `$allTablesOk` ตรวจสอบ `$hasTitleColumn` ด้วย
+- 🐛 **หน้ารวม Events แสดงว่างเปล่าหลัง init database** — `$showEventListing` นับ `$activeEvents` ทั้งหมด
+  รวม default event ด้วย ทำให้ trigger หน้ารวม events แต่ default event ถูก skip ในลูป card → หน้าว่าง
+  - แก้ไขให้ใช้ `$nonDefaultEvents` (กรอง default slug ออกก่อน) แทน `$activeEvents` ใน condition
+  - เมื่อมีเฉพาะ default event → fallback แสดง calendar view โดยตรง
+
+### Added
+- 🌱 **Sample programs seed เมื่อ Initialize Database** — `setup.php` สร้าง 3 sample programs อัตโนมัติ
+  (Opening Ceremony, Artist Performance, Closing Stage) ใช้วันปัจจุบันเป็น start/end
+  เพื่อให้เห็น layout จริงทันทีหลัง fresh install
+- 📖 **Admin Help Pages อัพเดท: Default Event behavior** (`admin/help.php` + `admin/help-en.php`)
+  - เพิ่มตาราง "Default Event และหน้ารวม Events" อธิบาย 3 กรณี (default only / มี event จริง / เข้า URL โดยตรง)
+  - เพิ่ม callout อธิบายว่า default event ถูกซ่อนจากหน้ารวม Events โดยตั้งใจ
+
+## [2.2.0] - 2026-02-27
+
+### Added
+- 📝 **Site Title Editable from Admin UI** — Admin สามารถเปลี่ยน site title ผ่าน Settings tab
+  - Constant `APP_NAME` ใน `config/app.php` เป็น default/fallback
+  - Helper `get_site_title()` ใน `functions/helpers.php` — อ่าน `cache/site-settings.json` → fallback `APP_NAME`
+  - Admin API actions `title_get` / `title_save` + functions `getTitleSetting()` / `saveTitleSetting()`
+  - Settings tab UI: input field + Save button (ก่อน Site Theme picker)
+  - ทุก public page: `<title>` และ `<h1>` ใช้ `get_site_title()` แบบ dynamic
+  - PHP inject `window.SITE_TITLE` ก่อน `translations.js` ทุกหน้า public
+  - ICS export: `PRODID`, `X-WR-CALNAME`, `X-WR-CALDESC` ใช้ `get_site_title()`
+  - Storage: `cache/site-settings.json` — `{"site_title": "...", "updated_at": ...}` (general-purpose settings file)
+- 🌐 **JS Translation Patching IIFE** ใน `js/translations.js`
+  - Self-patching IIFE อ่าน `window.SITE_TITLE` แล้วแทนที่ `'Idol Stage Timetable'` ในทุก translation key
+  - ทำงานอัตโนมัติเมื่อเปลี่ยน site title — รองรับ 3 ภาษา
+- 📖 **Admin Help Pages** อัพเดทรองรับ Site Title
+  - เพิ่ม "📝 Site Title" subsection ก่อน "🎨 Site Theme" ใน Settings section (TH + EN)
+  - อัพเดท Roles table: "Settings (Theme)" → "Settings (Title + Theme)"
+  - เพิ่ม FAQ: Site Title ไม่อัพเดทหลังบันทึก
+- 🧪 **SiteSettingsTest** — 14 tests ใหม่ (รวม 618 ทั้งระบบ)
+  - ทดสอบ `get_site_title()`: no cache, reads cache, empty/whitespace fallback, trim, malformed JSON
+  - ทดสอบ Admin API: `title_get`/`title_save` cases, functions defined, `require_api_admin_role()` guard
+  - ทดสอบ public pages: `get_site_title()` call, `window.SITE_TITLE` injection
+  - ทดสอบ `js/translations.js`: มี IIFE patching block
+  - ทดสอบ `APP_NAME` constant ถูก define และ non-empty
+
+### Changed
+- 🌐 **`header.subtitle` EN** เปลี่ยนจาก `'Idol Stage Timetable'` → `'Event Schedule'`
+  - ทำให้ subtitle เป็น descriptive เหมือน TH (`'ตารางกิจกรรม Idol Stage'`) และ JA (`'アイドルステージタイムテーブル'`)
+  - Brand name อยู่ใน `header.title` เท่านั้น
+
+## [2.1.1] - 2026-02-27
+
+### Added
+- 🎨 **Per-Event Theme** — กำหนด theme สีแยกตาม event ได้
+  - คอลัมน์ `theme TEXT DEFAULT NULL` ใน `events` table
+  - `get_site_theme($eventMeta = null)` รับ event meta เพื่อ resolve theme ตาม priority:
+    1. Event-specific theme (`events.theme`) — ถ้าตั้งค่าและ valid
+    2. Global theme (Settings tab, `cache/site-theme.json`)
+    3. Default fallback: `dark`
+  - Admin Event form มี theme picker (🌸 Sakura / 🌊 Ocean / 🌿 Forest / 🌙 Midnight / ☀️ Sunset / 🖤 Dark / 🩶 Gray)
+  - ทุก public page ส่ง `$eventMeta` เข้า `get_site_theme()`: `index.php`, `credits.php`, `how-to-use.php`, `contact.php`
+  - Migration script: `tools/migrate-add-theme-column.php` (idempotent)
+  - Setup wizard รองรับ: fresh install สร้าง `theme` column อัตโนมัติ, existing install มีปุ่ม "+ theme column"
+- 🧪 **ThemeTest เพิ่ม 8 tests** (รวม 24 tests / 464 ทั้งระบบ)
+  - ทดสอบ priority: event → global → dark fallback
+  - ทดสอบ null/empty/invalid event theme fallback
+  - ทดสอบ Admin API รองรับ theme field
+
+### Changed
+- 🎨 **Default theme fallback** เปลี่ยนจาก `sakura` → `dark`
+  - `sakura` เป็นเพียง base CSS ใน `common.css` (ไม่มีไฟล์ override ของตัวเอง)
+  - ถ้าไม่ได้ตั้ง Global theme และ Event ไม่มี theme → ใช้ `dark` theme
+
 ## [2.1.0] - 2026-02-27
 
 ### Added

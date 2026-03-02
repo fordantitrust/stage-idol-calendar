@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-โครงสร้างไฟล์และโฟลเดอร์ของ Idol Stage Timetable v2.1.0
+โครงสร้างไฟล์และโฟลเดอร์ของ Idol Stage Timetable v2.4.3
 
 ---
 
@@ -51,7 +51,7 @@ stage-idol-calendar/
 
 | ไฟล์ | Define constants | หน้าที่ |
 |------|-----------------|--------|
-| `app.php` | `APP_VERSION`, `PRODUCTION_MODE`, `VENUE_MODE`, `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG` | App settings + cache busting |
+| `app.php` | `APP_VERSION`, `APP_NAME`, `PRODUCTION_MODE`, `VENUE_MODE`, `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG`, `GOOGLE_ANALYTICS_ID` | App settings + cache busting + site title default |
 | `admin.php` | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `SESSION_TIMEOUT`, `ADMIN_IP_WHITELIST_ENABLED`, `ADMIN_ALLOWED_IPS` | Admin auth fallback + IP whitelist |
 | `security.php` | Security rate limiting constants | Rate limiting config |
 | `database.php` | `DB_PATH` (`data/calendar.db`) | Database file path |
@@ -65,7 +65,7 @@ Helper functions โหลดผ่าน `config.php`
 
 | ไฟล์ | Functions หลัก | หน้าที่ |
 |------|--------------|--------|
-| `helpers.php` | `get_db()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()` | General utilities + DB singleton + multi-event helpers |
+| `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()` | General utilities + DB singleton + site title/theme + multi-event helpers |
 | `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate |
 | `admin.php` | `admin_login()`, `safe_session_start()`, `check_admin_session()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting |
 | `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `generate_csrf_token()`, `validate_csrf_token()` | XSS, CSRF, headers, IP whitelist |
@@ -102,6 +102,8 @@ Helper functions โหลดผ่าน `config.php`
 | `data_version.json` | Last data update timestamp (footer display) | 10 นาที |
 | `credits.json` | Credits data cache | 1 ชั่วโมง |
 | `login_attempts.json` | Login rate limiting data | 15 นาที |
+| `site-theme.json` | Global site theme setting | ถาวร (admin เปลี่ยน) |
+| `site-settings.json` | Site settings: `site_title` (admin เปลี่ยน) | ถาวร (admin เปลี่ยน) |
 
 ---
 
@@ -146,6 +148,7 @@ CLI scripts สำหรับ developer — รันผ่าน `php tools/sc
 | `migrate-add-role-column.php` | เพิ่ม `role` column ใน `admin_users` | ✅ |
 | `migrate-rename-tables-columns.php` | Rename tables/columns เป็น v2.0.0 schema | ✅ |
 | `migrate-add-indexes.php` | เพิ่ม 7 performance indexes | ✅ |
+| `migrate-add-event-email-column.php` | เพิ่ม `email` column ใน `events` | ✅ |
 | `generate-password-hash.php` | สร้าง bcrypt password hash |  |
 | `debug-parse.php` | Debug ICS file parsing | |
 | `test-parse.php` | ทดสอบ ICS parser | |
@@ -156,7 +159,7 @@ CLI scripts สำหรับ developer — รันผ่าน `php tools/sc
 
 ## 🧪 tests/
 
-Automated test suite — 340 tests, PHP 8.1/8.2/8.3
+Automated test suite — 637 tests, PHP 8.1/8.2/8.3
 
 | ไฟล์ | Tests | Coverage |
 |------|-------|---------|
@@ -168,10 +171,12 @@ Automated test suite — 340 tests, PHP 8.1/8.2/8.3
 | `CreditsApiTest.php` | 49 | Credits CRUD, bulk delete, SQL injection prevention |
 | `IntegrationTest.php` | 97 | Config, file structure, workflows, API, multi-event |
 | `UserManagementTest.php` | 116 | Role schema, RBAC helpers, user CRUD, permission guards |
-| `ThemeTest.php` | 16 | Theme system, get_site_theme(), CSS files, admin API, public pages |
+| `ThemeTest.php` | 140 | Theme system, get_site_theme(), per-event theme, CSS files, admin API |
+| `SiteSettingsTest.php` | 154 | Site title: get_site_title(), cache, fallbacks, admin API, page injection |
+| `EventEmailTest.php` | 19 | events.email schema, CRUD, validation logic, ICS ORGANIZER fallback |
 
 ```bash
-# Run all 340 tests
+# Run all 637 tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -250,4 +255,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v2.1.0*
+*Idol Stage Timetable v2.4.3*

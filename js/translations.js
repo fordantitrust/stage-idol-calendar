@@ -14,10 +14,11 @@ const translations = {
 
         // Index page
         'header.title': 'Idol Stage Timetable',
-        'header.subtitle': 'ปฏิทินกิจกรรม Idol Stage',
+        'header.subtitle': 'ตารางเวลา',
         'header.disclaimer': '* กรุณาตรวจสอบข้อมูลล่าสุดอีกครั้ง เราไม่รับผิดชอบต่อข้อผิดพลาดใดๆ ที่อาจเกิดขึ้นระหว่างการจัดทำเอกสารนี้',
         'filter.artist': '🎤 กรองตามวง/ศิลปิน:',
         'filter.venue': '🏛️ กรองตามเวที:',
+        'filter.type': '🏷️ กรองตามประเภท:',
         'filter.searchArtist': '🔍 ค้นหาชื่อวง...',
         'filter.searchVenue': '🔍 ค้นหาชื่อเวที...',
         'button.search': '🔍 ค้นหา',
@@ -34,6 +35,7 @@ const translations = {
         'table.time': 'เวลา',
         'table.program': 'Program/ศิลปิน',
         'table.venue': 'เวที',
+        'table.type': 'ประเภท',
         'table.categories': 'ศิลปินที่เกี่ยวข้อง',
         'table.editRequest': 'แจ้งแก้ไข',
         'modal.editTitle': '✏️ แจ้งแก้ไข Program',
@@ -68,6 +70,12 @@ const translations = {
         'section2.selectedTags.desc': 'เมื่อเลือกศิลปินหรือเวทีแล้ว จะแสดงเป็น tag ด้านบน checkbox list',
         'section2.selectedTags.tip': '💡 เคล็ดลับ:',
         'section2.selectedTags.tipText': 'กดปุ่ม ✕ ที่ tag เพื่อลบออกและ reload หน้าอัตโนมัติ',
+        'section2.quickFilter.title': '5. กรองด่วนจาก badge ในตาราง',
+        'section2.quickFilter.desc': 'คลิกที่ badge ในตารางรายการเพื่อ append filter ได้ทันที โดยไม่ต้องเลื่อนขึ้นไปใช้ช่อง filter ด้านบน',
+        'section2.quickFilter.item1': '🎤 Badge ศิลปิน (สีชมพู) — คอลัมน์ "ศิลปินที่เกี่ยวข้อง": คลิกชื่อศิลปินเพื่อเพิ่มเข้า filter',
+        'section2.quickFilter.item2': '🏷️ Badge ประเภท (สีน้ำเงิน) — คอลัมน์ "ประเภท": คลิกเพื่อกรองตามประเภท program',
+        'section2.quickFilter.tip': '💡 เคล็ดลับ:',
+        'section2.quickFilter.tipText': 'filter ที่คลิกจะ append ต่อจาก filter ที่มีอยู่ — เลือกหลายศิลปิน/ประเภทได้โดยไม่ลบการเลือกเดิม',
         'section3.title': '💾 การบันทึกและส่งออก',
         'section3.image.title': '1. บันทึกเป็นรูปภาพ (📸)',
         'section3.image.desc': 'บันทึกตารางกิจกรรมเป็นไฟล์รูปภาพ PNG เพื่อแชร์ในโซเชียลมีเดียหรือเก็บไว้ดูออฟไลน์',
@@ -192,10 +200,11 @@ const translations = {
 
         // Index page
         'header.title': 'Idol Stage Timetable',
-        'header.subtitle': 'Idol Stage Timetable',
+        'header.subtitle': 'Event Schedule',
         'header.disclaimer': '* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.',
         'filter.artist': '🎤 Filter by Artist/Group:',
         'filter.venue': '🏛️ Filter by Venue:',
+        'filter.type': '🏷️ Filter by Type:',
         'filter.searchArtist': '🔍 Search artist name...',
         'filter.searchVenue': '🔍 Search venue name...',
         'button.search': '🔍 Search',
@@ -212,6 +221,7 @@ const translations = {
         'table.time': 'Time',
         'table.program': 'Program/Artist',
         'table.venue': 'Venue',
+        'table.type': 'Type',
         'table.categories': 'Related Artists',
         'table.editRequest': 'Request Edit',
         'modal.editTitle': '✏️ Edit Program Request',
@@ -246,6 +256,12 @@ const translations = {
         'section2.selectedTags.desc': 'After selecting artists or venues, they will be displayed as tags above the checkbox list',
         'section2.selectedTags.tip': '💡 Tip:',
         'section2.selectedTags.tipText': 'Click ✕ on a tag to remove it and auto-reload the page',
+        'section2.quickFilter.title': '5. Quick Filter from Table Badges',
+        'section2.quickFilter.desc': 'Click badges directly in the program list to append a filter instantly — no need to scroll up to the filter panel.',
+        'section2.quickFilter.item1': '🎤 Artist badge (pink) — "Related Artists" column: click an artist name to add to filter',
+        'section2.quickFilter.item2': '🏷️ Type badge (blue) — "Type" column: click to filter by program type',
+        'section2.quickFilter.tip': '💡 Tip:',
+        'section2.quickFilter.tipText': 'Each click appends to existing filters — select multiple artists or types without clearing previous selections.',
         'section3.title': '💾 Save and Export',
         'section3.image.title': '1. Save as Image (📸)',
         'section3.image.desc': 'Save the event schedule as a PNG image file to share on social media or view offline.',
@@ -370,10 +386,11 @@ const translations = {
 
         // Index page
         'header.title': 'Idol Stage Timetable',
-        'header.subtitle': 'アイドルステージイベントカレンダー',
+        'header.subtitle': 'タイムテーブル',
         'header.disclaimer': '* 最新情報を再度ご確認ください。本書の作成中に発生する可能性のある誤りについては責任を負いかねます。',
         'filter.artist': '🎤 アーティスト/グループで絞り込む:',
         'filter.venue': '🏛️ 会場で絞り込む:',
+        'filter.type': '🏷️ タイプで絞り込む:',
         'filter.searchArtist': '🔍 アーティスト名を検索...',
         'filter.searchVenue': '🔍 会場名を検索...',
         'button.search': '🔍 検索',
@@ -390,6 +407,7 @@ const translations = {
         'table.time': '時間',
         'table.program': 'プログラム/アーティスト',
         'table.venue': '会場',
+        'table.type': 'タイプ',
         'table.categories': '関連アーティスト',
         'table.editRequest': '編集リクエスト',
         'modal.editTitle': '✏️ プログラム編集リクエスト',
@@ -424,6 +442,12 @@ const translations = {
         'section2.selectedTags.desc': 'アーティストや会場を選択すると、チェックボックスリストの上にタグとして表示されます',
         'section2.selectedTags.tip': '💡 ヒント:',
         'section2.selectedTags.tipText': 'タグの ✕ をクリックすると削除され、ページが自動リロードされます',
+        'section2.quickFilter.title': '5. テーブルバッジからクイックフィルタ',
+        'section2.quickFilter.desc': 'プログラム一覧のバッジをクリックするだけで、フィルターをすぐに追加できます — 上のフィルターパネルまでスクロールする必要はありません。',
+        'section2.quickFilter.item1': '🎤 アーティストバッジ（ピンク） — 「関連アーティスト」列: アーティスト名をクリックしてフィルターに追加',
+        'section2.quickFilter.item2': '🏷️ タイプバッジ（青） — 「タイプ」列: クリックしてプログラムタイプでフィルタリング',
+        'section2.quickFilter.tip': '💡 ヒント:',
+        'section2.quickFilter.tipText': 'クリックするたびに既存のフィルターに追加されます — 以前の選択を削除せずに複数のアーティストやタイプを選択できます。',
         'section3.title': '💾 保存とエクスポート',
         'section3.image.title': '1. 画像として保存 (📸)',
         'section3.image.desc': 'イベントスケジュールをPNG画像ファイルとして保存して、ソーシャルメディアで共有したり、オフラインで表示したりできます。',
@@ -535,3 +559,17 @@ const translations = {
         'modal.submitError': '送信できませんでした'
     }
 };
+
+// Apply custom site title when set by PHP (window.SITE_TITLE injected before this script loads)
+(function () {
+    var t = window.SITE_TITLE;
+    if (!t || t === 'Idol Stage Timetable') return;
+    for (var lang in translations) {
+        for (var key in translations[lang]) {
+            if (typeof translations[lang][key] === 'string' &&
+                translations[lang][key].indexOf('Idol Stage Timetable') !== -1) {
+                translations[lang][key] = translations[lang][key].replace(/Idol Stage Timetable/g, t);
+            }
+        }
+    }
+})();

@@ -62,7 +62,7 @@ class IcsParser {
         try {
             if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, event_id
                     FROM programs
                     WHERE event_id = :event_id
                     ORDER BY start ASC
@@ -70,7 +70,7 @@ class IcsParser {
                 $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, event_id
                     FROM programs
                     ORDER BY start ASC
                 ");
@@ -148,7 +148,8 @@ class IcsParser {
             'organizer' => '',
             'description' => '',
             'uid' => '',
-            'categories' => ''
+            'categories' => '',
+            'program_type' => ''
         ];
 
         // Parse แต่ละบรรทัด
@@ -217,6 +218,11 @@ class IcsParser {
                 $event['categories'] = $this->decodeIcsValue(trim($m[1]));
                 $currentField = 'categories';
             }
+            // X-PROGRAM-TYPE (custom field สำหรับ program type)
+            elseif (preg_match('/^X-PROGRAM-TYPE:(.*)/', $line, $m)) {
+                $event['program_type'] = $this->decodeIcsValue(trim($m[1]));
+                $currentField = 'program_type';
+            }
         }
 
         // ต้องมีอย่างน้อย title และ start
@@ -244,16 +250,25 @@ class IcsParser {
     }
 
     /**
-     * แปลงรูปแบบวันที่จาก ICS เป็น ISO 8601
+     * แปลงรูปแบบวันที่จาก ICS เป็น ISO 8601 (Asia/Bangkok local time)
+     * - เวลา UTC (มี Z suffix) จะถูกแปลงเป็น Asia/Bangkok ก่อนเก็บ
+     * - เวลา local (ไม่มี Z) ถือว่าเป็น Asia/Bangkok อยู่แล้ว
      */
     private function parseDateTime($dateStr) {
         // ลบ TZID= ออก
         $dateStr = preg_replace('/^[^:]+:/', '', $dateStr);
         $dateStr = trim($dateStr);
 
-        // รูปแบบ: 20240101T120000Z หรือ 20240101T120000
-        if (preg_match('/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/', $dateStr, $m)) {
-            return sprintf('%s-%s-%sT%s:%s:%s', $m[1], $m[2], $m[3], $m[4], $m[5], $m[6]);
+        // รูปแบบ: 20240101T120000Z (UTC) หรือ 20240101T120000 (local)
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/', $dateStr, $m)) {
+            $iso = sprintf('%s-%s-%sT%s:%s:%s', $m[1], $m[2], $m[3], $m[4], $m[5], $m[6]);
+            if ($m[7] === 'Z') {
+                // แปลง UTC → Asia/Bangkok
+                $dt = new DateTime($iso, new DateTimeZone('UTC'));
+                $dt->setTimezone(new DateTimeZone('Asia/Bangkok'));
+                return $dt->format('Y-m-d\TH:i:s');
+            }
+            return $iso;
         }
         // รูปแบบ: 20240101 (วันทั้งวัน)
         elseif (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $dateStr, $m)) {
@@ -476,5 +491,45 @@ class IcsParser {
         $locations = array_unique(array_column($events, 'location'));
         sort($locations);
         return array_filter($locations);
+    }
+
+    /**
+     * ดึงรายการ program types ที่ unique (จาก database)
+     */
+    public function getAllTypes() {
+        if (!$this->useDatabase || !$this->db) {
+            return [];
+        }
+
+        $types = [];
+
+        try {
+            if ($this->eventId !== null) {
+                $stmt = $this->db->prepare("
+                    SELECT DISTINCT program_type
+                    FROM programs
+                    WHERE program_type IS NOT NULL AND program_type != ''
+                    AND event_id = :event_id
+                    ORDER BY program_type ASC
+                ");
+                $stmt->execute([':event_id' => $this->eventId]);
+            } else {
+                $stmt = $this->db->query("
+                    SELECT DISTINCT program_type
+                    FROM programs
+                    WHERE program_type IS NOT NULL AND program_type != ''
+                    ORDER BY program_type ASC
+                ");
+            }
+
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $types[] = $row['program_type'];
+            }
+        } catch (PDOException $e) {
+            // Column may not exist yet (before migration) — return empty array
+            error_log("Database error in getAllTypes: " . $e->getMessage());
+        }
+
+        return $types;
     }
 }

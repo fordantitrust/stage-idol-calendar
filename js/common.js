@@ -620,22 +620,34 @@ function renderGanttChart(events) {
             const title = event.title || '';
             const categories = event.categories || '';
             const description = event.description || '';
+            const programType = event.program_type || '';
 
             // Check overlap and assign stack position
             const overlapInfo = overlaps[idx] || { hasOverlap: false, stackIndex: 0, stackTotal: 1 };
-            const stackClass = overlapInfo.hasOverlap ? ` has-overlap stack-h-${overlapInfo.stackIndex + 1}` : '';
+            let stackClass = '';
+            let stackInlineStyle = `top: ${position.top}%; height: ${position.height}%;`;
+            if (overlapInfo.hasOverlap) {
+                stackClass = ' has-overlap';
+                const n = overlapInfo.stackTotal;
+                const i = overlapInfo.stackIndex;
+                const leftPct  = (i / n * 100).toFixed(2);
+                const rightPct = ((n - i - 1) / n * 100).toFixed(2);
+                stackInlineStyle += ` left: calc(${leftPct}% + 2px); right: calc(${rightPct}% + 2px);`;
+            }
 
             html += `
                 <div class="gantt-program-vertical${stackClass}"
-                     style="top: ${position.top}%; height: ${position.height}%;"
+                     style="${stackInlineStyle}"
                      data-start="${startTime}"
                      data-end="${endTime}"
                      data-title="${escapeHtml(title)}"
                      data-venue="${escapeHtml(venue)}"
                      data-categories="${escapeHtml(categories)}"
                      data-description="${escapeHtml(description)}"
+                     data-program-type="${escapeHtml(programType)}"
                      onclick="showEventTooltip(this, event)">
                     <div class="gantt-program-time-v">${startTime}</div>
+                    ${programType ? `<div class="gantt-program-type-v">${escapeHtml(programType)}</div>` : ''}
                     <div class="gantt-program-title-v">${escapeHtml(title)}</div>
                 </div>
             `;

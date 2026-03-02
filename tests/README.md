@@ -13,6 +13,9 @@ tests/
 ├── CreditsApiTest.php       # Credits database operations
 ├── IntegrationTest.php      # Integration tests (config, workflow, API, multi-event)
 ├── UserManagementTest.php   # User management & role-based access tests
+├── ThemeTest.php            # Theme system (get_site_theme, per-event theme, CSS files)
+├── SiteSettingsTest.php     # Site title system (get_site_title, cache, admin API)
+├── EventEmailTest.php       # Event email field (schema, CRUD, validation, ICS ORGANIZER)
 ├── run-tests.php            # Main test runner script
 └── README.md                # This file
 ```
@@ -32,6 +35,9 @@ php tests/run-tests.php SecurityTest
 php tests/run-tests.php CacheTest
 php tests/run-tests.php AdminAuthTest
 php tests/run-tests.php CreditsApiTest
+php tests/run-tests.php ThemeTest
+php tests/run-tests.php SiteSettingsTest
+php tests/run-tests.php EventEmailTest
 ```
 
 ### Run Specific Test Method
@@ -104,17 +110,62 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Permission checks (admin-only actions, agent restrictions)
 - ✅ Safety guards (cannot delete self, last admin protection)
 
-### ThemeTest (16 tests)
+### ThemeTest (24 unique tests / 140 cumulative)
 - ✅ get_site_theme() function exists and returns correct values
-- ✅ Default fallback to 'sakura' when no cache file exists
+- ✅ Default fallback to 'dark' when no cache file exists (no event meta)
 - ✅ Reads all 7 valid themes from cache file
-- ✅ Invalid/malformed/missing-key cache falls back to 'sakura'
+- ✅ Invalid/malformed/missing-key cache falls back to 'dark'
 - ✅ Theme CSS files exist on disk (ocean, forest, midnight, sunset, dark, gray)
 - ✅ Admin API has theme_get / theme_save cases + functions defined
 - ✅ saveThemeSetting() does not call undefined validate_csrf_token()
 - ✅ Public pages have server-side theme link, no theme-switcher UI
+- ✅ Per-event theme overrides global theme
+- ✅ Null/empty/invalid event theme falls back to global theme
+- ✅ Null event + no global → 'dark' fallback
+- ✅ All 7 valid event themes work correctly
+- ✅ Admin API events_create/update handle theme field
+- ✅ migrate-add-theme-column.php script exists
 
-**Total: 340 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+### SiteSettingsTest (14 unique tests / 154 cumulative)
+- ✅ get_site_title() function exists in functions/helpers.php
+- ✅ Default: no cache file → returns APP_NAME constant
+- ✅ Reads custom title from cache/site-settings.json
+- ✅ Empty site_title in cache → falls back to APP_NAME
+- ✅ Whitespace-only title in cache → falls back to APP_NAME
+- ✅ get_site_title() trims surrounding whitespace from cached title
+- ✅ Malformed JSON in cache → falls back to APP_NAME
+- ✅ admin/api.php has case 'title_get' and case 'title_save'
+- ✅ getTitleSetting() and saveTitleSetting() defined in admin/api.php
+- ✅ Public pages (index, how-to-use, contact, credits) call get_site_title()
+- ✅ Public pages inject window.SITE_TITLE before translations.js
+- ✅ js/translations.js has window.SITE_TITLE patching IIFE
+- ✅ saveTitleSetting() calls require_api_admin_role()
+- ✅ APP_NAME constant defined and non-empty
+
+### EventEmailTest (19 unique tests / 173 cumulative)
+- ✅ events table has email column (TEXT DEFAULT NULL)
+- ✅ email column is nullable (notnull=0)
+- ✅ Insert event with valid email → stored correctly
+- ✅ Insert event with NULL email → stored as NULL
+- ✅ Email validation accepts valid formats (standard, subdomains, tags)
+- ✅ Email validation rejects invalid/empty inputs → returns NULL
+- ✅ Validation trims surrounding whitespace before checking
+- ✅ Empty string / null input → returns NULL
+- ✅ Update event email → new value stored
+- ✅ Update event email to NULL → stored as NULL
+- ✅ SELECT * returns email field with correct value
+- ✅ ICS ORGANIZER uses event name + email when email is valid
+- ✅ ICS ORGANIZER falls back to noreply@stageidol.local when email absent
+- ✅ ICS ORGANIZER falls back when email is NULL
+- ✅ ICS ORGANIZER falls back when email is invalid
+- ✅ ORGANIZER line not emitted when no eventMeta
+- ✅ ORGANIZER line not emitted when event name is empty
+- ✅ migrate-add-event-email-column.php exists in tools/
+- ✅ Migration is idempotent (skips ALTER TABLE when column already present)
+
+**Total: 637 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+
+> **Note**: Test counts shown per-suite are cumulative (the runner reloads all previously-defined `test*` functions). The "unique" count is the number of test functions in each file only.
 
 ## 🎯 Expected Output
 
@@ -152,11 +203,13 @@ AdminAuthTest             ✓ PASS (38 passed, 0 failed)
 CreditsApiTest            ✓ PASS (49 passed, 0 failed)
 IntegrationTest           ✓ PASS (97 passed, 0 failed)
 UserManagementTest        ✓ PASS (116 passed, 0 failed)
-ThemeTest                 ✓ PASS (16 passed, 0 failed)
+ThemeTest                 ✓ PASS (140 passed, 0 failed)
+SiteSettingsTest          ✓ PASS (154 passed, 0 failed)
+EventEmailTest            ✓ PASS (173 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 340 tests
-Passed: 340
+Total: 637 tests
+Passed: 637
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 

@@ -51,7 +51,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode and caching |
-| 🧪 **340 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🧪 **999 Unit Tests** | Automated test suite, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -211,6 +211,10 @@ Users can request to add new events or modify existing ones:
 - Auto-backup created before every restore operation
 - Delete old backup files
 
+**Settings Tab** (admin role only):
+- Set **Site Title** — displayed in browser tab, page header, and ICS export (saved to `cache/site-settings.json`)
+- Set **Site Theme** — choose from 7 color themes: Sakura, Ocean, Forest, Midnight, Sunset, Dark, Gray
+
 **Authentication & Roles:**
 - Admin credentials stored in SQLite (`admin_users` table) - supports multiple users
 - Role-based access: `admin` sees all tabs; `agent` sees Events, Requests, Import, Credits, Conventions only
@@ -289,8 +293,11 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.1.0'); // Change this to force cache refresh
+define('APP_VERSION', '2.4.3'); // Change this to force cache refresh
+define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
+
+The site title can also be changed live from **Admin → Settings → Site Title** without editing code.
 
 ### Multi-Event Mode
 
@@ -333,6 +340,8 @@ define('CREDITS_CACHE_TTL', 3600); // 1 hour
 **Cache files** (auto-created in `cache/` directory):
 - `cache/data_version.json` - Last update timestamp
 - `cache/credits.json` - Credits data with timestamp
+- `cache/site-theme.json` - Active site theme (set by admin)
+- `cache/site-settings.json` - Site settings including custom title (set by admin)
 
 **Manual cache clear**:
 ```bash
@@ -403,7 +412,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           340 automated tests
+├── tests/           999 automated tests
 └── *.md             Documentation
 ```
 
@@ -466,6 +475,7 @@ Located in `tools/` folder:
 | `migrate-add-events-meta-table.php` | Create events_meta table (multi-event support) |
 | `migrate-rename-tables-columns.php` | Rename tables/columns to v1.2.9 schema (idempotent) |
 | `migrate-add-indexes.php` | Add DB performance indexes (idempotent, run once) |
+| `migrate-add-event-email-column.php` | Add email column to events table (idempotent) |
 | `migrate-add-admin-users-table.php` | Create admin_users table + seed from config |
 | `migrate-add-role-column.php` | Add role column to admin_users (RBAC) |
 | `generate-password-hash.php` | Generate bcrypt password hash for admin |
@@ -475,7 +485,7 @@ Located in `tools/` folder:
 ### Running Tests
 
 ```bash
-# Run all 340 automated tests
+# Run all 999 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -561,7 +571,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **340 automated unit tests** covering all critical functionality:
+The project includes **999 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
 - 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
@@ -570,7 +580,10 @@ The project includes **340 automated unit tests** covering all critical function
 - 📋 **CreditsApiTest** (49 tests) - Database CRUD operations, bulk operations
 - 🔗 **IntegrationTest** (97 tests) - File structure, configuration, full workflows, API endpoints
 - 👤 **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
-- 🎨 **ThemeTest** (16 tests) - Theme system, get_site_theme(), CSS files, admin API, public pages
+- 🎨 **ThemeTest** (140 tests) - Theme system, get_site_theme(), per-event theme, CSS files, admin API, public pages
+- 📝 **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
+- 📧 **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
+- 🏷️ **ProgramTypeTest** (35 tests) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
 
 **Run All Tests:**
 ```bash
@@ -608,14 +621,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 340 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 999 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 340 tests
-Passed: 340
+Total: 999 tests
+Passed: 999
 Pass Rate: 100.0%
 ```
 
@@ -627,7 +640,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.1.0
+**Current Version**: 2.4.3
 
 ---
 

@@ -16,12 +16,25 @@ function asset_url($path) {
 // =============================================================================
 
 /**
- * Get the site-wide theme set by admin
+ * Get the active theme for the current context
  *
- * @return string Theme name (sakura|ocean|forest|midnight|sunset)
+ * Priority:
+ *   1. Event-specific theme ($eventMeta['theme']) — if set and valid
+ *   2. Global site theme from admin Settings (cache/site-theme.json)
+ *   3. Default fallback: 'dark'
+ *
+ * @param array|null $eventMeta Event meta data (from get_event_by_slug()), or null
+ * @return string Theme name (sakura|ocean|forest|midnight|sunset|dark|gray)
  */
-function get_site_theme() {
+function get_site_theme($eventMeta = null) {
     $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+
+    // 1. Event-specific theme takes priority
+    if ($eventMeta && !empty($eventMeta['theme']) && in_array($eventMeta['theme'], $validThemes)) {
+        return $eventMeta['theme'];
+    }
+
+    // 2. Global theme from admin Settings
     $themeFile = dirname(__DIR__) . '/cache/site-theme.json';
     if (file_exists($themeFile)) {
         $data = json_decode(file_get_contents($themeFile), true);
@@ -29,7 +42,34 @@ function get_site_theme() {
             return $data['theme'];
         }
     }
-    return 'sakura';
+
+    // 3. Default fallback
+    return 'dark';
+}
+
+// =============================================================================
+// SITE TITLE HELPER
+// =============================================================================
+
+/**
+ * Get the site title
+ *
+ * Priority:
+ *   1. Custom title saved by admin in cache/site-settings.json
+ *   2. APP_NAME constant (config/app.php)
+ *   3. Hard fallback: 'Idol Stage Timetable'
+ *
+ * @return string Site title (raw, not HTML-escaped — use htmlspecialchars() when outputting in HTML)
+ */
+function get_site_title() {
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    if (file_exists($settingsFile)) {
+        $data = json_decode(file_get_contents($settingsFile), true);
+        if (!empty($data['site_title']) && trim($data['site_title']) !== '') {
+            return trim($data['site_title']);
+        }
+    }
+    return defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable';
 }
 
 // =============================================================================

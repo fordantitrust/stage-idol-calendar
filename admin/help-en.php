@@ -16,7 +16,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Help (EN) - Idol Stage Timetable</title>
+    <title>Admin Help (EN) - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <link rel="stylesheet" href="<?php echo asset_url('../styles/common.css'); ?>">
     <style>
         :root {
@@ -324,6 +324,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
+            <a href="#import-type">↳ Program Type</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
@@ -353,7 +354,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#events">Tab: Events</a></li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import</a></li>
+                <li><a href="#import">Tab: Import</a>
+                    <ul class="toc-sub">
+                        <li><a href="#import-type">Program Type</a></li>
+                    </ul>
+                </li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
@@ -481,6 +486,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Start Time / End Time <span style="color:red">*</span></td><td>Time in HH:MM format</td></tr>
                         <tr><td>Description</td><td>Optional additional details</td></tr>
                         <tr><td>Categories</td><td>Tags / categories, comma-separated (<code>,</code>)</td></tr>
+                        <tr><td>Program Type</td><td>Type of program, e.g. <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (optional, supports autocomplete from existing types)</td></tr>
                     </tbody>
                 </table>
                 <ol class="steps" start="3">
@@ -509,7 +515,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tbody>
                         <tr><td>Select All</td><td>Select all programs on the current page</td></tr>
                         <tr><td>Deselect All</td><td>Clear all selections</td></tr>
-                        <tr><td>✏️ Bulk Edit</td><td>Update Venue / Organizer / Categories for all selected programs at once (up to 100)</td></tr>
+                        <tr><td>✏️ Bulk Edit</td><td>Update Venue / Organizer / Categories / Program Type for all selected programs at once (up to 100)</td></tr>
                         <tr><td>🗑️ Bulk Delete</td><td>Delete all selected programs at once (up to 100)</td></tr>
                     </tbody>
                 </table>
@@ -544,6 +550,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Description</td><td>Optional event description</td></tr>
                         <tr><td>Start Date / End Date</td><td>The event's opening and closing dates</td></tr>
                         <tr><td>Venue Mode</td><td><strong>multi</strong> = multiple venues (shows venue filter, Gantt view) | <strong>single</strong> = single venue</td></tr>
+                        <tr><td>Theme</td><td>Color theme specific to this event (if not set, falls back to the global theme from Settings)</td></tr>
                         <tr><td>Active</td><td>Toggle visibility of this event on the public website</td></tr>
                     </tbody>
                 </table>
@@ -555,6 +562,28 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-warn">
                     <span class="callout-icon">⚠️</span>
                     <div>Deleting an Event does <strong>not</strong> delete its Programs — they simply lose their event reference. Move or delete the Programs first.</div>
+                </div>
+
+                <h3>The Default Event and the Events Listing Page</h3>
+                <p>
+                    When the database is initialized, the system automatically creates a <strong>Default Event</strong>
+                    whose slug matches the <code>DEFAULT_EVENT_SLUG</code> value in <code>config/app.php</code> (default: <code>default</code>).
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>Situation</th><th>What happens at <code>/</code></th></tr></thead>
+                    <tbody>
+                        <tr><td>Only the Default Event exists (no real events created yet)</td><td>The homepage shows the <strong>calendar view</strong> of the default event directly — the events listing is not shown</td></tr>
+                        <tr><td>At least one real Event exists (slug ≠ default)</td><td>The homepage shows the <strong>Events listing</strong> (event cards) — the default event is hidden from this listing</td></tr>
+                        <tr><td>Visiting <code>/event/default</code> directly</td><td>Always shows the calendar view of the default event</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>The Default Event is intentionally hidden from the Events listing page.</strong>
+                        It acts as a fallback container for Programs imported without an explicit event assignment.
+                        To have an event appear in the listing, create a new Event with a different slug and import Programs into that event instead.
+                    </div>
                 </div>
             </section>
 
@@ -663,12 +692,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>CATEGORIES</td><td>Categories</td></tr>
                         <tr><td>DESCRIPTION</td><td>Description</td></tr>
                         <tr><td>UID</td><td>Unique ID (used for duplicate detection)</td></tr>
+                        <tr><td>X-PROGRAM-TYPE</td><td>Program type (<code>program_type</code>) — a custom field specific to this system, set per event</td></tr>
                     </tbody>
                 </table>
 
+                <h3 id="import-type">🏷️ Setting Program Type During Import</h3>
+                <p>The system supports three ways to assign a Program Type during import (listed by priority):</p>
+                <table class="help-table">
+                    <thead><tr><th>Method</th><th>Details</th></tr></thead>
+                    <tbody>
+                        <tr><td>1. <code>X-PROGRAM-TYPE:</code> in the ICS file</td><td>Set the type per individual event in the file — highest priority</td></tr>
+                        <tr><td>2. "🏷️ Program Type (default)" field in the UI</td><td>Applied to programs that have no <code>X-PROGRAM-TYPE</code> in the file (batch default)</td></tr>
+                        <tr><td>3. <code>--type=value</code> (command line)</td><td>Used as the default type for all programs when importing via CLI</td></tr>
+                    </tbody>
+                </table>
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
-                    <div>You can also import via the command line: <code>php tools/import-ics-to-sqlite.php --event=slug</code></div>
+                    <div>You can also import via the command line: <code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></div>
                 </div>
             </section>
 
@@ -749,7 +789,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>Configure the <strong>Site Theme</strong> for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
+                <p>Configure global site settings — <strong>Site Title</strong> and <strong>Site Theme</strong> — for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
+
+                <h3>📝 What is Site Title?</h3>
+                <p>
+                    The site title is displayed in the <strong>browser tab</strong>, the <strong>header</strong> of every public page,
+                    and in <strong>ICS exports</strong> (calendar name). The default value is "Idol Stage Timetable".
+                </p>
+
+                <h3>How to Change the Site Title</h3>
+                <ol class="steps">
+                    <li>Click the <strong>⚙️ Settings</strong> tab</li>
+                    <li>Type the new name in the <strong>Site Title</strong> field (max 100 characters)</li>
+                    <li>Click <strong>💾 Save Title</strong></li>
+                    <li>You will see <strong>✅ Saved</strong> — reload a public page to verify the change</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The site title is stored in <code>cache/site-settings.json</code> and affects the browser tab, header, footer copyright, and ICS calendar name.</div>
+                </div>
 
                 <h3>🎨 What is Site Theme?</h3>
                 <p>
@@ -761,12 +820,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <table class="help-table">
                     <thead><tr><th>Theme</th><th>Color</th></tr></thead>
                     <tbody>
-                        <tr><td>🌸 Sakura</td><td>Pink (default)</td></tr>
+                        <tr><td>🌸 Sakura</td><td>Pink</td></tr>
                         <tr><td>🌊 Ocean</td><td>Blue</td></tr>
                         <tr><td>🌿 Forest</td><td>Green</td></tr>
                         <tr><td>🌙 Midnight</td><td>Purple</td></tr>
                         <tr><td>☀️ Sunset</td><td>Orange</td></tr>
-                        <tr><td>🖤 Dark</td><td>Blue-Gray (Charcoal)</td></tr>
+                        <tr><td>🖤 Dark</td><td>Blue-Gray (Charcoal) — <em>system fallback when no theme is configured</em></td></tr>
                         <tr><td>🩶 Gray</td><td>Gray (Silver)</td></tr>
                     </tbody>
                 </table>
@@ -789,6 +848,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">ℹ️</span>
                     <div>The theme setting is stored in <code>cache/site-theme.json</code> and is read by the server on every page load.</div>
                 </div>
+
+                <h3>🎨 Per-Event Theme</h3>
+                <p>
+                    In addition to the global site theme, you can assign a color theme to each individual Event.
+                    The system selects the theme using the following <strong>priority order</strong>:
+                </p>
+                <ol class="steps">
+                    <li><strong>Event theme</strong> — if the Event has a theme set, that theme is applied to all pages within that event</li>
+                    <li><strong>Global theme</strong> — if the Event has no theme selected, the global theme from the Settings tab is used</li>
+                    <li><strong>Fallback: <code>dark</code></strong> — if neither is configured, the <code>dark</code> theme is applied automatically</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Set a per-event theme in the <strong>🎪 Events</strong> tab → click <strong>➕ Add Event</strong> or the <strong>✏️</strong> edit button → <strong>Theme</strong> field</div>
+                </div>
             </section>
 
             <!-- Roles -->
@@ -805,7 +880,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Theme)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -836,12 +911,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>Check the browser console or PHP error log for details</li>
                 </ul>
 
+                <h3>Q: How do I assign a Program Type when importing an ICS file?</h3>
+                <ul>
+                    <li>Add <code>X-PROGRAM-TYPE:stage</code> inside each VEVENT block in the ICS file to set the type per program</li>
+                    <li>Or enter a value in the <strong>🏷️ Program Type (default)</strong> field before uploading your file in Admin → Import</li>
+                    <li>Or use the <code>--type=value</code> argument when running the CLI: <br><code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></li>
+                    <li>Values from <code>X-PROGRAM-TYPE:</code> in the ICS file always take priority over the default type</li>
+                </ul>
+
+                <h3>Q: I changed the Site Title but the page still shows the old name</h3>
+                <ul>
+                    <li>Make sure you clicked <strong>💾 Save Title</strong> and saw the "✅ Saved" confirmation</li>
+                    <li>Reload the <em>public</em> page with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
+                    <li>Check that the <code>cache/</code> directory is writable on the server</li>
+                </ul>
+
                 <h3>Q: I changed the theme but the website color didn't change</h3>
                 <ul>
                     <li>Make sure you clicked <strong>💾 Save Theme</strong> and saw the "✅ Saved" confirmation</li>
                     <li>Reload the <em>public</em> page (not the Admin panel) with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd></li>
                     <li>Check that the <code>cache/</code> directory is writable on the server</li>
+                    <li>If accessing via <code>/event/slug</code> and that Event has a theme set, the Event theme will always <strong>override</strong> the global theme</li>
                 </ul>
+
+                <h3>Q: How do I give each Event a different color theme?</h3>
+                <ol class="steps">
+                    <li>Go to the <strong>🎪 Events</strong> tab</li>
+                    <li>Click the <strong>✏️</strong> edit button on the Event you want to customize</li>
+                    <li>Select a theme from the <strong>Theme</strong> dropdown (or choose "— Use Global Theme —" to inherit the global setting)</li>
+                    <li>Click <strong>💾 Save</strong></li>
+                </ol>
 
                 <h3>Q: How do I schedule automatic database backups?</h3>
                 <p>Set up a cron job to call the <code>backup_create</code> API endpoint, or run a backup script on a schedule.

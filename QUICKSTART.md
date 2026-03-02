@@ -203,7 +203,7 @@ quick-test.bat
 php tests/run-tests.php
 ```
 
-**340 automated tests** covering:
+**637 automated tests** covering:
 - Security (XSS, SQL injection, input sanitization)
 - Cache system (TTL, invalidation)
 - Authentication (session, timing attacks)
@@ -211,8 +211,10 @@ php tests/run-tests.php
 - Integration (configuration, workflows, API endpoints)
 - User management & role-based access control
 - Theme system (get_site_theme, CSS files, admin API)
+- Site settings (get_site_title, APP_NAME, admin API, page injection)
+- Event email field (schema, CRUD, validation, ICS ORGANIZER)
 
-✅ **All 340 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 637 tests pass on PHP 8.1, 8.2, and 8.3**
 
 See [tests/README.md](tests/README.md) for details.
 

@@ -39,9 +39,9 @@ function testGetSiteThemeFunctionExists($test) {
     );
 }
 
-// ── 2. Default (no cache file) ──────────────────────────────────────────────
+// ── 2. Default (no cache file, no event meta) ───────────────────────────────
 
-function testGetSiteThemeDefaultSakura($test) {
+function testGetSiteThemeDefaultIsDark($test) {
     $backup = _theme_backup();
     $f = dirname(__DIR__) . '/cache/site-theme.json';
     if (file_exists($f)) unlink($f);
@@ -50,7 +50,7 @@ function testGetSiteThemeDefaultSakura($test) {
 
     _theme_restore($backup);
 
-    $test->assertEquals('sakura', $result, 'Should return sakura when no cache file exists');
+    $test->assertEquals('dark', $result, 'Should return dark when no cache file and no event meta');
 }
 
 // ── 3. Reads each valid theme from cache ────────────────────────────────────
@@ -68,7 +68,7 @@ function testGetSiteThemeReadsValidThemes($test) {
     _theme_restore($backup);
 }
 
-// ── 4. Invalid theme in cache → fallback to sakura ──────────────────────────
+// ── 4. Invalid theme in cache → fallback to dark ────────────────────────────
 
 function testGetSiteThemeInvalidThemeFallback($test) {
     $backup = _theme_backup();
@@ -78,10 +78,10 @@ function testGetSiteThemeInvalidThemeFallback($test) {
 
     _theme_restore($backup);
 
-    $test->assertEquals('sakura', $result, 'Invalid theme name should fall back to sakura');
+    $test->assertEquals('dark', $result, 'Invalid theme name should fall back to dark');
 }
 
-// ── 5. Malformed JSON in cache → fallback to sakura ─────────────────────────
+// ── 5. Malformed JSON in cache → fallback to dark ───────────────────────────
 
 function testGetSiteThemeMalformedJsonFallback($test) {
     $backup = _theme_backup();
@@ -94,10 +94,10 @@ function testGetSiteThemeMalformedJsonFallback($test) {
 
     _theme_restore($backup);
 
-    $test->assertEquals('sakura', $result, 'Malformed JSON in cache should fall back to sakura');
+    $test->assertEquals('dark', $result, 'Malformed JSON in cache should fall back to dark');
 }
 
-// ── 6. Missing "theme" key in JSON → fallback to sakura ─────────────────────
+// ── 6. Missing "theme" key in JSON → fallback to dark ───────────────────────
 
 function testGetSiteThemeMissingKeyFallback($test) {
     $backup = _theme_backup();
@@ -110,7 +110,7 @@ function testGetSiteThemeMissingKeyFallback($test) {
 
     _theme_restore($backup);
 
-    $test->assertEquals('sakura', $result, 'JSON without "theme" key should fall back to sakura');
+    $test->assertEquals('dark', $result, 'JSON without "theme" key should fall back to dark');
 }
 
 // ── 7. Theme CSS files exist ────────────────────────────────────────────────
@@ -187,9 +187,9 @@ function testPublicPagesHaveServerSideThemeLink($test) {
     foreach ($pages as $page) {
         $content = file_get_contents(dirname(__DIR__) . '/' . $page);
         $test->assertContains(
-            'get_site_theme()',
+            'get_site_theme(',
             $content,
-            "{$page} should call get_site_theme()"
+            "{$page} should call get_site_theme() (with optional \$eventMeta param)"
         );
         $test->assertContains(
             'styles/themes/',
@@ -235,4 +235,113 @@ function testCacheDirWritableForThemeFile($test) {
 
     $test->assertTrue(is_dir($cacheDir),      'cache/ directory should exist');
     $test->assertTrue(is_writable($cacheDir), 'cache/ directory should be writable');
+}
+
+// ── 17. Per-event theme: event theme overrides global ────────────────────────
+
+function testGetSiteThemeEventOverridesGlobal($test) {
+    $backup = _theme_backup();
+    _theme_write('midnight'); // global = midnight
+
+    $eventMeta = ['theme' => 'ocean']; // event = ocean
+    $result = get_site_theme($eventMeta);
+
+    _theme_restore($backup);
+
+    $test->assertEquals('ocean', $result, 'Event-specific theme should override global theme');
+}
+
+// ── 18. Per-event theme: null event theme falls to global ────────────────────
+
+function testGetSiteThemeNullEventFallsToGlobal($test) {
+    $backup = _theme_backup();
+    _theme_write('forest'); // global = forest
+
+    $eventMeta = ['theme' => null]; // event has no theme
+    $result = get_site_theme($eventMeta);
+
+    _theme_restore($backup);
+
+    $test->assertEquals('forest', $result, 'Null event theme should fall back to global theme');
+}
+
+// ── 19. Per-event theme: empty event theme falls to global ───────────────────
+
+function testGetSiteThemeEmptyEventFallsToGlobal($test) {
+    $backup = _theme_backup();
+    _theme_write('sunset'); // global = sunset
+
+    $eventMeta = ['theme' => '']; // event has empty theme
+    $result = get_site_theme($eventMeta);
+
+    _theme_restore($backup);
+
+    $test->assertEquals('sunset', $result, 'Empty event theme should fall back to global theme');
+}
+
+// ── 20. Per-event theme: invalid event theme falls to global ─────────────────
+
+function testGetSiteThemeInvalidEventFallsToGlobal($test) {
+    $backup = _theme_backup();
+    _theme_write('gray'); // global = gray
+
+    $eventMeta = ['theme' => 'badtheme']; // event has invalid theme
+    $result = get_site_theme($eventMeta);
+
+    _theme_restore($backup);
+
+    $test->assertEquals('gray', $result, 'Invalid event theme should fall back to global theme');
+}
+
+// ── 21. Per-event theme: null event + no global → dark fallback ──────────────
+
+function testGetSiteThemeNullEventNoGlobalFallsToDark($test) {
+    $backup = _theme_backup();
+    $f = dirname(__DIR__) . '/cache/site-theme.json';
+    if (file_exists($f)) unlink($f);
+
+    $eventMeta = ['theme' => null];
+    $result = get_site_theme($eventMeta);
+
+    _theme_restore($backup);
+
+    $test->assertEquals('dark', $result, 'Null event theme + no global should fall back to dark');
+}
+
+// ── 22. Per-event theme: all valid themes work ───────────────────────────────
+
+function testGetSiteThemeAllValidEventThemes($test) {
+    $backup = _theme_backup();
+    $valid  = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+
+    foreach ($valid as $t) {
+        $eventMeta = ['theme' => $t];
+        $result = get_site_theme($eventMeta);
+        $test->assertEquals($t, $result, "Event theme '$t' should be returned correctly");
+    }
+
+    _theme_restore($backup);
+}
+
+// ── 23. Admin API events_create/update contain theme field handling ───────────
+
+function testAdminApiEventsHandleThemeField($test) {
+    $content = file_get_contents(dirname(__DIR__) . '/admin/api.php');
+    $test->assertContains(
+        "in_array(\$input['theme'], \$validThemes)",
+        $content,
+        "admin/api.php createEvent/updateEvent should validate theme from input"
+    );
+    $test->assertContains(
+        "':theme' => \$theme",
+        $content,
+        "admin/api.php should bind :theme parameter in SQL"
+    );
+}
+
+// ── 24. Migration script for theme column exists ──────────────────────────────
+
+function testMigrateAddThemeColumnScriptExists($test) {
+    $path = dirname(__DIR__) . '/tools/migrate-add-theme-column.php';
+    $test->assertFileExists($path, 'tools/migrate-add-theme-column.php should exist');
 }

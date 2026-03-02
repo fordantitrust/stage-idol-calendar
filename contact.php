@@ -4,6 +4,7 @@ send_security_headers();
 
 // Multi-event support
 $eventSlug = get_current_event_slug();
+$eventMeta = get_event_by_slug($eventSlug);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -12,7 +13,7 @@ $eventSlug = get_current_event_slug();
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>ติดต่อเรา - Idol Stage Event Calendar</title>
+    <title>ติดต่อเรา - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
@@ -25,7 +26,7 @@ $eventSlug = get_current_event_slug();
     <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
-    <?php $siteTheme = get_site_theme(); ?>
+    <?php $siteTheme = get_site_theme($eventMeta); ?>
     <?php if ($siteTheme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
     <?php endif; ?>
@@ -97,6 +98,7 @@ $eventSlug = get_current_event_slug();
     </div>
 
     <!-- Shared JavaScript -->
+    <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 </body>

@@ -7,7 +7,7 @@
 ## ภาพรวม
 
 `setup.php` คือหน้า Setup Wizard สำหรับ:
-- **Fresh Install** — ติดตั้งระบบครั้งแรก ทำ 5 ขั้นตอนจบในหน้าเดียว
+- **Fresh Install** — ติดตั้งระบบครั้งแรก ทำ 6 ขั้นตอนจบในหน้าเดียว (รวม Production Cleanup)
 - **Maintenance** — ตรวจสอบสถานะระบบ, import ข้อมูลเพิ่ม, เปลี่ยน password
 
 ---
@@ -26,7 +26,7 @@
 
 ---
 
-## 5 ขั้นตอน Setup
+## 6 ขั้นตอน Setup
 
 ### ขั้นตอนที่ 1 — System Requirements
 
@@ -77,7 +77,10 @@
    - `credits` — เครดิต/อ้างอิง
    - `admin_users` — admin users
 3. Seed admin user เริ่มต้น (จาก `config/admin.php`)
-4. **Auto-login** — session จะ login อัตโนมัติหลัง initialize สำเร็จ
+4. Seed default event (slug: `default`) และ **3 sample programs** ตัวอย่าง เพื่อให้เห็น layout จริงทันที
+   - Opening Ceremony, Artist Performance, Closing Stage (วันปัจจุบัน)
+   - แก้ไขหรือลบได้ภายหลังจาก Admin › Programs
+5. **Auto-login** — session จะ login อัตโนมัติหลัง initialize สำเร็จ
 
 **Credentials เริ่มต้น:**
 
@@ -88,7 +91,7 @@ Username: admin
 Password: admin123
 ```
 
-> ⚠️ **สำคัญ**: จด credentials ไว้ก่อนออกจากหน้านี้ แล้วเปลี่ยนรหัสผ่านทันทีใน Step 5
+> ⚠️ **สำคัญ**: จด credentials ไว้ก่อนออกจากหน้านี้ แล้วเปลี่ยนรหัสผ่านทันทีใน Step 5 / ลบไฟล์ dev ใน Step 6
 
 ---
 
@@ -165,6 +168,8 @@ php tools/import-ics-to-sqlite.php --event=my-event-slug
     ↓
 [Step 5] เปลี่ยน password → Add indexes → Lock setup
     ↓
+[Step 6] Production Cleanup — ลบ dev/docs files (checkbox grouped)
+    ↓
 เข้าใช้งาน /admin ✅
 ```
 
@@ -213,7 +218,8 @@ php tools/import-ics-to-sqlite.php --event=my-event-slug
 | `config/app.php` | App version และ settings |
 | `tools/import-ics-to-sqlite.php` | CLI import tool |
 | `tools/migrate-add-indexes.php` | DB performance indexes |
+| `tools/migrate-add-event-email-column.php` | เพิ่ม email column ใน events table |
 
 ---
 
-*Idol Stage Timetable v2.1.0*
+*Idol Stage Timetable v2.4.3*

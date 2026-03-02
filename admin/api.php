@@ -72,6 +72,9 @@ switch ($action) {
     case 'programs_venues':
         getVenues();
         break;
+    case 'programs_types':
+        getTypes();
+        break;
     case 'requests':
         listRequests();
         break;
@@ -175,6 +178,12 @@ switch ($action) {
     case 'theme_save':
         saveThemeSetting();
         break;
+    case 'title_get':
+        getTitleSetting();
+        break;
+    case 'title_save':
+        saveTitleSetting();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
 }
@@ -267,7 +276,7 @@ function listPrograms() {
         $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
         // Get events with dynamic sorting
-        $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, created_at, updated_at
+        $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, created_at, updated_at
                 FROM programs
                 $whereClause
                 ORDER BY $sortColumn $sortOrder
@@ -284,7 +293,7 @@ function listPrograms() {
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
-        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
         $events = array_map(function($event) use ($fieldsToEscape) {
             return escapeOutputData($event, $fieldsToEscape);
         }, $events);
@@ -327,7 +336,7 @@ function getProgram() {
         }
 
         // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
-        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
         $event = escapeOutputData($event, $fieldsToEscape);
 
         jsonResponse(true, $event);
@@ -363,9 +372,11 @@ function createProgram() {
     try {
         $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
+        $programType = isset($input['program_type']) && $input['program_type'] !== '' ? trim($input['program_type']) : null;
+
         $stmt = $db->prepare("
-            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, :created_at, :updated_at)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :event_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -377,6 +388,7 @@ function createProgram() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
+            ':program_type' => $programType,
             ':event_id' => $eventId,
             ':created_at' => $now,
             ':updated_at' => $now
@@ -421,6 +433,10 @@ function updateProgram() {
     try {
         $updateEventId = array_key_exists('event_id', $input) ? (isset($input['event_id']) ? intval($input['event_id']) : null) : null;
 
+        $programType = array_key_exists('program_type', $input)
+            ? (($input['program_type'] !== '' && $input['program_type'] !== null) ? trim($input['program_type']) : null)
+            : null;
+
         $stmt = $db->prepare("
             UPDATE programs
             SET title = :title,
@@ -430,6 +446,7 @@ function updateProgram() {
                 organizer = :organizer,
                 description = :description,
                 categories = :categories,
+                program_type = :program_type,
                 event_id = :event_id,
                 updated_at = :updated_at
             WHERE id = :id
@@ -444,6 +461,7 @@ function updateProgram() {
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
+            ':program_type' => $programType,
             ':event_id' => $updateEventId,
             ':updated_at' => $now
         ]);
@@ -566,6 +584,7 @@ function bulkUpdatePrograms() {
     $location = $input['location'] ?? null;
     $organizer = $input['organizer'] ?? null;
     $categories = $input['categories'] ?? null;
+    $programType = array_key_exists('program_type', $input) ? $input['program_type'] : null;
 
     // Validate
     if (!is_array($ids) || empty($ids)) {
@@ -573,8 +592,8 @@ function bulkUpdatePrograms() {
         return;
     }
 
-    if ($location === null && $organizer === null && $categories === null) {
-        jsonResponse(false, null, 'At least one field (location, organizer, or categories) must be provided');
+    if ($location === null && $organizer === null && $categories === null && $programType === null) {
+        jsonResponse(false, null, 'At least one field (location, organizer, categories, or program_type) must be provided');
         return;
     }
 
@@ -614,22 +633,32 @@ function bulkUpdatePrograms() {
             $params[':categories'] = trim($categories);
         }
 
+        if ($programType !== null) {
+            $setClauses[] = "program_type = :program_type";
+            $params[':program_type'] = ($programType !== '') ? trim($programType) : null;
+        }
+
         $setClauses[] = "updated_at = :updated_at";
         $params[':updated_at'] = date('Y-m-d H:i:s');
 
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $idParams = [];
+        foreach ($ids as $index => $id) {
+            $key = ':id_' . $index;
+            $idParams[$key] = $id;
+        }
+        $placeholders = implode(',', array_keys($idParams));
         $sql = "UPDATE programs SET " . implode(', ', $setClauses) . " WHERE id IN ($placeholders)";
 
         $stmt = $db->prepare($sql);
 
-        // Bind named parameters
+        // Bind SET parameters
         foreach ($params as $key => $value) {
             $stmt->bindValue($key, $value);
         }
 
-        // Bind positional parameters (IDs)
-        foreach ($ids as $index => $id) {
-            $stmt->bindValue($index + 1, $id, PDO::PARAM_INT);
+        // Bind ID parameters
+        foreach ($idParams as $key => $id) {
+            $stmt->bindValue($key, $id, PDO::PARAM_INT);
         }
 
         $stmt->execute();
@@ -673,6 +702,32 @@ function getVenues() {
         jsonResponse(true, $venues);
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to fetch venues', $e->getMessage()));
+    }
+}
+
+/**
+ * Get all program types (for autocomplete datalist)
+ */
+function getTypes() {
+    global $db;
+
+    try {
+        $stmt = $db->query("
+            SELECT DISTINCT program_type
+            FROM programs
+            WHERE program_type IS NOT NULL AND program_type != ''
+            ORDER BY program_type ASC
+        ");
+
+        $types = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $types[] = htmlspecialchars($row['program_type'], ENT_QUOTES, 'UTF-8');
+        }
+
+        jsonResponse(true, $types);
+    } catch (PDOException $e) {
+        // Column may not exist yet — return empty array gracefully
+        jsonResponse(true, []);
     }
 }
 
@@ -929,7 +984,7 @@ function uploadAndParseIcs() {
     $_SESSION['pending_ics_filename'] = basename($file['name']);
 
     // Escape output data
-    $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid'];
+    $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid', 'program_type'];
     $events = escapeOutputData($events, $fieldsToEscape);
     $failed = escapeOutputData($failed, ['error', 'raw_data']);
 
@@ -956,6 +1011,7 @@ function confirmIcsImport() {
     $events = $input['events'] ?? [];
     $saveFile = $input['save_file'] ?? true;
     $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
+    $defaultType = isset($input['default_type']) && $input['default_type'] !== '' ? trim($input['default_type']) : null;
 
     if (empty($events)) {
         jsonResponse(false, null, 'No events to import');
@@ -968,8 +1024,8 @@ function confirmIcsImport() {
         $db->beginTransaction();
 
         $insertStmt = $db->prepare("
-            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :event_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ");
 
         $updateStmt = $db->prepare("
@@ -977,6 +1033,7 @@ function confirmIcsImport() {
                 title = :title, start = :start, end = :end,
                 location = :location, organizer = :organizer,
                 description = :description, categories = :categories,
+                program_type = :program_type,
                 updated_at = CURRENT_TIMESTAMP
             WHERE uid = :uid
         ");
@@ -997,6 +1054,9 @@ function confirmIcsImport() {
             }
 
             try {
+                // program_type: ใช้จาก X-PROGRAM-TYPE ในไฟล์ หรือ default_type จาก UI
+                $programType = !empty($event['program_type']) ? $event['program_type'] : $defaultType;
+
                 $params = [
                     ':uid' => $event['uid'],
                     ':title' => $event['title'],
@@ -1005,7 +1065,8 @@ function confirmIcsImport() {
                     ':location' => $event['location'] ?? '',
                     ':organizer' => $event['organizer'] ?? '',
                     ':description' => $event['description'] ?? '',
-                    ':categories' => $event['categories'] ?? ''
+                    ':categories' => $event['categories'] ?? '',
+                    ':program_type' => $programType
                 ];
 
                 if ($action === 'insert') {
@@ -1531,6 +1592,7 @@ function createEvent() {
         return;
     }
 
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -1538,6 +1600,9 @@ function createEvent() {
     $endDate = $input['end_date'] ?? null;
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+    $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
+    $emailRaw = trim($input['email'] ?? '');
+    $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
 
     try {
         // Check unique slug
@@ -1550,8 +1615,8 @@ function createEvent() {
 
         $now = date('Y-m-d H:i:s');
         $stmt = $db->prepare("
-            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, created_at, updated_at)
-            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :now, :now2)
+            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, email, created_at, updated_at)
+            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :email, :now, :now2)
         ");
         $stmt->execute([
             ':slug' => $slug,
@@ -1561,6 +1626,8 @@ function createEvent() {
             ':end_date' => $endDate,
             ':venue_mode' => $venueMode,
             ':is_active' => $isActive,
+            ':theme' => $theme,
+            ':email' => $email,
             ':now' => $now,
             ':now2' => $now
         ]);
@@ -1595,6 +1662,7 @@ function updateEvent() {
         return;
     }
 
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -1602,6 +1670,9 @@ function updateEvent() {
     $endDate = $input['end_date'] ?? null;
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+    $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
+    $emailRaw = trim($input['email'] ?? '');
+    $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
 
     try {
         // Check slug uniqueness (exclude self)
@@ -1617,7 +1688,7 @@ function updateEvent() {
             SET slug = :slug, name = :name, description = :description,
                 start_date = :start_date, end_date = :end_date,
                 venue_mode = :venue_mode, is_active = :is_active,
-                updated_at = :updated_at
+                theme = :theme, email = :email, updated_at = :updated_at
             WHERE id = :id
         ");
         $stmt->execute([
@@ -1628,6 +1699,8 @@ function updateEvent() {
             ':end_date' => $endDate,
             ':venue_mode' => $venueMode,
             ':is_active' => $isActive,
+            ':theme' => $theme,
+            ':email' => $email,
             ':updated_at' => date('Y-m-d H:i:s'),
             ':id' => $id
         ]);
@@ -2324,6 +2397,43 @@ function saveThemeSetting() {
         jsonResponse(true, ['theme' => $theme], 'Theme saved');
     } else {
         jsonResponse(false, null, 'Failed to save theme setting');
+    }
+}
+
+function getTitleSetting() {
+    require_api_admin_role();
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $title = defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable';
+    if (file_exists($settingsFile)) {
+        $data = json_decode(file_get_contents($settingsFile), true);
+        if (!empty($data['site_title'])) $title = $data['site_title'];
+    }
+    jsonResponse(true, ['site_title' => $title]);
+}
+
+function saveTitleSetting() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    $input = json_decode(file_get_contents('php://input'), true);
+    $title = isset($input['site_title']) ? trim($input['site_title']) : '';
+    if ($title === '' || mb_strlen($title) > 100) {
+        jsonResponse(false, null, 'Invalid title (1–100 characters required)');
+        return;
+    }
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $cacheDir = dirname($settingsFile);
+    if (!is_dir($cacheDir)) mkdir($cacheDir, 0755, true);
+    $existing = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    $existing['site_title'] = $title;
+    $existing['updated_at'] = time();
+    $ok = file_put_contents($settingsFile, json_encode($existing));
+    if ($ok !== false) {
+        jsonResponse(true, ['site_title' => $title], 'Title saved');
+    } else {
+        jsonResponse(false, null, 'Failed to save title setting');
     }
 }
 

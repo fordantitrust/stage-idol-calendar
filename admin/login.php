@@ -50,7 +50,7 @@ $csrfToken = csrf_token();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Admin Idol Stage Timetable</title>
+    <title>Login - Admin <?php echo htmlspecialchars(get_site_title()); ?></title>
     <link rel="stylesheet" href="<?php echo asset_url('../styles/common.css'); ?>">
     <style>
         body {
@@ -162,7 +162,7 @@ $csrfToken = csrf_token();
     <div class="login-container">
         <div class="login-header">
             <h1>Admin Login</h1>
-            <p>Idol Stage Timetable</p>
+            <p><?php echo htmlspecialchars(get_site_title()); ?></p>
         </div>
 
         <?php if ($error): ?>

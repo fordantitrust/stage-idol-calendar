@@ -238,7 +238,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (2.1.0)
+### Current Version (2.4.3)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -309,5 +309,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-02-27
-**Version:** 2.1.0
+**Last Updated:** 2026-02-28
+**Version:** 2.2.1
