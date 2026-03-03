@@ -144,10 +144,10 @@ php tools/import-ics-to-sqlite.php
 
 ## 📦 Installation
 
-| วิธี | เหมาะสำหรับ | คู่มือ |
+| Method | Best For | Guide |
 |------|-----------|-------|
-| 🐳 **Docker** | Production, ง่ายที่สุด | [DOCKER.md](DOCKER.md) |
-| 🧙 **Setup Wizard** | Fresh install ทุกประเภท | [SETUP.md](SETUP.md) |
+| 🐳 **Docker** | Production, easiest setup | [DOCKER.md](DOCKER.md) |
+| 🧙 **Setup Wizard** | All types of fresh install | [SETUP.md](SETUP.md) |
 | 💻 **PHP Built-in** | Development/Local | [INSTALLATION.md](INSTALLATION.md) |
 | 🌐 **Apache/Nginx** | Production server | [INSTALLATION.md](INSTALLATION.md) |
 
@@ -160,10 +160,10 @@ docker-compose up -d
 **PHP Built-in:**
 ```bash
 php -S localhost:8000
-# แล้วเปิด http://localhost:8000/setup.php
+# Then open http://localhost:8000/setup.php
 ```
 
-ดูรายละเอียดทั้งหมดที่ [INSTALLATION.md](INSTALLATION.md)
+See [INSTALLATION.md](INSTALLATION.md) for full details.
 
 ---
 
@@ -304,24 +304,24 @@ For more details, see [INSTALLATION.md](INSTALLATION.md) and [SETUP.md](SETUP.md
 
 ## 🔌 API Documentation
 
-ระบบมี 3 API groups:
+The system has 3 API groups:
 
 | API | URL | Auth | Description |
 |-----|-----|------|-------------|
 | **Public** | `/api.php` | ❌ | Programs, organizers, locations, events list |
 | **Request** | `/api/request.php` | ❌ | User request submission (rate limited) |
-| **Admin** | `/admin/api.php` | ✅ Session + CSRF | Full CRUD ทั้งระบบ |
+| **Admin** | `/admin/api.php` | ✅ Session + CSRF | Full CRUD for all resources |
 
-**Public API ตัวอย่าง:**
+**Public API example:**
 ```http
 GET /api.php?action=programs&event=idol-stage-feb-2026
 ```
 
-**Admin API ต้องการ:**
-- Session cookie (login ที่ `/admin/login`)
-- Header `X-CSRF-Token` สำหรับ POST/PUT/DELETE
+**Admin API requires:**
+- Session cookie (login at `/admin/login`)
+- Header `X-CSRF-Token` for POST/PUT/DELETE
 
-ดู **[API.md](API.md)** สำหรับ endpoint documentation ครบถ้วนพร้อม request/response examples
+See **[API.md](API.md)** for complete endpoint documentation with request/response examples.
 
 ---
 
@@ -331,7 +331,7 @@ GET /api.php?action=programs&event=idol-stage-feb-2026
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.4.5'); // Change this to force cache refresh
+define('APP_VERSION', '2.4.7'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -454,7 +454,7 @@ stage-idol-calendar/
 └── *.md             Documentation
 ```
 
-ดู **[PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)** สำหรับรายละเอียดไฟล์ทั้งหมด ความสัมพันธ์ระหว่างไฟล์ และคำอธิบาย functions
+See **[PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)** for details on all files, file relationships, and function descriptions.
 
 ---
 
@@ -690,7 +690,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.4.5
+**Current Version**: 2.4.7
 
 ---
 

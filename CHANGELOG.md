@@ -5,6 +5,29 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.7] - 2026-03-03
+
+### Added
+- 📍 **Venue display in single venue mode** — when `venue_mode = single`, a `📍 venue name` line appears below the event name subtitle in the page header; derived from the first entry in `$venues` (aggregated from programs); not shown in multi-venue mode
+
+### Fixed
+- 📱 **Event selector dropdown overflow on mobile** — `.program-selector select` now has `max-width: 100%` and `box-sizing: border-box`; on `≤768px` breakpoint `width: 100%; min-width: 0` overrides the desktop `min-width: 200px` so long event names no longer overflow the header
+
+## [2.4.6] - 2026-03-03
+
+### Changed
+- 🃏 **Event listing: horizontal card layout** — main event listing page redesigned from vertical cards to horizontal-style cards; gradient header (name + date) spans full width at top, body section shows status badge + description + meta inline with "View Schedule" button on the right; mobile collapses to compact vertical card
+- 📖 **Event description modal** — clicking/tapping a truncated description opens a modal with full event info (name, dates, status badge, full description, meta, link); "▼ Read more" chip button appears only when text is actually clamped (`scrollHeight > clientHeight`)
+- 👆 **Read-more button: touch-friendly chip** — `▼ Read more` restyled from plain text link to pill-shaped chip with sakura background, border, `min-height: 30px`, and `-webkit-tap-highlight-color: transparent` for easier mobile tapping
+- 📱 **Program table mobile: compact card redesign** — each program row now renders as a compact card with gradient time strip at top; reduced `tr` padding from 15px → 0 (cells handle own spacing), `td` padding from 8px 0 → 4px 12px; total vertical saving ~120px per card
+- ✏️ **Edit button repositioned on mobile** — `program-action-cell` is `position: absolute; top: 33px; right: 8px` inside `position: relative` card; appears as 30×30px icon button in top-right of white body area without adding card height; fixed CSS specificity to override `width: 100% !important` using `.events-table tbody .program-action-cell`
+- 🙈 **Empty cells hidden on mobile** — venue, type, and categories cells with no data receive `cell-empty` class and are `display: none !important`; removes all padding/space for empty fields
+- ➖ **Removed `-` dash for empty data** — cells show nothing when data is absent (venue, type, categories, title fallback)
+- ↔️ **Type + Categories on same line (mobile)** — `program-type-cell` and `program-categories-cell` changed to `display: inline-flex !important; width: auto !important` using higher-specificity selector to beat `td { width: 100% !important }`
+- 🏷️ **Badge size unified** — `program-categories-badge` and `program-type-badge` share identical layout properties (`padding: 4px 12px`, `border-radius: 16px`, `font-size: 0.85em`, `margin: 2px 2px 2px 0`); only background/text color differs; mobile override reduces both equally (`padding: 3px 9px`, `font-size: 0.8em`)
+
+---
+
 ## [2.4.5] - 2026-03-03
 
 ### Changed
@@ -40,8 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Public API**: `?type=` filter works via `$typeFilter` variable
   - **Admin API**: `programs_types` action, `SELECT DISTINCT program_type`, CREATE/UPDATE/bulk-update handle `program_type`
   - **index.php UI**: `appendFilter()` function, `URLSearchParams`, `$hasTypes` flag, `.event-subtitle`, `data-i18n="table.type"`, clickable badges, `htmlspecialchars(json_encode())` pattern
-  - **Translations**: `'table.type'` key present in all 3 languages (ประเภท / Type / タイプ), appearing 3 times
-  - **Admin UI v2.4.2**: `sortBy('categories')`, no `sortBy('organizer')`, `event.categories`, no `<th>ผู้จัด</th>`
+  - **Translations**: `'table.type'` key present in all 3 languages (Type / Type / タイプ), appearing 3 times
+  - **Admin UI v2.4.2**: `sortBy('categories')`, no `sortBy('organizer')`, `event.categories`, no `<th>Organizer</th>`
 - 📊 **Total tests: 999** (increased from 964 → 999, all passing across 10 suites)
 
 ### Fixed
@@ -70,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `appendFilter(type, value)` JS function: appends a filter to the URL (doesn't remove existing filters), works with or without pre-existing filters, won't add duplicates
 - 📋 **Program Type Column** — separates "Type" into its own dedicated column instead of being embedded in the title cell
   - Column is shown when the event has at least 1 program with a defined `program_type` (`$hasTypes = !empty($types)`)
-  - Supports 3 languages (`table.type`: ประเภท / Type / タイプ)
+  - Supports 3 languages (`table.type`: Type / Type / タイプ)
   - Badge is clickable → appends filter by type; rows without a type → display `-`
 
 ### Changed
@@ -241,7 +264,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 🌐 **`header.subtitle` EN** changed from `'Idol Stage Timetable'` → `'Event Schedule'`
-  - Makes the subtitle descriptive like TH (`'ตารางกิจกรรม Idol Stage'`) and JA (`'アイドルステージタイムテーブル'`)
+  - Makes the subtitle descriptive like TH (`'Idol Stage Event Schedule'`) and JA (`'アイドルステージタイムテーブル'`)
   - The brand name remains only in `header.title`
 
 ## [2.1.1] - 2026-02-27

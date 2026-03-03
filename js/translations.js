@@ -151,6 +151,7 @@ const translations = {
         'listing.past': 'จบแล้ว',
         'listing.viewSchedule': '📋 ดูตารางเวลา',
         'listing.credits': '📋 Credits',
+        'listing.readMore': '▼ อ่านเพิ่มเติม',
         'listing.noEvents': 'ยังไม่มี Event ในระบบ',
 
         // Date jump bar
@@ -337,6 +338,7 @@ const translations = {
         'listing.past': 'Ended',
         'listing.viewSchedule': '📋 View Schedule',
         'listing.credits': '📋 Credits',
+        'listing.readMore': '▼ Read more',
         'listing.noEvents': 'No events in the system',
 
         // Date jump bar
@@ -523,6 +525,7 @@ const translations = {
         'listing.past': '終了',
         'listing.viewSchedule': '📋 スケジュールを見る',
         'listing.credits': '📋 クレジット',
+        'listing.readMore': '▼ 続きを読む',
         'listing.noEvents': 'システムにイベントがありません',
 
         // Date jump bar
