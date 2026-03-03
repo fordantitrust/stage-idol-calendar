@@ -7,7 +7,8 @@
  *
  * Directory Structure:
  * ├── config/          - Configuration constants
- * │   ├── app.php         - Application settings
+ * │   ├── app.php         - Application settings (version, mode flags)
+ * │   ├── analytics.php   - Google Analytics ID (not touched by version script)
  * │   ├── admin.php       - Admin & authentication settings
  * │   ├── security.php    - Security settings
  * │   ├── database.php    - Database configuration
@@ -26,11 +27,12 @@
 // LOAD CONFIGURATION CONSTANTS
 // =============================================================================
 
-require_once __DIR__ . '/config/app.php';       // Application settings
-require_once __DIR__ . '/config/admin.php';     // Admin & authentication
-require_once __DIR__ . '/config/security.php';  // Security settings
-require_once __DIR__ . '/config/database.php';  // Database configuration
-require_once __DIR__ . '/config/cache.php';     // Cache settings
+require_once __DIR__ . '/config/app.php';         // Application settings
+require_once __DIR__ . '/config/analytics.php';  // Google Analytics ID
+require_once __DIR__ . '/config/admin.php';       // Admin & authentication
+require_once __DIR__ . '/config/security.php';    // Security settings
+require_once __DIR__ . '/config/database.php';    // Database configuration
+require_once __DIR__ . '/config/cache.php';       // Cache settings
 
 // =============================================================================
 // LOAD HELPER FUNCTIONS
