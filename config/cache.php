@@ -33,3 +33,16 @@ define('CREDITS_CACHE_FILE', dirname(__DIR__) . '/cache/credits.json');
  * Default: 3600 seconds (1 hour)
  */
 define('CREDITS_CACHE_TTL', 3600);
+
+/**
+ * Feed Cache Directory
+ * Directory where rendered ICS feed files are cached
+ */
+define('FEED_CACHE_DIR', dirname(__DIR__) . '/cache');
+
+/**
+ * Feed Cache TTL (Time To Live)
+ * How long to serve the cached ICS feed before regenerating (in seconds)
+ * Default: 3600 seconds (1 hour)
+ */
+define('FEED_CACHE_TTL', 3600);

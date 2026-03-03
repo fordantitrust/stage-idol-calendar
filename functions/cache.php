@@ -123,6 +123,35 @@ function get_cached_credits($eventMetaId = null) {
 }
 
 /**
+ * Invalidate data version cache
+ * Call this function after creating, updating, or deleting programs
+ *
+ * @param int|null $eventMetaId Specific event cache to invalidate (null = all)
+ * @return bool True if cache was deleted, false otherwise
+ */
+function invalidate_data_version_cache($eventMetaId = null) {
+    $cacheDir = dirname(DATA_VERSION_CACHE_FILE);
+
+    if ($eventMetaId !== null) {
+        $files = [
+            $cacheDir . "/data_version_$eventMetaId.json",
+            $cacheDir . "/data_version.json"
+        ];
+    } else {
+        $files = glob($cacheDir . '/data_version*.json') ?: [];
+    }
+
+    $result = true;
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+
+    return $result;
+}
+
+/**
  * Invalidate credits cache
  * Call this function after creating, updating, or deleting credits
  *
@@ -154,7 +183,42 @@ function invalidate_credits_cache($eventMetaId = null) {
 }
 
 /**
- * Invalidate all caches (data_version + credits)
+ * Invalidate feed ICS cache
+ * Call this function after creating, updating, or deleting programs.
+ * Feed cache files are named feed_{eventId}_{hash}.ics
+ *
+ * @param int|null $eventMetaId Specific event cache to invalidate (null = all)
+ * @return bool True if cache was deleted, false otherwise
+ */
+function invalidate_feed_cache($eventMetaId = null) {
+    $cacheDir = FEED_CACHE_DIR;
+
+    if (!is_dir($cacheDir)) {
+        return true;
+    }
+
+    if ($eventMetaId !== null) {
+        // Delete specific event cache + global cache (eventId = 0)
+        $files = array_merge(
+            glob($cacheDir . "/feed_{$eventMetaId}_*.ics") ?: [],
+            glob($cacheDir . '/feed_0_*.ics') ?: []
+        );
+    } else {
+        $files = glob($cacheDir . '/feed_*.ics') ?: [];
+    }
+
+    $result = true;
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Invalidate all caches (data_version + credits + feed)
  * Call this function after restoring database
  *
  * @return bool True if all caches were deleted successfully
@@ -167,7 +231,7 @@ function invalidate_all_caches() {
     }
 
     $result = true;
-    $patterns = ['data_version*.json', 'credits*.json'];
+    $patterns = ['data_version*.json', 'credits*.json', 'feed_*.ics'];
 
     foreach ($patterns as $pattern) {
         $files = glob($cacheDir . '/' . $pattern) ?: [];

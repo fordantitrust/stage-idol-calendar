@@ -420,6 +420,7 @@ $hasTypes = !empty($types);
                     <button type="button" class="btn btn-secondary" onclick="window.location.href='<?php echo event_url('index.php'); ?>'" data-i18n="button.reset">🔄 รีเซ็ต</button>
                     <button type="button" class="btn btn-success" onclick="saveAsImage()" data-i18n="button.saveImage">📸 บันทึกเป็นรูปภาพ</button>
                     <button type="button" class="btn btn-primary" onclick="exportToIcs()" data-i18n="button.exportIcs">📅 Export to Calendar</button>
+                    <button type="button" class="btn btn-subscribe" onclick="openSubscribeModal()" data-i18n="button.subscribe">🔔 Subscribe</button>
                     <button type="button" class="btn btn-warning" onclick="openRequestModal()" data-i18n="button.requestAdd">📝 แจ้งเพิ่ม Event</button>
                 </div>
 
@@ -577,6 +578,41 @@ $hasTypes = !empty($types);
     <script>
         window.VENUES_DATA = <?php echo json_encode(array_values($venues), JSON_UNESCAPED_UNICODE); ?>;
     </script>
+
+    <!-- Subscribe Modal -->
+    <div id="subscribeModal" class="req-modal-overlay">
+        <div class="req-modal" style="max-width:480px;">
+            <div class="req-modal-header">
+                <h2 data-i18n="subscribe.title">🔔 Subscribe to Calendar</h2>
+                <button onclick="closeSubscribeModal()" class="req-close">&times;</button>
+            </div>
+            <div class="req-modal-body">
+                <p style="margin:0 0 12px;color:#555;" data-i18n="subscribe.desc">Subscribe ครั้งเดียว ปฏิทินของคุณจะอัปเดตอัตโนมัติเมื่อมีการเพิ่ม/แก้ไข program</p>
+
+                <!-- webcal:// — Apple Calendar / iOS / Thunderbird -->
+                <a id="subscribeWebcalLink" href="#" class="btn btn-subscribe" style="display:block;text-align:center;text-decoration:none;margin-bottom:4px;" data-i18n="subscribe.openApp">🔗 เปิดใน Calendar App (webcal://)</a>
+                <p style="font-size:0.75em;color:#999;margin:0 0 14px;text-align:center;" data-i18n="subscribe.webcalHint">🍎 Apple Calendar · 📱 iOS · 🦅 Thunderbird</p>
+
+                <!-- https:// URL — Google Calendar, Outlook, manual -->
+                <p style="font-size:0.85em;color:#666;margin:0 0 6px;font-weight:500;" data-i18n="subscribe.orCopy">หรือ copy URL สำหรับ Google Calendar / Outlook:</p>
+                <div style="display:flex;gap:8px;align-items:center;min-width:0;">
+                    <input id="subscribeFeedUrl" type="text" readonly
+                        style="flex:1;min-width:0;font-size:1rem;padding:7px 10px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;color:#333;overflow:hidden;text-overflow:ellipsis;">
+                    <button onclick="copyFeedUrl()" class="btn btn-secondary" style="white-space:nowrap;flex-shrink:0;width:auto;padding:8px 14px;" data-i18n="subscribe.copy">📋 Copy</button>
+                </div>
+                <p id="subscribeCopied" style="display:none;color:#388e3c;font-size:0.85em;margin:6px 0 0;" data-i18n="subscribe.copied">✅ Copy แล้ว!</p>
+
+                <!-- Outlook-specific instructions -->
+                <div style="margin-top:14px;padding:10px 12px;background:#f0f4ff;border-radius:8px;border-left:3px solid #4a6cf7;">
+                    <p style="margin:0 0 4px;font-size:0.82em;font-weight:600;color:#4a6cf7;" data-i18n="subscribe.outlookTitle">📧 Microsoft Outlook</p>
+                    <p style="margin:0;font-size:0.78em;color:#555;line-height:1.5;" data-i18n="subscribe.outlookHint">Copy URL ด้านบน → เปิด Outlook → Calendar → Add calendar → Subscribe from web → วาง URL</p>
+                </div>
+            </div>
+            <div class="req-modal-footer">
+                <button onclick="closeSubscribeModal()" class="btn btn-secondary" data-i18n="modal.cancel">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Request Modal -->
     <div id="requestModal" class="req-modal-overlay">
@@ -830,8 +866,12 @@ $hasTypes = !empty($types);
     }
 
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && document.getElementById('requestModal').classList.contains('active')) {
-            closeRequestModal();
+        if (e.key === 'Escape') {
+            if (document.getElementById('subscribeModal').classList.contains('active')) {
+                closeSubscribeModal();
+            } else if (document.getElementById('requestModal').classList.contains('active')) {
+                closeRequestModal();
+            }
         }
     });
     </script>

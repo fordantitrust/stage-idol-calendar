@@ -721,6 +721,15 @@ header p {
     box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
 }
 
+.btn-subscribe {
+    background: linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%);
+    color: white;
+}
+.btn-subscribe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(106, 27, 154, 0.4);
+}
+
 .calendar-container {
     padding: 30px;
 }
@@ -1015,8 +1024,20 @@ header p {
     }
 
     .filter-buttons {
-        flex-direction: column;
-        gap: 10px;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    /* Filter buttons: 3 per row = 2 rows for 6 buttons */
+    .filter-buttons .btn {
+        flex: 1 1 calc(33.33% - 4px);
+        min-width: 0;
+        width: auto;
+        padding: 8px 6px;
+        font-size: 0.82em;
+        min-height: 40px;
+        text-align: center;
+        line-height: 1.3;
     }
 
     .btn {

@@ -396,6 +396,8 @@ function createProgram() {
 
         $id = $db->lastInsertId();
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, ['id' => $id, 'uid' => $uid], 'Event created successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to create event', $e->getMessage()));
@@ -471,6 +473,8 @@ function updateProgram() {
             return;
         }
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, ['id' => $id], 'Event updated successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to update event', $e->getMessage()));
@@ -504,6 +508,8 @@ function deleteProgram() {
             return;
         }
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, null, 'Event deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete event', $e->getMessage()));
@@ -556,6 +562,8 @@ function bulkDeletePrograms() {
 
         $db->commit();
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, [
             'deleted_count' => $deletedCount,
             'failed_count' => $failedCount,
@@ -667,6 +675,8 @@ function bulkUpdatePrograms() {
 
         $db->commit();
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, [
             'updated_count' => $updatedCount,
             'failed_count' => $failedCount,
@@ -1109,6 +1119,8 @@ function confirmIcsImport() {
             unset($_SESSION['pending_ics_filename']);
         }
 
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
         jsonResponse(true, [
             'saved_filename' => $savedFilename,
             'stats' => $stats,
