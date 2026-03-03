@@ -514,6 +514,10 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.5.3 (2026-03-03)
+
+- 🔧 **`GOOGLE_ANALYTICS_ID` ย้ายไป `config/analytics.php`** — แยกออกจาก `config/app.php` เพื่อป้องกัน `tools/update-version.php` เขียนทับค่า GA ID ตอน bump version; `config.php` โหลดไฟล์ใหม่อัตโนมัติ
+
 ### v2.5.2 (2026-03-03)
 
 - ⚡ **Feed static file cache** — `feed.php` ใช้ `ob_start()`/`ob_get_clean()` บันทึก ICS output ลง `cache/feed_{eventId}_{hash}.ics`; request ถัดไปใช้ `readfile()` เสิร์ฟตรง ไม่ query SQLite/IcsParser; TTL 1 ชั่วโมง

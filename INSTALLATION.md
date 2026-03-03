@@ -342,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.5.2'); // Change to force cache refresh
+define('APP_VERSION', '2.5.3'); // Change to force cache refresh
 ```
 
 **When to change**:

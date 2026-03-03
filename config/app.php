@@ -19,13 +19,13 @@ date_default_timezone_set('Asia/Bangkok');
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '2.5.2');
+define('APP_VERSION', '2.5.3');
 
 /**
  * Application Name (Site Title)
  * Default/fallback when no custom title is saved via admin Settings
  */
-define('APP_NAME', 'Idol Stage Timetable');
+define('APP_NAME', 'Idol Track');
 
 /**
  * Production Mode
@@ -53,9 +53,5 @@ define('MULTI_EVENT_MODE', true);
  */
 define('DEFAULT_EVENT_SLUG', 'default');
 
-/**
- * Google Analytics Measurement ID
- * Set to your GA4 Measurement ID (e.g. 'G-XXXXXXXXXX') to enable tracking.
- * Leave empty '' to disable Google Analytics entirely.
- */
-define('GOOGLE_ANALYTICS_ID', '');
+// Google Analytics ID moved to config/analytics.php
+// (kept separate so version updates do not overwrite site-specific settings)
