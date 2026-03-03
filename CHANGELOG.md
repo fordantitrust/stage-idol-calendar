@@ -5,6 +5,54 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2026-03-03
+
+### Added
+- ⚡ **Feed static file cache** — `feed.php` now captures generated ICS output via `ob_start()`/`ob_get_clean()` and saves it to `cache/feed_{eventId}_{hash}.ics`; subsequent requests are served with `readfile()` — no SQLite query, no IcsParser instantiation, no event filtering on every hit
+- 🔑 **Cache key includes sorted filter params** — `artist[]`, `venue[]`, `type[]` arrays are sorted before hashing so `?artist[]=A&artist[]=B` and `?artist[]=B&artist[]=A` always map to the same cache file
+- 🗑️ **`invalidate_feed_cache($eventMetaId)`** — new function in `functions/cache.php`; deletes matching `feed_*.ics` files; when a specific event is invalidated, the global (`feed_0_*.ics`) cache is also cleared; `invalidate_all_caches()` updated to include feed ICS files
+- 🔄 **Auto-invalidate on data change** — `admin/api.php` calls `invalidate_feed_cache()` immediately after `invalidate_data_version_cache()` at all 6 program write operations: `createProgram`, `updateProgram`, `deleteProgram`, `bulkDeletePrograms`, `bulkUpdatePrograms`, and `confirmIcsImport`
+- ⚙️ **`FEED_CACHE_DIR` + `FEED_CACHE_TTL`** — new constants in `config/cache.php`; TTL default 3600 s (1 hour); directory is the existing `cache/` folder
+- 🧪 **FeedTest** — 20 new cache tests added (total 69 / 1276 cumulative)
+
+> **📁 Files changed:** `feed.php` · `functions/cache.php` · `config/cache.php` · `admin/api.php` · 🆕 `tests/FeedTest.php` (+20 tests)
+
+---
+
+## [2.5.1] - 2026-03-03
+
+### Fixed
+- 🔧 **RFC 5545 line folding** — `feed.php` now folds any ICS property line exceeding 75 octets with CRLF + SPACE continuation; UTF-8 multi-byte character boundaries are respected (Thai characters 3 bytes/char are never split mid-sequence); required for strict RFC 5545 compliance and Outlook parsing
+- 🏷️ **CATEGORIES comma delimiter fix** — `feed.php` previously escaped all commas (`\,`) in CATEGORIES via the shared escape function, causing Outlook to treat `Artist1\,Artist2` as a single category; fixed by splitting on `,` first, escaping each value individually (no comma escaping inside values), then rejoining with unescaped delimiter commas — Outlook now correctly shows N separate categories
+- ✏️ **ICS text value escaping (`icsEscape()`)** — properly escapes backslash (first), semicolon, comma, and newline per RFC 5545 §3.3.11; used for SUMMARY, LOCATION, DESCRIPTION, ORGANIZER CN; CATEGORIES values go through the same function after being split, so delimiter commas in `implode(',', ...)` are never passed to the escaper
+- 📧 **Outlook subscribe instructions** — subscribe modal now shows a dedicated Outlook instruction box (blue highlight) with step-by-step path: Outlook → Calendar → Add calendar → **Subscribe from web** → paste URL; clarifies that `webcal://` is for Apple/iOS/Thunderbird and `https://` is for Google Calendar / Outlook
+- 📱 **Mobile action buttons compact layout** — filter buttons changed from `flex-direction: column` (6 full-width rows, ~338px) to `flex-wrap: wrap` with `flex: 1 1 calc(33.33% - 4px)` (3 per row = 2 rows, ~86px); scoped to `.filter-buttons .btn` so modal buttons are unaffected; reduced padding `8px 6px`, font `0.82em`, min-height `40px`
+- 📱 **Subscribe modal URL input overflow** — flex container and input now have `min-width: 0` preventing flex overflow on narrow screens; input `font-size` raised to `1rem` (≥16px) to prevent iOS auto-zoom; `overflow: hidden; text-overflow: ellipsis` truncates long URLs instead of pushing the Copy button off-screen
+
+> **📁 Files changed:** `feed.php` · `index.php` · 🆕 `tests/FeedTest.php` (49 tests)
+
+---
+
+## [2.5.0] - 2026-03-03
+
+### Added
+- 🔔 **ICS Subscription Feed (`feed.php`)** — live calendar subscription endpoint; subscribe once and your calendar app auto-syncs whenever programs are added or changed; supports `webcal://` (Apple Calendar, iOS, Thunderbird) and `https://` (Google Calendar, Outlook)
+  - URLs: `/feed` (all events) and `/event/{slug}/feed` (specific event) via existing `.htaccess` rules — no new rewrite rules needed
+  - HTTP caching: `ETag` based on `get_data_version()`, `Cache-Control: public, max-age=3600`; calendar apps receive `304 Not Modified` when data is unchanged
+  - Refresh hints: `X-PUBLISHED-TTL:PT1H` (Apple Calendar) + `REFRESH-INTERVAL;VALUE=DURATION:PT1H` (RFC 7986 / Google Calendar)
+  - Filter parameters: `?artist[]=X&venue[]=Y&type[]=Z` — same as export.php
+  - 15-minute `VALARM` reminder on every event (same as export.php)
+- 🔔 **Subscribe button** — `🔔 Subscribe` button (`btn-subscribe`, purple gradient) added to filter action bar alongside Export; opens subscribe modal
+- 🔔 **Subscribe modal** — shows webcal:// link (tap to open in Calendar App), https:// URL with Copy button, and Outlook-specific instructions; translations in TH/EN/JA
+- 🗑️ **`invalidate_data_version_cache()`** — new function in `functions/cache.php`; deletes `cache/data_version*.json` for a specific event or all events; called by admin/api.php after every programs CRUD operation and ICS import so the feed ETag updates immediately without waiting for the 10-minute cache TTL
+
+### Changed
+- ⚡ **Admin programs CRUD triggers data version cache invalidation** — `createProgram()`, `updateProgram()`, `deleteProgram()`, `bulkDeletePrograms()`, `bulkUpdatePrograms()`, and `confirmIcsImport()` in `admin/api.php` all call `invalidate_data_version_cache()` on success; ensures subscribed calendar apps receive fresh data on their next poll after admin changes
+
+> **📁 Files changed:** 🆕 `feed.php` · `index.php` · `js/common.js` · `js/translations.js` · `functions/cache.php` · `admin/api.php` · `config/app.php`
+
+---
+
 ## [2.4.7] - 2026-03-03
 
 ### Added
@@ -12,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 📱 **Event selector dropdown overflow on mobile** — `.program-selector select` now has `max-width: 100%` and `box-sizing: border-box`; on `≤768px` breakpoint `width: 100%; min-width: 0` overrides the desktop `min-width: 200px` so long event names no longer overflow the header
+
+> **📁 Files changed:** `index.php`
 
 ## [2.4.6] - 2026-03-03
 
@@ -26,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ↔️ **Type + Categories on same line (mobile)** — `program-type-cell` and `program-categories-cell` changed to `display: inline-flex !important; width: auto !important` using higher-specificity selector to beat `td { width: 100% !important }`
 - 🏷️ **Badge size unified** — `program-categories-badge` and `program-type-badge` share identical layout properties (`padding: 4px 12px`, `border-radius: 16px`, `font-size: 0.85em`, `margin: 2px 2px 2px 0`); only background/text color differs; mobile override reduces both equally (`padding: 3px 9px`, `font-size: 0.8em`)
 
+> **📁 Files changed:** `index.php` · `styles/common.css`
+
 ---
 
 ## [2.4.5] - 2026-03-03
@@ -33,6 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - 🕐 **Collapse same-time display** — when a program's start time equals its end time (HH:MM), only the start time is shown (no `- end time`); applies to List view, Gantt tooltip, and Admin Programs list
 - 📅 **Collapse same-date display** — when a convention's start date equals its end date, only the start date is shown on the event listing card (no `- end date`); Admin ICS import preview also collapses same-date and same-time ranges via new `formatDateTimeRange()` helper
+
+> **📁 Files changed:** `index.php` · `admin/index.php`
 
 ---
 
@@ -44,6 +98,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 🧪 **`IntegrationTest::testDocumentationExists`** — removed `QUICKSTART.md` and `SQLITE_MIGRATION.md` from the docs list after both files were deleted (merged into README.md and PROJECT-STRUCTURE.md in this version)
+
+> **📁 Files changed:** `export.php` · `tests/IntegrationTest.php` · 🆕 `tools/update-version.php`
 
 ### Documentation
 - 🌐 **Full English translation** — translated `SETUP.md`, `CHANGELOG.md`, `API.md`, and `PROJECT-STRUCTURE.md` from Thai/mixed to English
@@ -72,6 +128,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `program_type TEXT DEFAULT NULL` to the `CREATE TABLE` that is always recreated
   - Checks whether `programs_old` already has `program_type`: if yes → includes the column in `INSERT SELECT` to copy values; if no → omits the column from `INSERT` (default is NULL)
 
+> **📁 Files changed:** `setup.php` · 🆕 `tests/ProgramTypeTest.php` (35 tests)
+
 ---
 
 ## [2.4.2] - 2026-03-02
@@ -81,6 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Programs list table: header `Organizer` → `Categories`, sort key `organizer` → `categories`, data `event.organizer` → `event.categories`
   - ICS import preview table: header changed from "Organizer" to "Related Artists", data `event.organizer` → `event.categories`
   - The Add/Edit Program form still retains the Organizer field for editing existing data
+
+> **📁 Files changed:** `admin/index.php`
 
 ---
 
@@ -109,6 +169,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - 🐛 **SyntaxError in badge onclick** — `json_encode()` returned a string containing `"` which prematurely closed the HTML attribute; fixed with `htmlspecialchars(json_encode(...), ENT_QUOTES, 'UTF-8')`
+
+> **📁 Files changed:** `index.php` · `js/translations.js` · `how-to-use.php`
 
 ## [2.4.0] - 2026-03-02
 
@@ -145,6 +207,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - ⬆️ **APP_VERSION** → `2.4.0` (cache busting)
 
+> **📁 Files changed:** `index.php` · `admin/index.php` · `admin/api.php` · `api.php` · `export.php` · `IcsParser.php` · `setup.php` · `config/app.php` · `.github/workflows/tests.yml` · 🆕 `tools/migrate-add-program-type-column.php`
+
 ## [2.3.4] - 2026-03-02
 
 ### Fixed
@@ -154,6 +218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.4` (cache busting)
+
+> **📁 Files changed:** `index.php`
 
 ## [2.3.3] - 2026-03-02
 
@@ -166,6 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.3` (cache busting)
 
+> **📁 Files changed:** `index.php` · `styles/common.css`
+
 ## [2.3.2] - 2026-03-02
 
 ### Fixed
@@ -177,6 +245,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.2` (cache busting)
 
+> **📁 Files changed:** `config/app.php` · `IcsParser.php`
+
 ## [2.3.1] - 2026-03-02
 
 ### Fixed
@@ -186,6 +256,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.1` (cache busting)
+
+> **📁 Files changed:** `admin/api.php`
 
 ## [2.3.0] - 2026-03-02
 
@@ -218,6 +290,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ⬆️ **APP_VERSION** → `2.3.0` (cache busting)
 - 🔧 **`tools/migrate-add-event-email-column.php`** — the migrated table is `events` (not `programs`)
 
+> **📁 Files changed:** `admin/index.php` · `admin/api.php` · `export.php` · `setup.php` · `config/app.php` · 🆕 `tools/migrate-add-event-email-column.php` · 🆕 `tests/EventEmailTest.php` (19 tests)
+
 ## [2.2.1] - 2026-02-28
 
 ### Fixed
@@ -235,6 +309,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 📖 **Admin Help Pages updated: Default Event behavior** (`admin/help.php` + `admin/help-en.php`)
   - Added table "Default Event and Events Listing Page" describing 3 cases (default only / has real events / direct URL access)
   - Added callout explaining that the default event is intentionally hidden from the Events listing page
+
+> **📁 Files changed:** `setup.php` · `admin/help.php` · `admin/help-en.php`
 
 ## [2.2.0] - 2026-02-27
 
@@ -267,6 +343,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Makes the subtitle descriptive like TH (`'Idol Stage Event Schedule'`) and JA (`'アイドルステージタイムテーブル'`)
   - The brand name remains only in `header.title`
 
+> **📁 Files changed:** `config/app.php` · `functions/helpers.php` · `admin/api.php` · `admin/index.php` · `js/translations.js` · `index.php` · `export.php` · `credits.php` · `how-to-use.php` · `contact.php` · 🆕 `tests/SiteSettingsTest.php`
+
 ## [2.1.1] - 2026-02-27
 
 ### Added
@@ -289,6 +367,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🎨 **Default theme fallback** changed from `sakura` → `dark`
   - `sakura` is only the base CSS in `common.css` (it has no override file of its own)
   - If no Global theme is set and the Event has no theme → uses `dark` theme
+
+> **📁 Files changed:** `functions/helpers.php` · `admin/api.php` · `admin/index.php` · `index.php` · `credits.php` · `how-to-use.php` · `contact.php` · `setup.php` · 🆕 `tools/migrate-add-theme-column.php`
 
 ## [2.1.0] - 2026-02-27
 

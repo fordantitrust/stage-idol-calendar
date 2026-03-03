@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v2.4.7
+File and folder structure for Idol Stage Timetable v2.5.2
 
 ---
 
@@ -445,4 +445,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v2.4.7*
+*Idol Stage Timetable v2.5.2*

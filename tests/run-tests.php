@@ -45,6 +45,7 @@ $testFiles = [
     'SiteSettingsTest' => __DIR__ . '/SiteSettingsTest.php',
     'EventEmailTest' => __DIR__ . '/EventEmailTest.php',
     'ProgramTypeTest' => __DIR__ . '/ProgramTypeTest.php',
+    'FeedTest'        => __DIR__ . '/FeedTest.php',
 ];
 
 // Filter test files if specific test requested

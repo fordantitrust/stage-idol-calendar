@@ -392,6 +392,66 @@ function exportToIcs() {
 }
 
 // ========================================
+// ICS Subscription Feed
+// ========================================
+
+function openSubscribeModal() {
+    var basePath = (typeof BASE_PATH !== 'undefined') ? BASE_PATH : '';
+    var feedPath = basePath + '/feed';
+    if (typeof EVENT_SLUG !== 'undefined' && EVENT_SLUG &&
+        typeof DEFAULT_EVENT_SLUG !== 'undefined' && EVENT_SLUG !== DEFAULT_EVENT_SLUG) {
+        feedPath = basePath + '/event/' + EVENT_SLUG + '/feed';
+    }
+
+    // Collect current filter selections from the form
+    var params = new URLSearchParams();
+    var form = document.querySelector('form');
+    if (form) {
+        var formData = new FormData(form);
+        for (var pair of formData.entries()) {
+            if (pair[0] === 'artist[]' || pair[0] === 'venue[]' || pair[0] === 'type[]') {
+                params.append(pair[0], pair[1]);
+            }
+        }
+    }
+
+    var feedUrl = window.location.protocol + '//' + window.location.host + feedPath;
+    var paramsStr = params.toString();
+    if (paramsStr) feedUrl += '?' + paramsStr;
+
+    var webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
+
+    document.getElementById('subscribeWebcalLink').href = webcalUrl;
+    document.getElementById('subscribeFeedUrl').value = feedUrl;
+    document.getElementById('subscribeCopied').style.display = 'none';
+    document.getElementById('subscribeModal').classList.add('active');
+}
+
+function closeSubscribeModal() {
+    document.getElementById('subscribeModal').classList.remove('active');
+}
+
+function copyFeedUrl() {
+    var input = document.getElementById('subscribeFeedUrl');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    var copied = document.getElementById('subscribeCopied');
+    var showCopied = function() {
+        copied.style.display = 'block';
+        setTimeout(function() { copied.style.display = 'none'; }, 2000);
+    };
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(input.value).then(showCopied).catch(function() {
+            document.execCommand('copy');
+            showCopied();
+        });
+    } else {
+        document.execCommand('copy');
+        showCopied();
+    }
+}
+
+// ========================================
 // Gantt Chart View Functions
 // ========================================
 

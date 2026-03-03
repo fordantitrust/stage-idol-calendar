@@ -401,7 +401,7 @@ docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php  # import dat
 
 ### Automated Test Suite
 
-ระบบมี **999 automated unit tests** ครอบคลุมทุก feature:
+ระบบมี **1276 automated unit tests** ครอบคลุมทุก feature:
 
 ```bash
 # รัน test ทั้งหมด
@@ -418,6 +418,7 @@ php tests/run-tests.php ThemeTest             # 140 tests
 php tests/run-tests.php SiteSettingsTest      # 154 tests
 php tests/run-tests.php EventEmailTest        # 19 tests
 php tests/run-tests.php ProgramTypeTest       # 35 tests
+php tests/run-tests.php FeedTest              # 49 tests
 
 # รัน test เฉพาะ function
 php tests/run-tests.php SecurityTest::testSanitizeString
@@ -445,8 +446,9 @@ quick-test.bat
 - **SiteSettingsTest**: Site title, get_site_title(), APP_NAME, admin API, public pages
 - **EventEmailTest**: events.email schema, CRUD, validation logic, ICS ORGANIZER logic, migration idempotency
 - **ProgramTypeTest**: programs.program_type schema, CRUD, migration idempotency, public API type filter, admin API programs_types, index.php UI (appendFilter, hasTypes, event-subtitle, clickable badges), translations (table.type TH/EN/JA), admin UI v2.4.2 categories column
+- **FeedTest**: icsEscape() (backslash/semicolon/comma/newline/CR/Thai), icsFold() (75-byte limit, UTF-8 boundary, multi-fold), CATEGORIES delimiter logic (unescaped comma), ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 source checks
 
-✅ **ผ่านทั้งหมด 999 tests บน PHP 8.1, 8.2, และ 8.3**
+✅ **ผ่านทั้งหมด 1276 tests บน PHP 8.1, 8.2, และ 8.3**
 
 ### Manual Testing
 
@@ -511,6 +513,32 @@ END:VCALENDAR
 - Twitter (X): [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 ## 📝 Changelog
+
+### v2.5.2 (2026-03-03)
+
+- ⚡ **Feed static file cache** — `feed.php` ใช้ `ob_start()`/`ob_get_clean()` บันทึก ICS output ลง `cache/feed_{eventId}_{hash}.ics`; request ถัดไปใช้ `readfile()` เสิร์ฟตรง ไม่ query SQLite/IcsParser; TTL 1 ชั่วโมง
+- 🔑 **Stable cache key** — sort `artist[]`/`venue[]`/`type[]` ก่อน hash เพื่อให้ query string ต่างลำดับได้ cache file เดียวกัน
+- 🗑️ **`invalidate_feed_cache($eventMetaId)`** — ฟังก์ชันใหม่ใน `functions/cache.php`; ลบ `feed_*.ics` ที่ตรง pattern; เมื่อ invalidate event เฉพาะจะลบ global (`feed_0_*.ics`) ด้วย; `invalidate_all_caches()` อัปเดตรองรับ ICS ด้วย
+- 🔄 **Auto-invalidate ครบ 6 จุด** — `admin/api.php` เรียก `invalidate_feed_cache()` หลัง `invalidate_data_version_cache()` ทุกการเขียน: createProgram, updateProgram, deleteProgram, bulkDeletePrograms, bulkUpdatePrograms, confirmIcsImport
+- ⚙️ **`FEED_CACHE_DIR` + `FEED_CACHE_TTL`** — constants ใหม่ใน `config/cache.php`; TTL default 3600 s; ใช้โฟลเดอร์ `cache/` เดิม
+- 🧪 **FeedTest +20 tests** — เพิ่ม 20 cache tests (constants, invalidate_feed_cache, source checks); รวม 69 tests / 1276 cumulative
+
+### v2.5.1 (2026-03-03)
+
+- 🔧 **RFC 5545 line folding** — `icsFold()` ตัดบรรทัดที่ 75 bytes โดยรองรับ UTF-8 multi-byte boundary; ป้องกัน Outlook/strict clients reject feed
+- 🏷️ **CATEGORIES comma delimiter fix** — แยก categories ด้วย `,` → escape แต่ละค่าแยก → rejoin ด้วย `,` ที่ไม่ถูก escape; Outlook เห็นแต่ละศิลปินเป็น category แยก ไม่ใช่ชื่อเดียวยาว
+- ✏️ **icsEscape() comma fix** — SUMMARY/DESCRIPTION/LOCATION ยังคง escape `,` ถูกต้อง; เฉพาะ CATEGORIES delimiter เท่านั้นที่ไม่ escape
+- 📧 **Outlook subscribe instructions** — modal แสดงวิธีใช้ Outlook แยก: ใช้ https:// ผ่าน "Add calendar › Subscribe from web"
+- 📱 **Mobile action buttons compact** — `flex-wrap: wrap` + `.filter-buttons .btn { flex: 1 1 calc(33.33% - 4px) }` ปุ่ม 6 ปุ่มเรียง 3 คอลัมน์ ≤2 แถว ไม่เต็มหน้าจอ
+- 📱 **Subscribe modal URL input overflow fix** — `min-width:0` ทั้ง container และ input; `font-size:1rem` ป้องกัน iOS auto-zoom; `text-overflow:ellipsis` แสดง URL ยาวไม่ล้น; Copy button `width:auto` ป้องกัน mobile `.btn { width:100% }` override
+- 🧪 **FeedTest** — 69 automated tests ครอบคลุม v2.5.x: `icsEscape()` (9 tests), `icsFold()` (7 tests), CATEGORIES delimiter logic (7 tests), ORGANIZER logic (5 tests), ETag format (6 tests), `invalidate_data_version_cache()` (5 tests), feed.php RFC 5545/7986 source checks (9 tests), cache constants (4), `invalidate_feed_cache()` (6), feed.php cache source checks (11); total 1276 tests (11 suites)
+
+### v2.5.0 (2026-03-03)
+
+- 🔔 **ICS Subscription Feed** — `feed.php` live endpoint; `Content-Disposition: inline`; ETag via `get_data_version()`; `Cache-Control: public, max-age=3600`; `X-PUBLISHED-TTL:PT1H`; `REFRESH-INTERVAL;VALUE=DURATION:PT1H` (RFC 7986)
+- 🔔 **Subscribe button** — ปุ่ม "🔔 Subscribe" (สีม่วง) ใน action bar บน index.php ระหว่างปุ่ม Export และ Request
+- 🔔 **Subscribe modal** — webcal:// link (Apple/iOS/Thunderbird) + https:// URL input + Copy button; รองรับ filter params (artist[], venue[], type[]) จาก form ปัจจุบัน
+- 🗑️ **`invalidate_data_version_cache()`** — ฟังก์ชันใหม่ใน `functions/cache.php`; ลบ `cache/data_version*.json` ทันที; Admin CRUD (create/update/delete/bulk/ICS import) เรียกใช้ทุกครั้ง; ETag เปลี่ยนทันที calendar apps ได้ข้อมูลใหม่รอบถัดไป
 
 ### v2.4.7 (2026-03-03)
 

@@ -21,6 +21,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📅 **Date Jump Bar** | Fixed-position navigation bar to jump quickly to any date in the schedule |
 | 📸 **Save as Image** | Export filtered schedule as PNG image (lazy-loaded html2canvas) |
 | 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. |
+| 🔔 **Live Subscription** | Subscribe to a live webcal:// feed — calendar apps auto-sync when programs change (no re-export needed) |
 | 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) |
 | 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based or dropdown selection |
 
@@ -55,10 +56,10 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🗄️ **SQLite Database** | Lightweight, high-performance storage via PDO SQLite |
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers |
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
-| 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support |
+| 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support; live subscription feed (RFC 5545/7986) |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching |
-| 🧪 **999 Unit Tests** | Automated test suite across 10 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) |
+| 🧪 **1256 Unit Tests** | Automated test suite across 11 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
 
 ---
@@ -130,6 +131,7 @@ php tools/import-ics-to-sqlite.php
 | 📅 **Jump to Date** | Use the fixed Date Jump Bar |
 | 📸 **Save Image** | Click "Save as Image" button |
 | 📅 **Export Calendar** | Click "Export to Calendar" button |
+| 🔔 **Subscribe** | Click "Subscribe" button for live webcal:// calendar link |
 | 📝 **Request Changes** | Click "Request to Add Event" or ✏️ button |
 
 ---
@@ -189,6 +191,7 @@ Toggle between views using the switch below the search controls.
 
 - **📸 Save as Image**: Downloads the filtered schedule as PNG
 - **📅 Export to Calendar**: Downloads filtered events as .ics file
+- **🔔 Subscribe to Feed**: Click "Subscribe" to get a live `webcal://` link — paste into Apple Calendar, Google Calendar, or Thunderbird and the calendar app will auto-sync whenever programs are updated. Outlook users use the `https://` URL via "Add calendar › Subscribe from web"
 
 ### Requesting Changes
 
@@ -331,7 +334,7 @@ See **[API.md](API.md)** for complete endpoint documentation with request/respon
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.4.7'); // Change this to force cache refresh
+define('APP_VERSION', '2.5.2'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -450,7 +453,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           999 automated tests
+├── tests/           1256 automated tests (11 suites)
 └── *.md             Documentation
 ```
 
@@ -621,7 +624,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **999 automated unit tests** covering all critical functionality:
+The project includes **1256 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
 - 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
@@ -634,6 +637,7 @@ The project includes **999 automated unit tests** covering all critical function
 - 📝 **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
 - 📧 **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
 - 🏷️ **ProgramTypeTest** (35 tests) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
+- 🔔 **FeedTest** (49 tests) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance
 
 **Run All Tests:**
 ```bash
@@ -671,14 +675,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 999 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 1256 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 999 tests
-Passed: 999
+Total: 1256 tests
+Passed: 1256
 Pass Rate: 100.0%
 ```
 
@@ -690,7 +694,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.4.7
+**Current Version**: 2.5.2
 
 ---
 
