@@ -241,29 +241,31 @@ $hasTypes = !empty($types);
                             </div>
                         </div>
                         <div class="program-card-body">
-                            <?php if ($evStatus === 'ongoing'): ?>
-                                <span class="program-card-badge ongoing" data-i18n="listing.ongoing">กำลังจัดงาน</span>
-                            <?php elseif ($evStatus === 'upcoming'): ?>
-                                <span class="program-card-badge upcoming" data-i18n="listing.upcoming">กำลังจะมาถึง</span>
-                            <?php else: ?>
-                                <span class="program-card-badge past" data-i18n="listing.past">จบแล้ว</span>
-                            <?php endif; ?>
-
-                            <?php if (!empty($ev['description'])): ?>
-                                <div class="program-card-description">
-                                    <?php echo nl2br(htmlspecialchars($ev['description'])); ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="program-card-meta">
-                                <span class="program-card-meta-item" title="Data Version">
-                                    🔄 <?php echo $evDataVersion; ?>
-                                </span>
-                                <?php if (!empty($evCredits)): ?>
-                                <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="program-card-meta-item program-card-meta-link" data-i18n="listing.credits">
-                                    📋 Credits (<?php echo count($evCredits); ?>)
-                                </a>
+                            <div class="program-card-content">
+                                <?php if ($evStatus === 'ongoing'): ?>
+                                    <span class="program-card-badge ongoing" data-i18n="listing.ongoing">กำลังจัดงาน</span>
+                                <?php elseif ($evStatus === 'upcoming'): ?>
+                                    <span class="program-card-badge upcoming" data-i18n="listing.upcoming">กำลังจะมาถึง</span>
+                                <?php else: ?>
+                                    <span class="program-card-badge past" data-i18n="listing.past">จบแล้ว</span>
                                 <?php endif; ?>
+
+                                <?php if (!empty($ev['description'])): ?>
+                                    <div class="program-card-description">
+                                        <?php echo nl2br(htmlspecialchars($ev['description'])); ?>
+                                    </div>
+                                <?php endif; ?>
+
+                                <div class="program-card-meta">
+                                    <span class="program-card-meta-item" title="Data Version">
+                                        🔄 <?php echo $evDataVersion; ?>
+                                    </span>
+                                    <?php if (!empty($evCredits)): ?>
+                                    <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="program-card-meta-item program-card-meta-link" data-i18n="listing.credits">
+                                        📋 Credits (<?php echo count($evCredits); ?>)
+                                    </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
 
                             <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="program-card-link" data-i18n="listing.viewSchedule">
@@ -305,6 +307,9 @@ $hasTypes = !empty($types);
             <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
             <?php if ($eventMeta): ?>
             <div class="event-subtitle"><?php echo htmlspecialchars($eventName); ?></div>
+            <?php if ($currentVenueMode === 'single' && !empty($venues)): ?>
+            <div class="event-venue">📍 <?php echo htmlspecialchars($venues[0]); ?></div>
+            <?php endif; ?>
             <?php endif; ?>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
@@ -478,52 +483,40 @@ $hasTypes = !empty($types);
                                                       data-end="<?php echo date('H:i', $event['end_ts']); ?>"></span>
                                             </td>
                                             <td class="program-info-cell">
-                                                <?php if (!empty($event['title'])): ?>
-                                                    <div class="program-title-name">
-                                                        <?php echo htmlspecialchars($event['title']); ?>
+                                                <div class="program-title-name">
+                                                    <?php echo htmlspecialchars($event['title'] ?? ''); ?>
+                                                </div>
+                                                <?php if (!empty($event['description'])): ?>
+                                                    <div class="event-description">
+                                                        <?php echo htmlspecialchars($event['description']); ?>
                                                     </div>
-                                                    <?php if (!empty($event['description'])): ?>
-                                                        <div class="event-description">
-                                                            <?php echo htmlspecialchars($event['description']); ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                    <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <?php if ($currentVenueMode === 'multi'): ?>
-                                            <td class="program-venue-cell">
+                                            <td class="program-venue-cell<?php echo empty($event['location']) ? ' cell-empty' : ''; ?>">
                                                 <?php if (!empty($event['location'])): ?>
                                                     <span style="color: #212529; font-size: 0.95em;">
                                                         <?php echo htmlspecialchars($event['location']); ?>
                                                     </span>
-                                                <?php else: ?>
-                                                    <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
                                             <?php if ($hasTypes): ?>
-                                            <td class="program-type-cell">
+                                            <td class="program-type-cell<?php echo empty($event['program_type']) ? ' cell-empty' : ''; ?>">
                                                 <?php if (!empty($event['program_type'])): ?>
                                                 <button type="button" class="program-type-badge" onclick="appendFilter('type', <?php echo htmlspecialchars(json_encode($event['program_type']), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามประเภท: <?php echo htmlspecialchars($event['program_type']); ?>">
                                                     <?php echo htmlspecialchars($event['program_type']); ?>
                                                 </button>
-                                                <?php else: ?>
-                                                <span style="color: #adb5bd;">-</span>
                                                 <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
-                                            <td class="program-categories-cell">
-                                                <?php
-                                                $cats = array_filter(array_map('trim', $event['categoriesArray']));
-                                                if (!empty($cats)):
-                                                    foreach ($cats as $cat): ?>
+                                            <?php $cats = array_filter(array_map('trim', $event['categoriesArray'])); ?>
+                                            <td class="program-categories-cell<?php echo empty($cats) ? ' cell-empty' : ''; ?>">
+                                                <?php foreach ($cats as $cat): ?>
                                                     <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($cat), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($cat); ?>">
                                                         <?php echo htmlspecialchars($cat); ?>
                                                     </button>
-                                                <?php endforeach; else: ?>
-                                                    <span style="color: #adb5bd;">-</span>
-                                                <?php endif; ?>
+                                                <?php endforeach; ?>
                                             </td>
                                             <td class="program-action-cell" style="text-align:center;">
                                                 <button type="button" class="btn-edit-request"
@@ -841,6 +834,129 @@ $hasTypes = !empty($types);
             closeRequestModal();
         }
     });
+    </script>
+    <?php endif; ?>
+
+    <?php if ($showEventListing): ?>
+    <script>
+    (function () {
+        // Build modal element (injected once)
+        const overlay = document.createElement('div');
+        overlay.className = 'event-modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.style.display = 'none';
+        overlay.innerHTML =
+            '<div class="event-modal">' +
+                '<div class="event-modal-header">' +
+                    '<button class="event-modal-close" aria-label="ปิด">&#x2715;</button>' +
+                    '<h3 class="event-modal-name"></h3>' +
+                    '<div class="event-modal-dates"></div>' +
+                    '<span class="event-modal-badge program-card-badge"></span>' +
+                '</div>' +
+                '<div class="event-modal-body">' +
+                    '<div class="event-modal-description"></div>' +
+                    '<div class="event-modal-meta"></div>' +
+                    '<a class="event-modal-link" href="#"></a>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+
+        function openModal(card) {
+            var nameEl   = card.querySelector('.program-card-name');
+            var datesEl  = card.querySelector('.program-card-dates');
+            var badgeEl  = card.querySelector('.program-card-badge');
+            var descEl   = card.querySelector('.program-card-description');
+            var metaEl   = card.querySelector('.program-card-meta');
+            var linkEl   = card.querySelector('.program-card-link');
+
+            overlay.querySelector('.event-modal-name').textContent  = nameEl  ? nameEl.textContent.trim()  : '';
+            overlay.querySelector('.event-modal-dates').textContent = datesEl ? datesEl.textContent.trim() : '';
+
+            var modalBadge = overlay.querySelector('.event-modal-badge');
+            if (badgeEl) {
+                modalBadge.textContent = badgeEl.textContent.trim();
+                modalBadge.className   = 'event-modal-badge program-card-badge ' +
+                    (badgeEl.classList.contains('ongoing')  ? 'ongoing'  :
+                     badgeEl.classList.contains('upcoming') ? 'upcoming' : 'past');
+                modalBadge.style.display = '';
+            } else {
+                modalBadge.style.display = 'none';
+            }
+
+            var modalDesc = overlay.querySelector('.event-modal-description');
+            if (descEl) {
+                modalDesc.innerHTML      = descEl.innerHTML;
+                modalDesc.style.display  = '';
+                // Remove line-clamp inside modal
+                modalDesc.style.webkitLineClamp = 'unset';
+                modalDesc.style.display = 'block';
+                modalDesc.style.overflow = 'visible';
+            } else {
+                modalDesc.style.display = 'none';
+            }
+
+            var modalMeta = overlay.querySelector('.event-modal-meta');
+            if (metaEl && metaEl.children.length) {
+                modalMeta.innerHTML     = metaEl.innerHTML;
+                modalMeta.style.display = '';
+            } else {
+                modalMeta.style.display = 'none';
+            }
+
+            var modalLink = overlay.querySelector('.event-modal-link');
+            if (linkEl) {
+                modalLink.href           = linkEl.getAttribute('href');
+                modalLink.textContent    = linkEl.textContent.trim();
+                modalLink.style.display  = '';
+            } else {
+                modalLink.style.display  = 'none';
+            }
+
+            overlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            overlay.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Wire up each description
+        document.querySelectorAll('.program-card-description').forEach(function (desc) {
+            var card = desc.closest('.program-card');
+            if (!card) return;
+
+            desc.addEventListener('click', function () { openModal(card); });
+
+            // Show "read more" button only when text is actually clamped
+            if (desc.scrollHeight > desc.clientHeight + 2) {
+                var btn = document.createElement('button');
+                btn.type      = 'button';
+                btn.className = 'program-card-readmore';
+                btn.setAttribute('data-i18n', 'listing.readMore');
+                btn.textContent = (window.translations && window.translations[window.currentLang || 'th'])
+                    ? (window.translations[window.currentLang || 'th']['listing.readMore'] || '▼ อ่านเพิ่มเติม')
+                    : '▼ อ่านเพิ่มเติม';
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    openModal(card);
+                });
+                desc.insertAdjacentElement('afterend', btn);
+            }
+        });
+
+        // Close on overlay backdrop click
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeModal();
+        });
+
+        overlay.querySelector('.event-modal-close').addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && overlay.style.display !== 'none') closeModal();
+        });
+    })();
     </script>
     <?php endif; ?>
 </body>

@@ -103,13 +103,13 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.2.1**: Create valid credit
 
 **Steps**:
-1. Click "+ เพิ่ม Credit"
+1. Click "+ Add Credit"
 2. Fill form:
    - Title: "Test Credit"
    - Link: "https://example.com"
    - Description: "Test description"
    - Display Order: 0
-3. Click "บันทึก"
+3. Click "Save"
 
 **Expected Result**:
 - ✅ Success toast message
@@ -122,10 +122,10 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.2.2**: Create credit with required field only
 
 **Steps**:
-1. Click "+ เพิ่ม Credit"
+1. Click "+ Add Credit"
 2. Fill only Title: "Minimal Credit"
 3. Leave Link, Description empty
-4. Click "บันทึก"
+4. Click "Save"
 
 **Expected Result**:
 - ✅ Credit created successfully
@@ -137,9 +137,9 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.2.3**: Validation - Empty title
 
 **Steps**:
-1. Click "+ เพิ่ม Credit"
+1. Click "+ Add Credit"
 2. Leave Title empty
-3. Click "บันทึก"
+3. Click "Save"
 
 **Expected Result**:
 - ❌ HTML5 validation error: "Please fill out this field"
@@ -151,7 +151,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Fill Title with 201 characters
-2. Click "บันทึก"
+2. Click "Save"
 
 **Expected Result**:
 - ❌ Browser limits input to 200 characters (maxlength attribute)
@@ -163,7 +163,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Steps**:
 1. Fill Title: "Test"
 2. Fill Link: "not-a-valid-url"
-3. Click "บันทึก"
+3. Click "Save"
 
 **Expected Result**:
 - ❌ HTML5 validation error: "Please enter a URL"
@@ -175,10 +175,10 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.3.1**: Edit existing credit
 
 **Steps**:
-1. Click "แก้ไข" button on any credit
+1. Click "Edit" button on any credit
 2. Verify form pre-filled with current values
 3. Change Title to "Updated Title"
-4. Click "บันทึก"
+4. Click "Save"
 
 **Expected Result**:
 - ✅ Success toast message
@@ -191,12 +191,12 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.3.2**: Cancel edit (with changes)
 
 **Steps**:
-1. Click "แก้ไข" button
+1. Click "Edit" button
 2. Change any field
-3. Click "ยกเลิก"
+3. Click "Cancel"
 
 **Expected Result**:
-- ✅ Confirmation dialog: "คุณมีการแก้ไขที่ยังไม่ได้บันทึก"
+- ✅ Confirmation dialog: "You have unsaved changes"
 - ✅ If confirm: modal closes, no changes saved
 - ✅ If cancel: stays in modal
 
@@ -207,9 +207,9 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.4.1**: Delete single credit
 
 **Steps**:
-1. Click "ลบ" button on credit
+1. Click "Delete" button on credit
 2. Verify confirmation modal shows credit title
-3. Click "ลบ"
+3. Click "Delete"
 
 **Expected Result**:
 - ✅ Confirmation modal appears
@@ -223,8 +223,8 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.4.2**: Cancel delete
 
 **Steps**:
-1. Click "ลบ" button
-2. Click "ยกเลิก"
+1. Click "Delete" button
+2. Click "Cancel"
 
 **Expected Result**:
 - ✅ Modal closes
@@ -239,9 +239,9 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Steps**:
 1. Check 3-5 credit checkboxes
 2. Verify bulk actions bar appears with count
-3. Click "🗑️ ลบหลายรายการ"
+3. Click "🗑️ Delete Selected"
 4. Verify count in confirmation modal
-5. Click "ลบทั้งหมด"
+5. Click "Delete All"
 
 **Expected Result**:
 - ✅ Bulk actions bar shows correct count
@@ -326,7 +326,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 2. Wait for results
 
 **Expected Result**:
-- ✅ "ไม่พบ credits" message shown
+- ✅ "No credits found" message shown
 - ✅ Empty table
 
 ---
@@ -401,12 +401,12 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Create 30+ credits
-2. Click "ถัดไป" button
-3. Click "ก่อนหน้า" button
+2. Click "Next" button
+3. Click "Previous" button
 
 **Expected Result**:
 - ✅ Page 2 shows items 21-40
-- ✅ Page info shows "หน้า 2 / 2"
+- ✅ Page info shows "Page 2 / 2"
 - ✅ Previous button goes back to page 1
 
 ---
@@ -414,7 +414,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 1.8.2**: Change per-page limit
 
 **Steps**:
-1. Select "50 / หน้า"
+1. Select "50 / page"
 2. Verify results
 
 **Expected Result**:
@@ -448,7 +448,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 2. Visit credits.php
 
 **Expected Result**:
-- ✅ "ยังไม่มีข้อมูล credits" message
+- ✅ "No credits available" message
 - ✅ No errors
 
 ---
@@ -588,7 +588,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Expected Result**:
 - ✅ Empty array returned
-- ✅ "ยังไม่มีข้อมูล credits" message
+- ✅ "No credits available" message
 - ❌ No PHP errors displayed
 
 ---
@@ -858,7 +858,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Steps**:
 1. Visit `/admin/login.php`
 2. Enter correct username and password
-3. Click "เข้าสู่ระบบ"
+3. Click "Login"
 
 **Expected Result**:
 - ✅ Redirected to `/admin/`
@@ -923,7 +923,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Login successfully
-2. Click "ออกจากระบบ"
+2. Click "Logout"
 
 **Expected Result**:
 - ✅ Redirected to login page
@@ -1003,7 +1003,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Select venue from dropdown
-2. Click "ค้นหา"
+2. Click "Search"
 
 **Expected Result**:
 - ✅ Only programs at selected venue shown
@@ -1027,7 +1027,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.2.1**: Create valid program
 
 **Steps**:
-1. Click "+ เพิ่ม Program"
+1. Click "+ Add Program"
 2. Fill all fields:
    - Title: "Test Program"
    - Start: "2026-03-01 10:00"
@@ -1035,7 +1035,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
    - Venue: "Stage A"
    - Organizer: "Test Artist"
    - Categories: "Test Artist"
-3. Click "บันทึก"
+3. Click "Save"
 
 **Expected Result**:
 - ✅ Program created
@@ -1047,7 +1047,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.2.2**: Validation - Empty title
 
 **Steps**:
-1. Click "+ เพิ่ม Program"
+1. Click "+ Add Program"
 2. Leave title empty
 3. Fill other required fields
 4. Submit
@@ -1075,9 +1075,9 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.3.1**: Edit program
 
 **Steps**:
-1. Click "แก้ไข" on program
+1. Click "Edit" on program
 2. Change title to "Updated Program"
-3. Click "บันทึก"
+3. Click "Save"
 
 **Expected Result**:
 - ✅ Program updated
@@ -1091,7 +1091,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 5.4.1**: Delete single program
 
 **Steps**:
-1. Click "ลบ" on program
+1. Click "Delete" on program
 2. Confirm deletion
 
 **Expected Result**:
@@ -1106,7 +1106,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Select 3 programs
-2. Click "🗑️ ลบหลายรายการ"
+2. Click "🗑️ Delete Selected"
 3. Confirm
 
 **Expected Result**:
@@ -1119,7 +1119,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Select multiple programs
-2. Click "แก้ไขหลายรายการ"
+2. Click "Edit Selected"
 3. Change venue to "New Venue"
 4. Submit
 
@@ -1151,7 +1151,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 6.1.1**: Add event request
 
 **Steps**:
-1. On index.php, click "📝 แจ้งเพิ่ม Event"
+1. On index.php, click "📝 Report New Event"
 2. Fill form:
    - Title: "New Event"
    - Start/End times
@@ -1224,7 +1224,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 6.2.2**: View request details
 
 **Steps**:
-1. Click "👁️ ดู" on request
+1. Click "👁️ View" on request
 
 **Expected Result**:
 - ✅ Modal shows all details
@@ -1237,7 +1237,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. View "add" type request
-2. Click "✅ อนุมัติ"
+2. Click "✅ Approve"
 
 **Expected Result**:
 - ✅ New event created in events table
@@ -1251,7 +1251,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. View "modify" type request
-2. Click "✅ อนุมัติ"
+2. Click "✅ Approve"
 
 **Expected Result**:
 - ✅ Existing event updated
@@ -1264,7 +1264,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. View request
-2. Click "❌ ปฏิเสธ"
+2. Click "❌ Reject"
 
 **Expected Result**:
 - ✅ Request status = 'rejected'
@@ -1320,7 +1320,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Expected Result**:
 - ✅ Master checkbox shows indeterminate state
-- ✅ Bulk actions bar shows count: "2 รายการที่เลือก"
+- ✅ Bulk actions bar shows count: "2 items selected"
 
 ---
 
@@ -1346,8 +1346,8 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 3. Check count
 
 **Expected Result**:
-- ✅ Count shows "5 รายการที่เลือก"
-- ✅ Then shows "3 รายการที่เลือก"
+- ✅ Count shows "5 items selected"
+- ✅ Then shows "3 items selected"
 
 ---
 
@@ -1454,7 +1454,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Check 2-3 artist checkboxes
-2. Click "ค้นหา"
+2. Click "Search"
 
 **Expected Result**:
 - ✅ Events from all selected artists shown
@@ -1503,7 +1503,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Test Case 8.4.2**: Save as image
 
 **Steps**:
-1. Click "📸 บันทึกเป็นรูปภาพ"
+1. Click "📸 Save as Image"
 2. Wait for html2canvas to load
 
 **Expected Result**:
@@ -1888,7 +1888,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v2.4.5
+**Version**: v2.4.7
 
 **Result**: Pass / Fail
 
@@ -1932,9 +1932,9 @@ _________________________________
 **Steps**:
 1. Login as admin
 2. Click "👤 Users" tab
-3. Click "+ เพิ่ม User"
+3. Click "+ Add User"
 4. Fill: username, display name, password (min 8 chars), role, active
-5. Click "บันทึก"
+5. Click "Save"
 
 **Expected Result**:
 - ✅ User created successfully
@@ -1945,10 +1945,10 @@ _________________________________
 **Test Case 12.1.4**: Edit user
 
 **Steps**:
-1. Click "แก้ไข" on existing user
+1. Click "Edit" on existing user
 2. Change display name
 3. Leave password empty (keep existing)
-4. Click "บันทึก"
+4. Click "Save"
 
 **Expected Result**:
 - ✅ Display name updated

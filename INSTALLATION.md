@@ -342,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.4.5'); // Change to force cache refresh
+define('APP_VERSION', '2.4.7'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -640,7 +640,7 @@ Structure:
 ```javascript
 const translations = {
     en: { key: "English text" },
-    th: { key: "ข้อความไทย" },
+    th: { key: "Thai text" },
     ja: { key: "日本語テキスト" }
 };
 ```

@@ -512,6 +512,19 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.4.7 (2026-03-03)
+
+- 📍 **Venue display in single venue mode** — แสดงชื่อ venue (`📍 ชื่อเวที`) ใต้ event-subtitle ใน header; ดึงจาก `$venues[0]`; แสดงเฉพาะ `venue_mode = single`
+- 📱 **Event selector dropdown overflow fix** — `max-width: 100%` + `box-sizing: border-box`; mobile `≤768px`: `width: 100%; min-width: 0` ป้องกันล้นขอบ header เมื่อชื่อ event ยาว
+
+### v2.4.6 (2026-03-03)
+
+- 🃏 **Event listing horizontal card** — gradient header บนสุด (full-width), body แนวนอน (content + ปุ่มขวา); mobile พับเป็น vertical compact card
+- 📖 **Description modal** — แตะ/คลิก description ที่ถูก clamp → modal แสดงข้อมูลเต็ม; "▼ อ่านเพิ่มเติม" chip ปรากฏเมื่อ text ถูก clamp จริง
+- 📱 **Program table mobile redesign** — gradient time strip บนสุดของ card; padding ลดลง ~120px/card; ปุ่ม ✏️ เป็น absolute (top:33px, right:8px) ไม่เพิ่มความสูง card; cell ว่าง (`cell-empty`) ซ่อนด้วย `display:none`; ลบ `-` dash ออกจาก cell ว่าง
+- ↔️ **Type + Categories บรรทัดเดียว (mobile)** — `inline-flex; width:auto` ด้วย high-specificity selector ชนะ `td { width:100%!important }`
+- 🏷️ **Badge size unified** — `program-categories-badge` และ `program-type-badge` ใช้ padding/border-radius/font-size เดียวกัน; ต่างแค่สี
+
 ### v2.4.5 (2026-03-03)
 
 - 🕐 **Collapse same-time** — start == end time → แสดงแค่เวลาเริ่ม (List view, Gantt tooltip, Admin Programs list)
