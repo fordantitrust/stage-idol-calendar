@@ -514,6 +514,16 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.0 (2026-03-04)
+
+- 📅 **Date Jump Bar desktop scroll** — ◀ ▶ arrow buttons + mousewheel→horizontal scroll + thin 3px sakura scrollbar on `@media (hover:hover)`; `updateArrows()` hides buttons at boundary
+- 🔴 **Live Stream support** — `stream_url TEXT DEFAULT NULL` column in `programs` table; public UI shows platform icon (📷/𝕏/▶️/🔴) + `program-join-btn`; admin form has `streamUrl` input + list badge; `IcsParser.php` parses `URL:` → `stream_url`; `export.php`/`feed.php` emit `URL:` VEVENT property; all API paths (admin/api.php, api.php) include `stream_url`; `tools/migrate-add-stream-url-column.php` idempotent migration; `setup.php` updated (CREATE TABLE + fix_programs_title + allTablesOk); `js/translations.js` `badge.joinLive` (TH/EN/JA); 31 new tests in `tests/StreamUrlTest.php` → **1584 total tests**
+
+### v2.5.4 (2026-03-04)
+
+- 📖 **How-to-use expanded** — `how-to-use.php` ครอบคลุม features ทั้งหมด: กรองตามประเภท (item 3 ใน section 2, renumber ข้ออื่น), Subscribe ปฏิทิน (🔔 item 3 ใน section 3 พร้อมวิธี webcal/Google/Outlook), Date Jump Bar (section ใหม่), Description Modal / อ่านเพิ่มเติม (section ใหม่)
+- 🌐 **Translation keys** — `js/translations.js` เพิ่ม `section2.filter3.*`, `section3.subscribe.*`, `section9.*`, `section10.*` ครบ 3 ภาษา (TH/EN/JA); renumber `section2.action.title` → 4, `section2.selectedTags.title` → 5, `section2.quickFilter.title` → 6
+
 ### v2.5.3 (2026-03-03)
 
 - 🔧 **`GOOGLE_ANALYTICS_ID` ย้ายไป `config/analytics.php`** — แยกออกจาก `config/app.php` เพื่อป้องกัน `tools/update-version.php` เขียนทับค่า GA ID ตอน bump version; `config.php` โหลดไฟล์ใหม่อัตโนมัติ

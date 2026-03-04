@@ -1589,6 +1589,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         </datalist>
                         <small class="form-hint">เลือกจาก dropdown หรือพิมพ์ประเภทใหม่ได้</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="streamUrl">🔴 Live Stream URL</label>
+                        <input type="url" id="streamUrl" placeholder="https://www.instagram.com/... หรือ https://x.com/...">
+                        <small class="form-hint">ลิงก์ IG Live, X Spaces, YouTube Live ฯลฯ (เว้นว่างได้ถ้าไม่มี)</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -2434,7 +2440,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tr class="event-row" data-event-id="${event.id}">
                         <td><input type="checkbox" class="event-checkbox" data-event-id="${event.id}"></td>
                         <td>${event.id}</td>
-                        <td>${escapeHtml(event.title)}</td>
+                        <td>${event.stream_url ? `<a href="${escapeHtml(event.stream_url)}" target="_blank" class="stream-link-badge" title="${escapeHtml(event.stream_url)}">🔴</a> ` : ''}${escapeHtml(event.title)}</td>
                         <td>${dateStr}<br>${startTime === endTime ? startTime : startTime + ' - ' + endTime}</td>
                         ${VENUE_MODE === 'multi' ? `<td>${escapeHtml(event.location || '-')}</td>` : ''}
                         <td>${escapeHtml(event.categories || '-')}</td>
@@ -2807,6 +2813,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('description').value = event.description || '';
                 document.getElementById('categories').value = event.categories || '';
                 document.getElementById('programType').value = event.program_type || '';
+                document.getElementById('streamUrl').value = event.stream_url || '';
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -2846,6 +2853,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('description').value = event.description || '';
                 document.getElementById('categories').value = event.categories || '';
                 document.getElementById('programType').value = event.program_type || '';
+                document.getElementById('streamUrl').value = event.stream_url || '';
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -2887,6 +2895,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 description: document.getElementById('description').value,
                 categories: document.getElementById('categories').value,
                 program_type: document.getElementById('programType').value,
+                stream_url: document.getElementById('streamUrl').value || null,
                 event_id: conventionVal ? parseInt(conventionVal) : null
             };
 

@@ -62,7 +62,7 @@ class IcsParser {
         try {
             if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id
                     FROM programs
                     WHERE event_id = :event_id
                     ORDER BY start ASC
@@ -70,7 +70,7 @@ class IcsParser {
                 $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id
                     FROM programs
                     ORDER BY start ASC
                 ");
@@ -149,7 +149,8 @@ class IcsParser {
             'description' => '',
             'uid' => '',
             'categories' => '',
-            'program_type' => ''
+            'program_type' => '',
+            'stream_url' => ''
         ];
 
         // Parse แต่ละบรรทัด
@@ -222,6 +223,11 @@ class IcsParser {
             elseif (preg_match('/^X-PROGRAM-TYPE:(.*)/', $line, $m)) {
                 $event['program_type'] = $this->decodeIcsValue(trim($m[1]));
                 $currentField = 'program_type';
+            }
+            // URL (live stream link — IG Live, X Spaces, YouTube Live etc.)
+            elseif (preg_match('/^URL:(.*)/', $line, $m)) {
+                $event['stream_url'] = $this->decodeIcsValue(trim($m[1]));
+                $currentField = 'stream_url';
             }
         }
 

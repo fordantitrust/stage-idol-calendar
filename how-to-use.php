@@ -68,20 +68,27 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <h3 data-i18n="section2.filter2.title">2. กรองตามเวที</h3>
                 <p data-i18n="section2.filter2.desc">เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Common Stage เป็นต้น</p>
 
-                <h3 data-i18n="section2.action.title">3. ดำเนินการ</h3>
+                <h3 data-i18n="section2.filter3.title">3. กรองตามประเภท</h3>
+                <p data-i18n="section2.filter3.desc">เลือกประเภทของ program เช่น Live, Fan Meeting, Talk Show เพื่อดูเฉพาะ program ที่สนใจ</p>
+                <div class="feature-box">
+                    <strong data-i18n="section2.filter3.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section2.filter3.tipText">สามารถเลือกหลายประเภทพร้อมกันได้ ประเภทจะแสดงเฉพาะเมื่อมีข้อมูลในระบบ</span>
+                </div>
+
+                <h3 data-i18n="section2.action.title">4. ดำเนินการ</h3>
                 <ul>
                     <li data-i18n="section2.action1"><strong>🔍 ค้นหา:</strong> กดปุ่มนี้เพื่อแสดงผลลัพธ์ตามที่คุณเลือก</li>
                     <li data-i18n="section2.action2"><strong>🔄 รีเซ็ต:</strong> ล้างตัวกรองทั้งหมดและแสดงกิจกรรมทั้งหมด</li>
                 </ul>
 
-                <h3 data-i18n="section2.selectedTags.title">4. ดูรายการที่เลือก</h3>
+                <h3 data-i18n="section2.selectedTags.title">5. ดูรายการที่เลือก</h3>
                 <p data-i18n="section2.selectedTags.desc">เมื่อเลือกศิลปินหรือเวทีแล้ว จะแสดงเป็น tag ด้านบน checkbox list</p>
                 <div class="feature-box">
                     <strong data-i18n="section2.selectedTags.tip">💡 เคล็ดลับ:</strong>
                     <span data-i18n="section2.selectedTags.tipText">กดปุ่ม ✕ ที่ tag เพื่อลบออกและ reload หน้าอัตโนมัติ</span>
                 </div>
 
-                <h3 data-i18n="section2.quickFilter.title">5. กรองด่วนจาก badge ในตาราง</h3>
+                <h3 data-i18n="section2.quickFilter.title">6. กรองด่วนจาก badge ในตาราง</h3>
                 <p data-i18n="section2.quickFilter.desc">คลิกที่ badge ในตารางรายการเพื่อ append filter ได้ทันที โดยไม่ต้องเลื่อนขึ้นไปใช้ช่อง filter ด้านบน</p>
                 <ul>
                     <li data-i18n="section2.quickFilter.item1"><strong>🎤 Badge ศิลปิน (สีชมพู)</strong> — คอลัมน์ "ศิลปินที่เกี่ยวข้อง": คลิกชื่อศิลปินเพื่อเพิ่มเข้า filter</li>
@@ -112,6 +119,22 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li data-i18n="section3.calendar.step3">เปิดไฟล์ .ics ที่ดาวน์โหลดมา</li>
                     <li data-i18n="section3.calendar.step4">เลือกปฏิทินที่ต้องการเพิ่มเข้าไป</li>
                 </ul>
+
+                <h3 data-i18n="section3.subscribe.title">3. Subscribe ปฏิทิน (🔔)</h3>
+                <p data-i18n="section3.subscribe.desc">Subscribe ครั้งเดียว — ปฏิทินจะ sync อัตโนมัติเมื่อมีการเพิ่ม/แก้ไข program ใหม่ ไม่ต้อง export ซ้ำ</p>
+                <ul>
+                    <li data-i18n="section3.subscribe.step1">กดปุ่ม "🔔 Subscribe" ในแถบปุ่มด้านบน</li>
+                    <li data-i18n="section3.subscribe.step2">เลือกวิธี subscribe ที่ต้องการ:</li>
+                </ul>
+                <ul>
+                    <li data-i18n="section3.subscribe.webcal">🍎 Apple Calendar / iOS / Thunderbird — กด "🔗 เปิดใน Calendar App (webcal://)"</li>
+                    <li data-i18n="section3.subscribe.google">🌐 Google Calendar — Copy URL แล้วไปที่ Google Calendar → เพิ่มปฏิทิน → จาก URL</li>
+                    <li data-i18n="section3.subscribe.outlook">📧 Microsoft Outlook — Copy URL → Calendar → Add calendar → Subscribe from web → วาง URL</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section3.subscribe.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section3.subscribe.noteText">URL ที่ Subscribe จะรวม filter ปัจจุบัน (ศิลปิน/เวที/ประเภท) เข้าไปด้วย — Subscribe ก่อนจะได้ filter ที่ต้องการ</span>
+                </div>
             </div>
 
             <div class="section">
@@ -152,6 +175,29 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <strong data-i18n="section8.note.title">💡 หมายเหตุ:</strong>
                     <span data-i18n="section8.note.text">คำขอของคุณจะถูกส่งไปให้ Admin ตรวจสอบก่อนจะแสดงในระบบ</span>
                 </div>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section9.title">📅 กระโดดไปวันที่</h2>
+                <p data-i18n="section9.desc">เมื่องานมีหลายวัน แถบวันที่จะปรากฏที่ด้านล่างของหน้าจอ (fixed position) ช่วยให้เลื่อนไปยังวันที่ต้องการได้ทันที</p>
+                <ul>
+                    <li data-i18n="section9.feature1">กดปุ่มวันที่ที่ต้องการเพื่อเลื่อนหน้าไปยังส่วนนั้นทันที</li>
+                    <li data-i18n="section9.feature2">วันที่ที่กำลังดูอยู่จะ highlight อัตโนมัติ (ใช้ IntersectionObserver)</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section9.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section9.tipText">แถบวันที่จะซ่อนตัวเองเมื่อไม่มีหลายวัน และปรากฏเฉพาะเมื่อมี program มากกว่า 1 วันเท่านั้น</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section10.title">📖 ดูรายละเอียด Program</h2>
+                <p data-i18n="section10.desc">description ของ program บางรายการอาจถูกตัดสั้นลง (clamp) — สามารถกดเพื่อดูข้อมูลเต็มได้:</p>
+                <ul>
+                    <li data-i18n="section10.feature1">มองหาป้าย "▼ อ่านเพิ่มเติม" ใต้ description</li>
+                    <li data-i18n="section10.feature2">กดที่ description หรือป้าย "▼ อ่านเพิ่มเติม" เพื่อเปิด modal แสดงข้อมูลเต็ม</li>
+                    <li data-i18n="section10.feature3">กด ✕ หรือ tap นอก modal เพื่อปิด</li>
+                </ul>
             </div>
 
             <div class="section">

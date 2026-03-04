@@ -104,6 +104,10 @@ foreach ($filteredEvents as $event) {
         echo "DESCRIPTION:" . escapeIcsValue($event['description']) . "\r\n";
     }
 
+    if (!empty($event['stream_url'])) {
+        echo "URL:" . escapeIcsValue($event['stream_url']) . "\r\n";
+    }
+
     // เพิ่ม CATEGORIES (ถ้ามีจากไฟล์ต้นฉบับ หรือใช้ชื่อศิลปิน) + program_type ถ้ามี
     $categoriesParts = [];
     if (!empty($event['categories'])) {

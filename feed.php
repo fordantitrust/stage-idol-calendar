@@ -159,6 +159,10 @@ foreach ($filteredEvents as $event) {
         icsLine("DESCRIPTION:" . icsEscape($event['description']));
     }
 
+    if (!empty($event['stream_url'])) {
+        icsLine("URL:" . icsEscape($event['stream_url']));
+    }
+
     // CATEGORIES: RFC 5545 uses comma as VALUE delimiter — do NOT escape delimiter commas.
     // Each individual category value has its own special chars escaped.
     $catValues = [];
