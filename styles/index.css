@@ -774,10 +774,56 @@ header p {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding: 2px 0;
+    flex: 1;
+    min-width: 0;
 }
 
 .date-jump-buttons::-webkit-scrollbar {
     display: none;
+}
+
+@media (hover: hover) {
+    .date-jump-buttons {
+        scrollbar-width: thin;
+        scrollbar-color: var(--sakura-medium) transparent;
+    }
+    .date-jump-buttons::-webkit-scrollbar {
+        display: block;
+        height: 3px;
+    }
+    .date-jump-buttons::-webkit-scrollbar-thumb {
+        background: var(--sakura-medium);
+        border-radius: 2px;
+    }
+    .date-jump-buttons::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+.date-jump-arrow {
+    flex-shrink: 0;
+    background: var(--sakura-gradient-pale);
+    border: 2px solid var(--sakura-light);
+    border-radius: 8px;
+    color: var(--sakura-deep);
+    font-size: 0.85em;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1;
+    align-self: center;
+}
+
+.date-jump-arrow:hover {
+    background: var(--sakura-gradient);
+    color: white;
+    border-color: var(--sakura-dark);
+}
+
+.date-jump-arrow:disabled,
+.date-jump-arrow[disabled] {
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .date-jump-btn {
@@ -951,6 +997,44 @@ header p {
 .program-type-badge {
     background: #e3f0ff;
     color: #1565c0;
+}
+
+/* Live stream row highlight */
+tr.program-live {
+    background: linear-gradient(90deg, rgba(233,30,99,0.05) 0%, transparent 50%);
+}
+
+.program-live-icon {
+    margin-right: 4px;
+    font-style: normal;
+    display: inline;
+}
+
+.program-join-btn {
+    display: inline-block;
+    padding: 2px 9px;
+    background: #e91e63;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.78em;
+    font-weight: 600;
+    text-decoration: none;
+    margin-left: 6px;
+    vertical-align: middle;
+    white-space: nowrap;
+    transition: background 0.15s;
+}
+
+.program-join-btn:hover {
+    background: #c2185b;
+    color: #fff;
+}
+
+/* Admin stream link badge */
+.stream-link-badge {
+    text-decoration: none;
+    font-size: 1em;
+    vertical-align: middle;
 }
 
 .no-events {

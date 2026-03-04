@@ -134,7 +134,8 @@ $hasTypes = !empty($types);
     <?php if (!$showEventListing && !empty($eventsByDay) && count($eventsByDay) > 1): ?>
     <div class="date-jump-bar" id="dateJumpBar">
         <span class="date-jump-label" data-i18n="dateJump.label">📅 ข้ามไปวันที่:</span>
-        <div class="date-jump-buttons">
+        <button class="date-jump-arrow" id="jumpPrev" onclick="scrollJumpBar(-200)" aria-label="Previous">◀</button>
+        <div class="date-jump-buttons" id="jumpButtons">
             <?php foreach ($eventsByDay as $djKey => $djEvents): ?>
             <?php
                 $djTimestamp = $djEvents[0]['start_ts'];
@@ -148,6 +149,7 @@ $hasTypes = !empty($types);
             </a>
             <?php endforeach; ?>
         </div>
+        <button class="date-jump-arrow" id="jumpNext" onclick="scrollJumpBar(200)" aria-label="Next">▶</button>
     </div>
     <?php endif; ?>
 
@@ -477,7 +479,17 @@ $hasTypes = !empty($types);
                                 </thead>
                                 <tbody>
                                     <?php foreach ($events as $event): ?>
-                                        <tr>
+                                        <?php
+                                            $streamUrl = $event['stream_url'] ?? '';
+                                            $streamPlatform = '';
+                                            if (!empty($streamUrl)) {
+                                                if (str_contains($streamUrl, 'instagram.com')) $streamPlatform = '📷';
+                                                elseif (str_contains($streamUrl, 'x.com') || str_contains($streamUrl, 'twitter.com')) $streamPlatform = '𝕏';
+                                                elseif (str_contains($streamUrl, 'youtube.com') || str_contains($streamUrl, 'youtu.be')) $streamPlatform = '▶️';
+                                                else $streamPlatform = '🔴';
+                                            }
+                                        ?>
+                                        <tr<?php echo !empty($streamUrl) ? ' class="program-live"' : ''; ?>>
                                             <td class="program-datetime-cell">
                                                 <span class="program-time"
                                                       data-start="<?php echo date('H:i', $event['start_ts']); ?>"
@@ -485,7 +497,11 @@ $hasTypes = !empty($types);
                                             </td>
                                             <td class="program-info-cell">
                                                 <div class="program-title-name">
+                                                    <?php if ($streamPlatform): ?><span class="program-live-icon"><?php echo $streamPlatform; ?></span><?php endif; ?>
                                                     <?php echo htmlspecialchars($event['title'] ?? ''); ?>
+                                                    <?php if (!empty($streamUrl)): ?>
+                                                        <a href="<?php echo htmlspecialchars($streamUrl); ?>" target="_blank" rel="noopener" class="program-join-btn" data-i18n="badge.joinLive">🔴 เข้าร่วม</a>
+                                                    <?php endif; ?>
                                                 </div>
                                                 <?php if (!empty($event['description'])): ?>
                                                     <div class="event-description">
@@ -672,6 +688,9 @@ $hasTypes = !empty($types);
         if (!jumpBar) return;
 
         const jumpBtns = jumpBar.querySelectorAll('.date-jump-btn');
+        const jumpButtons = document.getElementById('jumpButtons');
+        const jumpPrev = document.getElementById('jumpPrev');
+        const jumpNext = document.getElementById('jumpNext');
         const daySections = document.querySelectorAll('.day-section[id^="day-"]');
         const calendarContainer = document.querySelector('.calendar-container');
         if (daySections.length === 0 || !calendarContainer) return;
@@ -689,6 +708,15 @@ $hasTypes = !empty($types);
             }
         }
 
+        // Update arrow button visibility based on scroll position of button strip
+        function updateArrows() {
+            if (!jumpButtons || !jumpPrev || !jumpNext) return;
+            const atStart = jumpButtons.scrollLeft <= 2;
+            const atEnd = jumpButtons.scrollLeft >= jumpButtons.scrollWidth - jumpButtons.clientWidth - 2;
+            jumpPrev.disabled = atStart;
+            jumpNext.disabled = atEnd;
+        }
+
         // Show/hide based on scroll position
         function updateVisibility() {
             const calRect = calendarContainer.getBoundingClientRect();
@@ -696,6 +724,7 @@ $hasTypes = !empty($types);
             if (calRect.top < 0 && calRect.bottom > jumpBarHeight) {
                 jumpBar.classList.add('visible');
                 positionBar();
+                updateArrows();
             } else {
                 jumpBar.classList.remove('visible');
             }
@@ -703,8 +732,27 @@ $hasTypes = !empty($types);
 
         window.addEventListener('scroll', updateVisibility, { passive: true });
         window.addEventListener('resize', function() {
-            if (jumpBar.classList.contains('visible')) positionBar();
+            if (jumpBar.classList.contains('visible')) { positionBar(); updateArrows(); }
         }, { passive: true });
+
+        // Arrow scroll function (called from HTML onclick)
+        window.scrollJumpBar = function(delta) {
+            if (jumpButtons) {
+                jumpButtons.scrollBy({ left: delta, behavior: 'smooth' });
+            }
+        };
+
+        // Sync arrow state when user scrolls the button strip (touch or mouse)
+        if (jumpButtons) {
+            jumpButtons.addEventListener('scroll', updateArrows, { passive: true });
+
+            // Mousewheel → horizontal scroll on desktop
+            jumpButtons.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                jumpButtons.scrollLeft += e.deltaY || e.deltaX;
+                updateArrows();
+            }, { passive: false });
+        }
 
         // Smooth scroll with offset for fixed bar
         jumpBtns.forEach(btn => {

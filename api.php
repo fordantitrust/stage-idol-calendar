@@ -60,7 +60,7 @@ if ($eventSlug) {
 $parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
 
 $action = $_GET['action'] ?? 'programs';
-$fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
+$fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'stream_url', 'uid'];
 
 try {
     switch ($action) {

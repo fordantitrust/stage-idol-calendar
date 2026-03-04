@@ -343,10 +343,11 @@ function testAdminApiGetTypesQueryUsesDistinct($test) {
 
 function testAdminApiProgramsCreateHandlesProgramType($test) {
     $src = file_get_contents(dirname(__DIR__) . '/admin/api.php');
-    // INSERT should include program_type
+    // INSERT should include program_type (stream_url may appear between program_type and event_id/created_at)
     $test->assertTrue(
         strpos($src, "program_type, created_at") !== false ||
-        strpos($src, "program_type, event_id") !== false,
+        strpos($src, "program_type, event_id") !== false ||
+        strpos($src, "program_type, stream_url") !== false,
         'createProgram INSERT should include program_type field'
     );
 }

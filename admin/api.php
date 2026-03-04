@@ -276,7 +276,7 @@ function listPrograms() {
         $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
         // Get events with dynamic sorting
-        $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, created_at, updated_at
+        $sql = "SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, created_at, updated_at
                 FROM programs
                 $whereClause
                 ORDER BY $sortColumn $sortOrder
@@ -293,7 +293,7 @@ function listPrograms() {
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
-        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'stream_url', 'uid'];
         $events = array_map(function($event) use ($fieldsToEscape) {
             return escapeOutputData($event, $fieldsToEscape);
         }, $events);
@@ -336,7 +336,7 @@ function getProgram() {
         }
 
         // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
-        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'uid'];
+        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'stream_url', 'uid'];
         $event = escapeOutputData($event, $fieldsToEscape);
 
         jsonResponse(true, $event);
@@ -373,10 +373,11 @@ function createProgram() {
         $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
         $programType = isset($input['program_type']) && $input['program_type'] !== '' ? trim($input['program_type']) : null;
+        $streamUrl = isset($input['stream_url']) && $input['stream_url'] !== '' ? trim($input['stream_url']) : null;
 
         $stmt = $db->prepare("
-            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :event_id, :created_at, :updated_at)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :stream_url, :event_id, :created_at, :updated_at)
         ");
 
         $stmt->execute([
@@ -389,6 +390,7 @@ function createProgram() {
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
             ':program_type' => $programType,
+            ':stream_url' => $streamUrl,
             ':event_id' => $eventId,
             ':created_at' => $now,
             ':updated_at' => $now
@@ -438,6 +440,9 @@ function updateProgram() {
         $programType = array_key_exists('program_type', $input)
             ? (($input['program_type'] !== '' && $input['program_type'] !== null) ? trim($input['program_type']) : null)
             : null;
+        $streamUrl = array_key_exists('stream_url', $input)
+            ? (($input['stream_url'] !== '' && $input['stream_url'] !== null) ? trim($input['stream_url']) : null)
+            : null;
 
         $stmt = $db->prepare("
             UPDATE programs
@@ -449,6 +454,7 @@ function updateProgram() {
                 description = :description,
                 categories = :categories,
                 program_type = :program_type,
+                stream_url = :stream_url,
                 event_id = :event_id,
                 updated_at = :updated_at
             WHERE id = :id
@@ -464,6 +470,7 @@ function updateProgram() {
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
             ':program_type' => $programType,
+            ':stream_url' => $streamUrl,
             ':event_id' => $updateEventId,
             ':updated_at' => $now
         ]);
@@ -1034,8 +1041,8 @@ function confirmIcsImport() {
         $db->beginTransaction();
 
         $insertStmt = $db->prepare("
-            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
-            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :event_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, created_at, updated_at)
+            VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :program_type, :stream_url, :event_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         ");
 
         $updateStmt = $db->prepare("
@@ -1044,6 +1051,7 @@ function confirmIcsImport() {
                 location = :location, organizer = :organizer,
                 description = :description, categories = :categories,
                 program_type = :program_type,
+                stream_url = :stream_url,
                 updated_at = CURRENT_TIMESTAMP
             WHERE uid = :uid
         ");
@@ -1066,6 +1074,7 @@ function confirmIcsImport() {
             try {
                 // program_type: ใช้จาก X-PROGRAM-TYPE ในไฟล์ หรือ default_type จาก UI
                 $programType = !empty($event['program_type']) ? $event['program_type'] : $defaultType;
+                $streamUrl = !empty($event['stream_url']) ? $event['stream_url'] : null;
 
                 $params = [
                     ':uid' => $event['uid'],
@@ -1076,7 +1085,8 @@ function confirmIcsImport() {
                     ':organizer' => $event['organizer'] ?? '',
                     ':description' => $event['description'] ?? '',
                     ':categories' => $event['categories'] ?? '',
-                    ':program_type' => $programType
+                    ':program_type' => $programType,
+                    ':stream_url' => $streamUrl
                 ];
 
                 if ($action === 'insert') {

@@ -155,6 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 description TEXT,
                 categories TEXT,
                 program_type TEXT DEFAULT NULL,
+                stream_url TEXT DEFAULT NULL,
                 event_id INTEGER REFERENCES events(id),
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -449,9 +450,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // SQLite ไม่รองรับ RENAME COLUMN ใน PHP 8 เก่า → สร้างตารางใหม่แทน
                 $db->exec("BEGIN");
                 $db->exec("ALTER TABLE programs RENAME TO programs_old");
-                // ตรวจว่า programs_old มี program_type หรือไม่ (อาจมีถ้าเคยรัน migration มาก่อน)
+                // ตรวจว่า programs_old มี program_type / stream_url หรือไม่ (อาจมีถ้าเคยรัน migration มาก่อน)
                 $oldCols = $db->query("PRAGMA table_info(programs_old)")->fetchAll(PDO::FETCH_COLUMN, 1);
                 $hasOldProgramType = in_array('program_type', $oldCols);
+                $hasOldStreamUrl = in_array('stream_url', $oldCols);
                 $db->exec("CREATE TABLE programs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     uid TEXT UNIQUE NOT NULL,
@@ -463,19 +465,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     description TEXT,
                     categories TEXT,
                     program_type TEXT DEFAULT NULL,
+                    stream_url TEXT DEFAULT NULL,
                     event_id INTEGER REFERENCES events(id),
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
-                if ($hasOldProgramType) {
-                    $db->exec("INSERT INTO programs (id, uid, title, start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at)
-                               SELECT id, COALESCE(uid, 'uid-' || id || '@local'), COALESCE(summary, '(no title)'), start, end, location, organizer, description, categories, program_type, event_id, created_at, updated_at
-                               FROM programs_old");
-                } else {
-                    $db->exec("INSERT INTO programs (id, uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at)
-                               SELECT id, COALESCE(uid, 'uid-' || id || '@local'), COALESCE(summary, '(no title)'), start, end, location, organizer, description, categories, event_id, created_at, updated_at
-                               FROM programs_old");
-                }
+                // Build INSERT columns dynamically based on what old table has
+                $insertCols = 'id, uid, title, start, end, location, organizer, description, categories';
+                $selectCols = "id, COALESCE(uid, 'uid-' || id || '@local'), COALESCE(summary, '(no title)'), start, end, location, organizer, description, categories";
+                if ($hasOldProgramType) { $insertCols .= ', program_type'; $selectCols .= ', program_type'; }
+                if ($hasOldStreamUrl)   { $insertCols .= ', stream_url';   $selectCols .= ', stream_url'; }
+                $insertCols .= ', event_id, created_at, updated_at';
+                $selectCols .= ', event_id, created_at, updated_at';
+                $db->exec("INSERT INTO programs ($insertCols) SELECT $selectCols FROM programs_old");
                 $db->exec("DROP TABLE programs_old");
                 $db->exec("COMMIT");
                 $messages[] = ['type' => 'success', 'text' => "แก้ไข <strong>programs.summary → programs.title</strong> เรียบร้อย (รวม program_type column)"];
@@ -661,10 +663,12 @@ if ($dbExists) {
         }
         $hasTitleColumn = false;
         $hasProgramTypeColumn = false;
+        $hasStreamUrlColumn = false;
         if ($tableStatus['programs'] ?? false) {
             $pcols = $db->query("PRAGMA table_info(programs)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasTitleColumn = in_array('title', $pcols);
             $hasProgramTypeColumn = in_array('program_type', $pcols);
+            $hasStreamUrlColumn = in_array('stream_url', $pcols);
         }
 
         $existingIndexes = $db->query("SELECT name FROM sqlite_master WHERE type='index'")->fetchAll(PDO::FETCH_COLUMN);
@@ -677,7 +681,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn;
 
 // 4. ICS Files
 $icsDir = __DIR__ . '/ics';

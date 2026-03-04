@@ -5,6 +5,37 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-03-04
+
+### Added
+- 📅 **Date Jump Bar desktop scroll** — arrow buttons `◀` `▶` flanking the date buttons strip let mouse users scroll to dates outside the viewport; mousewheel over the strip now scrolls horizontally (`wheel` → `scrollLeft`); thin 3px sakura-tinted scrollbar shown on `@media (hover: hover)` devices only; `updateArrows()` hides the relevant arrow when the strip is already at its start/end
+- 🔴 **Live Stream support (`stream_url`)** — new `stream_url TEXT DEFAULT NULL` column in `programs` table stores IG Live / X Spaces / YouTube Live links
+  - **Public UI (`index.php`)**: rows with a stream URL get class `program-live` (subtle pink left glow); platform icon (📷 Instagram / 𝕏 X/Twitter / ▶️ YouTube / 🔴 other) + `🔴 เข้าร่วม` join button rendered inline in the title cell
+  - **Admin UI (`admin/index.php`)**: `streamUrl` input (type=url) in the program form; list rows show `🔴` badge linked to the live URL; `openEditModal()` / `duplicateEvent()` pre-fill the field; `saveEvent()` includes `stream_url` in the payload
+  - **Admin API (`admin/api.php`)**: `listPrograms`, `getProgram`, `createProgram`, `updateProgram`, and `confirmIcsImport` all read/write `stream_url`
+  - **Public API (`api.php`)**: `stream_url` included in `$fieldsToEscape` → XSS-safe field in JSON response
+  - **ICS Parser (`IcsParser.php`)**: parses RFC 5545 `URL:` property → `stream_url`; `getAllEventsFromDatabase()` SELECTs `stream_url`
+  - **Export (`export.php`, `feed.php`)**: emits `URL:<stream_url>` VEVENT property when `stream_url` is not empty
+  - **CSS (`styles/index.css`)**: `.program-live`, `.program-live-icon`, `.program-join-btn`, `.program-join-btn:hover`, `.stream-link-badge`
+  - **Translations (`js/translations.js`)**: `badge.joinLive` key in TH (`🔴 เข้าร่วม`) / EN (`🔴 Join Live`) / JA (`🔴 参加する`)
+  - **Migration (`tools/migrate-add-stream-url-column.php`)**: idempotent `ALTER TABLE` script for existing installs
+  - **Setup (`setup.php`)**: `stream_url TEXT DEFAULT NULL` in `CREATE TABLE programs`; `fix_programs_title` migration preserves `stream_url`; `$allTablesOk` checks `$hasStreamUrlColumn`
+  - **Tests (`tests/StreamUrlTest.php`)**: 31 new tests (schema, migration idempotency, CRUD, IcsParser URL parsing, admin/public API, export/feed URL: property, public/admin UI, CSS, translations, setup.php) — total **1584 tests** (12 suites)
+
+> **📁 Files changed:** `styles/index.css` · `index.php` · `admin/index.php` · `admin/api.php` · `api.php` · `IcsParser.php` · `export.php` · `feed.php` · `setup.php` · `js/translations.js` · `tests/run-tests.php` · `tests/ProgramTypeTest.php` · 🆕 `tools/migrate-add-stream-url-column.php` · 🆕 `tests/StreamUrlTest.php`
+
+---
+
+## [2.5.4] - 2026-03-04
+
+### Added
+- 📖 **How-to-use expanded** — `how-to-use.php` updated to cover all current end-user features: Filter by Type (section 2 item 3, with renumbering), Subscribe to Calendar (🔔 section 3 item 3 with webcal/Google/Outlook steps), Date Jump Bar (new section), Description Modal/Read More (new section)
+- 🌐 **Translation keys** — `js/translations.js` adds `section2.filter3.*`, `section3.subscribe.*`, `section9.*`, `section10.*` in all 3 languages (TH/EN/JA); renumbers `section2.action.title` → 4, `section2.selectedTags.title` → 5, `section2.quickFilter.title` → 6
+
+> **📁 Files changed:** `how-to-use.php` · `js/translations.js`
+
+---
+
 ## [2.5.3] - 2026-03-03
 
 ### Changed
