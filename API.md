@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v2.6.1
+All API endpoints for Idol Stage Timetable v2.6.2
 
 ---
 
@@ -562,4 +562,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v2.6.1*
+*Idol Stage Timetable v2.6.2*

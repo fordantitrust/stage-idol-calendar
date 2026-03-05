@@ -708,6 +708,7 @@ $devFileGroups = [
         'label' => '📄 เอกสาร (Markdown)',
         'items' => [
             ['name' => 'README.md',            'type' => 'file'],
+            ['name' => 'ICS_FORMAT.md',        'type' => 'file'],
             ['name' => 'DOCKER.md',            'type' => 'file'],
             ['name' => 'INSTALLATION.md',      'type' => 'file'],
             ['name' => 'SETUP.md',             'type' => 'file'],
@@ -718,7 +719,7 @@ $devFileGroups = [
             ['name' => 'CONTRIBUTING.md',      'type' => 'file'],
             ['name' => 'PROJECT-STRUCTURE.md', 'type' => 'file'],
             ['name' => 'CLAUDE.md',            'type' => 'file'],
-            ['name' => 'LICENSE',              'type' => 'file'],
+            ['name' => 'LICENSE',              'type' => 'file'],            
         ],
     ],
     'tests' => [

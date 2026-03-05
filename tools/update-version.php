@@ -104,7 +104,8 @@ $mdFiles = [
     'TESTING.md',
     'SECURITY.md',
     'StaticSitePublisher.md',
-    'StaticSitePublisher_EN.md'
+    'StaticSitePublisher_EN.md',
+    'ICS_FORMAT.md'    
 ];
 
 foreach ($mdFiles as $mdFile) {
