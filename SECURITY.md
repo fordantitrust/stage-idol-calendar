@@ -14,7 +14,7 @@
 **Please DO NOT report security vulnerabilities through public GitHub issues.**
 
 Instead, please report them via:
-- Email: [Insert your security contact email]
+- Email: annop@thaicyberpoint.com
 - Twitter DM: [@FordAntiTrust](https://x.com/FordAntiTrust)
 
 You should receive a response within 48 hours. If accepted, we will work on a fix and coordinate the release.
@@ -238,7 +238,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (2.6.0)
+### Current Version (2.6.1)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
