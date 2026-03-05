@@ -247,8 +247,10 @@ function listPrograms() {
     }
 
     if ($search) {
-        $where[] = "(title LIKE :search OR organizer LIKE :search OR categories LIKE :search)";
-        $params[':search'] = '%' . $search . '%';
+        // Escape % and _ for LIKE operator to prevent wildcard injection
+        $searchEscaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
+        $where[] = "(title LIKE :search ESCAPE '\\' OR organizer LIKE :search ESCAPE '\\' OR categories LIKE :search ESCAPE '\\')";
+        $params[':search'] = '%' . $searchEscaped . '%';
     }
 
     if ($venue) {
@@ -1208,8 +1210,10 @@ function listCredits() {
         }
 
         if ($search) {
-            $where[] = "(title LIKE :search OR description LIKE :search OR link LIKE :search)";
-            $params[':search'] = '%' . $search . '%';
+            // Escape % and _ for LIKE operator to prevent wildcard injection
+            $searchEscaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
+            $where[] = "(title LIKE :search ESCAPE '\\' OR description LIKE :search ESCAPE '\\' OR link LIKE :search ESCAPE '\\')";
+            $params[':search'] = '%' . $searchEscaped . '%';
         }
 
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';

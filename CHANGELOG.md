@@ -5,6 +5,19 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026-03-05
+
+### Fixed
+- 🔒 **LIKE SQL Injection prevention** — admin search queries in `listPrograms()` and `listCredits()` now properly escape LIKE wildcard characters (`%`, `_`) before constructing the WHERE clause; added ESCAPE clause to LIKE operators so special characters are treated as literals, not wildcards
+  - **Vulnerability**: User input like `a%` would be interpreted as `LIKE '%a%%'` (match anything starting with 'a'), allowing predictable query result manipulation
+  - **Fix**: Input is escaped via `str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search)` before being wrapped with wildcards; LIKE clause becomes `title LIKE :search ESCAPE '\\'` which treats escaped characters as literals
+  - **Affected endpoints**: `GET /admin/api.php?action=programs_list` (programs search) and `GET /admin/api.php?action=credits_list` (credits search)
+  - **Impact**: Low (admin-only, requires login + CSRF token), but essential for defense-in-depth
+
+> **📁 Files changed:** `admin/api.php`
+
+---
+
 ## [2.6.0] - 2026-03-04
 
 ### Added

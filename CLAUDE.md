@@ -514,6 +514,14 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.1 (2026-03-05)
+
+- 🔒 **LIKE SQL Injection prevention** — admin search queries in `listPrograms()` and `listCredits()` now properly escape LIKE wildcard characters (`%`, `_`) before constructing the WHERE clause; added ESCAPE clause to LIKE operators so special characters are treated as literals, not wildcards
+  - **Vulnerability**: User input like `a%` would be interpreted as `LIKE '%a%%'` (match anything starting with 'a'), allowing predictable query result manipulation
+  - **Fix**: Input is escaped via `str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search)` before being wrapped with wildcards; LIKE clause becomes `title LIKE :search ESCAPE '\\'` which treats escaped characters as literals
+  - **Affected endpoints**: `GET /admin/api.php?action=programs_list` (programs search) and `GET /admin/api.php?action=credits_list` (credits search)
+  - **Impact**: Low (admin-only, requires login + CSRF token), but essential for defense-in-depth
+
 ### v2.6.0 (2026-03-04)
 
 - 📅 **Date Jump Bar desktop scroll** — ◀ ▶ arrow buttons + mousewheel→horizontal scroll + thin 3px sakura scrollbar on `@media (hover:hover)`; `updateArrows()` hides buttons at boundary

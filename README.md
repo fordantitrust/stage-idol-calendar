@@ -334,7 +334,7 @@ See **[API.md](API.md)** for complete endpoint documentation with request/respon
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.6.0'); // Change this to force cache refresh
+define('APP_VERSION', '2.6.1'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -414,27 +414,11 @@ Edit `js/translations.js` to add or modify translations for Thai, English, and J
 
 The system supports standard iCalendar (.ics) format:
 
-```ics
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Your Organization//EN
-
-BEGIN:VEVENT
-UID:unique-id-001@yourdomain.com
-DTSTART:20260207T100000Z
-DTEND:20260207T110000Z
-SUMMARY:Event Title
-LOCATION:Venue Name
-ORGANIZER;CN="Artist Name":mailto:info@example.com
-CATEGORIES:Artist Name
-DESCRIPTION:Event description
-STATUS:CONFIRMED
-END:VEVENT
-
-END:VCALENDAR
-```
-
 Place `.ics` files in the `ics/` folder and run the import script.
+
+For details on ICS file structure for import/export, program types, stream URLs, and examples:
+
+See **[ICS_FORMAT.md](ICS_FORMAT.md)** for complete ICS format reference guide.
 
 ---
 
@@ -694,7 +678,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.6.0
+**Current Version**: 2.6.1
 
 ---
 
