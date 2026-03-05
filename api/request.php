@@ -21,7 +21,7 @@ $db = null;
 
 // ตรวจสอบว่าไฟล์ database มีอยู่
 if (!file_exists($dbPath)) {
-    echo json_encode(['success' => false, 'data' => null, 'message' => 'Database file not found: ' . $dbPath], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'data' => null, 'message' => 'Service unavailable'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -29,7 +29,7 @@ try {
     $db = new PDO('sqlite:' . $dbPath);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    echo json_encode(['success' => false, 'data' => null, 'message' => 'Database error: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['success' => false, 'data' => null, 'message' => 'Service unavailable'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -132,7 +132,7 @@ function getEvents() {
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
         jsonResponse(true, $events);
     } catch (PDOException $e) {
-        jsonResponse(false, null, 'Failed to fetch events: ' . $e->getMessage());
+        jsonResponse(false, null, 'Failed to fetch programs');
     }
 }
 

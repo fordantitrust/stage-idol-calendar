@@ -3,10 +3,10 @@
 
 Order Deny,Allow
 Deny from all
-Allow from 127.0.0.1
-Allow from ::1
-Allow from 192.168.0.0/16
-Allow from 10.0.0.0/8
+; Allow from 127.0.0.1
+; Allow from ::1
+; Allow from 192.168.0.0/16
+; Allow from 10.0.0.0/8
 
 # หรือใช้ deny all ถ้าต้องการปิดการเข้าถึงจาก web ทั้งหมด
 # ให้รัน scripts ผ่าน CLI เท่านั้น

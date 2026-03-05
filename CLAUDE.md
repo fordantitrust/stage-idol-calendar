@@ -514,6 +514,11 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.2 (2026-03-05)
+
+- 🔒 **Directory access hardening** — `.htaccess` ใน `data/`, `cache/`, `backups/`, `ics/` เปลี่ยนจาก `Allow from 192.168.0.0/16 / 10.0.0.0/8` เป็น `Deny from all` ป้องกัน LAN user เข้าถึง database backup, cache files และ ICS files โดยตรงผ่าน HTTP
+- 🔒 **Path disclosure fix** — `api/request.php` error responses เดิมเผย server path และ PDO error details ต่อ public; แก้เป็น generic messages (`'Service unavailable'`, `'Failed to fetch programs'`) ทุก error path
+
 ### v2.6.1 (2026-03-05)
 
 - 🔒 **LIKE SQL Injection prevention** — admin search queries in `listPrograms()` and `listCredits()` now properly escape LIKE wildcard characters (`%`, `_`) before constructing the WHERE clause; added ESCAPE clause to LIKE operators so special characters are treated as literals, not wildcards

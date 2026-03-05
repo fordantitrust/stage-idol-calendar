@@ -5,6 +5,24 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.2] - 2026-03-05
+
+### Fixed
+- 🔒 **Directory access hardening** — `.htaccess` files in `data/`, `cache/`, `backups/`, and `ics/` previously allowed access from local network ranges (`192.168.0.0/16`, `10.0.0.0/8`); now set to `Deny from all` to prevent direct web access to sensitive files (database, backups, cache) from any IP
+  - **Vulnerability**: Users on the same LAN could download `backups/*.db` (full database including password hashes), read `cache/login_attempts.json`, `cache/site-settings.json`, and raw `.ics` files
+  - **Fix**: Commented out all `Allow from` rules — effective policy is now `Deny from all` for all four directories
+  - **Affected directories**: `data/`, `cache/`, `backups/`, `ics/`
+  - **Impact**: Medium (requires attacker to be on the same local network), but could expose full database content
+- 🔒 **Path disclosure fix in public API** — `api/request.php` previously leaked server file paths and PDO error details in JSON error responses visible to anyone
+  - **Vulnerability**: DB-not-found error returned `'Database file not found: /var/www/...'`; connection failure returned full `PDOException::getMessage()` including internal paths; query failure returned raw SQL error text
+  - **Fix**: All three error responses replaced with generic messages (`'Service unavailable'`, `'Failed to fetch programs'`) — internal details no longer exposed
+  - **Affected endpoint**: `GET/POST /api/request.php`
+  - **Impact**: Low (information disclosure only), but reveals server filesystem layout to unauthenticated users
+
+> **📁 Files changed:** `data/.htaccess`, `cache/.htaccess`, `backups/.htaccess`, `ics/.htaccess`, `api/request.php`
+
+---
+
 ## [2.6.1] - 2026-03-05
 
 ### Fixed
