@@ -1,6 +1,6 @@
 # ICS Format Guide - Idol Stage Calendar
 
-ไฟล์นี้อธิบายรูปแบบไฟล์ ICS (iCalendar) ที่โปรเจ็กต์รองรับสำหรับการ import/export events
+This file describes the ICS (iCalendar) file format supported by this project for importing and exporting events.
 
 ---
 
@@ -78,7 +78,7 @@ END:VCALENDAR
 
 | Property | Format | Example | Description |
 |----------|--------|---------|-------------|
-| `SUMMARY` | String | `ศิลปิน A - Live Performance` | Event title (displayed in UI) |
+| `SUMMARY` | String | `Artist A - Live Performance` | Event title (displayed in UI) |
 | `DESCRIPTION` | String | `Live concert by ศิลปิน A` | Event description (multiline supported) |
 | `LOCATION` | String | `Main Stage`, `Fan Meeting Hall` | Venue/location name |
 
@@ -92,13 +92,13 @@ END:VCALENDAR
 
 | Property | Format | Example | Description |
 |----------|--------|---------|-------------|
-| `CATEGORIES` | Comma-separated | `ศิลปิน A,ศิลปิน B,ศิลปิน C` | Artists/groups (multiple allowed) |
+| `CATEGORIES` | Comma-separated | `Artist A,Artist B,Artist C` | Artists/groups (multiple allowed) |
 
 ### Program Type (Custom)
 
 | Property | Format | Example | Description |
 |----------|--------|---------|-------------|
-| `X-PROGRAM-TYPE` | String | `ต้องสด`, `Meet & Greet`, `Panel` | Program type/category (single value) |
+| `X-PROGRAM-TYPE` | String | `Live Stream`, `Meet & Greet`, `Panel` | Program type/category (single value) |
 
 ### Stream Support
 
@@ -200,15 +200,15 @@ ICS Format:       20260308T070000Z
 ### Recommended Program Type Values
 
 ```
-ต้องสด              (Live Stream)
-Meet & Greet        (Meet & Greet)
-ถาม-ตอบ             (Q&A Session)
+Live Stream         (Live online broadcast)
+Meet & Greet        (Meet & Greet with artists)
+Q&A Session         (Question & Answer session)
 Panel Discussion    (Panel Discussion)
-Workshop            (Workshop)
-Cover Performance   (Cover/Tribute)
-VR Experience       (VR/Interactive)
-Giveaway Draw       (Giveaway/Prize)
-Photo Session       (Photo Opportunity)
+Workshop            (Workshop or masterclass)
+Cover Performance   (Cover/Tribute performance)
+VR Experience       (VR/Interactive experience)
+Giveaway Draw       (Giveaway/Prize drawing)
+Photo Session       (Photo opportunity)
 Signing             (Autograph/Merchandise Signing)
 Karaoke Battle      (Karaoke Competition)
 Dance Performance   (Dance/Choreography)
@@ -306,13 +306,13 @@ UID:event-20260308-001@stageidol.local
 DTSTAMP:20260305T100000Z
 DTSTART:20260308T070000Z
 DTEND:20260308T080000Z
-SUMMARY:ศิลปิน A - Instagram Live Performance
-DESCRIPTION:Live concert by ศิลปิน A on Instagram Live platform
+SUMMARY:Artist A - Instagram Live Performance
+DESCRIPTION:Live concert by Artist A on Instagram Live platform
 LOCATION:Kaze Stage
 ORGANIZER;CN="Idol Stage March 2026":mailto:info@idolstage.local
-CATEGORIES:ศิลปิน A,J-Pop
+CATEGORIES:Artist A,J-Pop
 URL:https://www.instagram.com/live/artistA_official/
-X-PROGRAM-TYPE:ต้องสด
+X-PROGRAM-TYPE:Live Stream
 STATUS:CONFIRMED
 SEQUENCE:0
 BEGIN:VALARM
@@ -341,11 +341,11 @@ UID:event-20260308-002@stageidol.local
 DTSTAMP:20260305T100000Z
 DTSTART:20260308T080000Z
 DTEND:20260308T090000Z
-SUMMARY:ศิลปิน B - Meet & Greet
-DESCRIPTION:Photo session, autograph signing, and Q&A with ศิลปิน B
+SUMMARY:Artist B - Meet & Greet
+DESCRIPTION:Photo session, autograph signing, and Q&A with Artist B
 LOCATION:Fan Meeting Hall
 ORGANIZER;CN="Idol Stage March 2026":mailto:info@idolstage.local
-CATEGORIES:ศิลปิน B
+CATEGORIES:Artist B
 X-PROGRAM-TYPE:Meet & Greet
 STATUS:CONFIRMED
 SEQUENCE:0
@@ -390,12 +390,12 @@ UID:event-20260308-002@stageidol.local
 DTSTAMP:20260305T100000Z
 DTSTART:20260308T070000Z
 DTEND:20260308T080000Z
-SUMMARY:ศิลปิน A - Live Performance
+SUMMARY:Artist A - Live Performance
 LOCATION:Stage A
 ORGANIZER;CN="Convention Organizers":mailto:convention@example.com
-CATEGORIES:ศิลปิน A
+CATEGORIES:Artist A
 URL:https://www.youtube.com/live/channelA
-X-PROGRAM-TYPE:ต้องสด
+X-PROGRAM-TYPE:Live Stream
 STATUS:CONFIRMED
 SEQUENCE:0
 END:VEVENT
@@ -405,10 +405,10 @@ UID:event-20260308-003@stageidol.local
 DTSTAMP:20260305T100000Z
 DTSTART:20260308T080000Z
 DTEND:20260308T090000Z
-SUMMARY:ศิลปิน B - Panel Discussion
+SUMMARY:Artist B - Panel Discussion
 LOCATION:Meeting Room 1
 ORGANIZER;CN="Convention Organizers":mailto:convention@example.com
-CATEGORIES:ศิลปิน B,Moderator C
+CATEGORIES:Artist B,Moderator C
 X-PROGRAM-TYPE:Panel Discussion
 STATUS:CONFIRMED
 SEQUENCE:0
@@ -419,10 +419,10 @@ UID:event-20260308-004@stageidol.local
 DTSTAMP:20260305T100000Z
 DTSTART:20260308T090000Z
 DTEND:20260308T100000Z
-SUMMARY:Meet & Greet - ศิลปิน A
+SUMMARY:Meet & Greet - Artist A
 LOCATION:Fan Meeting Area
 ORGANIZER;CN="Convention Organizers":mailto:convention@example.com
-CATEGORIES:ศิลปิน A
+CATEGORIES:Artist A
 X-PROGRAM-TYPE:Meet & Greet
 STATUS:CONFIRMED
 SEQUENCE:0
@@ -473,13 +473,13 @@ You don't need to manually escape when creating ICS files - the parser handles i
 
 **Important**: CATEGORIES field uses **unescaped comma** as delimiter:
 ```
-CATEGORIES:ศิลปิน A,ศิลปิน B,ศิลปิน C
+CATEGORIES:Artist A,Artist B,Artist C
                   ↑ unescaped comma
 ```
 
 If you need comma inside category name, escape it:
 ```
-CATEGORIES:ศิลปิน A\, Jr.,ศิลปิน B
+CATEGORIES:Artist A\, Jr.,Artist B
 ```
 
 ---
@@ -612,8 +612,8 @@ STREAM-URL:https://...                          ❌
 
 **Solution**: Separate fields:
 ```ics
-CATEGORIES:ศิลปิน A,ศิลปิน B      (Artist names)
-X-PROGRAM-TYPE:ต้องสด              (Program type)
+CATEGORIES:Artist A,Artist B      (Artist names)
+X-PROGRAM-TYPE:Live Stream         (Program type)
 ```
 
 ---
@@ -629,4 +629,4 @@ X-PROGRAM-TYPE:ต้องสด              (Program type)
 ---
 
 **Last Updated**: 2026-03-05  
-**Project**: Idol Stage Timetable v2.6.0+
+**Project**: Idol Stage Timetable v2.6.1
