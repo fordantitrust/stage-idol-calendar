@@ -514,6 +514,13 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.3 (2026-03-06)
+
+- 🗑️ **ORGANIZER parse error fix (Outlook calendar wipe)** — ลบ `ORGANIZER` property ออกจาก VEVENT ใน `feed.php`; root cause ที่ทำให้ Outlook ล้าง calendar ทิ้งทุกรอบ pull: `icsEscape()` ถูก apply กับ CN parameter value ทำให้เกิด `\,`/`\;` ซึ่งผิด RFC 5545 QUOTED-STRING syntax → Outlook strict parser reject VEVENT และหยุด parse ทั้งไฟล์ → calendar ว่างเปล่า
+- 🔄 **Cache-Control hardened** — เปลี่ยนเป็น `no-store, no-cache`; เพิ่ม `Pragma: no-cache`; ป้องกัน CDN/proxy (Cloudflare) cache feed และตอบ 304 เองโดย origin ไม่รู้
+- 🔄 **ICS feed sync fix (iOS)** — `Cache-Control` เปลี่ยนจาก `public, max-age=3600` เป็น `no-store, no-cache` ให้ iOS re-validate ทุก poll; ETag + 304 ยังทำงานอยู่
+- 📅 **DTSTAMP stability fix** — `DTSTAMP` และ `LAST-MODIFIED` ใน VEVENT ใช้ `updated_at` จาก DB แทน `time()` ของ request; `IcsParser.php` เพิ่ม `updated_at` ใน SELECT query
+
 ### v2.6.2 (2026-03-05)
 
 - 🔒 **Directory access hardening** — `.htaccess` ใน `data/`, `cache/`, `backups/`, `ics/` เปลี่ยนจาก `Allow from 192.168.0.0/16 / 10.0.0.0/8` เป็น `Deny from all` ป้องกัน LAN user เข้าถึง database backup, cache files และ ICS files โดยตรงผ่าน HTTP

@@ -4,7 +4,7 @@
  *
  * Covers changes introduced in:
  *  v2.5.0 — feed.php live subscription endpoint, invalidate_data_version_cache(),
- *            ETag caching (feed- prefix, If-None-Match, Cache-Control: public)
+ *            ETag caching (feed- prefix, If-None-Match, Cache-Control: no-store)
  *  v2.5.1 — RFC 5545 icsFold() line folding (75-byte limit, UTF-8 boundary),
  *            CATEGORIES comma delimiter (unescaped), icsEscape() correctness
  *
@@ -429,10 +429,10 @@ function testFeedPhpChecksIfNoneMatch($test) {
         'feed.php must check If-None-Match to support 304 Not Modified responses');
 }
 
-function testFeedPhpHasCacheControlPublic($test) {
+function testFeedPhpHasCacheControlNoStore($test) {
     $src = file_get_contents(dirname(__DIR__) . '/feed.php');
-    $test->assertContains('Cache-Control: public, max-age=3600', $src,
-        'feed.php must set Cache-Control: public, max-age=3600');
+    $test->assertContains('Cache-Control: no-store, no-cache', $src,
+        'feed.php must set Cache-Control: no-store, no-cache to prevent CDN/proxy caching');
 }
 
 function testFeedPhpHasXPublishedTtl($test) {

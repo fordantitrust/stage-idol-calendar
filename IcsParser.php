@@ -62,7 +62,7 @@ class IcsParser {
         try {
             if ($this->eventId !== null) {
                 $stmt = $this->db->prepare("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, updated_at
                     FROM programs
                     WHERE event_id = :event_id
                     ORDER BY start ASC
@@ -70,7 +70,7 @@ class IcsParser {
                 $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id
+                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, updated_at
                     FROM programs
                     ORDER BY start ASC
                 ");

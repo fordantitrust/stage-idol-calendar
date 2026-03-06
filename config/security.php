@@ -1,7 +1,7 @@
 <?php
 /**
  * Security Configuration
- * Idol Stage Timetable v1.0.0
+ * Idol Stage Timetable
  */
 
 // =============================================================================

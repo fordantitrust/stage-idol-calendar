@@ -20,9 +20,9 @@
  * Cache strategy:
  *   ETag based on data version (invalidated immediately when admin
  *   creates/updates/deletes programs).
- *   Calendar apps respect Cache-Control: public, max-age=3600 and
- *   send If-None-Match on subsequent requests → 304 Not Modified
- *   when no data has changed.
+ *   Calendar apps always re-validate (Cache-Control: no-cache) and
+ *   send If-None-Match on every request → 304 Not Modified
+ *   when no data has changed, or 200 with new content when it has.
  *
  * Client compatibility:
  *   - Apple Calendar / iOS: webcal:// or https://
@@ -52,7 +52,7 @@ if (
 ) {
     header('HTTP/1.1 304 Not Modified');
     header('ETag: ' . $etag);
-    header('Cache-Control: public, max-age=3600');
+    header('Cache-Control: no-store, no-cache');
     exit;
 }
 
@@ -80,7 +80,8 @@ $feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventMetaId ?? '0') . '_' . $feed
 if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_CACHE_TTL) {
     header('Content-Type: text/calendar; charset=utf-8');
     header('Content-Disposition: inline; filename="feed.ics"');
-    header('Cache-Control: public, max-age=3600');
+    header('Cache-Control: no-store, no-cache');
+    header('Pragma: no-cache');
     header('ETag: ' . $etag);
     readfile($feedCacheFile);
     exit;
@@ -128,31 +129,24 @@ icsLine("X-PUBLISHED-TTL:PT1H");              // Apple Calendar refresh hint
 icsLine("REFRESH-INTERVAL;VALUE=DURATION:PT1H"); // RFC 7986 (Google Calendar)
 
 foreach ($filteredEvents as $event) {
-    $startTime   = gmdate('Ymd\THis\Z', strtotime($event['start']));
-    $endTime     = gmdate('Ymd\THis\Z', strtotime($event['end']));
-    $createdTime = gmdate('Ymd\THis\Z');
+    $startTime    = gmdate('Ymd\THis\Z', strtotime($event['start']));
+    $endTime      = gmdate('Ymd\THis\Z', strtotime($event['end']));
+    $updatedTs    = !empty($event['updated_at']) ? strtotime($event['updated_at']) : time();
+    $dtstamp      = gmdate('Ymd\THis\Z', $updatedTs);
     $uid = isset($event['uid'])
         ? $event['uid']
         : md5($event['title'] . $event['start']) . '@stageidol.local';
 
     icsLine("BEGIN:VEVENT");
     icsLine("UID:" . $uid);
-    icsLine("DTSTAMP:" . $createdTime);
+    icsLine("DTSTAMP:" . $dtstamp);
+    icsLine("LAST-MODIFIED:" . $dtstamp);
     icsLine("DTSTART:" . $startTime);
     icsLine("DTEND:" . $endTime);
     icsLine("SUMMARY:" . icsEscape($event['title']));
 
     if (!empty($event['location'])) {
         icsLine("LOCATION:" . icsEscape($event['location']));
-    }
-
-    if ($eventMeta && !empty($eventMeta['name'])) {
-        $orgName  = icsEscape($eventMeta['name']);
-        $orgEmail = (!empty($eventMeta['email']) &&
-                     filter_var($eventMeta['email'], FILTER_VALIDATE_EMAIL))
-            ? $eventMeta['email']
-            : 'noreply@stageidol.local';
-        icsLine("ORGANIZER;CN=\"" . $orgName . "\":mailto:" . $orgEmail);
     }
 
     if (!empty($event['description'])) {
@@ -201,7 +195,8 @@ file_put_contents($feedCacheFile, $icsContent);
 // ── Response headers + output ─────────────────────────────────────────────────
 header('Content-Type: text/calendar; charset=utf-8');
 header('Content-Disposition: inline; filename="feed.ics"');
-header('Cache-Control: public, max-age=3600');
+header('Cache-Control: no-store, no-cache');
+header('Pragma: no-cache');
 header('ETag: ' . $etag);
 echo $icsContent;
 
@@ -252,9 +247,9 @@ function icsFold(string $line): string {
  * Escape special characters in an ICS text value per RFC 5545 §3.3.11.
  * Escapes: backslash, semicolon, comma, newline.
  *
- * Used for: SUMMARY, LOCATION, DESCRIPTION, ORGANIZER CN, and individual
- * CATEGORIES values. For CATEGORIES the caller splits on ',' first so that
- * the delimiter commas are never passed into this function.
+ * Used for: SUMMARY, LOCATION, DESCRIPTION, and individual CATEGORIES values.
+ * For CATEGORIES the caller splits on ',' first so that the delimiter commas
+ * are never passed into this function.
  */
 function icsEscape(string $value): string {
     $value = str_replace('\\', '\\\\', $value); // backslash must be first
