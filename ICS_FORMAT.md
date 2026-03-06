@@ -629,4 +629,4 @@ X-PROGRAM-TYPE:Live Stream         (Program type)
 ---
 
 **Last Updated**: 2026-03-05  
-**Project**: Idol Stage Timetable v2.6.2
+**Project**: Idol Stage Timetable v2.6.3

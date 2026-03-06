@@ -623,6 +623,19 @@ $hasTypes = !empty($types);
                     <p style="margin:0 0 4px;font-size:0.82em;font-weight:600;color:#4a6cf7;" data-i18n="subscribe.outlookTitle">📧 Microsoft Outlook</p>
                     <p style="margin:0;font-size:0.78em;color:#555;line-height:1.5;" data-i18n="subscribe.outlookHint">Copy URL ด้านบน → เปิด Outlook → Calendar → Add calendar → Subscribe from web → วาง URL</p>
                 </div>
+
+                <!-- Sync frequency notice -->
+                <div style="margin-top:12px;padding:10px 12px;background:#fffbf0;border-radius:8px;border-left:3px solid #f59e0b;">
+                    <p style="margin:0 0 6px;font-size:0.82em;font-weight:600;color:#92400e;" data-i18n="subscribe.syncTitle">⏱ รอบการอัปเดตของแต่ละบริการ</p>
+                    <p style="margin:0 0 6px;font-size:0.76em;color:#78350f;line-height:1.4;" data-i18n="subscribe.syncNote">ปฏิทินแต่ละแอปมีรอบดึงข้อมูลไม่เท่ากัน ข้อมูลอาจไม่แสดงทันทีหลังอัปเดต</p>
+                    <ul style="margin:0;padding-left:16px;font-size:0.76em;color:#555;line-height:1.7;">
+                        <li data-i18n="subscribe.syncApple">🍎 Apple Calendar / iOS — ~1 ชั่วโมง</li>
+                        <li data-i18n="subscribe.syncGoogle">🌐 Google Calendar — ~24 ชั่วโมง</li>
+                        <li data-i18n="subscribe.syncOutlookDesktop">📧 Outlook Desktop — ~24 ชั่วโมง (กด Refresh เพื่อดึงทันที)</li>
+                        <li data-i18n="subscribe.syncOutlookWeb">🌐 Outlook.com / New Outlook — ~3 วัน (remove แล้ว subscribe ใหม่เพื่อดึงทันที)</li>
+                        <li data-i18n="subscribe.syncThunderbird">🦅 Thunderbird — ~1 ชั่วโมง</li>
+                    </ul>
+                </div>
             </div>
             <div class="req-modal-footer">
                 <button onclick="closeSubscribeModal()" class="btn btn-secondary" data-i18n="modal.cancel">ยกเลิก</button>

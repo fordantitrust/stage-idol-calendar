@@ -5,6 +5,27 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.3] - 2026-03-06
+
+### Fixed
+- 🗑️ **ORGANIZER parse error fix (Outlook calendar wipe)** — removed `ORGANIZER` property from VEVENT in `feed.php`; this is the root cause of all events disappearing from Outlook after every subscription pull
+  - **Root cause**: `ORGANIZER;CN="event name":mailto:...` applied `icsEscape()` to the CN parameter value, converting `,` → `\,` and `;` → `\;`; RFC 5545 QUOTED-STRING parameters do not use backslash escaping — the literal backslash characters caused Outlook's strict ICS parser to reject the VEVENT and stop processing the entire file; Outlook then cleared all existing calendar entries and imported nothing
+  - **Fix**: `ORGANIZER` property removed from VEVENTs entirely (optional in METHOD:PUBLISH feeds); event name is already conveyed via `X-WR-CALNAME` at the VCALENDAR level
+  - **Affected endpoint**: `GET /feed` and `GET /event/{slug}/feed`
+  - **Impact**: High — all subscribed Outlook calendars would empty on every sync cycle
+- 🔄 **ICS feed Cache-Control hardened for CDN/proxy bypass** — `Cache-Control` upgraded from `no-cache` to `no-store, no-cache`; `Pragma: no-cache` added for legacy proxy compatibility
+  - **Reason**: `no-cache` alone allows CDN proxies (e.g. Cloudflare) to store the response and serve 304 from their own cache, bypassing origin ETag checks; `no-store` instructs all intermediate proxies not to store the response at all
+- 🔄 **ICS feed sync fix for iOS Calendar** — `Cache-Control` changed from `public, max-age=3600` to `no-store, no-cache` so iOS always re-validates with the server on every poll; ETag + 304 Not Modified is still used to avoid re-downloading unchanged content
+  - **Root cause**: `max-age=3600` instructed iOS to serve the cached feed for up to 1 hour without contacting the server at all — no `If-None-Match` request was ever sent during that window, so data changes made in the admin panel were invisible to subscribed calendars until the cache expired
+- 📅 **DTSTAMP stability fix** — `DTSTAMP` (and new `LAST-MODIFIED`) in each VEVENT is now sourced from the program's `updated_at` database column instead of the current request timestamp
+  - **Root cause**: `DTSTAMP` was set to `gmdate('Ymd\THis\Z')` (current time) on every request, so every feed refresh presented all events as newly modified while `SEQUENCE:0` remained constant
+  - **Fix**: `DTSTAMP` and `LAST-MODIFIED` now reflect the actual last-edit time of each event; they only change when an admin modifies the program record
+  - **Files changed**: `feed.php`, `IcsParser.php` (added `updated_at` to SELECT queries)
+
+> **📁 Files changed:** `feed.php`, `IcsParser.php`
+
+---
+
 ## [2.6.2] - 2026-03-05
 
 ### Fixed
