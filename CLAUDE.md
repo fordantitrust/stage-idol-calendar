@@ -514,6 +514,13 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.4 (2026-03-09)
+
+- 🐛 **ICS Import preview edit fix** — `editPreviewEvent()` ใช้ `getElementById('eventTitle')` ซึ่งไม่มีใน DOM (ID จริงคือ `title`) → `TypeError: Cannot set properties of null`; ปุ่ม ✏️ ใน preview table กดไม่ได้ทุก row
+- 🐛 **preview edit missing fields** — `programType` และ `streamUrl` ไม่ถูก populate เมื่อเปิด preview edit modal
+- 🐛 **preview edit บันทึกลง DB แทน preview** — `saveEvent()` ไม่เคยอ่าน `window.previewEditIndex`; กด Save แล้ว POST record ใหม่ลง DB; แก้โดยเพิ่ม early-return ที่ update `uploadedEvents[index]` และ re-render preview table
+- 🐛 **`previewEditIndex` state leak** — `closeModal()` reset `window.previewEditIndex = null` ป้องกัน mode ค้างไปใช้กับ modal ปกติ
+
 ### v2.6.3 (2026-03-06)
 
 - 🗑️ **ORGANIZER parse error fix (Outlook calendar wipe)** — ลบ `ORGANIZER` property ออกจาก VEVENT ใน `feed.php`; root cause ที่ทำให้ Outlook ล้าง calendar ทิ้งทุกรอบ pull: `icsEscape()` ถูก apply กับ CN parameter value ทำให้เกิด `\,`/`\;` ซึ่งผิด RFC 5545 QUOTED-STRING syntax → Outlook strict parser reject VEVENT และหยุด parse ทั้งไฟล์ → calendar ว่างเปล่า

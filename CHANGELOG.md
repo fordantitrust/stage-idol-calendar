@@ -5,6 +5,18 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.4] - 2026-03-09
+
+### Fixed
+- 🐛 **ICS Import preview edit bug** — `editPreviewEvent()` referenced `getElementById('eventTitle')` which does not exist in the DOM (actual ID is `title`), causing `TypeError: Cannot set properties of null` and breaking the ✏️ edit button on all preview rows
+- 🐛 **ICS Import preview edit missing fields** — `programType` and `streamUrl` were not populated when opening the preview edit modal, so existing values were lost silently on save
+- 🐛 **ICS Import preview edit saved to DB instead of preview** — `saveEvent()` never read `window.previewEditIndex`, so clicking Save in preview-edit mode would POST a new record to the database instead of updating the in-memory preview; fixed by adding an early-return block that updates `uploadedEvents[index]` and re-renders the preview table
+- 🐛 **`previewEditIndex` state leak** — `closeModal()` now resets `window.previewEditIndex = null` to prevent preview-edit mode from persisting into subsequent normal add/edit modal opens
+
+> **📁 Files changed:** `admin/index.php`
+
+---
+
 ## [2.6.3] - 2026-03-06
 
 ### Fixed

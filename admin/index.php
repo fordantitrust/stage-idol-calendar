@@ -2873,6 +2873,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
             }
             formChanged = false;
+            window.previewEditIndex = null;
             document.getElementById('eventModal').classList.remove('active');
         }
 
@@ -2898,6 +2899,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 stream_url: document.getElementById('streamUrl').value || null,
                 event_id: conventionVal ? parseInt(conventionVal) : null
             };
+
+            // Preview edit mode: update uploadedEvents array instead of saving to DB
+            if (window.previewEditIndex !== undefined && window.previewEditIndex !== null) {
+                const idx = window.previewEditIndex;
+                window.previewEditIndex = null;
+                uploadedEvents[idx] = Object.assign(uploadedEvents[idx], {
+                    title: data.title,
+                    organizer: data.organizer,
+                    location: data.location,
+                    start: data.start,
+                    end: data.end,
+                    description: data.description,
+                    categories: data.categories,
+                    program_type: data.program_type,
+                    stream_url: data.stream_url
+                });
+                closeModal();
+                renderPreviewTable();
+                return;
+            }
 
             const isEdit = !!id;
 
@@ -3148,7 +3169,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             // Open event modal with preview data
             document.getElementById('modalTitle').textContent = 'แก้ไข Program (Preview)';
             document.getElementById('eventId').value = ''; // No ID yet
-            document.getElementById('eventTitle').value = event.title || '';
+            document.getElementById('title').value = event.title || '';
             document.getElementById('organizer').value = event.organizer || '';
             document.getElementById('location').value = event.location || '';
 
@@ -3161,6 +3182,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             document.getElementById('description').value = event.description || '';
             document.getElementById('categories').value = event.categories || '';
+            document.getElementById('programType').value = event.program_type || '';
+            document.getElementById('streamUrl').value = event.stream_url || '';
 
             document.getElementById('eventModal').classList.add('active');
 
