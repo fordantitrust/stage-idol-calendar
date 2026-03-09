@@ -514,6 +514,12 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.6.5 (2026-03-10)
+
+- 🔒 **XSS fix ใน filter tag removal** — `index.php` onclick ปุ่ม ✕ ของ artist/type/venue ใช้ `addslashes()` (database escaping) ไม่ใช่ JS escaping; เปลี่ยนเป็น `json_encode()` + `htmlspecialchars(ENT_QUOTES)`
+- 🔒 **Race condition fix ใน rate limiting** — `checkRateLimit()`/`recordRequest()` ใน `api/request.php` มี TOCTOU race; เพิ่ม `flock(LOCK_EX)` ครอบ read→modify→write
+- 🔒 **JSON error handling ใน rate limit files** — เปลี่ยนจาก `!$data` เป็น `json_last_error() !== JSON_ERROR_NONE` เพื่อตรวจไฟล์เสียหายได้ถูกต้อง
+
 ### v2.6.4 (2026-03-09)
 
 - 🐛 **ICS Import preview edit fix** — `editPreviewEvent()` ใช้ `getElementById('eventTitle')` ซึ่งไม่มีใน DOM (ID จริงคือ `title`) → `TypeError: Cannot set properties of null`; ปุ่ม ✏️ ใน preview table กดไม่ได้ทุก row

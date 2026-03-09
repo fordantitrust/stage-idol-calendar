@@ -138,9 +138,15 @@ function getEvents() {
 
 function checkRateLimit($ip) {
     $file = sys_get_temp_dir() . '/rate_' . md5($ip) . '.json';
-    if (!file_exists($file)) return true;
-    $data = json_decode(file_get_contents($file), true);
-    if (!$data) $data = [];
+    $handle = fopen($file, 'c+');
+    if (!$handle) return true;
+    flock($handle, LOCK_SH);
+    $content = stream_get_contents($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+    $data = json_decode($content, true);
+    if (json_last_error() !== JSON_ERROR_NONE) $data = [];
+    if (!is_array($data)) $data = [];
     $now = time();
     $data = array_filter($data, function($t) use ($now) {
         return ($now - $t) < RATE_LIMIT_WINDOW;
@@ -150,14 +156,23 @@ function checkRateLimit($ip) {
 
 function recordRequest($ip) {
     $file = sys_get_temp_dir() . '/rate_' . md5($ip) . '.json';
-    $data = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
-    if (!$data) $data = [];
+    $handle = fopen($file, 'c+');
+    if (!$handle) return;
+    flock($handle, LOCK_EX);
+    $content = stream_get_contents($handle);
+    $data = json_decode($content, true);
+    if (json_last_error() !== JSON_ERROR_NONE) $data = [];
+    if (!is_array($data)) $data = [];
     $now = time();
     $data = array_filter($data, function($t) use ($now) {
         return ($now - $t) < RATE_LIMIT_WINDOW;
     });
     $data[] = $now;
-    file_put_contents($file, json_encode($data));
+    ftruncate($handle, 0);
+    rewind($handle);
+    fwrite($handle, json_encode(array_values($data)));
+    flock($handle, LOCK_UN);
+    fclose($handle);
 }
 
 function jsonResponse($success, $data = null, $message = '') {
