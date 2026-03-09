@@ -5,6 +5,18 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.5] - 2026-03-10
+
+### Security
+- 🔒 **XSS fix in filter tag removal buttons** — `index.php` onclick handlers for artist/type/venue tag-remove buttons used `addslashes()` (database escaping, not JS-safe) combined with `htmlspecialchars()`; replaced with `json_encode()` + `htmlspecialchars(ENT_QUOTES)` which correctly encodes all special characters for inline JavaScript context
+  - **Affected lines**: `index.php:343`, `index.php:370`, `index.php:399`
+- 🔒 **Race condition fix in public request rate limiting** — `checkRateLimit()` and `recordRequest()` in `api/request.php` had a TOCTOU race: concurrent requests could all pass the limit check before any recorded, multiplying effective limit; fixed with `flock(LOCK_EX)` wrapping the full read→modify→write cycle
+- 🔒 **JSON error handling in rate limit files** — `json_decode()` return value was checked with `!$data` (falsy), silently treating corrupted files as empty; replaced with explicit `json_last_error() !== JSON_ERROR_NONE` check in both `checkRateLimit()` and `recordRequest()`
+
+> **📁 Files changed:** `index.php`, `api/request.php`
+
+---
+
 ## [2.6.4] - 2026-03-09
 
 ### Fixed

@@ -340,7 +340,7 @@ $hasTypes = !empty($types);
                             <?php foreach ($filterArtists as $artist): ?>
                             <span class="selected-tag">
                                 <?php echo htmlspecialchars($artist); ?>
-                                <button type="button" class="tag-remove" onclick="removeFilter('artist', '<?php echo htmlspecialchars(addslashes($artist)); ?>')" title="ลบ">✕</button>
+                                <button type="button" class="tag-remove" onclick="removeFilter('artist', <?php echo htmlspecialchars(json_encode($artist), ENT_QUOTES, 'UTF-8'); ?>)" title="ลบ">✕</button>
                             </span>
                             <?php endforeach; ?>
                         </div>
@@ -367,7 +367,7 @@ $hasTypes = !empty($types);
                             <?php foreach ($filterTypes as $type): ?>
                             <span class="selected-tag">
                                 <?php echo htmlspecialchars($type); ?>
-                                <button type="button" class="tag-remove" onclick="removeFilter('type', '<?php echo htmlspecialchars(addslashes($type)); ?>')" title="ลบ">✕</button>
+                                <button type="button" class="tag-remove" onclick="removeFilter('type', <?php echo htmlspecialchars(json_encode($type), ENT_QUOTES, 'UTF-8'); ?>)" title="ลบ">✕</button>
                             </span>
                             <?php endforeach; ?>
                         </div>
@@ -396,7 +396,7 @@ $hasTypes = !empty($types);
                             <?php foreach ($filterVenues as $venue): ?>
                             <span class="selected-tag">
                                 <?php echo htmlspecialchars($venue); ?>
-                                <button type="button" class="tag-remove" onclick="removeFilter('venue', '<?php echo htmlspecialchars(addslashes($venue)); ?>')" title="ลบ">✕</button>
+                                <button type="button" class="tag-remove" onclick="removeFilter('venue', <?php echo htmlspecialchars(json_encode($venue), ENT_QUOTES, 'UTF-8'); ?>)" title="ลบ">✕</button>
                             </span>
                             <?php endforeach; ?>
                         </div>
