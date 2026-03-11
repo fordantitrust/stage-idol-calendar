@@ -8,7 +8,7 @@ send_security_headers();
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
-$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$eventId = $eventMeta ? intval($eventMeta['id']) : null;
 $currentVenueMode = get_event_venue_mode($eventMeta);
 $activeEvents = get_all_active_events();
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
@@ -21,7 +21,7 @@ $showEventListing = MULTI_EVENT_MODE && $eventSlug === DEFAULT_EVENT_SLUG && cou
 
 // Only load calendar data when showing calendar view
 if (!$showEventListing) {
-    $parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
+    $parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 
     // ดึงข้อมูลทั้งหมด
     $allEvents = $parser->getAllEvents();
@@ -153,7 +153,7 @@ $hasTypes = !empty($types);
     </div>
     <?php endif; ?>
 
-    <div class="container">
+    <div class="container<?php echo $currentVenueMode === 'calendar' ? ' calendar-mode' : ''; ?>">
         <?php if ($showEventListing): ?>
         <!-- ========================================
              Program Listing (Homepage)
@@ -322,7 +322,7 @@ $hasTypes = !empty($types);
                 <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
                 <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
                 <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
-                <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventMetaId); ?></a>
+                <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventId); ?></a>
             </nav>
         </header>
 
@@ -426,7 +426,8 @@ $hasTypes = !empty($types);
                     <button type="button" class="btn btn-warning" onclick="openRequestModal()" data-i18n="button.requestAdd">📝 แจ้งเพิ่ม Event</button>
                 </div>
 
-                <!-- View Toggle Switch -->
+                <!-- View Toggle Switch (hidden in calendar mode) -->
+                <?php if ($currentVenueMode !== 'calendar'): ?>
                 <div class="view-toggle">
                     <label class="toggle-label">
                         <span class="toggle-text active" data-i18n="view.list">รายการ</span>
@@ -437,10 +438,16 @@ $hasTypes = !empty($types);
                         <span class="toggle-text" data-i18n="view.gantt">ไทม์ไลน์</span>
                     </label>
                 </div>
+                <?php endif; ?>
             </form>
         </div>
 
-        <div class="calendar-container">
+        <?php if ($currentVenueMode === 'calendar'): ?>
+        <!-- Monthly calendar grid (rendered by JS) -->
+        <div id="month-calendar-view"></div>
+        <?php endif; ?>
+
+        <div class="calendar-container"<?php echo $currentVenueMode === 'calendar' ? ' style="display:none;"' : ''; ?>>
             <?php if (empty($filteredEvents)): ?>
                 <div class="no-events">
                     <div class="no-events-icon">📅</div>
@@ -693,6 +700,9 @@ $hasTypes = !empty($types);
 
     <script>
     const VENUE_MODE = '<?php echo $currentVenueMode; ?>';
+    <?php if ($currentVenueMode === 'calendar'): ?>
+    window.CALENDAR_EVENTS = <?php echo json_encode(array_values($filteredEvents), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+    <?php endif; ?>
     const EVENT_SLUG = '<?php echo htmlspecialchars($eventSlug); ?>';
 
     // Date jump bar: fixed position, show/hide on scroll, highlight active date

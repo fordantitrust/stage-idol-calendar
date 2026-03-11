@@ -34,6 +34,11 @@ function changeLanguage(lang) {
 
     // Update all text
     updateLanguage();
+
+    // Re-render calendar if in calendar mode (month/day names are JS-rendered, not data-i18n)
+    if (typeof VENUE_MODE !== 'undefined' && VENUE_MODE === 'calendar' && calendarYear !== null) {
+        renderAndMountCalendar();
+    }
 }
 
 // Update all language text
@@ -508,11 +513,391 @@ function toggleView(isGantt) {
 
 // Initialize view on page load
 function initializeView() {
+    if (typeof VENUE_MODE !== 'undefined' && VENUE_MODE === 'calendar') {
+        initCalendarView();
+        return;
+    }
     const toggle = document.getElementById('viewToggle');
     if (toggle) {
         toggle.checked = isGanttView;
         toggleView(isGanttView);
     }
+}
+
+// ─── Monthly Calendar View ───────────────────────────────────────────────────
+
+let calendarYear = null;
+let calendarMonth = null; // 0-based
+
+function formatDuration(start, end) {
+    if (!start || !end) return '';
+    const diffMs = new Date(end.replace(' ', 'T')) - new Date(start.replace(' ', 'T'));
+    if (diffMs <= 0) return '';
+    const totalMin = Math.round(diffMs / 60000);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h > 0 && m > 0) return `(${h}h ${m}m)`;
+    if (h > 0) return `(${h}h)`;
+    return `(${m}m)`;
+}
+
+function getStreamPlatform(url) {
+    if (!url) return '';
+    if (url.includes('instagram.com')) return '📷';
+    if (url.includes('x.com') || url.includes('twitter.com')) return '𝕏';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return '▶️';
+    return '🔴';
+}
+
+function getStreamPlatformClass(url) {
+    // All platforms share the same theme color; icon differentiates the platform
+    return url ? 'cal-has-stream' : '';
+}
+
+function initCalendarView() {
+    const container = document.getElementById('month-calendar-view');
+    if (!container) return;
+
+    const events = window.CALENDAR_EVENTS || [];
+
+    // Build sorted unique month keys (YYYY-MM) from events
+    const monthSet = new Set();
+    events.forEach(ev => { if (ev.start) monthSet.add(ev.start.substring(0, 7)); });
+    window._calMonthKeys = Array.from(monthSet).sort();
+
+    // Start at first event month, or current month
+    if (window._calMonthKeys.length > 0) {
+        const first = window._calMonthKeys[0].split('-');
+        calendarYear  = parseInt(first[0], 10);
+        calendarMonth = parseInt(first[1], 10) - 1;
+    } else {
+        const now = new Date();
+        calendarYear  = now.getFullYear();
+        calendarMonth = now.getMonth();
+    }
+
+    renderAndMountCalendar();
+}
+
+function navigateCalendar(delta) {
+    const keys = window._calMonthKeys || [];
+    if (keys.length === 0) return;
+    const currentKey = calendarYear + '-' + String(calendarMonth + 1).padStart(2, '0');
+    const idx = keys.indexOf(currentKey);
+    const nextIdx = idx + delta;
+    if (nextIdx < 0 || nextIdx >= keys.length) return;
+    const parts = keys[nextIdx].split('-');
+    calendarYear  = parseInt(parts[0], 10);
+    calendarMonth = parseInt(parts[1], 10) - 1;
+    renderAndMountCalendar();
+}
+
+function renderAndMountCalendar() {
+    const container = document.getElementById('month-calendar-view');
+    if (!container) return;
+    const events = window.CALENDAR_EVENTS || [];
+
+    // Reset registries for this render
+    window._calChipEvents = [];
+    window._calDayEvents  = {};
+
+    container.innerHTML = renderMonthCalendar(events, calendarYear, calendarMonth);
+
+    // Attach navigation handlers (close day panel on month change)
+    const prevBtn = container.querySelector('.cal-nav-prev');
+    const nextBtn = container.querySelector('.cal-nav-next');
+    if (prevBtn) prevBtn.addEventListener('click', () => { closeDayPanel(); navigateCalendar(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { closeDayPanel(); navigateCalendar(1); });
+
+    // Show/hide nav buttons based on available months
+    const keys = window._calMonthKeys || [];
+    const currentKey = calendarYear + '-' + String(calendarMonth + 1).padStart(2, '0');
+    const idx = keys.indexOf(currentKey);
+    const onlyOneMonth = keys.length <= 1;
+    if (prevBtn) prevBtn.style.visibility = (onlyOneMonth || idx <= 0) ? 'hidden' : 'visible';
+    if (nextBtn) nextBtn.style.visibility = (onlyOneMonth || idx >= keys.length - 1) ? 'hidden' : 'visible';
+
+    // Attach chip click → detail modal (desktop)
+    container.querySelectorAll('.cal-chip').forEach(chip => {
+        chip.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const idx = parseInt(this.dataset.calidx, 10);
+            const data = window._calChipEvents[idx];
+            if (data) openCalendarDetailModal(data);
+        });
+    });
+
+    // Attach day cell click → day panel
+    container.querySelectorAll('.cal-day[data-calday]').forEach(cell => {
+        cell.addEventListener('click', function(e) {
+            if (e.target.closest('.cal-chip')) return;
+            const dateKey = this.dataset.calday;
+            // Filter directly from source (robust, avoids side-effect registry issues)
+            const dayEvs = (window.CALENDAR_EVENTS || [])
+                .filter(ev => ev.start && ev.start.substring(0, 10) === dateKey)
+                .sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+            if (dayEvs.length === 0) return;
+            openDayPanel(dateKey, dayEvs);
+            container.querySelectorAll('.cal-day.cal-day-selected').forEach(c => c.classList.remove('cal-day-selected'));
+            this.classList.add('cal-day-selected');
+        });
+    });
+}
+
+function renderMonthCalendar(events, year, month) {
+    const lang = translations[currentLang] || translations['th'];
+    const monthName = lang.months[month];
+    const yearDisplay = year + (lang.yearOffset || 0);
+    const daysShort = lang.daysShort || ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // Group events by YYYY-MM-DD key
+    const byDay = {};
+    events.forEach(ev => {
+        if (!ev.start) return;
+        const dateKey = ev.start.substring(0, 10);
+        if (!byDay[dateKey]) byDay[dateKey] = [];
+        byDay[dateKey].push(ev);
+    });
+
+    // Calendar grid: first day of month, number of days
+    const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    const todayKey = today.getFullYear() + '-' +
+        String(today.getMonth()+1).padStart(2,'0') + '-' +
+        String(today.getDate()).padStart(2,'0');
+
+    let html = `<div class="month-calendar">`;
+
+    // Header
+    html += `<div class="cal-header">
+        <button class="cal-nav-btn cal-nav-prev" aria-label="previous month">${lang['calendar.prev'] || '◀'}</button>
+        <span class="cal-month-label">${monthName} ${yearDisplay}</span>
+        <button class="cal-nav-btn cal-nav-next" aria-label="next month">${lang['calendar.next'] || '▶'}</button>
+    </div>`;
+
+    // Day-of-week headers
+    html += `<div class="cal-grid">`;
+    daysShort.forEach((d, i) => {
+        const cls = i === 0 ? ' cal-dow-sun' : (i === 6 ? ' cal-dow-sat' : '');
+        html += `<div class="cal-dow${cls}">${d}</div>`;
+    });
+
+    // Blank cells before first day
+    for (let i = 0; i < firstDay; i++) {
+        html += `<div class="cal-day cal-day-empty"></div>`;
+    }
+
+    // Day cells
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        const dayEvents = byDay[dateKey] || [];
+        const isToday = dateKey === todayKey;
+        const dow = (firstDay + d - 1) % 7;
+        const isSun = dow === 0;
+        const isSat = dow === 6;
+
+        let cellCls = 'cal-day';
+        if (isToday) cellCls += ' cal-day-today';
+        if (isSun) cellCls += ' cal-day-sun';
+        if (isSat) cellCls += ' cal-day-sat';
+
+        const hasEvents = dayEvents.length > 0;
+        if (hasEvents) {
+            cellCls += ' cal-day-has-events';
+            window._calDayEvents[dateKey] = dayEvents;
+        }
+
+        html += `<div class="${cellCls}"${hasEvents ? ` data-calday="${dateKey}"` : ''}>`;
+        html += `<div class="cal-day-num">${d}</div>`;
+
+        if (hasEvents) {
+            // Chips (desktop)
+            html += `<div class="cal-chips">`;
+            dayEvents.forEach(ev => {
+                const platform = getStreamPlatform(ev.stream_url);
+                const platformCls = getStreamPlatformClass(ev.stream_url);
+                const artist = (ev.categories || ev.organizer || ev.title || '').split(',')[0].trim();
+                const timeStr = ev.start ? ev.start.substring(11, 16) : '';
+                const chipIdx = window._calChipEvents.length;
+                window._calChipEvents.push(ev);
+                html += `<div class="cal-chip ${platformCls}" data-calidx="${chipIdx}" title="${escapeHtmlAttr(ev.title || '')}">`;
+                if (platform) html += `<span class="cal-chip-icon">${platform}</span>`;
+                html += `<span class="cal-chip-artist">${escapeHtml(artist)}</span>`;
+                if (timeStr) html += `<span class="cal-chip-time">${timeStr}</span>`;
+                html += `</div>`;
+            });
+            html += `</div>`;
+
+            // Dots (mobile) — max 3 dots then "+N"
+            const dotMax = 3;
+            html += `<div class="cal-day-dots">`;
+            dayEvents.slice(0, dotMax).forEach(ev => {
+                const cls = ev.stream_url ? ' cal-dot-stream' : '';
+                html += `<span class="cal-dot${cls}"></span>`;
+            });
+            if (dayEvents.length > dotMax) {
+                html += `<span class="cal-dot-more">+${dayEvents.length - dotMax}</span>`;
+            }
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+    }
+
+    // Trailing blank cells to complete last row
+    const totalCells = firstDay + daysInMonth;
+    const trailing = (7 - (totalCells % 7)) % 7;
+    for (let i = 0; i < trailing; i++) {
+        html += `<div class="cal-day cal-day-empty"></div>`;
+    }
+
+    html += `</div></div>`; // close cal-grid, month-calendar
+    return html;
+}
+
+function escapeHtmlAttr(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+// Calendar detail modal
+function openCalendarDetailModal(ev) {
+    const lang = translations[currentLang] || translations['th'];
+    const platform = getStreamPlatform(ev.stream_url);
+    const timeStart = ev.start ? ev.start.substring(11, 16) : '';
+    const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
+    const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
+
+    const duration = formatDuration(ev.start, ev.end);
+
+    let body = `<div class="cal-detail-modal-inner">`;
+    if (timeRange) body += `<h3 class="cal-detail-title">${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</h3>`;
+    if (ev.location) body += `<div class="cal-detail-row">📍 ${escapeHtml(ev.location)}</div>`;
+    if (ev.categories) body += `<div class="cal-detail-row">🎤 ${escapeHtml(ev.categories)}</div>`;
+    if (ev.program_type) body += `<div class="cal-detail-row">🏷️ ${escapeHtml(ev.program_type)}</div>`;
+    if (ev.description) body += `<div class="cal-detail-desc">${escapeHtml(ev.description)}</div>`;
+    if (ev.stream_url) {
+        body += `<a class="cal-detail-join btn btn-danger" href="${escapeHtmlAttr(ev.stream_url)}" target="_blank" rel="noopener noreferrer">${platform} Join Live</a>`;
+    }
+    body += `</div>`;
+
+    openModal(body, ev.title || '');
+}
+
+// Generic modal for calendar detail (reuses request modal overlay)
+function openModal(bodyHtml, titleText) {
+    let overlay = document.getElementById('calDetailOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'calDetailOverlay';
+        overlay.className = 'req-modal-overlay';
+        overlay.innerHTML = `<div class="req-modal" style="max-width:440px;">
+            <div class="req-modal-header" style="padding:10px 15px;">
+                <span id="calDetailHeaderTitle" class="cal-detail-header-title"></span>
+                <button class="req-close" onclick="closeCalDetailModal()" aria-label="close">✕</button>
+            </div>
+            <div class="req-modal-body" id="calDetailBody"></div>
+        </div>`;
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeCalDetailModal();
+        });
+        document.body.appendChild(overlay);
+    }
+    document.getElementById('calDetailHeaderTitle').textContent = titleText || '';
+    document.getElementById('calDetailBody').innerHTML = bodyHtml;
+    overlay.classList.add('active');
+}
+
+function closeCalDetailModal() {
+    const overlay = document.getElementById('calDetailOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// Day panel (mobile: tap day → list of programs)
+function openDayPanel(dateKey, dayEvs) {
+    const lang = translations[currentLang] || translations['th'];
+
+    // Format date label
+    const [y, m, d] = dateKey.split('-').map(Number);
+    const monthName = lang.months ? lang.months[m - 1] : m;
+    const yearDisplay = y + (lang.yearOffset || 0);
+    const dateLabel = `${d} ${monthName} ${yearDisplay}`;
+
+    // Panel-specific event registry (avoids dependency on chip registry)
+    window._calDpEvents = [];
+
+    let itemsHtml = '';
+    dayEvs.forEach(ev => {
+        const platform = getStreamPlatform(ev.stream_url);
+        const artist = (ev.categories || ev.organizer || '').split(',').map(s => s.trim()).filter(Boolean).join(', ');
+        const timeStart = ev.start ? ev.start.substring(11, 16) : '';
+        const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
+        const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
+        const duration  = formatDuration(ev.start, ev.end);
+        const dpIdx = window._calDpEvents.length;
+        window._calDpEvents.push(ev);
+
+        itemsHtml += `<div class="cal-dp-item" data-dpidx="${dpIdx}">`;
+
+        // Left: platform icon
+        itemsHtml += `<div class="cal-dp-item-left"><span class="cal-dp-icon">${platform || '📅'}</span></div>`;
+
+        // Info block
+        itemsHtml += `<div class="cal-dp-item-info">`;
+
+        itemsHtml += `<div class="cal-dp-item-title">${escapeHtml(ev.title || artist || '—')}</div>`;
+        if (artist)          itemsHtml += `<div class="cal-dp-item-artist">${escapeHtml(artist)}</div>`;
+        if (timeRange)       itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
+        if (ev.program_type) itemsHtml += `<span class="cal-dp-item-type">${escapeHtml(ev.program_type)}</span>`;
+        if (ev.description)  itemsHtml += `<div class="cal-dp-item-desc">${escapeHtml(ev.description)}</div>`;
+        if (ev.stream_url) {
+            itemsHtml += `<a class="cal-dp-join btn btn-danger btn-sm" href="${escapeHtmlAttr(ev.stream_url)}" target="_blank" rel="noopener noreferrer">🔴 Live</a>`;
+        }
+
+        itemsHtml += `</div>`; // info
+        itemsHtml += `</div>`; // item
+    });
+
+    // Create or reuse panel
+    let panel = document.getElementById('calDayPanel');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'calDayPanel';
+        const calView = document.getElementById('month-calendar-view');
+        calView.parentNode.insertBefore(panel, calView.nextSibling);
+    }
+
+    panel.innerHTML = `
+        <div class="cal-dp-header">
+            <span class="cal-dp-date">${escapeHtml(dateLabel)}</span>
+            <button class="req-close" onclick="closeDayPanel()" aria-label="close">✕</button>
+        </div>
+        <div class="cal-dp-body">${itemsHtml}</div>`;
+
+    panel.classList.add('active');
+
+    // Item click → detail modal (uses panel registry, not chip registry)
+    panel.querySelectorAll('.cal-dp-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            if (e.target.closest('.cal-dp-join')) return;
+            const idx = parseInt(this.dataset.dpidx, 10);
+            const ev = window._calDpEvents[idx];
+            if (ev) openCalendarDetailModal(ev);
+        });
+    });
+
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeDayPanel() {
+    const panel = document.getElementById('calDayPanel');
+    if (panel) panel.classList.remove('active');
+    const calView = document.getElementById('month-calendar-view');
+    if (calView) calView.querySelectorAll('.cal-day-selected').forEach(c => c.classList.remove('cal-day-selected'));
 }
 
 // Show/hide gradient shadow at edges of .gantt-view when content overflows horizontally

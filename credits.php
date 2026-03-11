@@ -9,7 +9,7 @@ send_security_headers();
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
-$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$eventId = $eventMeta ? intval($eventMeta['id']) : null;
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -56,7 +56,7 @@ $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
 
         <?php
         // Fetch credits from cache (or database if cache expired)
-        $credits = get_cached_credits($eventMetaId);
+        $credits = get_cached_credits($eventId);
         ?>
 
         <div class="content">

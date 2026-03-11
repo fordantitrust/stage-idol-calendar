@@ -118,14 +118,14 @@ function getEvents() {
 
     try {
         $eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET['event']) : null;
-        $eventMetaId = null;
+        $eventId = null;
         if ($eventSlug) {
-            $eventMetaId = get_event_id($eventSlug);
+            $eventId = get_event_id($eventSlug);
         }
 
-        if ($eventMetaId) {
+        if ($eventId) {
             $stmt = $db->prepare("SELECT id, title, start, location, organizer FROM programs WHERE event_id = :emi ORDER BY start DESC LIMIT 100");
-            $stmt->execute([':emi' => $eventMetaId]);
+            $stmt->execute([':emi' => $eventId]);
         } else {
             $stmt = $db->query("SELECT id, title, start, location, organizer FROM programs ORDER BY start DESC LIMIT 100");
         }

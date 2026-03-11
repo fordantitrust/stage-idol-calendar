@@ -582,11 +582,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Slug <span style="color:red">*</span></td><td>ชื่อย่อสำหรับ URL เช่น <code>idol-stage-feb-2026</code> (ตัวเล็ก, ตัวเลข, - เท่านั้น)</td></tr>
                         <tr><td>Description</td><td>รายละเอียดงาน</td></tr>
                         <tr><td>Start Date / End Date</td><td>วันเริ่มและวันสิ้นสุดของงาน</td></tr>
-                        <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายเวที (แสดง venue filter, Gantt) | <strong>single</strong> = เวทีเดียว</td></tr>
+                        <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายเวที (แสดง venue filter, Gantt) | <strong>single</strong> = เวทีเดียว | <strong>calendar</strong> = ปฏิทินรายเดือน</td></tr>
                         <tr><td>Theme</td><td>Theme สีสำหรับ event นี้โดยเฉพาะ (ถ้าไม่เลือกจะใช้ global theme จาก Settings)</td></tr>
                         <tr><td>Active</td><td>เปิด/ปิดการแสดงผล event บนหน้าเว็บ</td></tr>
                     </tbody>
                 </table>
+
+                <h3>Venue Mode: Calendar</h3>
+                <p>เมื่อเลือก <strong>calendar</strong> หน้าเว็บของ event นั้นจะแสดงเป็นปฏิทินรายเดือนแทนตาราง/ไทม์ไลน์:</p>
+                <ul>
+                    <li><strong>Desktop</strong> — แต่ละวันแสดง chips (icon platform + ชื่อศิลปิน + เวลา) กดเพื่อดู detail modal</li>
+                    <li><strong>Mobile</strong> — แต่ละวันแสดง dot indicators กดวันเพื่อเปิด panel รายการ program ของวันนั้น</li>
+                    <li>ปุ่ม ◀ ▶ นำทางเฉพาะเดือนที่มีข้อมูล (ซ่อนอัตโนมัติถ้ามีแค่เดือนเดียว)</li>
+                    <li>เหมาะสำหรับ event ที่มี program กระจายหลายวัน เช่น streaming schedule</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Calendar mode ซ่อน Toggle List/Timeline โดยอัตโนมัติ และรองรับทุก theme สี</div>
+                </div>
 
                 <h3>การใช้งาน URL</h3>
                 <p>เข้าถึง event เฉพาะผ่าน URL: <code>/event/{slug}</code></p>

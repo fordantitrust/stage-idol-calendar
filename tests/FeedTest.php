@@ -101,8 +101,8 @@ function _feed_organizerLine(?array $eventMeta): ?string {
 /**
  * Replica of the ETag generation from feed.php.
  */
-function _feed_etag(string $dataVersion, ?int $eventMetaId): string {
-    return '"feed-' . md5($dataVersion . '-' . ($eventMetaId ?? '0')) . '"';
+function _feed_etag(string $dataVersion, ?int $eventId): string {
+    return '"feed-' . md5($dataVersion . '-' . ($eventId ?? '0')) . '"';
 }
 
 // ── 1. File Existence ─────────────────────────────────────────────────────────
@@ -628,8 +628,8 @@ function testAdminApiHasSixFeedCacheInvalidations($test) {
 
 function testFeedCacheKeyIncludesEventId($test) {
     $src = file_get_contents(dirname(__DIR__) . '/feed.php');
-    $test->assertContains("'event'   => \$eventMetaId", $src,
-        'feed.php cache key must include eventMetaId so per-event feeds get separate cache files');
+    $test->assertContains("'event'   => \$eventId", $src,
+        'feed.php cache key must include eventId so per-event feeds get separate cache files');
 }
 
 function testFeedCacheKeyIncludesSortedFilters($test) {

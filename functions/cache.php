@@ -7,12 +7,12 @@
 /**
  * Get data version from database with caching
  *
- * @param int|null $eventMetaId Filter by event_id (null = all events)
+ * @param int|null $eventId Filter by event_id (null = all events)
  * @return string Version string
  */
-function get_data_version($eventMetaId = null) {
+function get_data_version($eventId = null) {
     $cacheDir = dirname(DATA_VERSION_CACHE_FILE);
-    $cacheSuffix = $eventMetaId !== null ? "_$eventMetaId" : '';
+    $cacheSuffix = $eventId !== null ? "_$eventId" : '';
     $cacheFile = $cacheDir . "/data_version$cacheSuffix.json";
     $cacheTTL = DATA_VERSION_CACHE_TTL;
 
@@ -33,9 +33,9 @@ function get_data_version($eventMetaId = null) {
         $db = new PDO('sqlite:' . $dbPath);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        if ($eventMetaId !== null) {
+        if ($eventId !== null) {
             $stmt = $db->prepare("SELECT MAX(updated_at) as last_update FROM programs WHERE event_id = :id");
-            $stmt->execute([':id' => $eventMetaId]);
+            $stmt->execute([':id' => $eventId]);
         } else {
             $stmt = $db->query("SELECT MAX(updated_at) as last_update FROM programs");
         }
@@ -65,12 +65,12 @@ function get_data_version($eventMetaId = null) {
  * Get credits from database with caching
  * Returns global credits (event_id IS NULL) + event-specific credits
  *
- * @param int|null $eventMetaId Filter by event_id (null = global only)
+ * @param int|null $eventId Filter by event_id (null = global only)
  * @return array Array of credits ordered by display_order
  */
-function get_cached_credits($eventMetaId = null) {
+function get_cached_credits($eventId = null) {
     $cacheDir = dirname(CREDITS_CACHE_FILE);
-    $cacheSuffix = $eventMetaId !== null ? "_$eventMetaId" : '';
+    $cacheSuffix = $eventId !== null ? "_$eventId" : '';
     $cacheFile = $cacheDir . "/credits$cacheSuffix.json";
     $cacheTTL = CREDITS_CACHE_TTL;
 
@@ -95,10 +95,10 @@ function get_cached_credits($eventMetaId = null) {
         $db = new PDO('sqlite:' . $dbPath);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        if ($eventMetaId !== null) {
+        if ($eventId !== null) {
             // Global credits (NULL) + event-specific credits
             $stmt = $db->prepare("SELECT * FROM credits WHERE event_id IS NULL OR event_id = :id ORDER BY display_order ASC, created_at ASC");
-            $stmt->execute([':id' => $eventMetaId]);
+            $stmt->execute([':id' => $eventId]);
         } else {
             $stmt = $db->query("SELECT * FROM credits ORDER BY display_order ASC, created_at ASC");
         }
@@ -126,15 +126,15 @@ function get_cached_credits($eventMetaId = null) {
  * Invalidate data version cache
  * Call this function after creating, updating, or deleting programs
  *
- * @param int|null $eventMetaId Specific event cache to invalidate (null = all)
+ * @param int|null $eventId Specific event cache to invalidate (null = all)
  * @return bool True if cache was deleted, false otherwise
  */
-function invalidate_data_version_cache($eventMetaId = null) {
+function invalidate_data_version_cache($eventId = null) {
     $cacheDir = dirname(DATA_VERSION_CACHE_FILE);
 
-    if ($eventMetaId !== null) {
+    if ($eventId !== null) {
         $files = [
-            $cacheDir . "/data_version_$eventMetaId.json",
+            $cacheDir . "/data_version_$eventId.json",
             $cacheDir . "/data_version.json"
         ];
     } else {
@@ -155,16 +155,16 @@ function invalidate_data_version_cache($eventMetaId = null) {
  * Invalidate credits cache
  * Call this function after creating, updating, or deleting credits
  *
- * @param int|null $eventMetaId Specific event cache to invalidate (null = all)
+ * @param int|null $eventId Specific event cache to invalidate (null = all)
  * @return bool True if cache was deleted, false otherwise
  */
-function invalidate_credits_cache($eventMetaId = null) {
+function invalidate_credits_cache($eventId = null) {
     $cacheDir = dirname(CREDITS_CACHE_FILE);
 
-    if ($eventMetaId !== null) {
+    if ($eventId !== null) {
         // Delete specific event cache + global cache
         $files = [
-            $cacheDir . "/credits_$eventMetaId.json",
+            $cacheDir . "/credits_$eventId.json",
             $cacheDir . "/credits.json"
         ];
     } else {
@@ -187,20 +187,20 @@ function invalidate_credits_cache($eventMetaId = null) {
  * Call this function after creating, updating, or deleting programs.
  * Feed cache files are named feed_{eventId}_{hash}.ics
  *
- * @param int|null $eventMetaId Specific event cache to invalidate (null = all)
+ * @param int|null $eventId Specific event cache to invalidate (null = all)
  * @return bool True if cache was deleted, false otherwise
  */
-function invalidate_feed_cache($eventMetaId = null) {
+function invalidate_feed_cache($eventId = null) {
     $cacheDir = FEED_CACHE_DIR;
 
     if (!is_dir($cacheDir)) {
         return true;
     }
 
-    if ($eventMetaId !== null) {
+    if ($eventId !== null) {
         // Delete specific event cache + global cache (eventId = 0)
         $files = array_merge(
-            glob($cacheDir . "/feed_{$eventMetaId}_*.ics") ?: [],
+            glob($cacheDir . "/feed_{$eventId}_*.ics") ?: [],
             glob($cacheDir . '/feed_0_*.ics') ?: []
         );
     } else {

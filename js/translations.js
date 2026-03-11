@@ -61,11 +61,15 @@ const translations = {
         'view.gantt': 'ไทม์ไลน์',
         'gantt.venue': 'เวที',
         'gantt.noPrograms': 'ไม่มี Program',
+        'calendar.prev': '◀',
+        'calendar.next': '▶',
+        'calendar.noPrograms': 'ไม่มี Program',
         'time.unit': 'น.',
         timeFormat: '24h',
         months: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
                 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'],
         days: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'],
+        daysShort: ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'],
         yearOffset: 543,
         langCode: 'th',
 
@@ -170,6 +174,15 @@ const translations = {
         'section10.feature1': 'มองหาป้าย "▼ อ่านเพิ่มเติม" ใต้ description',
         'section10.feature2': 'กดที่ description หรือป้าย "▼ อ่านเพิ่มเติม" เพื่อเปิด modal แสดงข้อมูลเต็ม',
         'section10.feature3': 'กด ✕ หรือ tap นอก modal เพื่อปิด',
+
+        // Section 11: Calendar View
+        'section11.title': '📅 มุมมองปฏิทินรายเดือน (Calendar View)',
+        'section11.desc': 'สำหรับ event ที่ Admin กำหนดเป็นโหมด Calendar ระบบจะแสดงผลเป็นปฏิทินรายเดือนแทนตาราง:',
+        'section11.feature1': 'กด chip บนวันที่ (desktop) เพื่อดูรายละเอียด program',
+        'section11.feature2': 'กดที่วัน (mobile) เพื่อเปิด panel แสดงรายการ program ของวันนั้น',
+        'section11.feature3': 'ปุ่ม ◀ ▶ เลื่อนระหว่างเดือนที่มีข้อมูล',
+        'section11.note': '💡 หมายเหตุ:',
+        'section11.noteText': 'ปุ่ม Live ในรายการ program ช่วยให้เข้าถึง stream โดยตรง',
 
         // Contact page
         'contact.title': '✉️ ติดต่อเรา',
@@ -294,11 +307,15 @@ const translations = {
         'view.gantt': 'Timeline',
         'gantt.venue': 'Venue',
         'gantt.noPrograms': 'No programs',
+        'calendar.prev': '◀',
+        'calendar.next': '▶',
+        'calendar.noPrograms': 'No programs',
         'time.unit': '',
         timeFormat: '12h',
         months: ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December'],
         days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        daysShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
         yearOffset: 0,
         langCode: 'en',
 
@@ -403,6 +420,15 @@ const translations = {
         'section10.feature1': 'Look for the "▼ Read more" chip below the description',
         'section10.feature2': 'Tap the description or "▼ Read more" to open a modal with the full text',
         'section10.feature3': 'Tap ✕ or outside the modal to close',
+
+        // Section 11: Calendar View
+        'section11.title': '📅 Monthly Calendar View',
+        'section11.desc': 'For events set to Calendar mode by the Admin, the schedule is displayed as a monthly calendar instead of a list:',
+        'section11.feature1': 'Tap a chip on a date (desktop) to view program details',
+        'section11.feature2': 'Tap a day (mobile) to open a panel listing all programs for that day',
+        'section11.feature3': '◀ ▶ buttons navigate between months that have programs',
+        'section11.note': '💡 Note:',
+        'section11.noteText': 'The Live button in the program list opens the stream directly',
 
         // Contact page
         'contact.title': '✉️ Contact Us',
@@ -527,11 +553,15 @@ const translations = {
         'view.gantt': 'タイムライン',
         'gantt.venue': '会場',
         'gantt.noPrograms': 'プログラムなし',
+        'calendar.prev': '◀',
+        'calendar.next': '▶',
+        'calendar.noPrograms': 'プログラムなし',
         'time.unit': '',
         timeFormat: '24h',
         months: ['1月', '2月', '3月', '4月', '5月', '6月',
                 '7月', '8月', '9月', '10月', '11月', '12月'],
         days: ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+        daysShort: ['日', '月', '火', '水', '木', '金', '土'],
         yearOffset: 0,
         langCode: 'ja',
 
@@ -636,6 +666,15 @@ const translations = {
         'section10.feature1': '説明の下に「▼ 続きを読む」チップを探す',
         'section10.feature2': '説明または「▼ 続きを読む」をタップしてモーダルで全文を表示',
         'section10.feature3': '✕ をタップするか、モーダル外をタップして閉じる',
+
+        // Section 11: Calendar View
+        'section11.title': '📅 月間カレンダービュー',
+        'section11.desc': '管理者がカレンダーモードに設定したイベントは、リストではなく月間カレンダーとして表示されます:',
+        'section11.feature1': '日付のチップをタップ（デスクトップ）してプログラムの詳細を確認',
+        'section11.feature2': '日付をタップ（モバイル）してその日のプログラム一覧パネルを開く',
+        'section11.feature3': '◀ ▶ ボタンでプログラムがある月を移動',
+        'section11.note': '💡 メモ:',
+        'section11.noteText': 'プログラム一覧の Live ボタンでストリームに直接アクセス',
 
         // Contact page
         'contact.title': '✉️ お問い合わせ',

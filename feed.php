@@ -39,12 +39,12 @@ header('X-Content-Type-Options: nosniff');
 // Multi-event support
 $eventSlug   = get_current_event_slug();
 $eventMeta   = get_event_by_slug($eventSlug);
-$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$eventId     = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName   = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
 // ── ETag caching ──────────────────────────────────────────────────────────────
-$dataVersion = get_data_version($eventMetaId);
-$etag = '"feed-' . md5($dataVersion . '-' . ($eventMetaId ?? '0')) . '"';
+$dataVersion = get_data_version($eventId);
+$etag = '"feed-' . md5($dataVersion . '-' . ($eventId ?? '0')) . '"';
 
 if (
     isset($_SERVER['HTTP_IF_NONE_MATCH']) &&
@@ -70,12 +70,12 @@ $sortedVenues  = $filterVenues;  sort($sortedVenues);
 $sortedTypes   = $filterTypes;   sort($sortedTypes);
 
 $feedCacheKey  = md5(json_encode([
-    'event'   => $eventMetaId,
+    'event'   => $eventId,
     'artists' => $sortedArtists,
     'venues'  => $sortedVenues,
     'types'   => $sortedTypes,
 ]));
-$feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventMetaId ?? '0') . '_' . $feedCacheKey . '.ics';
+$feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventId ?? '0') . '_' . $feedCacheKey . '.ics';
 
 if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_CACHE_TTL) {
     header('Content-Type: text/calendar; charset=utf-8');
@@ -88,7 +88,7 @@ if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_C
 }
 
 // ── Fetch & filter programs ───────────────────────────────────────────────────
-$parser    = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
+$parser    = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 $allEvents = $parser->getAllEvents();
 
 $filteredEvents = array_filter(

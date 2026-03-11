@@ -8,11 +8,11 @@ header('X-Content-Type-Options: nosniff');
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
-$eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+$eventId   = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
 // สร้าง IcsParser instance
-$parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
+$parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 
 // ดึงข้อมูลทั้งหมด
 $allEvents = $parser->getAllEvents();

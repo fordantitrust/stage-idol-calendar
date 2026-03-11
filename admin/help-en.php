@@ -549,11 +549,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Slug <span style="color:red">*</span></td><td>URL-friendly short name, e.g. <code>idol-stage-feb-2026</code> (lowercase, numbers, hyphens only)</td></tr>
                         <tr><td>Description</td><td>Optional event description</td></tr>
                         <tr><td>Start Date / End Date</td><td>The event's opening and closing dates</td></tr>
-                        <tr><td>Venue Mode</td><td><strong>multi</strong> = multiple venues (shows venue filter, Gantt view) | <strong>single</strong> = single venue</td></tr>
+                        <tr><td>Venue Mode</td><td><strong>multi</strong> = multiple venues (shows venue filter, Gantt view) | <strong>single</strong> = single venue | <strong>calendar</strong> = monthly calendar</td></tr>
                         <tr><td>Theme</td><td>Color theme specific to this event (if not set, falls back to the global theme from Settings)</td></tr>
                         <tr><td>Active</td><td>Toggle visibility of this event on the public website</td></tr>
                     </tbody>
                 </table>
+
+                <h3>Venue Mode: Calendar</h3>
+                <p>When set to <strong>calendar</strong>, the event page displays a monthly calendar instead of a list or timeline:</p>
+                <ul>
+                    <li><strong>Desktop</strong> — each day shows chips (platform icon + artist + time); tap a chip to open a detail modal</li>
+                    <li><strong>Mobile</strong> — each day shows dot indicators; tap a day to open a panel listing all programs for that day</li>
+                    <li>◀ ▶ buttons navigate only between months that have programs (hidden automatically if only one month)</li>
+                    <li>Best suited for events with programs spread across many days, such as streaming schedules</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Calendar mode automatically hides the List/Timeline toggle and is compatible with all color themes.</div>
+                </div>
 
                 <h3>Accessing Events via URL</h3>
                 <p>Each event can be accessed directly via: <code>/event/{slug}</code></p>
