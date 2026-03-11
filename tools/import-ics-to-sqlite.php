@@ -43,14 +43,14 @@ try {
 }
 
 // Resolve event_id from slug (events table, formerly events_meta)
-$eventMetaId = null;
+$eventId = null;
 if ($eventSlug) {
     $metaStmt = $db->prepare("SELECT id FROM programs WHERE slug = :slug");
     $metaStmt->execute([':slug' => $eventSlug]);
     $metaRow = $metaStmt->fetch(PDO::FETCH_ASSOC);
     if ($metaRow) {
-        $eventMetaId = intval($metaRow['id']);
-        echo "Event ID: $eventMetaId\n\n";
+        $eventId = intval($metaRow['id']);
+        echo "Event ID: $eventId\n\n";
     } else {
         echo "Warning: Event slug '$eventSlug' not found in events table. Programs will be imported without event_id.\n\n";
     }
@@ -187,7 +187,7 @@ foreach ($files as $file) {
                     ':description' => $event['description'],
                     ':categories' => $event['categories'],
                     ':program_type' => $programType,
-                    ':event_id' => $eventMetaId
+                    ':event_id' => $eventId
                 ]);
                 $stats['inserted']++;
                 echo "  ✅ Inserted: " . $event['title'] . ($programType ? " [$programType]" : "") . "\n";

@@ -1861,6 +1861,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <select id="conventionVenueMode">
                                 <option value="multi">Multi</option>
                                 <option value="single">Single</option>
+                                <option value="calendar">Calendar</option>
                             </select>
                         </div>
                         <div class="form-group">

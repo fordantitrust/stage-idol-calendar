@@ -51,13 +51,13 @@ function escapeApiData($data, $fields = []) {
 
 // Multi-event support
 $eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET['event']) : null;
-$eventMetaId = null;
+$eventId = null;
 if ($eventSlug) {
     $eventMeta = get_event_by_slug($eventSlug);
-    $eventMetaId = $eventMeta ? intval($eventMeta['id']) : null;
+    $eventId = $eventMeta ? intval($eventMeta['id']) : null;
 }
 
-$parser = new IcsParser('ics', true, 'data/calendar.db', $eventMetaId);
+$parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 
 $action = $_GET['action'] ?? 'programs';
 $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'stream_url', 'uid'];

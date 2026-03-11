@@ -162,6 +162,20 @@ $eventMeta = get_event_by_slug($eventSlug);
             </div>
 
             <div class="section">
+                <h2 data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</h2>
+                <p data-i18n="section11.desc">สำหรับ event ที่ Admin กำหนดเป็นโหมด Calendar ระบบจะแสดงผลเป็นปฏิทินรายเดือนแทนตาราง:</p>
+                <ul>
+                    <li data-i18n="section11.feature1">กด chip บนวันที่ (desktop) เพื่อดูรายละเอียด program</li>
+                    <li data-i18n="section11.feature2">กดที่วัน (mobile) เพื่อเปิด panel แสดงรายการ program ของวันนั้น</li>
+                    <li data-i18n="section11.feature3">ปุ่ม ◀ ▶ เลื่อนระหว่างเดือนที่มีข้อมูล</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section11.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section11.noteText">ปุ่ม Live ในรายการ program ช่วยให้เข้าถึง stream โดยตรง</span>
+                </div>
+            </div>
+
+            <div class="section">
                 <h2 data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</h2>
                 <p data-i18n="section8.desc">หากพบว่าข้อมูลไม่ครบ หรือมี program ใหม่ที่ยังไม่มีในระบบ คุณสามารถแจ้งได้:</p>
 

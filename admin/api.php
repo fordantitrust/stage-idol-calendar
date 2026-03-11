@@ -1624,7 +1624,7 @@ function createEvent() {
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
     $startDate = $input['start_date'] ?? null;
     $endDate = $input['end_date'] ?? null;
-    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
+    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $emailRaw = trim($input['email'] ?? '');
@@ -1694,7 +1694,7 @@ function updateEvent() {
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
     $startDate = $input['start_date'] ?? null;
     $endDate = $input['end_date'] ?? null;
-    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single']) ? $input['venue_mode'] : 'multi';
+    $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $emailRaw = trim($input['email'] ?? '');

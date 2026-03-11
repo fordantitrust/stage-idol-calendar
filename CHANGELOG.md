@@ -5,6 +5,42 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.2] - 2026-03-12
+
+### Changed
+- 🔧 **Rename `$eventMetaId` → `$eventId` across codebase** — the old name was a leftover from the `events_meta` era (before the v1.2.9 table rename to `events`); all public pages, APIs, cache functions, and tests now use the consistent name `$eventId`
+  - **Files updated:** `feed.php`, `export.php`, `credits.php`, `index.php`, `api.php`, `api/request.php`, `tools/import-ics-to-sqlite.php`, `functions/cache.php`, `tests/FeedTest.php`
+  - No functional changes — rename only
+
+> **📁 Files changed:** `feed.php`, `export.php`, `credits.php`, `index.php`, `api.php`, `api/request.php`, `tools/import-ics-to-sqlite.php`, `functions/cache.php`, `tests/FeedTest.php`
+
+## [2.7.1] - 2026-03-11
+
+### Added
+- ✨ **Duration display in calendar detail** — detail modal and day panel now show program duration `(Xh Ym)` next to the time range; computed via `formatDuration()` helper in `js/common.js`
+
+### Fixed
+- 🐛 **Calendar view right-edge gap** — replaced `border: 1px solid` on `.month-calendar` with `box-shadow: inset 0 0 0 1px`; physical border was consuming 1px of content area, leaving a visible sub-pixel gap between the rightmost grid column and the border in rows with dark backgrounds (DOW header, trailing empty cells)
+- 🐛 **Cell divider pixel-rounding artifact** — changed `.cal-dow` and `.cal-day` from `border-right` to `border-left`; right-side borders can leave a residual strip at the grid's right edge due to pixel rounding across 7 columns; left-side borders eliminate this by anchoring dividers to the leading edge of each column
+
+> **📁 Files changed:** `js/common.js`, `styles/common.css`
+
+## [2.7.0] - 2026-03-11
+
+### Added
+- 📅 **Calendar View (`venue_mode = 'calendar'`)** — third venue type alongside multi/single, designed for stream/online event schedules
+  - Monthly 7-column grid with ◀ ▶ navigation; navigation is restricted to months that have programs (buttons hidden when only one month exists)
+  - **Desktop**: per-day program chips — platform icon (📷/𝕏/▶️/🔴) + artist name + time; tap chip → detail modal (header: program title; body: time + Join Live button)
+  - **Mobile**: dot indicators per day (up to 3 dots + "+N"); tap day → day panel below grid showing full program list with title, categories, time, type badge, description, and Live button; grid fills full width with `minmax(46px, 1fr)` columns, scrolls on narrow screens
+  - All colors use CSS variables — compatible with all 6 themes (Ocean/Forest/Midnight/Sunset/Gray/Dark)
+  - XSS-safe: index-based chip registry (`window._calChipEvents`) + panel-specific registry (`window._calDpEvents`) — no JSON in HTML attributes
+  - List/Timeline toggle hidden in calendar mode
+  - Full i18n: month/day names re-render automatically on language change (TH/EN/JA)
+  - Admin Events form: added `Calendar` option to Venue Mode dropdown
+  - Updated user guide (`how-to-use.php`) and admin help (`admin/help.php`, `admin/help-en.php`) with Calendar View documentation
+
+> **📁 Files changed:** `index.php`, `admin/api.php`, `admin/index.php`, `admin/help.php`, `admin/help-en.php`, `how-to-use.php`, `js/common.js`, `js/translations.js`, `styles/common.css`
+
 ## [2.6.5] - 2026-03-10
 
 ### Security

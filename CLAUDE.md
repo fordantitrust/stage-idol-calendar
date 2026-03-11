@@ -514,6 +514,20 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.7.2 (2026-03-12)
+
+- 🔧 **Rename `$eventMetaId` → `$eventId`** — leftover name from the `events_meta` era (before v1.2.9 table rename); renamed across all public pages, APIs, cache functions, and tests: `feed.php`, `export.php`, `credits.php`, `index.php`, `api.php`, `api/request.php`, `tools/import-ics-to-sqlite.php`, `functions/cache.php`, `tests/FeedTest.php`; no functional changes
+
+### v2.7.1 (2026-03-11)
+
+- 🐛 **Calendar view border gap fix** — `.month-calendar` เปลี่ยนจาก `border: 1px solid` เป็น `box-shadow: inset 0 0 0 1px` ทำให้ grid fill เต็ม 100% ไม่มี sub-pixel gap ที่ขอบขวาของแถว DOW header และ trailing cells
+- 🐛 **Cell divider direction fix** — เปลี่ยนจาก `border-right` เป็น `border-left` บน `.cal-dow` และ `.cal-day`
+- ✨ **Duration display in calendar detail** — แสดง duration `(xx h xx m)` ใน detail modal และ day panel
+
+### v2.7.0 (2026-03-11)
+
+- 📅 **Calendar View** — `venue_mode = 'calendar'` as third venue type for stream/online schedules; monthly 7-column grid; ◀ ▶ navigation restricted to months with programs (hidden if only one month); **Desktop**: chips (platform icon + artist + time), tap → detail modal; **Mobile**: dot indicators (max 3 + "+N"), tap day → day panel with title/categories/time/type/description/Live button; grid `minmax(46px, 1fr)` fills width, scrolls on narrow screens; all colors via CSS variables (all 6 themes); XSS-safe registries (`_calChipEvents`, `_calDpEvents`); List/Timeline toggle hidden; full i18n auto re-render; Admin Venue Mode: Calendar option; updated `how-to-use.php`, `admin/help.php`, `admin/help-en.php`
+
 ### v2.6.5 (2026-03-10)
 
 - 🔒 **XSS fix ใน filter tag removal** — `index.php` onclick ปุ่ม ✕ ของ artist/type/venue ใช้ `addslashes()` (database escaping) ไม่ใช่ JS escaping; เปลี่ยนเป็น `json_encode()` + `htmlspecialchars(ENT_QUOTES)`
