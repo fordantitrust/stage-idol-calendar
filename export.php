@@ -8,6 +8,16 @@ header('X-Content-Type-Options: nosniff');
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
+
+// If a specific slug was requested but the event doesn't exist or is inactive,
+// return 404 instead of silently exporting all programs.
+if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "Event not found or inactive.";
+    exit;
+}
+
 $eventId   = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 

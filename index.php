@@ -8,6 +8,24 @@ send_security_headers();
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
+
+// If a specific slug was requested but the event doesn't exist or is inactive,
+// show 404 instead of silently falling back to all programs.
+if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
+    http_response_code(404);
+    $siteTitle = get_site_title();
+    $theme = get_site_theme();
+    echo '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ไม่พบ Event - ' . htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8') . '</title>'
+        . '<link rel="stylesheet" href="styles/common.css?v=' . APP_VERSION . '">'
+        . '</head><body class="theme-' . htmlspecialchars($theme, ENT_QUOTES, 'UTF-8') . '">'
+        . '<div style="text-align:center;padding:80px 20px">'
+        . '<h1>🌸 404 – ไม่พบ Event</h1>'
+        . '<p>Event นี้ไม่มีอยู่ หรือถูกปิดใช้งานแล้ว</p>'
+        . '<a href="/" style="color:var(--sakura-dark)">← กลับหน้าหลัก</a>'
+        . '</div></body></html>';
+    exit;
+}
+
 $eventId = $eventMeta ? intval($eventMeta['id']) : null;
 $currentVenueMode = get_event_venue_mode($eventMeta);
 $activeEvents = get_all_active_events();

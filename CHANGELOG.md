@@ -5,6 +5,24 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.3] - 2026-03-12
+
+### Fixed
+- 🔒 **Inactive event data leak** — when a specific event slug was requested but the event was inactive (or did not exist), `get_event_by_slug()` returned `null`, causing `$eventId` to be `null`; `IcsParser` then fetched programs from **all events** instead of returning nothing
+  - `feed.php` — returns HTTP 404 instead of serving another event's ICS feed
+  - `export.php` — returns HTTP 404 instead of exporting another event's ICS file
+  - `api.php` — returns HTTP 404 with an empty JSON array instead of leaking programs from other events
+  - `api/request.php` `getEvents()` — returns an empty program list instead of returning programs from all events
+  - `index.php` — renders a 404 HTML page with a link back to the homepage instead of displaying programs from all events
+
+### Tests
+- 🧪 **3 new tests in `IntegrationTest`** — cover the inactive event scenarios that triggered the data leak; total 1587 tests across 12 suites
+  - `testGetEventBySlugReturnsNullForInactiveEvent` — `get_event_by_slug()` must return `null` when `is_active = 0`
+  - `testGetEventIdReturnsNullForInactiveEvent` — `get_event_id()` must return `null` when event is inactive
+  - `testGetAllActiveEventsExcludesInactiveEvent` — `get_all_active_events()` must not include inactive events
+
+> **📁 Files changed:** `feed.php`, `export.php`, `api.php`, `api/request.php`, `index.php`, `tests/IntegrationTest.php`
+
 ## [2.7.2] - 2026-03-12
 
 ### Changed

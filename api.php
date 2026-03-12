@@ -54,7 +54,14 @@ $eventSlug = isset($_GET['event']) ? preg_replace('/[^a-zA-Z0-9\-_]/', '', $_GET
 $eventId = null;
 if ($eventSlug) {
     $eventMeta = get_event_by_slug($eventSlug);
-    $eventId = $eventMeta ? intval($eventMeta['id']) : null;
+    // If a specific slug was requested but not found/inactive, return empty results.
+    if ($eventMeta === null) {
+        http_response_code(404);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([]);
+        exit;
+    }
+    $eventId = intval($eventMeta['id']);
 }
 
 $parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);

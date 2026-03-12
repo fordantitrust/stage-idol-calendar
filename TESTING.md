@@ -1888,7 +1888,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v2.7.2
+**Version**: v2.7.3
 
 **Result**: Pass / Fail
 
