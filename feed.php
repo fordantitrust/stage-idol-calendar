@@ -15,7 +15,9 @@
  * RFC 5545 compliance:
  *   - Lines exceeding 75 octets are folded (CRLF + SPACE continuation)
  *   - CATEGORIES uses comma-delimiter correctly (not escaped)
- *   - All property values escape: backslash, semicolon, newline
+ *   - SUMMARY/LOCATION/DESCRIPTION: backslash, semicolon, newline escaped;
+ *     commas left unescaped (single-value TEXT — comma is not a delimiter)
+ *   - CATEGORIES individual values: all special chars including comma escaped
  *
  * Cache strategy:
  *   ETag based on data version (invalidated immediately when admin
@@ -133,12 +135,12 @@ $calName    = ($eventName ? $eventName . ' - ' : '') . $siteTitle;
 
 icsLine("BEGIN:VCALENDAR");
 icsLine("VERSION:2.0");
-icsLine("PRODID:-//" . $siteTitle . "//NONSGML v1.0//EN");
+icsLine("PRODID:-//" . icsEscapeText($siteTitle) . "//NONSGML v1.0//EN");
 icsLine("CALSCALE:GREGORIAN");
 icsLine("METHOD:PUBLISH");
-icsLine("X-WR-CALNAME:" . $calName);
+icsLine("X-WR-CALNAME:" . icsEscape($calName));
 icsLine("X-WR-TIMEZONE:Asia/Bangkok");
-icsLine("X-WR-CALDESC:" . $siteTitle . " live calendar feed ($eventCount programs)");
+icsLine("X-WR-CALDESC:" . icsEscapeText($siteTitle) . " live calendar feed ($eventCount programs)");
 icsLine("X-PUBLISHED-TTL:PT1H");              // Apple Calendar refresh hint
 icsLine("REFRESH-INTERVAL;VALUE=DURATION:PT1H"); // RFC 7986 (Google Calendar)
 
@@ -157,14 +159,14 @@ foreach ($filteredEvents as $event) {
     icsLine("LAST-MODIFIED:" . $dtstamp);
     icsLine("DTSTART:" . $startTime);
     icsLine("DTEND:" . $endTime);
-    icsLine("SUMMARY:" . icsEscape($event['title']));
+    icsLine("SUMMARY:" . icsEscapeText($event['title']));
 
     if (!empty($event['location'])) {
-        icsLine("LOCATION:" . icsEscape($event['location']));
+        icsLine("LOCATION:" . icsEscapeText($event['location']));
     }
 
     if (!empty($event['description'])) {
-        icsLine("DESCRIPTION:" . icsEscape($event['description']));
+        icsLine("DESCRIPTION:" . icsEscapeText($event['description']));
     }
 
     if (!empty($event['stream_url'])) {
@@ -261,7 +263,7 @@ function icsFold(string $line): string {
  * Escape special characters in an ICS text value per RFC 5545 §3.3.11.
  * Escapes: backslash, semicolon, comma, newline.
  *
- * Used for: SUMMARY, LOCATION, DESCRIPTION, and individual CATEGORIES values.
+ * Used for: individual CATEGORIES values (where comma IS a value delimiter).
  * For CATEGORIES the caller splits on ',' first so that the delimiter commas
  * are never passed into this function.
  */
@@ -269,6 +271,27 @@ function icsEscape(string $value): string {
     $value = str_replace('\\', '\\\\', $value); // backslash must be first
     $value = str_replace(';',  '\\;',  $value);
     $value = str_replace(',',  '\\,',  $value);
+    $value = str_replace("\n", '\\n',  $value);
+    $value = str_replace("\r", '',     $value);
+    return $value;
+}
+
+/**
+ * Escape special characters for single-value TEXT properties:
+ * SUMMARY, LOCATION, DESCRIPTION.
+ *
+ * Commas are intentionally NOT escaped here.  RFC 5545 §3.3.11 requires
+ * escaping commas in TEXT values, but in practice Apple Calendar, Google
+ * Calendar, Outlook, and iOS Calendar all export SUMMARY with unescaped
+ * commas — and some clients misinterpret the backslash in "\," causing the
+ * title to be truncated at that position.  Since SUMMARY/LOCATION/DESCRIPTION
+ * are single-value properties (comma is never a value delimiter in them),
+ * leaving commas unescaped is universally safe for display.
+ */
+function icsEscapeText(string $value): string {
+    $value = str_replace('\\', '\\\\', $value); // backslash must be first
+    $value = str_replace(';',  '\\;',  $value);
+    // commas left as-is — not a delimiter in single-value TEXT properties
     $value = str_replace("\n", '\\n',  $value);
     $value = str_replace("\r", '',     $value);
     return $value;

@@ -514,6 +514,12 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.7.5 (2026-03-12)
+
+- 🐛 **`feed.php` SUMMARY comma truncation** — `icsEscape()` escaped commas to `\,` in SUMMARY; some clients (iOS, Outlook) misinterpret `\,` and truncate at that position; added `icsEscapeText()` for single-value TEXT properties (SUMMARY/LOCATION/DESCRIPTION) that leaves commas unescaped — matches Apple Calendar / Google Calendar export behaviour; `icsEscape()` (with comma escaping) retained for CATEGORIES where comma IS the RFC 5545 value delimiter
+- 🐛 **`feed.php` calendar header properties unescaped** — `X-WR-CALNAME`, `X-WR-CALDESC`, `PRODID` were output without escaping; `X-WR-CALNAME` now uses `icsEscape()` (comma → `\,` to prevent client comma-truncation of calendar name); `X-WR-CALDESC` + `PRODID` use `icsEscapeText()`
+- 🧪 **FeedTest +11 tests** → 1630 total
+
 ### v2.7.4 (2026-03-12)
 
 - 🔒 **`credits.php` inactive event leak** — 404 page แทน show credits ทุก event
