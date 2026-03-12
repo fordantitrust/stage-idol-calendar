@@ -514,6 +514,17 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.7.4 (2026-03-12)
+
+- 🔒 **`credits.php` inactive event leak** — 404 page แทน show credits ทุก event
+- 🔒 **`index.php` `BASE_PATH` JS injection** — `json_encode()` แทน bare echo สำหรับ `$_SERVER["SCRIPT_NAME"]`
+- 🔒 **`api/request.php` datetime validation** — เปลี่ยนจาก `strtotime()` เป็น `checkdate()` + range check (`hour ≤ 23`, `minute/second ≤ 59`); ปฏิเสธ overflow เช่น month 13, Feb 31, hour 25
+- 🔒 **`functions/cache.php` concurrent write** — เพิ่ม `LOCK_EX` ใน `file_put_contents()` ทั้ง 2 จุด (`get_data_version`, `get_cached_credits`)
+- 🔒 **`admin/api.php` restore auto-backup unchecked** — `copy()` return value ถูก ignore ใน `restoreBackup()` + `uploadAndRestoreBackup()`; ถ้า auto-backup ล้มเหลวจะ abort restore ทันที
+- 🔒 **`admin/api.php` ICS MIME over-permissive** — ลบ `application/octet-stream` ออก; เพิ่มตรวจ `BEGIN:VCALENDAR`/`END:VCALENDAR` ก่อน parse
+- 🔒 **`admin/api.php` `stream_url` scheme validation** — `createProgram()` + `updateProgram()` validate `stream_url` ด้วย `preg_match('/^https?:\/\//i')`; ค่าที่ไม่ใช่ http/https (เช่น `javascript:`) ถูก store เป็น `null` ป้องกัน stored XSS
+- 🐛 **`feed.php` TOCTOU race condition** — `file_exists()` + `readfile()` มี race window; เปลี่ยนเป็น `@file_get_contents()` + echo; return false เมื่อ race loss → fall through regenerate
+
 ### v2.7.3 (2026-03-12)
 
 - 🔒 **Inactive event data leak fix** — when slug was requested but event inactive/not found, `$eventId = null` caused `IcsParser` to fetch all programs from all events; fixed in `feed.php`, `export.php`, `api.php`, `api/request.php`, `index.php`: slug specified but event not found → 404 (or empty response for API) instead of leaking other events' data

@@ -244,4 +244,4 @@ Access /admin ✅
 
 ---
 
-*Idol Stage Timetable v2.7.3*
+*Idol Stage Timetable v2.7.4*

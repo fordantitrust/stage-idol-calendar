@@ -608,8 +608,10 @@ function testFeedPhpWritesCacheFile($test) {
 
 function testFeedPhpReadsCacheFileWithReadfile($test) {
     $src = file_get_contents(dirname(__DIR__) . '/feed.php');
-    $test->assertContains('readfile($feedCacheFile)', $src,
-        'feed.php must serve cached ICS content using readfile() (no DB query needed)');
+    // Uses file_get_contents() + echo instead of readfile() to avoid TOCTOU race condition
+    // (cache file could be deleted between file_exists() check and readfile() call)
+    $test->assertContains('file_get_contents($feedCacheFile)', $src,
+        'feed.php must serve cached ICS content using file_get_contents() (race-condition-safe)');
 }
 
 function testAdminApiInvalidatesFeedCacheOnCreate($test) {

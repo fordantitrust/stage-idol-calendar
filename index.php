@@ -611,7 +611,7 @@ $hasTypes = !empty($types);
 
     <script>
     const DEFAULT_EVENT_SLUG = '<?php echo DEFAULT_EVENT_SLUG; ?>';
-    const BASE_PATH = '<?php echo rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\"); ?>';
+    const BASE_PATH = <?php echo json_encode(rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\")); ?>;
     </script>
 
     <?php if (!$showEventListing): ?>

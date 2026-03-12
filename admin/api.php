@@ -375,7 +375,9 @@ function createProgram() {
         $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
 
         $programType = isset($input['program_type']) && $input['program_type'] !== '' ? trim($input['program_type']) : null;
-        $streamUrl = isset($input['stream_url']) && $input['stream_url'] !== '' ? trim($input['stream_url']) : null;
+        $streamUrlRaw = isset($input['stream_url']) && $input['stream_url'] !== '' ? trim($input['stream_url']) : null;
+        // Only allow http/https schemes to prevent javascript: URI XSS
+        $streamUrl = ($streamUrlRaw !== null && preg_match('/^https?:\/\//i', $streamUrlRaw)) ? $streamUrlRaw : null;
 
         $stmt = $db->prepare("
             INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, created_at, updated_at)
@@ -442,9 +444,11 @@ function updateProgram() {
         $programType = array_key_exists('program_type', $input)
             ? (($input['program_type'] !== '' && $input['program_type'] !== null) ? trim($input['program_type']) : null)
             : null;
-        $streamUrl = array_key_exists('stream_url', $input)
+        $streamUrlRaw = array_key_exists('stream_url', $input)
             ? (($input['stream_url'] !== '' && $input['stream_url'] !== null) ? trim($input['stream_url']) : null)
             : null;
+        // Only allow http/https schemes to prevent javascript: URI XSS
+        $streamUrl = ($streamUrlRaw !== null && preg_match('/^https?:\/\//i', $streamUrlRaw)) ? $streamUrlRaw : null;
 
         $stmt = $db->prepare("
             UPDATE programs
@@ -912,7 +916,7 @@ function uploadAndParseIcs() {
 
     // Security validations
     $allowedExt = ['ics'];
-    $allowedMime = ['text/calendar', 'text/plain', 'application/octet-stream'];
+    $allowedMime = ['text/calendar', 'text/plain'];
     $maxSize = 5 * 1024 * 1024; // 5MB
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -942,6 +946,12 @@ function uploadAndParseIcs() {
     if ($content === false) {
         @unlink($tempFile);
         jsonResponse(false, null, 'Failed to read uploaded file');
+    }
+
+    // Structural validation: must be a valid iCalendar file
+    if (strpos($content, 'BEGIN:VCALENDAR') === false || strpos($content, 'END:VCALENDAR') === false) {
+        @unlink($tempFile);
+        jsonResponse(false, null, 'Invalid ICS file: missing BEGIN:VCALENDAR or END:VCALENDAR');
     }
 
     // Extract VEVENT blocks
@@ -2299,7 +2309,10 @@ function restoreBackup() {
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0755, true);
     }
-    copy($dbPath, $backupDir . '/' . $autoBackupName);
+    if (!copy($dbPath, $backupDir . '/' . $autoBackupName)) {
+        jsonResponse(false, null, 'Failed to create auto-backup before restore. Restore aborted.');
+        return;
+    }
 
     // Close current DB connection
     $db = null;
@@ -2362,7 +2375,10 @@ function uploadAndRestoreBackup() {
         mkdir($backupDir, 0755, true);
     }
     $autoBackupName = 'auto_before_restore_' . gmdate('Ymd_His') . '.db';
-    copy($dbPath, $backupDir . '/' . $autoBackupName);
+    if (!copy($dbPath, $backupDir . '/' . $autoBackupName)) {
+        jsonResponse(false, null, 'Failed to create auto-backup before restore. Restore aborted.');
+        return;
+    }
 
     // Close current DB connection
     $db = null;

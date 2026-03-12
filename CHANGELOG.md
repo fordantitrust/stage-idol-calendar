@@ -5,6 +5,20 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.4] - 2026-03-12
+
+### Fixed
+- 🔒 **`credits.php` inactive event data leak** — same root cause as v2.7.3: inactive slug caused `$eventId = null`, exposing credits from all events; now returns 404 page
+- 🔒 **`index.php` `$_SERVER["SCRIPT_NAME"]` JS injection** — replaced bare `echo` with `json_encode()` for `BASE_PATH` constant; prevents JS syntax error if server path contains quotes or backslashes
+- 🔒 **`api/request.php` datetime validation strengthened** — replaced lenient `strtotime()` check with `checkdate()` + explicit range checks (`hour ≤ 23`, `minute ≤ 59`, `second ≤ 59`); rejects overflow values such as month 13, Feb 31, or hour 25 that `strtotime()` silently accepted by rolling over
+- 🔒 **`functions/cache.php` concurrent write without lock** — `file_put_contents()` in `get_data_version()` and `get_cached_credits()` now uses `LOCK_EX` flag to prevent cache file corruption under concurrent requests
+- 🔒 **`admin/api.php` restore without guaranteed auto-backup** — `copy()` return value for auto-backup was ignored in both `restoreBackup()` and `uploadAndRestoreBackup()`; restore now aborts with an error if the auto-backup copy fails (e.g. disk full or permission denied), preventing data loss
+- 🔒 **`admin/api.php` ICS upload MIME over-permissive** — removed `application/octet-stream` from allowed MIME types (accepted any binary file); added structural validation that uploaded content contains `BEGIN:VCALENDAR` and `END:VCALENDAR` before parsing
+- 🔒 **`admin/api.php` `stream_url` scheme not validated** — `createProgram()` and `updateProgram()` stored any value for `stream_url` including `javascript:` URIs; now validates with `preg_match('/^https?:\/\//i')` and stores `null` for non-http(s) values, preventing stored XSS via stream URL
+- 🐛 **`feed.php` TOCTOU race condition on cache read** — `file_exists()` + `readfile()` had a window where the cache file could be deleted (by a concurrent `invalidate_feed_cache()`) between the two calls, causing a PHP warning and empty response; replaced with a single `@file_get_contents()` call that gracefully falls through to regenerate on race loss
+
+> **📁 Files changed:** `credits.php`, `index.php`, `api/request.php`, `functions/cache.php`, `admin/api.php`, `feed.php`
+
 ## [2.7.3] - 2026-03-12
 
 ### Fixed

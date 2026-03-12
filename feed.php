@@ -88,13 +88,17 @@ $feedCacheKey  = md5(json_encode([
 $feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventId ?? '0') . '_' . $feedCacheKey . '.ics';
 
 if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_CACHE_TTL) {
-    header('Content-Type: text/calendar; charset=utf-8');
-    header('Content-Disposition: inline; filename="feed.ics"');
-    header('Cache-Control: no-store, no-cache');
-    header('Pragma: no-cache');
-    header('ETag: ' . $etag);
-    readfile($feedCacheFile);
-    exit;
+    $cachedContent = @file_get_contents($feedCacheFile);
+    if ($cachedContent !== false) {
+        header('Content-Type: text/calendar; charset=utf-8');
+        header('Content-Disposition: inline; filename="feed.ics"');
+        header('Cache-Control: no-store, no-cache');
+        header('Pragma: no-cache');
+        header('ETag: ' . $etag);
+        echo $cachedContent;
+        exit;
+    }
+    // Cache file was deleted between file_exists() and read — fall through to regenerate
 }
 
 // ── Fetch & filter programs ───────────────────────────────────────────────────
