@@ -514,6 +514,10 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.7.3 (2026-03-12)
+
+- 🔒 **Inactive event data leak fix** — when slug was requested but event inactive/not found, `$eventId = null` caused `IcsParser` to fetch all programs from all events; fixed in `feed.php`, `export.php`, `api.php`, `api/request.php`, `index.php`: slug specified but event not found → 404 (or empty response for API) instead of leaking other events' data
+
 ### v2.7.2 (2026-03-12)
 
 - 🔧 **Rename `$eventMetaId` → `$eventId`** — leftover name from the `events_meta` era (before v1.2.9 table rename); renamed across all public pages, APIs, cache functions, and tests: `feed.php`, `export.php`, `credits.php`, `index.php`, `api.php`, `api/request.php`, `tools/import-ics-to-sqlite.php`, `functions/cache.php`, `tests/FeedTest.php`; no functional changes

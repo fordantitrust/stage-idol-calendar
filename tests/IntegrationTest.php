@@ -552,3 +552,87 @@ function testGetEventMetaIdNonExistent($test) {
     $id = get_event_id('non_existent_slug_12345');
     $test->assertNull($id, 'Should return null for non-existent slug');
 }
+
+function testGetEventBySlugReturnsNullForInactiveEvent($test) {
+    // Insert an inactive event, verify get_event_by_slug returns null (not the inactive row)
+    $db = new PDO('sqlite:' . DB_PATH);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $slug = 'test_inactive_event_' . time();
+
+    $stmt = $db->prepare("INSERT INTO events (slug, name, venue_mode, is_active, created_at, updated_at) VALUES (:slug, 'Inactive Event', 'multi', 0, datetime('now'), datetime('now'))");
+    $stmt->execute([':slug' => $slug]);
+    $insertedId = $db->lastInsertId();
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+
+    $meta = get_event_by_slug($slug);
+    $test->assertNull($meta, 'get_event_by_slug should return null for inactive event (is_active=0)');
+
+    // Cleanup
+    $db = new PDO('sqlite:' . DB_PATH);
+    $stmt = $db->prepare("DELETE FROM events WHERE id = :id");
+    $stmt->execute([':id' => $insertedId]);
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+}
+
+function testGetEventIdReturnsNullForInactiveEvent($test) {
+    // Insert an inactive event, verify get_event_id returns null
+    $db = new PDO('sqlite:' . DB_PATH);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $slug = 'test_inactive_id_' . time();
+
+    $stmt = $db->prepare("INSERT INTO events (slug, name, venue_mode, is_active, created_at, updated_at) VALUES (:slug, 'Inactive Event 2', 'multi', 0, datetime('now'), datetime('now'))");
+    $stmt->execute([':slug' => $slug]);
+    $insertedId = $db->lastInsertId();
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+
+    $id = get_event_id($slug);
+    $test->assertNull($id, 'get_event_id should return null for inactive event (is_active=0)');
+
+    // Cleanup
+    $db = new PDO('sqlite:' . DB_PATH);
+    $stmt = $db->prepare("DELETE FROM events WHERE id = :id");
+    $stmt->execute([':id' => $insertedId]);
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+}
+
+function testGetAllActiveEventsExcludesInactiveEvent($test) {
+    // Insert one inactive and one active event, verify only active appears
+    $db = new PDO('sqlite:' . DB_PATH);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $slugInactive = 'test_excl_inactive_' . time();
+    $slugActive   = 'test_excl_active_' . time();
+
+    $stmt = $db->prepare("INSERT INTO events (slug, name, venue_mode, is_active, created_at, updated_at) VALUES (:slug, 'Inactive', 'multi', 0, datetime('now'), datetime('now'))");
+    $stmt->execute([':slug' => $slugInactive]);
+    $inactiveId = $db->lastInsertId();
+    $stmt->closeCursor();
+
+    $stmt = $db->prepare("INSERT INTO events (slug, name, venue_mode, is_active, created_at, updated_at) VALUES (:slug, 'Active', 'multi', 1, datetime('now'), datetime('now'))");
+    $stmt->execute([':slug' => $slugActive]);
+    $activeId = $db->lastInsertId();
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+
+    $events = get_all_active_events();
+    $slugs  = array_column($events, 'slug');
+
+    $test->assertFalse(in_array($slugInactive, $slugs), 'Inactive event should not appear in get_all_active_events()');
+    $test->assertContains($slugActive, $slugs, 'Active event should appear in get_all_active_events()');
+
+    // Cleanup
+    $db = new PDO('sqlite:' . DB_PATH);
+    $stmt = $db->prepare("DELETE FROM events WHERE id IN (:a, :b)");
+    $stmt->execute([':a' => $inactiveId, ':b' => $activeId]);
+    $stmt->closeCursor();
+    $stmt = null;
+    $db = null;
+}

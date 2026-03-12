@@ -121,6 +121,11 @@ function getEvents() {
         $eventId = null;
         if ($eventSlug) {
             $eventId = get_event_id($eventSlug);
+            // If slug was specified but event not found/inactive, return empty list.
+            if ($eventId === null) {
+                jsonResponse(true, []);
+                return;
+            }
         }
 
         if ($eventId) {
