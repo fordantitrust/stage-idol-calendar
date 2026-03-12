@@ -5,6 +5,16 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.5] - 2026-03-12
+
+### Fixed
+
+- 🐛 **`feed.php` SUMMARY comma truncation** — `icsEscape()` was escaping commas to `\,` in SUMMARY; some calendar clients (iOS, Outlook) misinterpret `\,` and truncate the event title at that position. Added `icsEscapeText()` for single-value TEXT properties (SUMMARY, LOCATION, DESCRIPTION) that leaves commas unescaped — commas are not value delimiters in these properties, so this is safe and matches Apple Calendar / Google Calendar export behaviour. `icsEscape()` (with comma escaping) is still used for individual CATEGORIES values where comma IS the RFC 5545 value delimiter.
+- 🐛 **`feed.php` calendar header properties unescaped** — `X-WR-CALNAME`, `X-WR-CALDESC`, and `PRODID` were outputting `$calName`/`$siteTitle` without any escaping; backslash/semicolon/newline in the event name or site title would produce a malformed ICS header. `X-WR-CALNAME` now uses `icsEscape()` (comma escaped to `\,` to prevent calendar-name truncation at comma in clients); `X-WR-CALDESC` and `PRODID` use `icsEscapeText()` (comma left unescaped as it is plain text).
+- 🧪 **FeedTest +11 tests** — `_feed_icsEscapeText()` replica + 7 unit tests + 2 SUMMARY source-check tests + 2 header-escaping source-check tests; total 1630 tests (80 in FeedTest)
+
+> **📁 Files changed:** `feed.php`, `tests/FeedTest.php`
+
 ## [2.7.4] - 2026-03-12
 
 ### Fixed
