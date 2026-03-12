@@ -77,6 +77,18 @@ function submitRequest() {
         jsonResponse(false, null, 'Program ID required for modify');
     }
 
+    // Validate datetime format and value ranges (YYYY-MM-DD HH:MM or YYYY-MM-DD HH:MM:SS)
+    foreach (['start', 'end'] as $field) {
+        $val = $input[$field] ?? '';
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?$/', $val, $m)) {
+            jsonResponse(false, null, "Invalid datetime format for '$field'");
+        }
+        [, $y, $mo, $d, $h, $mi, $s] = array_pad($m, 7, '00');
+        if (!checkdate((int)$mo, (int)$d, (int)$y) || (int)$h > 23 || (int)$mi > 59 || (int)$s > 59) {
+            jsonResponse(false, null, "Invalid datetime value for '$field'");
+        }
+    }
+
     // Sanitize
     // Resolve event_id from event_slug
     $eventId = null;

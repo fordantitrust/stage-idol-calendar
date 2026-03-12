@@ -53,7 +53,7 @@ function get_data_version($eventId = null) {
         file_put_contents($cacheFile, json_encode([
             'version' => $version,
             'timestamp' => time()
-        ]));
+        ]), LOCK_EX);
 
         return $version;
     } catch (Exception $e) {
@@ -112,7 +112,7 @@ function get_cached_credits($eventId = null) {
         file_put_contents($cacheFile, json_encode([
             'data' => $credits,
             'timestamp' => time()
-        ]));
+        ]), LOCK_EX);
 
         return $credits;
 
