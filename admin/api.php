@@ -184,6 +184,28 @@ switch ($action) {
     case 'title_save':
         saveTitleSetting();
         break;
+    case 'disclaimer_get':
+        getDisclaimerSetting();
+        break;
+    case 'disclaimer_save':
+        saveDisclaimerSetting();
+        break;
+    // Contact Channels
+    case 'contact_channels_list':
+        listContactChannels();
+        break;
+    case 'contact_channels_get':
+        getContactChannel();
+        break;
+    case 'contact_channels_create':
+        createContactChannel();
+        break;
+    case 'contact_channels_update':
+        updateContactChannel();
+        break;
+    case 'contact_channels_delete':
+        deleteContactChannel();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
 }
@@ -2477,6 +2499,149 @@ function saveTitleSetting() {
     } else {
         jsonResponse(false, null, 'Failed to save title setting');
     }
+}
+
+function getDisclaimerSetting() {
+    require_api_admin_role();
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $data = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    jsonResponse(true, [
+        'disclaimer_th' => $data['disclaimer_th'] ?? '',
+        'disclaimer_en' => $data['disclaimer_en'] ?? '',
+        'disclaimer_ja' => $data['disclaimer_ja'] ?? '',
+    ]);
+}
+
+function saveDisclaimerSetting() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    $input = json_decode(file_get_contents('php://input'), true);
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $cacheDir = dirname($settingsFile);
+    if (!is_dir($cacheDir)) mkdir($cacheDir, 0755, true);
+    $existing = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    $existing['disclaimer_th'] = isset($input['disclaimer_th']) ? trim($input['disclaimer_th']) : '';
+    $existing['disclaimer_en'] = isset($input['disclaimer_en']) ? trim($input['disclaimer_en']) : '';
+    $existing['disclaimer_ja'] = isset($input['disclaimer_ja']) ? trim($input['disclaimer_ja']) : '';
+    $existing['updated_at'] = time();
+    $ok = file_put_contents($settingsFile, json_encode($existing), LOCK_EX);
+    if ($ok !== false) {
+        jsonResponse(true, null, 'Disclaimer saved');
+    } else {
+        jsonResponse(false, null, 'Failed to save disclaimer');
+    }
+}
+
+// =============================================================================
+// CONTACT CHANNELS
+// =============================================================================
+
+function ensureContactChannelsTable() {
+    global $db;
+    $db->exec("CREATE TABLE IF NOT EXISTS contact_channels (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        icon TEXT DEFAULT '',
+        title TEXT NOT NULL DEFAULT '',
+        description TEXT DEFAULT '',
+        url TEXT DEFAULT '',
+        display_order INTEGER DEFAULT 0,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+}
+
+function listContactChannels() {
+    global $db;
+    ensureContactChannelsTable();
+    $stmt = $db->query("SELECT * FROM contact_channels ORDER BY display_order ASC, id ASC");
+    $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    jsonResponse(true, $channels);
+}
+
+function getContactChannel() {
+    global $db;
+    ensureContactChannelsTable();
+    $id = intval($_GET['id'] ?? 0);
+    $stmt = $db->prepare("SELECT * FROM contact_channels WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    $channel = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$channel) {
+        jsonResponse(false, null, 'Channel not found');
+        return;
+    }
+    jsonResponse(true, $channel);
+}
+
+function createContactChannel() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    ensureContactChannelsTable();
+    $input = json_decode(file_get_contents('php://input'), true);
+    $title = trim($input['title'] ?? '');
+    if ($title === '') {
+        jsonResponse(false, null, 'Title is required');
+        return;
+    }
+    $stmt = $db->prepare("INSERT INTO contact_channels (icon, title, description, url, display_order, is_active)
+                          VALUES (:icon, :title, :description, :url, :display_order, :is_active)");
+    $stmt->execute([
+        ':icon'          => trim($input['icon'] ?? ''),
+        ':title'         => $title,
+        ':description'   => trim($input['description'] ?? ''),
+        ':url'           => trim($input['url'] ?? ''),
+        ':display_order' => intval($input['display_order'] ?? 0),
+        ':is_active'     => isset($input['is_active']) ? (int)$input['is_active'] : 1,
+    ]);
+    jsonResponse(true, ['id' => $db->lastInsertId()], 'Channel created');
+}
+
+function updateContactChannel() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT required');
+        return;
+    }
+    ensureContactChannelsTable();
+    $id = intval($_GET['id'] ?? 0);
+    $input = json_decode(file_get_contents('php://input'), true);
+    $title = trim($input['title'] ?? '');
+    if ($title === '') {
+        jsonResponse(false, null, 'Title is required');
+        return;
+    }
+    $stmt = $db->prepare("UPDATE contact_channels SET
+        icon = :icon, title = :title, description = :description,
+        url = :url, display_order = :display_order, is_active = :is_active
+        WHERE id = :id");
+    $stmt->execute([
+        ':icon'          => trim($input['icon'] ?? ''),
+        ':title'         => $title,
+        ':description'   => trim($input['description'] ?? ''),
+        ':url'           => trim($input['url'] ?? ''),
+        ':display_order' => intval($input['display_order'] ?? 0),
+        ':is_active'     => isset($input['is_active']) ? (int)$input['is_active'] : 1,
+        ':id'            => $id,
+    ]);
+    jsonResponse(true, null, 'Channel updated');
+}
+
+function deleteContactChannel() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE required');
+        return;
+    }
+    ensureContactChannelsTable();
+    $id = intval($_GET['id'] ?? 0);
+    $stmt = $db->prepare("DELETE FROM contact_channels WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    jsonResponse(true, null, 'Channel deleted');
 }
 
 /**

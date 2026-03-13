@@ -989,6 +989,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">👤 Users</button>
                 <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">💾 Backup</button>
                 <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem">⚙️ Settings</button>
+                <button class="tab-mobile-item" onclick="switchTab('contact')" data-tab="contact" role="menuitem">✉️ Contact</button>
                 <?php endif; ?>
             </div>
         </div>
@@ -1004,6 +1005,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
             <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
             <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+            <button class="tab-btn" onclick="switchTab('contact')">✉️ Contact</button>
             <?php endif; ?>
         </div>
 
@@ -1365,6 +1367,32 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         </div>
         <?php endif; ?>
 
+        <!-- Contact Channels Section -->
+        <?php if ($adminRole === 'admin'): ?>
+        <div id="contactSection" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+                <h3 style="margin:0">✉️ ช่องทางติดต่อ</h3>
+                <button class="btn btn-primary" onclick="openChannelModal(null)">➕ เพิ่มช่องทาง</button>
+            </div>
+            <div style="overflow-x:auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px">Icon</th>
+                        <th>ชื่อ / รายละเอียด</th>
+                        <th>URL</th>
+                        <th style="width:60px;text-align:center">Active</th>
+                        <th style="width:130px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="contactChannelsTbody">
+                    <tr><td colspan="5" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Settings Section -->
         <?php if ($adminRole === 'admin'): ?>
         <div id="settingsSection" style="display:none">
@@ -1388,6 +1416,31 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <button class="btn btn-primary" onclick="saveThemeSetting()" id="themeSaveBtn">💾 บันทึก Theme</button>
                 <span id="themeSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
+
+                <hr style="margin:32px 0;border:none;border-top:1px solid #e9ecef">
+                <h3 style="margin-bottom:8px">⚠️ Disclaimer (ข้อจำกัดความรับผิดชอบ)</h3>
+                <p style="color:#6c757d;margin-bottom:16px">ข้อความ disclaimer ที่แสดงในหน้า "ติดต่อเรา" รองรับ 3 ภาษา หากเว้นว่างจะใช้ค่า default จาก translations.js</p>
+
+                <div style="margin-bottom:16px">
+                    <label style="font-weight:600;display:block;margin-bottom:6px">🇹🇭 ภาษาไทย</label>
+                    <textarea id="disclaimerTh" rows="3"
+                        style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
+                        placeholder="ข้อความ disclaimer ภาษาไทย..."></textarea>
+                </div>
+                <div style="margin-bottom:16px">
+                    <label style="font-weight:600;display:block;margin-bottom:6px">🇬🇧 English</label>
+                    <textarea id="disclaimerEn" rows="3"
+                        style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
+                        placeholder="Disclaimer text in English..."></textarea>
+                </div>
+                <div style="margin-bottom:16px">
+                    <label style="font-weight:600;display:block;margin-bottom:6px">🇯🇵 日本語</label>
+                    <textarea id="disclaimerJa" rows="3"
+                        style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
+                        placeholder="免責事項（日本語）..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="saveDisclaimerSetting()" id="disclaimerSaveBtn">💾 บันทึก Disclaimer</button>
+                <span id="disclaimerSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
             </div>
         </div>
         <?php endif; ?>
@@ -1452,6 +1505,51 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmDeleteUser()">Delete</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- Contact Channel Modal -->
+    <?php if ($adminRole === 'admin'): ?>
+    <div class="modal-overlay" id="channelModal" style="display:none">
+        <div class="modal" style="max-width:480px">
+            <div class="modal-header">
+                <h2 id="channelModalTitle">เพิ่มช่องทางติดต่อ</h2>
+                <button class="modal-close" onclick="closeChannelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="channelForm" onsubmit="submitChannelForm(event)">
+                    <div class="form-group">
+                        <label>Icon (emoji)</label>
+                        <input type="text" id="chIcon" maxlength="10" placeholder="💬" style="font-size:1.3em;width:80px">
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อช่องทาง <span style="color:red">*</span></label>
+                        <input type="text" id="chTitle" required maxlength="100" placeholder="เช่น Twitter (X), Line, Email">
+                    </div>
+                    <div class="form-group">
+                        <label>รายละเอียด</label>
+                        <input type="text" id="chDescription" maxlength="200" placeholder="เช่น ติดตามข่าวสารและอัปเดต">
+                    </div>
+                    <div class="form-group">
+                        <label>URL / Contact</label>
+                        <input type="text" id="chUrl" maxlength="500" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label>ลำดับการแสดง</label>
+                        <input type="number" id="chOrder" value="0" min="0" max="999" style="width:100px">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                            <input type="checkbox" id="chActive" checked> แสดงในหน้าติดต่อเรา (Active)
+                        </label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeChannelModal()">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -2016,12 +2114,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (backupEl) backupEl.style.display = tab === 'backup' ? 'block' : 'none';
             const settingsEl = document.getElementById('settingsSection');
             if (settingsEl) settingsEl.style.display = tab === 'settings' ? 'block' : 'none';
+            const contactEl = document.getElementById('contactSection');
+            if (contactEl) contactEl.style.display = tab === 'contact' ? 'block' : 'none';
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
             if (tab === 'events') loadEventsTab();
             if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
             if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
-            if (tab === 'settings' && ADMIN_ROLE === 'admin') { loadThemeSettings(); loadTitleSetting(); }
+            if (tab === 'settings' && ADMIN_ROLE === 'admin') { loadThemeSettings(); loadTitleSetting(); loadDisclaimerSetting(); }
+            if (tab === 'contact' && ADMIN_ROLE === 'admin') loadContactChannels();
         }
 
         // Mobile tab dropdown controls
@@ -4687,6 +4788,159 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
             })
             .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function loadDisclaimerSetting() {
+            fetch('api.php?action=disclaimer_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('disclaimerTh').value = data.data.disclaimer_th || '';
+                        document.getElementById('disclaimerEn').value = data.data.disclaimer_en || '';
+                        document.getElementById('disclaimerJa').value = data.data.disclaimer_ja || '';
+                    }
+                });
+        }
+
+        function saveDisclaimerSetting() {
+            const btn = document.getElementById('disclaimerSaveBtn');
+            btn.disabled = true;
+            fetch('api.php?action=disclaimer_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({
+                    disclaimer_th: document.getElementById('disclaimerTh').value.trim(),
+                    disclaimer_en: document.getElementById('disclaimerEn').value.trim(),
+                    disclaimer_ja: document.getElementById('disclaimerJa').value.trim(),
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('disclaimerSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        // Contact Channels
+        let contactChannels = [];
+        let editingChannelId = null;
+
+        function loadContactChannels() {
+            fetch('api.php?action=contact_channels_list')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        contactChannels = data.data || [];
+                        renderContactChannels();
+                    }
+                });
+        }
+
+        function renderContactChannels() {
+            const tbody = document.getElementById('contactChannelsTbody');
+            if (!tbody) return;
+            if (contactChannels.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">ยังไม่มีช่องทางติดต่อ</td></tr>';
+                return;
+            }
+            tbody.innerHTML = contactChannels.map(ch => `
+                <tr>
+                    <td style="font-size:1.4em;text-align:center">${escHtml(ch.icon)}</td>
+                    <td><strong>${escHtml(ch.title)}</strong>${ch.description ? '<br><small style="color:#666">' + escHtml(ch.description) + '</small>' : ''}</td>
+                    <td>${ch.url ? '<a href="' + escHtml(ch.url) + '" target="_blank" rel="noopener noreferrer" style="color:#0d6efd">' + escHtml(ch.url) + '</a>' : '-'}</td>
+                    <td style="text-align:center">${ch.is_active ? '<span style="color:green">✓</span>' : '<span style="color:#999">✗</span>'}</td>
+                    <td style="white-space:nowrap">
+                        <button class="btn btn-sm btn-secondary" onclick="openChannelModal(${ch.id})">✏️ แก้ไข</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteChannel(${ch.id}, '${escHtml(ch.title).replace(/'/g, "\\'")}')">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function escHtml(str) {
+            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function openChannelModal(id) {
+            editingChannelId = id || null;
+            const modal = document.getElementById('channelModal');
+            const title = document.getElementById('channelModalTitle');
+            if (id) {
+                const ch = contactChannels.find(c => c.id == id);
+                if (!ch) return;
+                title.textContent = '✏️ แก้ไขช่องทางติดต่อ';
+                document.getElementById('chIcon').value = ch.icon || '';
+                document.getElementById('chTitle').value = ch.title || '';
+                document.getElementById('chDescription').value = ch.description || '';
+                document.getElementById('chUrl').value = ch.url || '';
+                document.getElementById('chOrder').value = ch.display_order || 0;
+                document.getElementById('chActive').checked = ch.is_active == 1;
+            } else {
+                title.textContent = '➕ เพิ่มช่องทางติดต่อ';
+                document.getElementById('chIcon').value = '';
+                document.getElementById('chTitle').value = '';
+                document.getElementById('chDescription').value = '';
+                document.getElementById('chUrl').value = '';
+                document.getElementById('chOrder').value = 0;
+                document.getElementById('chActive').checked = true;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeChannelModal() {
+            document.getElementById('channelModal').style.display = 'none';
+            editingChannelId = null;
+        }
+
+        function submitChannelForm(e) {
+            e.preventDefault();
+            const payload = {
+                icon: document.getElementById('chIcon').value.trim(),
+                title: document.getElementById('chTitle').value.trim(),
+                description: document.getElementById('chDescription').value.trim(),
+                url: document.getElementById('chUrl').value.trim(),
+                display_order: parseInt(document.getElementById('chOrder').value) || 0,
+                is_active: document.getElementById('chActive').checked ? 1 : 0,
+            };
+            if (!payload.title) { alert('กรุณากรอก Title'); return; }
+            const isEdit = editingChannelId !== null;
+            const url = isEdit ? 'api.php?action=contact_channels_update&id=' + editingChannelId : 'api.php?action=contact_channels_create';
+            fetch(url, {
+                method: isEdit ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    closeChannelModal();
+                    loadContactChannels();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => alert('Network error'));
+        }
+
+        function deleteChannel(id, title) {
+            if (!confirm('ลบช่องทาง "' + title + '" ?')) return;
+            fetch('api.php?action=contact_channels_delete&id=' + id, {
+                method: 'DELETE',
+                headers: { 'X-CSRF-Token': CSRF_TOKEN }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) loadContactChannels();
+                else alert('Error: ' + data.message);
+            })
+            .catch(() => alert('Network error'));
         }
 
     </script>

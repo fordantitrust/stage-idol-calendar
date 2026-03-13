@@ -194,8 +194,7 @@ const translations = {
         'contact.subtitle': 'หากพบปัญหาหรือต้องการข้อมูลเพิ่มเติม',
         'contact.section1.title': '📧 ช่องทางการติดต่อ',
         'contact.section1.desc': 'หากคุณพบข้อผิดพลาดในข้อมูล มีคำแนะนำ หรือต้องการรายงานปัญหาการใช้งาน กรุณาติดต่อผ่านช่องทางด้านล่าง',
-        'contact.social.title': 'Twitter (X)',
-        'contact.social.desc': 'ติดตามข่าวสารและอัปเดต',
+        'contact.noChannels': 'ยังไม่มีช่องทางติดต่อที่กำหนดไว้',
         'contact.section2.title': '⚠️ ข้อมูลที่ควรระบุ',
         'contact.section2.desc': 'เมื่อรายงานปัญหา กรุณาระบุข้อมูลดังต่อไปนี้:',
         'contact.section2.item1': 'อุปกรณ์ที่ใช้งาน (มือถือ/คอมพิวเตอร์, iOS/Android/Windows/Mac)',
@@ -205,9 +204,6 @@ const translations = {
         'contact.section2.item5': 'Screenshot (ถ้าเป็นไปได้)',
         'contact.disclaimer.title': '⚠️ ข้อจำกัดความรับผิดชอบ',
         'contact.disclaimer.text': 'ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของงาน your event organizers อีกครั้ง',
-        'contact.section3.title': '🙏 ขอบคุณ',
-        'contact.section3.text': 'ขอบคุณที่ใช้งานปฏิทินกิจกรรมนี้ หากมีข้อเสนอแนะหรือต้องการช่วยพัฒนาโปรเจกต์นี้ เรายินดีรับฟังและต้อนรับเสมอ!',
-
         // Event listing page
         'listing.title': 'รายการ Events',
         'listing.ongoing': 'กำลังจัดงาน',
@@ -445,8 +441,7 @@ const translations = {
         'contact.subtitle': 'If you find any issues or need more information',
         'contact.section1.title': '📧 Contact Channels',
         'contact.section1.desc': 'If you find errors in the data, have suggestions, or want to report usage issues, please contact us through the channels below',
-        'contact.social.title': 'Twitter (X)',
-        'contact.social.desc': 'Follow news and updates',
+        'contact.noChannels': 'No contact channels configured yet.',
         'contact.section2.title': '⚠️ Information to Include',
         'contact.section2.desc': 'When reporting issues, please provide the following information:',
         'contact.section2.item1': 'Device used (mobile/computer, iOS/Android/Windows/Mac)',
@@ -456,9 +451,6 @@ const translations = {
         'contact.section2.item5': 'Screenshot (if possible)',
         'contact.disclaimer.title': '⚠️ Disclaimer',
         'contact.disclaimer.text': 'This is an Unofficial Calendar created for the convenience of event visitors. Information may differ from the actual schedule of the organizers. Please check the latest information from the official your event organizers website again.',
-        'contact.section3.title': '🙏 Thank You',
-        'contact.section3.text': 'Thank you for using this event calendar. If you have any suggestions or want to help develop this project, we are always happy to listen and welcome you!',
-
         // Event listing page
         'listing.title': 'Events',
         'listing.ongoing': 'Ongoing',
@@ -696,8 +688,7 @@ const translations = {
         'contact.subtitle': '問題が発生した場合や詳細情報が必要な場合',
         'contact.section1.title': '📧 連絡先',
         'contact.section1.desc': 'データにエラーが見つかった場合、提案がある場合、または使用上の問題を報告したい場合は、以下のチャンネルからお問い合わせください',
-        'contact.social.title': 'Twitter (X)',
-        'contact.social.desc': 'ニュースと更新情報をフォロー',
+        'contact.noChannels': 'まだ連絡先チャンネルが設定されていません。',
         'contact.section2.title': '⚠️ 含めるべき情報',
         'contact.section2.desc': '問題を報告する際は、以下の情報を提供してください:',
         'contact.section2.item1': '使用デバイス（モバイル/コンピュータ、iOS/Android/Windows/Mac）',
@@ -707,9 +698,6 @@ const translations = {
         'contact.section2.item5': 'スクリーンショット（可能な場合）',
         'contact.disclaimer.title': '⚠️ 免責事項',
         'contact.disclaimer.text': 'これはイベント来場者の便宜のために作成された非公式カレンダーです。情報は主催者の実際のスケジュールと異なる場合があります。your event organizers公式ウェブサイトから最新情報を再度確認してください。',
-        'contact.section3.title': '🙏 ありがとうございます',
-        'contact.section3.text': 'このイベントカレンダーをご利用いただきありがとうございます。提案がある場合や、このプロジェクトの開発を手伝いたい場合は、いつでも喜んでお聞きし、歓迎します！',
-
         // Event listing page
         'listing.title': 'イベント一覧',
         'listing.ongoing': '開催中',

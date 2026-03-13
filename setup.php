@@ -211,6 +211,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
 
+            // contact_channels table — ช่องทางติดต่อ
+            $db->exec("CREATE TABLE IF NOT EXISTS contact_channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                icon TEXT DEFAULT '',
+                title TEXT NOT NULL DEFAULT '',
+                description TEXT DEFAULT '',
+                url TEXT DEFAULT '',
+                display_order INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
             // admin_users table — ผู้ใช้ admin
             $db->exec("CREATE TABLE IF NOT EXISTS admin_users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

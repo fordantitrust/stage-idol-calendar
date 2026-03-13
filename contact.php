@@ -5,6 +5,24 @@ send_security_headers();
 // Multi-event support
 $eventSlug = get_current_event_slug();
 $eventMeta = get_event_by_slug($eventSlug);
+
+// Load contact channels from DB
+$contactChannels = [];
+try {
+    $db = new PDO('sqlite:' . DB_PATH);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // Check table exists before querying
+    $tableCheck = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='contact_channels'");
+    if ($tableCheck->fetch()) {
+        $stmt = $db->query("SELECT * FROM contact_channels WHERE is_active = 1 ORDER BY display_order ASC, id ASC");
+        $contactChannels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+} catch (PDOException $e) {
+    // Silently fall through — show empty channels list
+}
+
+// Load disclaimer
+$disclaimer = get_site_disclaimer();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -69,16 +87,28 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <p data-i18n="contact.section1.desc">หากคุณพบข้อผิดพลาดในข้อมูล มีคำแนะนำ หรือต้องการรายงานปัญหาการใช้งาน กรุณาติดต่อผ่านช่องทางด้านล่าง</p>
 
                 <div class="contact-box">
-                    <div class="contact-item">
-                        <div class="contact-icon">💬</div>
-                        <div class="contact-info">
-                            <h3 data-i18n="contact.social.title">Twitter (X)</h3>
-                            <p data-i18n="contact.social.desc">ติดตามข่าวสารและอัปเดต</p>
-                            <a href="https://x.com/FordAntiTrust" target="_blank" rel="noopener noreferrer">
-                                @FordAntiTrust
-                            </a>
+                    <?php if (!empty($contactChannels)): ?>
+                        <?php foreach ($contactChannels as $ch): ?>
+                        <div class="contact-item">
+                            <?php if (!empty($ch['icon'])): ?>
+                            <div class="contact-icon"><?php echo htmlspecialchars($ch['icon']); ?></div>
+                            <?php endif; ?>
+                            <div class="contact-info">
+                                <h3><?php echo htmlspecialchars($ch['title']); ?></h3>
+                                <?php if (!empty($ch['description'])): ?>
+                                <p><?php echo htmlspecialchars($ch['description']); ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($ch['url'])): ?>
+                                <a href="<?php echo htmlspecialchars($ch['url']); ?>" target="_blank" rel="noopener noreferrer">
+                                    <?php echo htmlspecialchars($ch['url']); ?>
+                                </a>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p style="color: var(--text-muted, #666); padding: 12px 0;" data-i18n="contact.noChannels">ยังไม่มีช่องทางติดต่อที่กำหนดไว้</p>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -96,12 +126,7 @@ $eventMeta = get_event_by_slug($eventSlug);
 
             <div class="disclaimer">
                 <strong data-i18n="contact.disclaimer.title">⚠️ ข้อจำกัดความรับผิดชอบ</strong>
-                <p data-i18n="contact.disclaimer.text">ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของงาน JP EXPO Thailand อีกครั้ง</p>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="contact.section3.title">🙏 ขอบคุณ</h2>
-                <p data-i18n="contact.section3.text">ขอบคุณที่ใช้งานปฏิทินกิจกรรมนี้ หากมีข้อเสนอแนะหรือต้องการช่วยพัฒนาโปรเจกต์นี้ เรายินดีรับฟังและต้อนรับเสมอ!</p>
+                <p id="disclaimerText" data-i18n="contact.disclaimer.text">ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของงาน อีกครั้ง</p>
             </div>
         </div>
 
@@ -117,6 +142,27 @@ $eventMeta = get_event_by_slug($eventSlug);
     <!-- Shared JavaScript -->
     <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
+    <?php
+    // Patch disclaimer translations with DB values if configured
+    $hasDisclaimerTh = !empty($disclaimer['th']);
+    $hasDisclaimerEn = !empty($disclaimer['en']);
+    $hasDisclaimerJa = !empty($disclaimer['ja']);
+    if ($hasDisclaimerTh || $hasDisclaimerEn || $hasDisclaimerJa):
+    ?>
+    <script>
+    (function() {
+        <?php if ($hasDisclaimerTh): ?>
+        if (translations.th) translations.th['contact.disclaimer.text'] = <?php echo json_encode($disclaimer['th']); ?>;
+        <?php endif; ?>
+        <?php if ($hasDisclaimerEn): ?>
+        if (translations.en) translations.en['contact.disclaimer.text'] = <?php echo json_encode($disclaimer['en']); ?>;
+        <?php endif; ?>
+        <?php if ($hasDisclaimerJa): ?>
+        if (translations.ja) translations.ja['contact.disclaimer.text'] = <?php echo json_encode($disclaimer['ja']); ?>;
+        <?php endif; ?>
+    })();
+    </script>
+    <?php endif; ?>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 </body>
 </html>

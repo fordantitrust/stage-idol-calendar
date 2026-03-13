@@ -328,6 +328,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
+            <a href="#contact">Tab: Contact</a>
             <a href="#roles">User Roles</a>
             <a href="#tips">Tips &amp; FAQ</a>
         </div>
@@ -362,6 +363,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
+                <li><a href="#contact">Tab: Contact</a></li>
                 <li><a href="#roles">User Roles</a></li>
                 <li><a href="#tips">Tips &amp; FAQ</a></li>
             </ul>
@@ -388,10 +390,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">✉️ Contact <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>The <strong>👤 Users</strong>, <strong>💾 Backup</strong>, and <strong>⚙️ Settings</strong> tabs are only visible to users with the <strong>admin</strong> role.</div>
+                    <div>The <strong>👤 Users</strong>, <strong>💾 Backup</strong>, <strong>⚙️ Settings</strong>, and <strong>✉️ Contact</strong> tabs are only visible to users with the <strong>admin</strong> role.</div>
                 </div>
             </section>
 
@@ -802,7 +805,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>Configure global site settings — <strong>Site Title</strong> and <strong>Site Theme</strong> — for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
+                <p>Configure global site settings — <strong>Site Title</strong>, <strong>Site Theme</strong>, and <strong>Disclaimer</strong> — for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
 
                 <h3>📝 What is Site Title?</h3>
                 <p>
@@ -877,6 +880,67 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">💡</span>
                     <div>Set a per-event theme in the <strong>🎪 Events</strong> tab → click <strong>➕ Add Event</strong> or the <strong>✏️</strong> edit button → <strong>Theme</strong> field</div>
                 </div>
+
+                <h3>⚠️ Disclaimer</h3>
+                <p>
+                    The disclaimer text shown on the <strong>Contact</strong> page supports 3 languages (Thai / English / Japanese).
+                    If a field is left blank, the default value from <code>translations.js</code> is used instead.
+                </p>
+
+                <h3>How to Configure the Disclaimer</h3>
+                <ol class="steps">
+                    <li>Click the <strong>⚙️ Settings</strong> tab</li>
+                    <li>Scroll down to the <strong>Disclaimer</strong> section</li>
+                    <li>Fill in the text for 🇹🇭 Thai, 🇬🇧 English, and 🇯🇵 Japanese as needed (blank = use default)</li>
+                    <li>Click <strong>💾 Save Disclaimer</strong></li>
+                    <li>You will see <strong>✅ Saved</strong> — the new text takes effect immediately when the Contact page is reloaded</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The disclaimer is stored in <code>cache/site-settings.json</code> alongside the Site Title. The Contact page patches the translation strings server-side before JavaScript loads, so the text switches correctly when the visitor changes language.</div>
+                </div>
+            </section>
+
+            <!-- Contact Tab -->
+            <section class="help-section" id="contact">
+                <h2>✉️ Tab: Contact <span class="badge-admin">admin only</span></h2>
+                <p>Manage the <strong>contact channels</strong> displayed on the public Contact page — e.g. Twitter/X, Line, Email. Data is stored in SQLite; no code changes required.</p>
+
+                <h3>Key Features</h3>
+                <ul>
+                    <li>Add / Edit / Delete unlimited contact channels</li>
+                    <li>Set a <strong>display order</strong> using a number (lower = shown first)</li>
+                    <li>Show or hide individual channels with the <strong>Active</strong> toggle</li>
+                    <li>No migration script needed — the <code>contact_channels</code> table is created automatically</li>
+                </ul>
+
+                <h3>Contact Channel Fields</h3>
+                <table class="help-table">
+                    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Icon (emoji)</td><td>Emoji shown before the channel name, e.g. 💬 📧 📱</td></tr>
+                        <tr><td>Channel Name <span style="color:red">*</span></td><td>Name displayed on the page, e.g. "Twitter (X)", "Line Official"</td></tr>
+                        <tr><td>Description</td><td>Short note, e.g. "Follow for news and updates"</td></tr>
+                        <tr><td>URL / Contact</td><td>A clickable link, e.g. https://x.com/... or mailto:...</td></tr>
+                        <tr><td>Display Order</td><td>Integer ≥ 0; lower values are shown first</td></tr>
+                        <tr><td>Active</td><td>Controls visibility on the public Contact page</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>How to Add a Contact Channel</h3>
+                <ol class="steps">
+                    <li>Click the <strong>✉️ Contact</strong> tab</li>
+                    <li>Click <strong>➕ Add Channel</strong></li>
+                    <li>Fill in the form (Channel Name is required)</li>
+                    <li>Click <strong>💾 Save</strong></li>
+                    <li>The new channel appears immediately on the public Contact page</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>To temporarily hide a channel without deleting it, uncheck <strong>Active</strong> in the edit form. The channel will not appear on the public Contact page until re-activated.</div>
+                </div>
             </section>
 
             <!-- Roles -->
@@ -893,7 +957,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Disclaimer)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
