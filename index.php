@@ -119,6 +119,7 @@ unset($dayEvents); // ยกเลิก reference
 
 // แสดง column "ประเภท" เมื่อมี program ที่มี program_type อย่างน้อย 1 รายการ
 $hasTypes = !empty($types);
+$today = date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -183,10 +184,6 @@ $hasTypes = !empty($types);
              Program Listing (Homepage)
              ======================================== -->
         <header>
-            <div class="version-display">
-                <span>v</span>
-                <span><?php echo APP_VERSION; ?></span>
-            </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
@@ -309,27 +306,26 @@ $hasTypes = !empty($types);
              Calendar View (Event Detail)
              ======================================== -->
         <header>
-            <div class="version-display">
-                <span>v</span>
-                <span><?php echo APP_VERSION; ?></span>
-            </div>
+            <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
+            <button class="event-picker-btn" onclick="openEventPicker()" data-i18n-title="eventPicker.title" title="เลือก Event">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <circle cx="3" cy="3" r="2" fill="currentColor"/>
+                    <circle cx="9" cy="3" r="2" fill="currentColor"/>
+                    <circle cx="15" cy="3" r="2" fill="currentColor"/>
+                    <circle cx="3" cy="9" r="2" fill="currentColor"/>
+                    <circle cx="9" cy="9" r="2" fill="currentColor"/>
+                    <circle cx="15" cy="9" r="2" fill="currentColor"/>
+                    <circle cx="3" cy="15" r="2" fill="currentColor"/>
+                    <circle cx="9" cy="15" r="2" fill="currentColor"/>
+                    <circle cx="15" cy="15" r="2" fill="currentColor"/>
+                </svg>
+            </button>
+            <?php endif; ?>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
                 <button class="lang-btn" data-lang="ja" onclick="changeLanguage('ja')">日本</button>
             </div>
-            <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
-            <div class="program-selector">
-                <select id="eventSelector" onchange="switchEvent(this.value)">
-                    <?php foreach ($activeEvents as $ev): ?>
-                    <option value="<?php echo htmlspecialchars($ev['slug']); ?>"
-                            <?php echo ($ev['slug'] === $eventSlug) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($ev['name']); ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <?php endif; ?>
             <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
             <?php if ($eventMeta): ?>
             <div class="event-subtitle"><?php echo htmlspecialchars($eventName); ?></div>
@@ -605,7 +601,7 @@ $hasTypes = !empty($types);
             <div class="footer-text">
                 <p data-i18n="footer.madeWith">สร้างด้วย ❤️ เพื่อแฟนไอดอล</p>
                 <p data-i18n="footer.copyright">© 2026 Idol Stage Timetable. All rights reserved.</p>
-                <p>Powered by <a href="https://github.com/fordantitrust/stage-idol-calendar" target="_blank">Stage Idol Calendar</a></p>
+                <p>Powered by <a href="https://github.com/fordantitrust/stage-idol-calendar" target="_blank">Stage Idol Calendar</a> <span class="footer-version">v<?php echo APP_VERSION; ?></span></p>
             </div>
         </footer>
     </div>
@@ -1094,5 +1090,90 @@ $hasTypes = !empty($types);
     })();
     </script>
     <?php endif; ?>
+
+<?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
+<!-- Event Picker Modal -->
+<div id="eventPickerModal" class="event-picker-overlay" onclick="if(event.target===this)closeEventPicker()">
+    <div class="event-picker-modal">
+        <div class="event-picker-modal-header">
+            <span data-i18n="eventPicker.title">เลือก Event</span>
+            <button class="event-picker-close" onclick="closeEventPicker()">✕</button>
+        </div>
+        <div class="event-picker-controls">
+            <input type="search" id="eventPickerSearch"
+                   class="event-picker-search"
+                   placeholder="ค้นหา event..."
+                   data-i18n-placeholder="eventPicker.searchPlaceholder"
+                   oninput="filterEventPicker()"
+                   autocomplete="off">
+            <div class="event-picker-filter-tabs" id="eventPickerTabs">
+                <button class="ep-tab active" data-status="all"     onclick="setEventPickerTab(this)" data-i18n="eventPicker.all">ทั้งหมด</button>
+                <button class="ep-tab"         data-status="ongoing" onclick="setEventPickerTab(this)" data-i18n="listing.ongoing">กำลังจัดงาน</button>
+                <button class="ep-tab"         data-status="upcoming" onclick="setEventPickerTab(this)" data-i18n="listing.upcoming">กำลังจะมาถึง</button>
+                <button class="ep-tab"         data-status="past"    onclick="setEventPickerTab(this)" data-i18n="listing.past">จบแล้ว</button>
+            </div>
+        </div>
+        <div class="event-picker-grid" id="eventPickerGrid">
+            <?php
+            // Sort: current first → ongoing (start DESC) → upcoming (start ASC) → past (start DESC)
+            $pickerEvents = $activeEvents;
+            usort($pickerEvents, function($a, $b) use ($today, $eventSlug) {
+                $aIsCurrent = ($a['slug'] === $eventSlug) ? 0 : 1;
+                $bIsCurrent = ($b['slug'] === $eventSlug) ? 0 : 1;
+                if ($aIsCurrent !== $bIsCurrent) return $aIsCurrent - $bIsCurrent;
+
+                $aStart = $a['start_date'] ?? '9999-12-31';
+                $aEnd   = $a['end_date']   ?? $aStart;
+                $bStart = $b['start_date'] ?? '9999-12-31';
+                $bEnd   = $b['end_date']   ?? $bStart;
+
+                $aStatus = ($aStart <= $today && $aEnd >= $today) ? 0 : ($aStart > $today ? 1 : 2);
+                $bStatus = ($bStart <= $today && $bEnd >= $today) ? 0 : ($bStart > $today ? 1 : 2);
+                if ($aStatus !== $bStatus) return $aStatus - $bStatus;
+
+                // ongoing & past: most recent start first (DESC)
+                // upcoming: nearest start first (ASC)
+                return $aStatus === 1
+                    ? strcmp($aStart, $bStart)   // upcoming ASC
+                    : strcmp($bStart, $aStart);  // ongoing/past DESC
+            });
+            foreach ($pickerEvents as $ev):
+                $evStart = $ev['start_date'] ?? null;
+                $evEnd   = $ev['end_date'] ?? $evStart;
+                $evStatus = 'upcoming';
+                if ($evStart && $evEnd) {
+                    if ($evStart <= $today && $evEnd >= $today) $evStatus = 'ongoing';
+                    elseif ($evEnd < $today) $evStatus = 'past';
+                }
+                $displayStart = $evStart ? date('d/m/Y', strtotime($evStart)) : null;
+                $displayEnd   = $evEnd   ? date('d/m/Y', strtotime($evEnd))   : null;
+                $isCurrent    = ($ev['slug'] === $eventSlug);
+                $cardUrl      = event_url('index.php', $ev['slug']);
+                $statusLabel  = $evStatus === 'ongoing' ? 'กำลังจัดงาน' : ($evStatus === 'upcoming' ? 'กำลังจะมาถึง' : 'จบแล้ว');
+                $statusI18n   = 'listing.' . $evStatus;
+            ?>
+            <a href="<?php echo htmlspecialchars($cardUrl); ?>"
+               class="event-picker-card<?php echo $isCurrent ? ' current' : ''; ?>"
+               data-name="<?php echo htmlspecialchars(mb_strtolower($ev['name'], 'UTF-8')); ?>"
+               data-status="<?php echo $evStatus; ?>">
+                <?php if ($isCurrent): ?>
+                <span class="event-picker-current-badge">✓ ดูอยู่</span>
+                <?php endif; ?>
+                <div class="event-picker-card-name"><?php echo htmlspecialchars($ev['name']); ?></div>
+                <?php if ($displayStart): ?>
+                <div class="event-picker-card-dates">📅 <?php
+                    echo $displayStart;
+                    if ($displayEnd && $displayEnd !== $displayStart) echo ' – ' . $displayEnd;
+                ?></div>
+                <?php endif; ?>
+                <span class="event-picker-card-badge <?php echo $evStatus; ?>"
+                      data-i18n="<?php echo $statusI18n; ?>"><?php echo $statusLabel; ?></span>
+            </a>
+            <?php endforeach; ?>
+            <div class="event-picker-empty" id="eventPickerEmpty" style="display:none" data-i18n="eventPicker.noResults">ไม่พบ event ที่ตรงกัน</div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 </body>
 </html>

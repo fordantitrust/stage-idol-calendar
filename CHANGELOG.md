@@ -5,6 +5,23 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-03-13
+
+### Added
+
+- ✨ **Event Picker Modal** — replaces native `<select>` dropdown for switching events; button is a 38px circular grid-dots icon (top-left, same position as old version badge); modal shows all active events as cards with name, date range, and status badge (Ongoing / Upcoming / Past); currently-viewed event highlighted with a "Viewing" badge
+- ✨ **Event Picker search + filter** — real-time search by event name (UTF-8/Thai safe via `data-name` lowercase attribute); status filter tabs (All / Ongoing / Upcoming / Past); both filters combine as AND; "no results" empty state; i18n TH/EN/JA including placeholder
+- ✨ **Version moved to footer (all pages)** — app version removed from top-left header badge on all pages including the event listing homepage; now appears inline after "Powered by Stage Idol Calendar" in the footer as `v2.8.0` in monospace on all public pages (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`); `footer-version` CSS class in `styles/common.css`
+
+### Changed
+
+- 🎨 **`index.php` title bar includes event name** — `<title>` renders `[Event Name] - [Site Name]` when viewing a specific event for better social sharing previews (from v2.7.6)
+- 🎨 **Gantt bar layout — time + title inline** — time and title on same row (`flex`); type badge below; title truncates with `…` (from v2.7.7)
+- 🎨 **Event Picker modal sort order** — events sorted: currently-viewing (top) → ongoing (start DESC) → upcoming (start ASC, nearest first) → past (start DESC); `usort()` in modal render loop; filter tabs still work independently after sort
+- 🎨 **Event Picker mobile layout** — bottom-sheet modal (slides up, `border-radius: 16px 16px 0 0`); grid switches to flex list; each row uses CSS grid (2-col: name+date left, badges right) so status badge and "Viewing" badge never overlap or wrap; dates restored on mobile
+
+> **📁 Files changed:** `index.php`, `js/common.js`, `js/translations.js`, `styles/index.css`, `styles/common.css`, `contact.php`, `credits.php`, `how-to-use.php`
+
 ## [2.7.7] - 2026-03-13
 
 ### Changed

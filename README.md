@@ -342,7 +342,7 @@ See **[API.md](API.md)** for complete endpoint documentation with request/respon
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.7.7'); // Change this to force cache refresh
+define('APP_VERSION', '2.8.0'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -686,7 +686,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.7.7
+**Current Version**: 2.8.0
 
 ---
 

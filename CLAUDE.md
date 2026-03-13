@@ -514,6 +514,14 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.8.0 (2026-03-13)
+
+- ✨ **Event Picker Modal** — แทน `<select>` dropdown ด้วย modal แสดง event cards; ปุ่มเป็น icon กลม grid-dots 38px ที่มุมซ้ายบน (แทน version badge เดิม); card แสดงชื่อ, วันที่, status badge; event ที่กำลังดูมี highlight + "✓ ดูอยู่"
+- ✨ **Event Picker search + filter tabs** — ค้นหา event realtime (UTF-8/ไทย); filter tabs ตาม status (ทั้งหมด/กำลังจัดงาน/กำลังจะมาถึง/จบแล้ว); AND condition; empty state; i18n TH/EN/JA
+- ✨ **Version ย้ายไป footer (ทุกหน้า)** — ลบ version badge จากมุมซ้ายบนทุกหน้า รวม event listing homepage; แสดงต่อท้าย "Powered by Stage Idol Calendar" ใน footer ทุกหน้า (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`) เป็น `v2.8.0` monospace; `.footer-version` CSS class ใน `styles/common.css`
+- 🎨 **Event Picker sort order** — ✓ ดูอยู่ → ongoing (start DESC) → upcoming (start ASC) → past (start DESC); `usort()` ใน modal render loop
+- 🎨 **Event Picker mobile bottom-sheet** — slide up จากล่าง; list layout; CSS grid 2-col ต่อ row (ชื่อ+วันที่ / badges); ไม่ overflow, ไม่ wrap
+
 ### v2.7.7 (2026-03-13)
 
 - 🎨 **Gantt bar layout — time + title inline** — ใน program bar เวลาและชื่อ program แสดงในแถวเดียวกัน (`flex row`) แทนการ stack แนวตั้ง; type badge ย้ายมาอยู่ด้านล่างแถว; title ตัดด้วย `…` แทน 2-line clamp; อ่านง่ายขึ้นเมื่อ bar สั้น

@@ -69,6 +69,12 @@ function updateLanguage() {
         if (lang[key]) el.placeholder = lang[key];
     });
 
+    // Update title attributes
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.dataset.i18nTitle;
+        if (lang[key]) el.title = lang[key];
+    });
+
     // Update day headers (for index page)
     const dayHeaderEls = domCache.dayHeaders || document.querySelectorAll('.day-header');
     dayHeaderEls.forEach(el => {
@@ -395,6 +401,54 @@ function exportToIcs() {
 
     window.location.href = exportPath + '?' + params.toString();
 }
+
+// ========================================
+// Event Picker Modal
+// ========================================
+
+function openEventPicker() {
+    var modal = document.getElementById('eventPickerModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeEventPicker() {
+    var modal = document.getElementById('eventPickerModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+var _epActiveStatus = 'all';
+
+function setEventPickerTab(btn) {
+    _epActiveStatus = btn.dataset.status;
+    document.querySelectorAll('.ep-tab').forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    filterEventPicker();
+}
+
+function filterEventPicker() {
+    var query = (document.getElementById('eventPickerSearch').value || '').toLowerCase().trim();
+    var cards = document.querySelectorAll('#eventPickerGrid .event-picker-card');
+    var visible = 0;
+    cards.forEach(function(card) {
+        var nameMatch   = !query || (card.dataset.name || '').indexOf(query) !== -1;
+        var statusMatch = _epActiveStatus === 'all' || card.dataset.status === _epActiveStatus;
+        var show = nameMatch && statusMatch;
+        card.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    var empty = document.getElementById('eventPickerEmpty');
+    if (empty) empty.style.display = visible === 0 ? 'block' : 'none';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeEventPicker();
+});
 
 // ========================================
 // ICS Subscription Feed

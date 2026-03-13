@@ -301,6 +301,12 @@ footer {
     font-size: 0.9em;
 }
 
+.footer-version {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    opacity: 0.65;
+}
+
 /* Notification Animations */
 @keyframes slideIn {
     from {
