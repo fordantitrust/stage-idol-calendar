@@ -34,7 +34,7 @@ Idol Stage Timetable is a PHP-based web application for managing and displaying 
 ## 🔧 System Requirements
 
 ### Minimum Requirements
-- **PHP**: 8.1 or higher (tested on PHP 8.1, 8.2, 8.3)
+- **PHP**: 8.1 or higher (tested on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
 - **PHP Extensions**: PDO, PDO_SQLite, mbstring
 - **Web Server**: Apache, Nginx, or PHP built-in server
 - **Disk Space**: ~10 MB + space for database
@@ -342,7 +342,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.10.1'); // Change to force cache refresh
+define('APP_VERSION', '2.10.2'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -814,12 +814,12 @@ chmod +x quick-test.sh
 - **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache, fallbacks, admin API, page injection
 - **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
 
-✅ **All 637 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 637 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 
 GitHub Actions automatically runs tests on every push/PR:
-- Tests run on **PHP 8.1, 8.2, and 8.3**
+- Tests run on **PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 - Separate security and integration test jobs
 - Automatic test result reporting
 - All tests pass on all PHP versions
@@ -841,7 +841,7 @@ Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
 - [ ] Verify all 637 tests pass
-- [ ] Test on target PHP version (8.1, 8.2, or 8.3)
+- [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
 - [ ] Update `APP_VERSION` for cache busting

@@ -126,7 +126,7 @@ See [Development Setup](#-development-setup) and [Pull Request Process](#-pull-r
 
 ### Prerequisites
 
-- PHP 8.1+ (tested on 8.1, 8.2, 8.3) with PDO SQLite and mbstring extensions
+- PHP 8.1+ (tested on 8.1, 8.2, 8.3, 8.4, 8.5) with PDO SQLite and mbstring extensions
 - Git
 - Text editor or IDE
 - Web browser with dev tools
@@ -242,7 +242,7 @@ How did you test this?
 
 ### PHP
 
-- **PHP Version**: 8.1+ compatible (tested on PHP 8.1, 8.2, 8.3)
+- **PHP Version**: 8.1+ compatible (tested on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
 - **Formatting**: 4 spaces for indentation, no tabs
 - **Naming**: camelCase for functions, UPPER_CASE for constants
 - **Comments**: DocBlock comments for functions

@@ -71,7 +71,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) + Feed static file cache (1 hour) with auto-invalidation | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **1630 Unit Tests** | Automated test suite across 12 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) | v1.1.0 |
+| 🧪 **1630 Unit Tests** | Automated test suite across 12 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 
@@ -115,7 +115,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v2.8.0** | 2026-03-13 | Event Picker Modal (replaces `<select>`): card grid · real-time search · status filter tabs (All/Ongoing/Upcoming/Past) · sort order · mobile bottom-sheet · version badge moved to footer |
 | **v2.9.0** | 2026-03-13 | Nav icon buttons (contact envelope + how-to-use open-book) · Event Picker Modal on `credits.php` · Credits global view grouped by event (newest-first, inactive hidden) · Credits menu renamed to "แหล่งข้อมูลอ้างอิง" |
 | **v2.10.0** | 2026-03-13 | Contact Channels DB-driven (Admin › Contact tab CRUD; auto-created table) · Disclaimer multilingual TH/EN/JA editable from Admin › Settings |
-| **v2.10.1** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) |
+| **v2.10.2** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) |
 
 ---
 
@@ -195,7 +195,7 @@ php tools/import-ics-to-sqlite.php
 
 ## 🔧 Requirements
 
-- **PHP 8.1+** (tested on PHP 8.1, 8.2, 8.3) with PDO SQLite extension
+- **PHP 8.1+** (tested on PHP 8.1, 8.2, 8.3, 8.4, 8.5) with PDO SQLite extension
 - **Web Server** (Apache, Nginx, or PHP built-in server)
 - Modern web browser with JavaScript enabled
 
@@ -396,7 +396,7 @@ See **[API.md](API.md)** for complete endpoint documentation with request/respon
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.10.1'); // Change this to force cache refresh
+define('APP_VERSION', '2.10.2'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -657,7 +657,7 @@ See [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) for database schema, migration 
 
 ### Built With
 
-- **Backend**: PHP 8.1+ (tested on 8.1, 8.2, 8.3), SQLite
+- **Backend**: PHP 8.1+ (tested on 8.1, 8.2, 8.3, 8.4, 8.5), SQLite
 - **Frontend**: Vanilla JavaScript, CSS3
 - **Libraries**: [html2canvas](https://html2canvas.hertzen.com/) (lazy-loaded for image export)
 - **Design**: Sakura (桜) theme with Material Design influences
@@ -715,16 +715,16 @@ quick-test.bat
 
 **CI/CD Integration:**
 
-GitHub Actions automatically run tests on every push/PR across **PHP 8.1, 8.2, and 8.3**.
+GitHub Actions automatically run tests on every push/PR across **PHP 8.1, 8.2, 8.3, 8.4, and 8.5**.
 
 ```yaml
 # .github/workflows/tests.yml included
 strategy:
   matrix:
-    php-version: ['8.1', '8.2', '8.3']
+    php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 1630 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 1630 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
@@ -743,7 +743,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
 
-**Current Version**: 2.10.1
+**Current Version**: 2.10.2
 
 ---
 

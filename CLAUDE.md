@@ -41,13 +41,13 @@
 - 🐳 **Docker Support** - Deploy ด้วย Docker Compose คำสั่งเดียว
 - 🔗 **Clean URLs** - ลบ .php extension จาก public URLs พร้อม .htaccess และ Nginx config
 - 📅 **Date Jump Bar** - แถบกระโดดไปวันที่ต้องการ (fixed-position, IntersectionObserver)
-- 🧪 **999 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3
+- 🧪 **999 Automated Tests** - ผ่านทั้งหมดบน PHP 8.1, 8.2, 8.3, 8.4, 8.5
 
 ## 🚀 การติดตั้ง
 
 ### ความต้องการ
 - **Docker** (แนะนำ) หรือ
-- **PHP 8.1+** (ทดสอบบน PHP 8.1, 8.2, 8.3) พร้อม PDO SQLite และ mbstring extension
+- **PHP 8.1+** (ทดสอบบน PHP 8.1, 8.2, 8.3, 8.4, 8.5) พร้อม PDO SQLite และ mbstring extension
 - **Web Server** (Apache, Nginx, หรือ PHP Built-in Server)
 
 ### 🐳 วิธีที่ 1: Docker (แนะนำ)
@@ -448,7 +448,7 @@ quick-test.bat
 - **ProgramTypeTest**: programs.program_type schema, CRUD, migration idempotency, public API type filter, admin API programs_types, index.php UI (appendFilter, hasTypes, event-subtitle, clickable badges), translations (table.type TH/EN/JA), admin UI v2.4.2 categories column
 - **FeedTest**: icsEscape() (backslash/semicolon/comma/newline/CR/Thai), icsFold() (75-byte limit, UTF-8 boundary, multi-fold), CATEGORIES delimiter logic (unescaped comma), ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 source checks
 
-✅ **ผ่านทั้งหมด 1276 tests บน PHP 8.1, 8.2, และ 8.3**
+✅ **ผ่านทั้งหมด 1276 tests บน PHP 8.1, 8.2, 8.3, 8.4, และ 8.5**
 
 ### Manual Testing
 
@@ -461,7 +461,7 @@ quick-test.bat
 ### CI/CD
 
 GitHub Actions รัน tests อัตโนมัติ:
-- ทดสอบบน **PHP 8.1, 8.2, และ 8.3**
+- ทดสอบบน **PHP 8.1, 8.2, 8.3, 8.4, และ 8.5**
 - Security และ Integration tests แยกกัน
 - ผ่านทุก test บนทุก PHP version
 - ดูที่ `.github/workflows/tests.yml`
@@ -534,6 +534,10 @@ END:VCALENDAR
 ### v2.7.7 (2026-03-13)
 
 - 🎨 **Gantt bar layout — time + title inline** — ใน program bar เวลาและชื่อ program แสดงในแถวเดียวกัน (`flex row`) แทนการ stack แนวตั้ง; type badge ย้ายมาอยู่ด้านล่างแถว; title ตัดด้วย `…` แทน 2-line clamp; อ่านง่ายขึ้นเมื่อ bar สั้น
+
+### v2.10.2 (2026-03-13)
+
+- 🐛 **Calendar view day panel language fix** — เปลี่ยนภาษาขณะที่ day panel เปิดอยู่ → วันที่ใน panel header ไม่ได้อัปเดตตามภาษาใหม่; แก้โดยเก็บ `window._calActiveDayKey`/`_calActiveDayEvs` state ใน `openDayPanel()`, ล้างใน `closeDayPanel()`, และ re-render panel ใน `renderAndMountCalendar()` หลัง language switch
 
 ### v2.10.1 (2026-03-13)
 
