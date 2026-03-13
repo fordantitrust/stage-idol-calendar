@@ -93,7 +93,7 @@ $eventMeta = get_event_by_slug($eventSlug);
             <div class="footer-text">
                 <p data-i18n="footer.madeWith">สร้างด้วย ❤️ เพื่อแฟนไอดอล</p>
                 <p data-i18n="footer.copyright">© 2026 Idol Stage Timetable. All rights reserved.</p>
-                <p>Powered by <a href="https://github.com/fordantitrust/stage-idol-calendar" target="_blank">Stage Idol Calendar</a></p>
+                <p>Powered by <a href="https://github.com/fordantitrust/stage-idol-calendar" target="_blank">Stage Idol Calendar</a> <span class="footer-version">v<?php echo APP_VERSION; ?></span></p>
             </div>
         </footer>
     </div>
