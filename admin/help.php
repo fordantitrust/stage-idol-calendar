@@ -364,6 +364,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
+            <a href="#contact">Tab: Contact</a>
             <a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a>
             <a href="#tips">เคล็ดลับ &amp; FAQ</a>
         </div>
@@ -398,6 +399,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
+                <li><a href="#contact">Tab: Contact</a></li>
                 <li><a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a></li>
                 <li><a href="#tips">เคล็ดลับ &amp; FAQ</a></li>
             </ul>
@@ -423,10 +425,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip">✉️ Contact <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>แท็บ <strong>👤 Users</strong>, <strong>💾 Backup</strong> และ <strong>⚙️ Settings</strong> มองเห็นได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</div>
+                    <div>แท็บ <strong>👤 Users</strong>, <strong>💾 Backup</strong>, <strong>⚙️ Settings</strong> และ <strong>✉️ Contact</strong> มองเห็นได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</div>
                 </div>
             </section>
 
@@ -835,7 +838,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>ตั้งค่าทั่วไปของเว็บไซต์ ได้แก่ <strong>Site Title</strong> และ <strong>Site Theme</strong> เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+                <p>ตั้งค่าทั่วไปของเว็บไซต์ ได้แก่ <strong>Site Title</strong>, <strong>Site Theme</strong> และ <strong>Disclaimer</strong> เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
 
                 <h3>📝 Site Title คืออะไร</h3>
                 <p>
@@ -910,6 +913,67 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">💡</span>
                     <div>ตั้งค่า theme ของ Event ได้ที่แท็บ <strong>🎪 Events</strong> → คลิก <strong>➕ เพิ่ม Event</strong> หรือ <strong>✏️</strong> แก้ไข → ช่อง <strong>Theme</strong></div>
                 </div>
+
+                <h3>⚠️ Disclaimer (ข้อจำกัดความรับผิดชอบ)</h3>
+                <p>
+                    ข้อความ disclaimer ที่แสดงในหน้า <strong>ติดต่อเรา</strong> รองรับ 3 ภาษา (ไทย / English / 日本語)
+                    หากเว้นว่างจะใช้ค่า default จาก <code>translations.js</code>
+                </p>
+
+                <h3>ขั้นตอนตั้งค่า Disclaimer</h3>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>⚙️ Settings</strong></li>
+                    <li>เลื่อนลงมาที่ส่วน <strong>Disclaimer</strong></li>
+                    <li>พิมพ์ข้อความในช่อง 🇹🇭 ภาษาไทย, 🇬🇧 English และ 🇯🇵 日本語 ตามต้องการ (ช่องไหนว่างจะใช้ค่า default)</li>
+                    <li>กด <strong>💾 บันทึก Disclaimer</strong></li>
+                    <li>เห็นข้อความ <strong>✅ บันทึกแล้ว</strong> → ค่าใหม่จะมีผลทันทีเมื่อ reload หน้า "ติดต่อเรา"</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Disclaimer ถูกเก็บใน <code>cache/site-settings.json</code> ร่วมกับ Site Title หน้า "ติดต่อเรา" จะ patch ค่า translation ด้วย PHP ก่อน JavaScript โหลด ทำให้ข้อความเปลี่ยนตามภาษาที่ผู้ใช้เลือกได้</div>
+                </div>
+            </section>
+
+            <!-- Contact Tab -->
+            <section class="help-section" id="contact">
+                <h2>✉️ Tab: Contact <span class="badge-admin">admin only</span></h2>
+                <p>จัดการ <strong>ช่องทางติดต่อ</strong> ที่แสดงในหน้า "ติดต่อเรา" ของเว็บไซต์ เช่น Twitter/X, Line, Email ฯลฯ ข้อมูลเก็บใน SQLite ไม่ต้อง hardcode ใน code</p>
+
+                <h3>ฟีเจอร์หลัก</h3>
+                <ul>
+                    <li>เพิ่ม / แก้ไข / ลบ ช่องทางติดต่อได้ไม่จำกัด</li>
+                    <li>กำหนด <strong>ลำดับการแสดง</strong> ด้วยตัวเลข (น้อย = แสดงก่อน)</li>
+                    <li>เปิด/ปิดการแสดงช่องทางได้ทีละรายการ (<strong>Active</strong> toggle)</li>
+                    <li>ไม่ต้องรัน migration script — ตาราง <code>contact_channels</code> ถูกสร้างอัตโนมัติ</li>
+                </ul>
+
+                <h3>ฟิลด์ของช่องทางติดต่อ</h3>
+                <table class="help-table">
+                    <thead><tr><th>ฟิลด์</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td>Icon (emoji)</td><td>emoji แสดงหน้าชื่อช่องทาง เช่น 💬 📧 📱</td></tr>
+                        <tr><td>ชื่อช่องทาง <span style="color:red">*</span></td><td>ชื่อที่แสดงบนหน้าเว็บ เช่น "Twitter (X)", "Line Official"</td></tr>
+                        <tr><td>รายละเอียด</td><td>คำอธิบายสั้นๆ เช่น "ติดตามข่าวสารและอัปเดต"</td></tr>
+                        <tr><td>URL / Contact</td><td>ลิงก์ที่คลิกได้ เช่น https://x.com/... หรือ mailto:...</td></tr>
+                        <tr><td>ลำดับการแสดง</td><td>ตัวเลข 0 ขึ้นไป ค่าน้อยจะแสดงก่อน</td></tr>
+                        <tr><td>Active</td><td>เปิด/ปิดการแสดงผลในหน้า "ติดต่อเรา"</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>ขั้นตอนเพิ่มช่องทางติดต่อ</h3>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>✉️ Contact</strong></li>
+                    <li>กด <strong>➕ เพิ่มช่องทาง</strong></li>
+                    <li>กรอกข้อมูลในฟอร์ม (ชื่อช่องทางเป็นข้อมูลบังคับ)</li>
+                    <li>กด <strong>💾 บันทึก</strong></li>
+                    <li>ช่องทางใหม่จะแสดงทันทีในหน้า "ติดต่อเรา"</li>
+                </ol>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>ถ้าต้องการซ่อนช่องทางชั่วคราวโดยไม่ลบ ให้ untick <strong>Active</strong> ในฟอร์มแก้ไข ช่องทางนั้นจะไม่แสดงบนหน้าเว็บ public</div>
+                </div>
             </section>
 
             <!-- Roles -->
@@ -926,7 +990,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Disclaimer)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>

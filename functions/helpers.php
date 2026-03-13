@@ -73,6 +73,34 @@ function get_site_title() {
 }
 
 // =============================================================================
+// SITE DISCLAIMER HELPER
+// =============================================================================
+
+/**
+ * Get the site disclaimer texts (3 languages)
+ *
+ * Returns array with keys 'th', 'en', 'ja'. Falls back to empty string per language
+ * if not yet configured (contact.php will use translations.js defaults in that case).
+ *
+ * @return array ['th' => string, 'en' => string, 'ja' => string]
+ */
+function get_site_disclaimer() {
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $defaults = ['th' => '', 'en' => '', 'ja' => ''];
+    if (file_exists($settingsFile)) {
+        $data = json_decode(file_get_contents($settingsFile), true);
+        if (is_array($data)) {
+            return [
+                'th' => isset($data['disclaimer_th']) ? $data['disclaimer_th'] : '',
+                'en' => isset($data['disclaimer_en']) ? $data['disclaimer_en'] : '',
+                'ja' => isset($data['disclaimer_ja']) ? $data['disclaimer_ja'] : '',
+            ];
+        }
+    }
+    return $defaults;
+}
+
+// =============================================================================
 // DATABASE CONNECTION (SINGLETON)
 // =============================================================================
 

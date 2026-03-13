@@ -5,6 +5,22 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.0] - 2026-03-13
+
+### Added
+- **Contact Channels (DB-driven)** — contact channels moved from hardcoded HTML to SQLite `contact_channels` table; Admin › Contact tab (admin role only) with full CRUD (icon, title, description, url, display_order, is_active); table auto-created via `ensureContactChannelsTable()` on first API call — no manual migration required; `setup.php` `init_database` creates the table on fresh install
+- **Disclaimer multilingual** — disclaimer text in 3 languages (TH/EN/JA) editable from Admin › Settings; stored in `cache/site-settings.json` (keys: `disclaimer_th`, `disclaimer_en`, `disclaimer_ja`); `get_site_disclaimer()` helper in `functions/helpers.php`; PHP-side translation patching via inline `<script>` injected between translations.js and common.js
+- **Migration script** — `tools/migrate-add-contact-channels-table.php` (idempotent)
+
+### Changed
+- **`contact.php`** — contact channels rendered server-side from DB; empty state shown when no channels are configured; disclaimer loaded via `get_site_disclaimer()`; removed "ขอบคุณ" (Thank You) section
+- **`js/translations.js`** — added `contact.noChannels` key (TH/EN/JA); removed `contact.section3.*` and `contact.social.*` keys
+- **`admin/api.php`** — added actions: `disclaimer_get`, `disclaimer_save`, `contact_channels_list`, `contact_channels_get`, `contact_channels_create`, `contact_channels_update`, `contact_channels_delete`
+- **`admin/index.php`** — added Contact tab (desktop + mobile dropdown); Disclaimer textareas in Settings section; channel modal; JS functions: `loadDisclaimerSetting()`, `saveDisclaimerSetting()`, `loadContactChannels()`, `renderContactChannels()`, `openChannelModal()`, `closeChannelModal()`, `submitChannelForm()`, `deleteChannel()`
+- **`admin/help.php` + `admin/help-en.php`** — added documentation for Contact tab and Disclaimer settings
+
+> **📁 Files changed:** `contact.php`, `js/translations.js`, `functions/helpers.php`, `admin/api.php`, `admin/index.php`, `admin/help.php`, `admin/help-en.php`, `setup.php`, `tools/migrate-add-contact-channels-table.php`
+
 ## [2.9.0] - 2026-03-13
 
 ### Added

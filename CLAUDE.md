@@ -535,6 +535,13 @@ END:VCALENDAR
 
 - 🎨 **Gantt bar layout — time + title inline** — ใน program bar เวลาและชื่อ program แสดงในแถวเดียวกัน (`flex row`) แทนการ stack แนวตั้ง; type badge ย้ายมาอยู่ด้านล่างแถว; title ตัดด้วย `…` แทน 2-line clamp; อ่านง่ายขึ้นเมื่อ bar สั้น
 
+### v2.10.0 (2026-03-13)
+
+- ✉️ **Contact Channels (DB-driven)** — ช่องทางติดต่อย้ายจาก hardcode → SQLite `contact_channels` table; Admin › Contact tab (admin role only) CRUD; auto-created via `ensureContactChannelsTable()`; `setup.php` `init_database` รองรับ
+- ⚠️ **Disclaimer multilingual** — แก้ไข Disclaimer TH/EN/JA ได้จาก Admin › Settings; เก็บใน `cache/site-settings.json`; `get_site_disclaimer()` helper; PHP-side translation patching ผ่าน inline script
+- 🗑️ **`contact.php` ลบ section "ขอบคุณ"** — render channels จาก DB; empty state เมื่อไม่มี channel
+- 📖 **`admin/help.php` + `admin/help-en.php`** — เพิ่มเอกสาร Contact tab และ Disclaimer settings
+
 ### v2.7.6 (2026-03-13)
 
 - ✨ **Event name in page title** — `index.php` `<title>` แสดง `[ชื่องาน] - [ชื่อเว็บ]` เมื่อดู event เฉพาะ (เช่น `Idol Stage Feb 2026 - Idol Stage Timetable`); ช่วยให้ share social ได้ชื่องานชัดเจน; fallback เป็นชื่อเว็บอย่างเดียวเมื่ออยู่หน้า listing หรือชื่องาน = ชื่อเว็บ
