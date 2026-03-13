@@ -307,6 +307,308 @@ footer {
     opacity: 0.65;
 }
 
+/* Top-left icon button group (all pages) */
+.header-top-left {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.home-icon-btn,
+.event-picker-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.home-icon-btn:hover,
+.event-picker-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.7);
+    transform: scale(1.08);
+}
+
+@media (max-width: 768px) {
+    .header-top-left { top: 10px; left: 10px; gap: 6px; }
+    .home-icon-btn, .event-picker-btn { width: 34px; height: 34px; }
+}
+
+/* Event Picker Overlay */
+.event-picker-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 3000;
+    padding: 20px;
+    box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
+}
+.event-picker-overlay.active {
+    display: flex;
+}
+
+/* Event Picker Modal Box */
+.event-picker-modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.event-picker-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--sakura-gradient);
+    color: white;
+    font-weight: 700;
+    font-size: 1.05em;
+    flex-shrink: 0;
+}
+.event-picker-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.3rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+.event-picker-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Search + Filter Controls */
+.event-picker-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+.event-picker-search {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 14px;
+    border: 1.5px solid var(--border-light);
+    border-radius: 10px;
+    font-size: 0.9em;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    background: var(--card-bg, white);
+    color: var(--text-primary);
+}
+.event-picker-search:focus {
+    border-color: var(--sakura-medium);
+    box-shadow: 0 0 0 3px var(--sakura-dark-10, rgba(233,30,99,0.1));
+}
+.event-picker-filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.ep-tab {
+    padding: 5px 12px;
+    border: 1.5px solid var(--border-light);
+    border-radius: 16px;
+    background: transparent;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.ep-tab:hover {
+    border-color: var(--sakura-medium);
+    color: var(--sakura-dark);
+}
+.ep-tab.active {
+    background: var(--sakura-gradient);
+    border-color: transparent;
+    color: white;
+}
+
+/* No results message */
+.event-picker-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+}
+
+/* Card Grid */
+.event-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+/* Individual Card */
+.event-picker-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    border: 2px solid var(--border-light);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.event-picker-card:hover {
+    border-color: var(--sakura-medium);
+    box-shadow: 0 4px 12px var(--sakura-dark-20);
+    text-decoration: none;
+}
+.event-picker-card.current {
+    border-color: var(--sakura-dark);
+    background: var(--sakura-bg-hover);
+}
+.event-picker-current-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.68em;
+    font-weight: 700;
+    color: var(--sakura-dark);
+    background: rgba(233, 30, 99, 0.1);
+    padding: 2px 7px;
+    border-radius: 8px;
+}
+.event-picker-card-name {
+    font-weight: 700;
+    font-size: 0.9em;
+    color: var(--text-primary);
+    padding-right: 48px;
+    line-height: 1.35;
+}
+.event-picker-card-dates {
+    font-size: 0.78em;
+    color: var(--text-secondary);
+}
+.event-picker-card-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+.event-picker-card-badge.ongoing  { background: #e8f5e9; color: #2e7d32; }
+.event-picker-card-badge.upcoming { background: #e3f2fd; color: #1565c0; }
+.event-picker-card-badge.past     { background: #f5f5f5; color: #757575; }
+
+@media (max-width: 768px) {
+    /* Slide up from bottom on mobile */
+    .event-picker-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .event-picker-modal {
+        border-radius: 16px 16px 0 0;
+        max-height: 80vh;
+        max-width: 100%;
+    }
+    /* Switch grid → list */
+    .event-picker-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 8px 12px 12px;
+    }
+    /*
+     * 2-row grid layout per card:
+     * col 1 (flex)      | col 2 (auto)
+     * ─────────────────────────────────
+     * row 1: name       | current-badge
+     * row 2: dates+badge (span 2)
+     */
+    .event-picker-card {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        column-gap: 8px;
+        row-gap: 3px;
+        padding: 11px 10px;
+        border: none;
+        border-bottom: 1px solid var(--border-light);
+        border-radius: 0;
+        background: transparent !important;
+    }
+    .event-picker-card:last-of-type {
+        border-bottom: none;
+    }
+    .event-picker-card.current {
+        background: var(--sakura-bg-hover) !important;
+        border-radius: 10px;
+    }
+    .event-picker-card-name {
+        grid-column: 1;
+        grid-row: 1;
+        padding-right: 0;
+        font-size: 0.88em;
+        min-width: 0;
+        align-self: center;
+    }
+    .event-picker-current-badge {
+        grid-column: 2;
+        grid-row: 1;
+        position: static;
+        align-self: center;
+        white-space: nowrap;
+    }
+    .event-picker-card-dates {
+        grid-column: 1;
+        grid-row: 2;
+        display: block;
+        font-size: 0.75em;
+        align-self: center;
+    }
+    .event-picker-card-badge {
+        grid-column: 2;
+        grid-row: 2;
+        margin-top: 0;
+        align-self: center;
+        white-space: nowrap;
+    }
+    /* card without current-badge: name spans row 1 fully */
+    .event-picker-card:not(.current) .event-picker-card-name {
+        grid-column: 1 / -1;
+    }
+}
+
 /* Notification Animations */
 @keyframes slideIn {
     from {

@@ -5,13 +5,31 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-03-13
+
+### Added
+
+- ✨ **Nav icon buttons — Contact & How-to-use** — "ติดต่อเรา" and "วิธีการใช้งาน" links removed from `<nav>` text links and replaced with circular icon buttons in `.header-top-left`; envelope SVG for contact, open-book SVG for how-to-use; consistent order across all pages: home → [event-schedule if in event context] → contact → how-to-use → event-picker
+- ✨ **Home icon always goes to root** — home icon on `credits.php`, `how-to-use.php`, and `contact.php` previously linked to `event_url('index.php')` (current event); changed to `get_base_path() . '/'` so it always navigates to the root listing page regardless of event context
+- ✨ **New event-schedule icon** — calendar SVG icon added between home and contact; appears only when `$eventMeta` is set (viewing in context of a specific event); links back to that event's schedule via `event_url('index.php')`; tooltip translates via `nav.eventSchedule` (TH: ตารางงาน / EN: Event Schedule / JA: イベント)
+- ✨ **Event Picker Modal on `credits.php`** — event-picker grid-dots button and full modal added to `credits.php` header (same condition: `MULTI_EVENT_MODE && count > 1`); modal cards link to `credits.php` of the target event instead of `index.php`; `$activeEvents` and `$today` loaded in PHP header; event picker CSS moved from `styles/index.css` → `styles/common.css` so it is available to all pages
+- ✨ **`credits.php` event-specific banner** — when viewing credits for a specific event, a prominent glassmorphism banner displays the event name in the header (`font-size: 1.35em, font-weight: 800`, `backdrop-filter: blur(12px)`, white border); replaces the small `event-subtitle` pill
+- ✨ **`credits.php` global view grouped by event** — when no event slug is given, credits are grouped into sections by `event_id`; each section header shows a calendar icon + event name as a clickable link to that event's schedule; credits belonging to inactive/deleted events are hidden; "ทั่วไป" section for `event_id IS NULL` credits (no link)
+
+### Changed
+
+- 🎨 **Credits menu renamed to "แหล่งข้อมูลอ้างอิง"** — `footer.credits` and `listing.credits` translation keys updated in all 3 languages (TH: แหล่งข้อมูลอ้างอิง / EN: References / JA: 参考資料); `credits.title` and `credits.list.title` keys updated to Thai for the TH locale; related section headings (`credits.announcements.title`, `credits.channels.title`, `credits.disclaimer.title`) translated to Thai
+- 🎨 **`credits.php` page title translated to Thai** — hardcoded fallback text in `<h1>` and `<h2>` updated from "Credits & References" to "แหล่งข้อมูลอ้างอิง"
+
+> **📁 Files changed:** `index.php`, `credits.php`, `how-to-use.php`, `contact.php`, `js/translations.js`, `styles/common.css`, `styles/index.css`, `styles/credits.css`
+
 ## [2.8.0] - 2026-03-13
 
 ### Added
 
 - ✨ **Event Picker Modal** — replaces native `<select>` dropdown for switching events; button is a 38px circular grid-dots icon (top-left, same position as old version badge); modal shows all active events as cards with name, date range, and status badge (Ongoing / Upcoming / Past); currently-viewed event highlighted with a "Viewing" badge
 - ✨ **Event Picker search + filter** — real-time search by event name (UTF-8/Thai safe via `data-name` lowercase attribute); status filter tabs (All / Ongoing / Upcoming / Past); both filters combine as AND; "no results" empty state; i18n TH/EN/JA including placeholder
-- ✨ **Version moved to footer (all pages)** — app version removed from top-left header badge on all pages including the event listing homepage; now appears inline after "Powered by Stage Idol Calendar" in the footer as `v2.8.0` in monospace on all public pages (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`); `footer-version` CSS class in `styles/common.css`
+- ✨ **Version moved to footer (all pages)** — app version removed from top-left header badge on all pages including the event listing homepage; now appears inline after "Powered by Stage Idol Calendar" in the footer as `vX.X.X` in monospace on all public pages (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`); `footer-version` CSS class in `styles/common.css`
 
 ### Changed
 

@@ -184,6 +184,18 @@ $today = date('Y-m-d');
              Program Listing (Homepage)
              ======================================== -->
         <header>
+            <div class="header-top-left">
+                <a href="<?php echo event_url('contact.php'); ?>" class="home-icon-btn" data-i18n-title="nav.contact" title="ติดต่อเรา">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="home-icon-btn" data-i18n-title="nav.howToUse" title="วิธีการใช้งาน">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
@@ -192,9 +204,7 @@ $today = date('Y-m-d');
             <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <nav class="header-nav">
-                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
-                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
-                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
+                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 แหล่งข้อมูลอ้างอิง</a>
             </nav>
         </header>
 
@@ -306,21 +316,40 @@ $today = date('Y-m-d');
              Calendar View (Event Detail)
              ======================================== -->
         <header>
-            <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
-            <button class="event-picker-btn" onclick="openEventPicker()" data-i18n-title="eventPicker.title" title="เลือก Event">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                    <circle cx="3" cy="3" r="2" fill="currentColor"/>
-                    <circle cx="9" cy="3" r="2" fill="currentColor"/>
-                    <circle cx="15" cy="3" r="2" fill="currentColor"/>
-                    <circle cx="3" cy="9" r="2" fill="currentColor"/>
-                    <circle cx="9" cy="9" r="2" fill="currentColor"/>
-                    <circle cx="15" cy="9" r="2" fill="currentColor"/>
-                    <circle cx="3" cy="15" r="2" fill="currentColor"/>
-                    <circle cx="9" cy="15" r="2" fill="currentColor"/>
-                    <circle cx="15" cy="15" r="2" fill="currentColor"/>
-                </svg>
-            </button>
-            <?php endif; ?>
+            <div class="header-top-left">
+                <?php if (MULTI_EVENT_MODE): ?>
+                <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="Home">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2L10 2z" fill="currentColor"/>
+                    </svg>
+                </a>
+                <?php endif; ?>
+                <a href="<?php echo event_url('contact.php'); ?>" class="home-icon-btn" data-i18n-title="nav.contact" title="ติดต่อเรา">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="home-icon-btn" data-i18n-title="nav.howToUse" title="วิธีการใช้งาน">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+                <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
+                <button class="event-picker-btn" onclick="openEventPicker()" data-i18n-title="eventPicker.title" title="เลือก Event">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                        <circle cx="3" cy="3" r="2" fill="currentColor"/>
+                        <circle cx="9" cy="3" r="2" fill="currentColor"/>
+                        <circle cx="15" cy="3" r="2" fill="currentColor"/>
+                        <circle cx="3" cy="9" r="2" fill="currentColor"/>
+                        <circle cx="9" cy="9" r="2" fill="currentColor"/>
+                        <circle cx="15" cy="9" r="2" fill="currentColor"/>
+                        <circle cx="3" cy="15" r="2" fill="currentColor"/>
+                        <circle cx="9" cy="15" r="2" fill="currentColor"/>
+                        <circle cx="15" cy="15" r="2" fill="currentColor"/>
+                    </svg>
+                </button>
+                <?php endif; ?>
+            </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
@@ -336,12 +365,7 @@ $today = date('Y-m-d');
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
             <nav class="header-nav">
-                <?php if (MULTI_EVENT_MODE): ?>
-                <a href="<?php echo get_base_path(); ?>/" class="header-nav-link">🏠 Events</a>
-                <?php endif; ?>
-                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="footer.howToUse">📖 วิธีการใช้งาน</a>
-                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="footer.contact">✉️ ติดต่อเรา</a>
-                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 Credits</a>
+                <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 แหล่งข้อมูลอ้างอิง</a>
                 <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventId); ?></a>
             </nav>
         </header>

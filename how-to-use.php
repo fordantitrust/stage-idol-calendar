@@ -36,6 +36,26 @@ $eventMeta = get_event_by_slug($eventSlug);
 <body>
     <div class="container">
         <header>
+            <div class="header-top-left">
+                <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="หน้าแรก">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2L10 2z" fill="currentColor"/>
+                    </svg>
+                </a>
+                <?php if ($eventMeta): ?>
+                <a href="<?php echo event_url('index.php'); ?>" class="home-icon-btn" data-i18n-title="nav.eventSchedule" title="ตารางงาน">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </a>
+                <?php endif; ?>
+                <a href="<?php echo event_url('contact.php'); ?>" class="home-icon-btn" data-i18n-title="nav.contact" title="ติดต่อเรา">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
@@ -43,10 +63,6 @@ $eventMeta = get_event_by_slug($eventSlug);
             </div>
             <h1 data-i18n="howToUse.title">📖 วิธีการใช้งาน</h1>
             <p data-i18n="howToUse.subtitle">คู่มือการใช้งานปฏิทินกิจกรรม Idol Stage Event</p>
-            <nav class="header-nav">
-                <a href="<?php echo event_url('index.php'); ?>" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
-                <a href="<?php echo event_url('contact.php'); ?>" class="header-nav-link" data-i18n="nav.contact">✉️ ติดต่อเรา</a>
-            </nav>
         </header>
 
         <div class="content">

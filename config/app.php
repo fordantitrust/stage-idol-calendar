@@ -19,7 +19,7 @@ date_default_timezone_set('Asia/Bangkok');
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '2.8.0');
+define('APP_VERSION', '2.9.0');
 
 /**
  * Application Name (Site Title)
