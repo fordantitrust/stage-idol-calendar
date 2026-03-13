@@ -16,6 +16,9 @@ tests/
 ├── ThemeTest.php            # Theme system (get_site_theme, per-event theme, CSS files)
 ├── SiteSettingsTest.php     # Site title system (get_site_title, cache, admin API)
 ├── EventEmailTest.php       # Event email field (schema, CRUD, validation, ICS ORGANIZER)
+├── ProgramTypeTest.php      # Program type system (schema, CRUD, API filter, UI badges)
+├── FeedTest.php             # ICS feed (icsEscape, icsFold, CATEGORIES, ETag, cache)
+├── StreamUrlTest.php        # Stream URL field (schema, CRUD, admin badge, public UI)
 ├── run-tests.php            # Main test runner script
 └── README.md                # This file
 ```
@@ -35,9 +38,14 @@ php tests/run-tests.php SecurityTest
 php tests/run-tests.php CacheTest
 php tests/run-tests.php AdminAuthTest
 php tests/run-tests.php CreditsApiTest
+php tests/run-tests.php IntegrationTest
+php tests/run-tests.php UserManagementTest
 php tests/run-tests.php ThemeTest
 php tests/run-tests.php SiteSettingsTest
 php tests/run-tests.php EventEmailTest
+php tests/run-tests.php ProgramTypeTest
+php tests/run-tests.php FeedTest
+php tests/run-tests.php StreamUrlTest
 ```
 
 ### Run Specific Test Method
@@ -93,7 +101,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Display order sorting
 - ✅ Validation (title, description length)
 
-### IntegrationTest (97 tests)
+### IntegrationTest (100 tests)
 - ✅ Configuration validation
 - ✅ IcsParser functionality
 - ✅ Database operations (CRUD, bulk)
@@ -103,14 +111,14 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Convention management (create, update, delete, slug uniqueness)
 - ✅ Per-convention venue mode and cache scoping
 
-### UserManagementTest (116 tests)
+### UserManagementTest (119 tests)
 - ✅ Role column schema (exists, default value, valid values)
 - ✅ Role helper functions (get_admin_role, is_admin_role)
 - ✅ User CRUD operations (create, update, delete, validation)
 - ✅ Permission checks (admin-only actions, agent restrictions)
 - ✅ Safety guards (cannot delete self, last admin protection)
 
-### ThemeTest (24 unique tests / 140 cumulative)
+### ThemeTest (24 unique tests / 143 cumulative)
 - ✅ get_site_theme() function exists and returns correct values
 - ✅ Default fallback to 'dark' when no cache file exists (no event meta)
 - ✅ Reads all 7 valid themes from cache file
@@ -126,7 +134,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Admin API events_create/update handle theme field
 - ✅ migrate-add-theme-column.php script exists
 
-### SiteSettingsTest (14 unique tests / 154 cumulative)
+### SiteSettingsTest (14 unique tests / 157 cumulative)
 - ✅ get_site_title() function exists in functions/helpers.php
 - ✅ Default: no cache file → returns APP_NAME constant
 - ✅ Reads custom title from cache/site-settings.json
@@ -142,7 +150,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ saveTitleSetting() calls require_api_admin_role()
 - ✅ APP_NAME constant defined and non-empty
 
-### EventEmailTest (19 unique tests / 173 cumulative)
+### EventEmailTest (19 unique tests / 176 cumulative)
 - ✅ events table has email column (TEXT DEFAULT NULL)
 - ✅ email column is nullable (notnull=0)
 - ✅ Insert event with valid email → stored correctly
@@ -163,9 +171,49 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ migrate-add-event-email-column.php exists in tools/
 - ✅ Migration is idempotent (skips ALTER TABLE when column already present)
 
-**Total: 637 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
+### ProgramTypeTest (35 unique tests / 211 cumulative)
+- ✅ programs table has program_type column (TEXT DEFAULT NULL)
+- ✅ Migration idempotency (skips ALTER TABLE when column already present)
+- ✅ Insert program with type → stored correctly; NULL type → stored as NULL
+- ✅ Update program type → new value stored
+- ✅ Public API `?type=` filter returns only matching programs
+- ✅ Admin API `programs_types` action returns distinct type list
+- ✅ index.php: `appendFilter()` JS function exists
+- ✅ index.php: `$hasTypes` computed and passed to template
+- ✅ index.php: event-subtitle rendered separately below `<h1>`
+- ✅ Clickable category/type badges call `appendFilter()`
+- ✅ `table.type` translation key exists in all 3 languages (TH/EN/JA)
+- ✅ Admin Programs list shows Categories column (v2.4.2 change)
 
-> **Note**: Test counts shown per-suite are cumulative (the runner reloads all previously-defined `test*` functions). The "unique" count is the number of test functions in each file only.
+### FeedTest (80 unique tests / 291 cumulative)
+- ✅ `icsEscape()` — backslash, semicolon, comma, newline, CR, Thai characters
+- ✅ `icsEscapeText()` — leaves commas unescaped (single-value TEXT properties)
+- ✅ `icsFold()` — 75-byte limit, UTF-8 multi-byte boundary, multi-fold lines
+- ✅ CATEGORIES delimiter logic — unescaped comma separates values
+- ✅ ORGANIZER logic — CN + mailto when email valid; fallback noreply
+- ✅ ETag format — `feed-{version}` prefix
+- ✅ `invalidate_data_version_cache()` — deletes cache/data_version*.json
+- ✅ `invalidate_feed_cache()` — deletes matching cache/feed_*.ics files
+- ✅ Feed cache constants — `FEED_CACHE_DIR`, `FEED_CACHE_TTL` defined
+- ✅ feed.php RFC 5545/7986 source checks (X-WR-CALNAME, REFRESH-INTERVAL, etc.)
+- ✅ feed.php static cache read/write path
+
+### StreamUrlTest (31 unique tests / 322 cumulative)
+- ✅ programs table has stream_url column (TEXT DEFAULT NULL)
+- ✅ Migration idempotency
+- ✅ Insert program with stream_url → stored correctly; NULL → stored as NULL
+- ✅ Update stream_url → new value stored
+- ✅ Admin API create/update/get include stream_url field
+- ✅ Admin Programs list shows stream badge when stream_url present
+- ✅ Public API returns stream_url field
+- ✅ Public index.php shows platform icon + join button for stream programs
+- ✅ ICS export emits `URL:` property when stream_url set
+- ✅ ICS feed emits `URL:` property when stream_url set
+- ✅ `stream_url` validated to https?:// scheme; other schemes stored as NULL
+
+**Total: 1630 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
+
+> **Note**: Test counts are cumulative — the runner uses `get_defined_functions()` which accumulates all previously-loaded test functions. The number shown per-suite = all test functions in memory at that point. Each suite contributes its unique functions; the grand total = sum of all per-suite cumulative counts (1630 = 7+17+38+49+100+119+143+157+176+211+291+322).
 
 ## 🎯 Expected Output
 
@@ -176,21 +224,6 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 
 ━━━ SecurityTest ━━━
 Testing: testSanitizeString... ✓ PASS
-Testing: testSanitizeStringArray... ✓ PASS
-Testing: testGetSanitizedParam... ✓ PASS
-...
-
-━━━ CacheTest ━━━
-Testing: testCacheDirectoryExists... ✓ PASS
-Testing: testDataVersionCacheCreation... ✓ PASS
-...
-
-━━━ AdminAuthTest ━━━
-Testing: testSafeSessionStart... ✓ PASS
-...
-
-━━━ CreditsApiTest ━━━
-Testing: testDatabaseConnection... ✓ PASS
 ...
 
 ╔════════════════════════════════════════════════════╗
@@ -201,15 +234,18 @@ SecurityTest              ✓ PASS (7 passed, 0 failed)
 CacheTest                 ✓ PASS (17 passed, 0 failed)
 AdminAuthTest             ✓ PASS (38 passed, 0 failed)
 CreditsApiTest            ✓ PASS (49 passed, 0 failed)
-IntegrationTest           ✓ PASS (97 passed, 0 failed)
-UserManagementTest        ✓ PASS (116 passed, 0 failed)
-ThemeTest                 ✓ PASS (140 passed, 0 failed)
-SiteSettingsTest          ✓ PASS (154 passed, 0 failed)
-EventEmailTest            ✓ PASS (173 passed, 0 failed)
+IntegrationTest           ✓ PASS (100 passed, 0 failed)
+UserManagementTest        ✓ PASS (119 passed, 0 failed)
+ThemeTest                 ✓ PASS (143 passed, 0 failed)
+SiteSettingsTest          ✓ PASS (157 passed, 0 failed)
+EventEmailTest            ✓ PASS (176 passed, 0 failed)
+ProgramTypeTest           ✓ PASS (211 passed, 0 failed)
+FeedTest                  ✓ PASS (291 passed, 0 failed)
+StreamUrlTest             ✓ PASS (322 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 637 tests
-Passed: 637
+Total: 1630 tests
+Passed: 1630
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 
@@ -433,15 +469,11 @@ chmod 755 cache/
 ### "Database file not found"
 
 ```bash
-# Option A: Setup Wizard
-# Open http://localhost:8000/setup.php
+# Option A: Setup Wizard (recommended)
+# Open http://localhost:8000/setup.php and complete all 6 steps
 
 # Option B: Manual CLI
-cd tools
-php import-ics-to-sqlite.php
-php migrate-add-credits-table.php
-php migrate-add-admin-users-table.php
-php migrate-rename-tables-columns.php
+# See README.md — Option B: Manual CLI for the complete sequence
 ```
 
 ### "Session headers already sent"

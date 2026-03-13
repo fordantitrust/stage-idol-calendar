@@ -43,22 +43,14 @@ ls -la data/calendar.db
 
 #### Option A: Setup Wizard (Recommended)
 
-Open `http://localhost:8000/setup.php` and follow the 5-step wizard.
+Open `http://localhost:8000/setup.php` and follow the 6-step wizard.
 
 #### Option B: Manual CLI
 
-```bash
-cd tools
-php import-ics-to-sqlite.php
-php migrate-add-requests-table.php
-php migrate-add-credits-table.php
-php migrate-add-events-meta-table.php
-php migrate-add-admin-users-table.php
-php migrate-add-role-column.php
-php migrate-rename-tables-columns.php
-php migrate-add-indexes.php
+See **[README.md — Option B: Manual CLI](README.md#option-b-manual-cli)** for the complete migration sequence.
 
-# Clear cache
+```bash
+# After running all migrations, clear cache:
 rm -f cache/*.json
 ```
 

@@ -90,21 +90,18 @@ docker run hello-world
 mkdir -p ics
 cp your-events.ics ics/
 
-# 2. (Optional) Configure admin credentials
-# Edit config/admin.php before building
-
-# 3. Build and start
+# 2. Build and start
 docker-compose up -d
 
-# 4. Import data (if not auto-imported)
+# 3. Initialize database (recommended: use Setup Wizard)
+# Open http://localhost:8000/setup.php and follow the 6-step wizard
+# It creates all tables, imports data, and sets admin credentials
+
+# --- OR initialize manually ---
 docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php
+# Then run all migrations (see README.md — Option B: Manual CLI)
 
-# 5. Create required tables
-docker exec idol-stage-calendar php tools/migrate-add-requests-table.php
-docker exec idol-stage-calendar php tools/migrate-add-credits-table.php
-docker exec idol-stage-calendar php tools/migrate-add-events-meta-table.php
-
-# 6. Verify
+# 4. Verify
 curl http://localhost:8000
 ```
 
@@ -120,7 +117,7 @@ docker run -d \
   -p 8000:80 \
   -v $(pwd)/ics:/var/www/html/ics:ro \
   -v $(pwd)/cache:/var/www/html/cache \
-  -v $(pwd)/calendar.db:/var/www/html/calendar.db \
+  -v $(pwd)/data:/var/www/html/data \
   idol-stage-calendar
 
 # Check logs
@@ -208,8 +205,8 @@ volumes:
   # Cache (read-write)
   - ./cache:/var/www/html/cache
 
-  # Database (read-write)
-  - ./calendar.db:/var/www/html/calendar.db
+  # Database directory (read-write) — contains calendar.db + .setup_locked
+  - ./data:/var/www/html/data
 
   # Config (optional, read-only)
   - ./config:/var/www/html/config:ro
@@ -243,17 +240,17 @@ docker-compose up --build -d
 docker exec idol-stage-calendar chmod -R 777 /var/www/html/cache
 
 # Fix database permissions
-docker exec idol-stage-calendar chmod 666 /var/www/html/calendar.db
+docker exec idol-stage-calendar chmod 666 /var/www/html/data/calendar.db
 ```
 
 ### Database Not Found
 
 ```bash
-# Import ICS files
+# Run setup wizard (recommended) or import ICS files manually
 docker exec idol-stage-calendar php tools/import-ics-to-sqlite.php
 
 # Verify database
-docker exec idol-stage-calendar ls -la calendar.db
+docker exec idol-stage-calendar ls -la data/calendar.db
 ```
 
 ### Access Shell Inside Container
@@ -436,11 +433,11 @@ jobs:
 
 ```yaml
 volumes:
-  - calendar-db:/var/www/html/calendar.db
+  - calendar-data:/var/www/html/data
   - cache-data:/var/www/html/cache
 
 volumes:
-  calendar-db:
+  calendar-data:
   cache-data:
 ```
 
@@ -489,11 +486,11 @@ services:
 
 ```bash
 # Copy database from container
-docker cp idol-stage-calendar:/var/www/html/calendar.db ./backup-$(date +%Y%m%d).db
+docker cp idol-stage-calendar:/var/www/html/data/calendar.db ./backup-$(date +%Y%m%d).db
 
 # Or use volume backup
 docker run --rm \
-  -v idol-stage-calendar_calendar-data:/data \
+  -v idol-stage-calendar_calendar-data:/data:ro \
   -v $(pwd):/backup \
   alpine tar czf /backup/backup.tar.gz /data
 ```
@@ -607,7 +604,7 @@ docker exec -it idol-stage-calendar bash
 docker exec idol-stage-calendar php tests/run-tests.php
 
 # Backup
-docker cp idol-stage-calendar:/var/www/html/calendar.db ./backup.db
+docker cp idol-stage-calendar:/var/www/html/data/calendar.db ./backup.db
 
 # Update
 git pull && docker-compose up -d --build

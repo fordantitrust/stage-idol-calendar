@@ -119,7 +119,39 @@ A beautiful, responsive event calendar system designed for idol performances and
 
 ---
 
-## 📑 Table of Contents
+## 📚 Documentation Index
+
+### 🚀 Getting Started
+| File | Description |
+|------|-------------|
+| **[README.md](README.md)** | This file — features, quick start, configuration, testing summary |
+| [INSTALLATION.md](INSTALLATION.md) | Detailed installation for Apache/Nginx/PHP built-in server |
+| [DOCKER.md](DOCKER.md) | Docker & Docker Compose deployment guide |
+| [SETUP.md](SETUP.md) | Interactive 6-step Setup Wizard (`setup.php`) guide |
+
+### 📖 Reference
+| File | Description |
+|------|-------------|
+| [API.md](API.md) | All API endpoints with request/response examples (Public, Request, Admin) |
+| [ICS_FORMAT.md](ICS_FORMAT.md) | ICS file format reference — fields, escaping, examples |
+| [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | File structure, DB schema, function list, **complete tools/ list** |
+
+### 🔒 Policy & Contributing
+| File | Description |
+|------|-------------|
+| [SECURITY.md](SECURITY.md) | Security policy, deployment checklist, built-in protections |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines |
+| [CHANGELOG.md](CHANGELOG.md) | Full version history |
+
+### 🧪 Testing
+| File | Description |
+|------|-------------|
+| [TESTING.md](TESTING.md) | Manual QA testing checklist (129 test cases) |
+| [tests/README.md](tests/README.md) | Automated test suite — how to write/run tests, assertions API, CI/CD |
+
+---
+
+## 📑 In This File
 
 - [Feature Timeline](#️-feature-timeline)
 - [Quick Start](#-quick-start)
@@ -127,9 +159,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 - [Installation](#-installation)
 - [Usage](#-usage)
 - [Admin Panel](#️-admin-panel)
-- [API Documentation](#-api-documentation) → [API.md](API.md)
 - [Configuration](#-configuration)
-- [Project Structure](#-project-structure) → [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)
+- [Project Structure](#-project-structure)
 - [Testing](#-testing)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -343,7 +374,7 @@ See [SETUP.md](SETUP.md) for detailed guide.
 ```bash
 cd tools
 
-# Create all tables
+# Create core tables
 php import-ics-to-sqlite.php
 php migrate-add-requests-table.php
 php migrate-add-credits-table.php
@@ -352,6 +383,13 @@ php migrate-add-admin-users-table.php
 php migrate-add-role-column.php
 php migrate-rename-tables-columns.php
 php migrate-add-indexes.php
+
+# Add feature columns
+php migrate-add-event-email-column.php
+php migrate-add-program-type-column.php
+php migrate-add-stream-url-column.php
+php migrate-add-theme-column.php
+php migrate-add-contact-channels-table.php
 ```
 
 **(Optional) Enable IP whitelist** in `config/admin.php`:
@@ -443,10 +481,11 @@ define('CREDITS_CACHE_TTL', 3600); // 1 hour
 ```
 
 **Cache files** (auto-created in `cache/` directory):
-- `cache/data_version.json` - Last update timestamp
+- `cache/data_version.json` - Last update timestamp (ETag for subscription feed)
 - `cache/credits.json` - Credits data with timestamp
 - `cache/site-theme.json` - Active site theme (set by admin)
-- `cache/site-settings.json` - Site settings including custom title (set by admin)
+- `cache/site-settings.json` - Site settings: custom title, disclaimer (set by admin)
+- `cache/feed_*.ics` - Static ICS feed cache (1 hour TTL; served directly, bypasses SQLite)
 
 **Manual cache clear**:
 ```bash
@@ -553,24 +592,16 @@ If you discover a security vulnerability, please email the author directly inste
 
 ### Developer Tools
 
-Located in `tools/` folder:
+Located in `tools/` folder. Common tools:
 
 | Tool | Purpose |
 |------|---------|
 | `import-ics-to-sqlite.php` | Import ICS files to SQLite database |
-| `update-ics-categories.php` | Add CATEGORIES field to ICS files |
-| `migrate-add-requests-table.php` | Create event_requests table |
-| `migrate-add-credits-table.php` | Create credits table |
-| `migrate-add-events-meta-table.php` | Create events_meta table (multi-event support) |
-| `migrate-rename-tables-columns.php` | Rename tables/columns to v1.2.9 schema (idempotent) |
-| `migrate-add-indexes.php` | Add DB performance indexes (idempotent, run once) |
-| `migrate-add-event-email-column.php` | Add email column to events table (idempotent) |
-| `migrate-add-program-type-column.php` | Add program_type column to programs table (idempotent) |
-| `migrate-add-admin-users-table.php` | Create admin_users table + seed from config |
-| `migrate-add-role-column.php` | Add role column to admin_users (RBAC) |
+| `update-version.php` | Bump APP_VERSION across 9 files (`php tools/update-version.php X.Y.Z`) |
 | `generate-password-hash.php` | Generate bcrypt password hash for admin |
 | `debug-parse.php` | Debug ICS file parsing |
-| `test-parse.php` | Test ICS parser |
+
+For the complete tools list including all migration scripts and their descriptions, see **[PROJECT-STRUCTURE.md — tools/](PROJECT-STRUCTURE.md#️-tools)**.
 
 ### Running Tests
 
@@ -674,19 +705,19 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 The project includes **1630 automated unit tests** covering all critical functionality:
 
-**Test Suites:**
-- 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
-- 💾 **CacheTest** (17 tests) - Cache creation, invalidation, TTL, fallback behavior
-- 🔐 **AdminAuthTest** (38 tests) - Authentication, session management, timing attack resistance, DB auth, change password
-- 📋 **CreditsApiTest** (49 tests) - Database CRUD operations, bulk operations
-- 🔗 **IntegrationTest** (97 tests) - File structure, configuration, full workflows, API endpoints
-- 👤 **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
-- 🎨 **ThemeTest** (140 tests) - Theme system, get_site_theme(), per-event theme, CSS files, admin API, public pages
-- 📝 **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
-- 📧 **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
-- 🏷️ **ProgramTypeTest** (35 tests) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
-- 🔔 **FeedTest** (69 tests) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache
-- 🔴 **StreamUrlTest** (31 tests) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
+**Test Suites** (cumulative count = tests reported when running that suite alone):
+- 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
+- 💾 **CacheTest** (17) - Cache creation, invalidation, TTL, fallback behavior
+- 🔐 **AdminAuthTest** (38) - Authentication, session management, timing attack resistance, DB auth, change password
+- 📋 **CreditsApiTest** (49) - Database CRUD operations, bulk operations
+- 🔗 **IntegrationTest** (100) - File structure, configuration, full workflows, API endpoints
+- 👤 **UserManagementTest** (119) - Role column schema, role helpers, user CRUD, permission checks
+- 🎨 **ThemeTest** (143) - Theme system, get_site_theme(), per-event theme, CSS files, admin API, public pages
+- 📝 **SiteSettingsTest** (157) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
+- 📧 **EventEmailTest** (176) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
+- 🏷️ **ProgramTypeTest** (211) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
+- 🔔 **FeedTest** (291) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache, feed SUMMARY/header escaping
+- 🔴 **StreamUrlTest** (322) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
 
 **Run All Tests:**
 ```bash

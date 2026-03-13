@@ -374,13 +374,14 @@ Controls how often the "Last Updated" timestamp refreshes.
 
 ### Option A: Setup Wizard (Recommended) 🧙
 
-Open `http://your-domain.com/setup.php` and follow the 5-step wizard:
+Open `http://your-domain.com/setup.php` and follow the 6-step wizard:
 
 1. **System Requirements** — verifies PHP 8.1+, PDO SQLite, mbstring
 2. **Directories** — creates `data/`, `cache/`, `backups/`, `ics/`
 3. **Database** — creates all tables, seeds admin user, auto-login
 4. **Import Data** — imports `.ics` files from `ics/` folder
 5. **Admin & Security** — change default password, add indexes, lock setup page
+6. **Production Cleanup** — remove dev/docs files (Tests, Tools, Docker, CI/CD, etc.)
 
 After completing the wizard, access `/admin/` to manage your events.
 
@@ -392,20 +393,9 @@ See [SETUP.md](SETUP.md) for detailed guide.
 
 #### Step 1: Create Database Tables
 
-```bash
-cd tools
+Use the Setup Wizard (recommended) or run migrations manually — see **[README.md — Option B: Manual CLI](README.md#option-b-manual-cli)** for the complete, up-to-date sequence.
 
-php import-ics-to-sqlite.php           # Create tables + import ICS data
-php migrate-add-requests-table.php     # Request system
-php migrate-add-credits-table.php      # Credits management
-php migrate-add-events-meta-table.php  # Multi-event support
-php migrate-add-admin-users-table.php  # Database-based auth
-php migrate-add-role-column.php        # Role-based access control
-php migrate-rename-tables-columns.php  # Rename to v2.0.0 schema (idempotent)
-php migrate-add-indexes.php            # Performance indexes (idempotent)
-```
-
-This creates the database tables: `programs`, `events`, `program_requests`, `credits`, `admin_users`.
+This creates the database tables: `programs`, `events`, `program_requests`, `credits`, `admin_users`, `contact_channels`.
 
 #### Step 2: Configure Admin Credentials
 
@@ -777,7 +767,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **637 automated unit tests** for quality assurance:
+The project includes **1630 automated unit tests** for quality assurance:
 
 ```bash
 # Run all tests
@@ -789,6 +779,9 @@ php tests/run-tests.php CacheTest
 php tests/run-tests.php AdminAuthTest
 php tests/run-tests.php CreditsApiTest
 php tests/run-tests.php IntegrationTest
+php tests/run-tests.php ProgramTypeTest
+php tests/run-tests.php FeedTest
+php tests/run-tests.php StreamUrlTest
 ```
 
 ### Quick Pre-Commit Tests
@@ -808,13 +801,18 @@ chmod +x quick-test.sh
 - **CacheTest** (17 tests) - Cache creation, invalidation, TTL behavior
 - **AdminAuthTest** (38 tests) - Authentication, session management, password security
 - **CreditsApiTest** (49 tests) - Database CRUD, bulk operations, validation
-- **IntegrationTest** (97 tests) - Configuration validation, file structure, workflows, API endpoints
-- **UserManagementTest** (116 tests) - Role column schema, role helpers, user CRUD, permission checks
-- **ThemeTest** (140 tests) - Theme system, get_site_theme(), per-event theme, CSS files, admin API
-- **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache, fallbacks, admin API, page injection
-- **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
+- **IntegrationTest** (100 tests) - Configuration validation, file structure, workflows, API endpoints, multi-event support
+- **UserManagementTest** (119 tests) - Role column schema, role helpers, user CRUD, permission checks
+- **ThemeTest** (143 tests) - Theme system, get_site_theme(), per-event theme, CSS files, admin API
+- **SiteSettingsTest** (157 tests) - Site title: get_site_title(), cache, fallbacks, admin API, page injection
+- **EventEmailTest** (176 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
+- **ProgramTypeTest** (211 tests) - program_type column, CRUD, API filter, admin UI, translations, clickable badges
+- **FeedTest** (291 tests) - icsEscape(), icsFold(), CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986
+- **StreamUrlTest** (322 tests) - stream_url column, CRUD, admin badge, public UI platform icons, ICS URL property
 
-✅ **All 637 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 1630 total test executions from 322 unique test functions.
+
+✅ **All 1630 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 
@@ -840,7 +838,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 637 tests pass
+- [ ] Verify all 1630 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
@@ -852,10 +850,8 @@ Before deploying to production:
 
 ## 📚 Additional Resources
 
-- **Quick Start**: [QUICKSTART.md](QUICKSTART.md)
 - **Setup Wizard**: [SETUP.md](SETUP.md)
 - **Main Documentation**: [README.md](README.md)
-- **Database Guide**: [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md)
 - **Version History**: [CHANGELOG.md](CHANGELOG.md)
 - **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 

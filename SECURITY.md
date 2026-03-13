@@ -4,8 +4,11 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
-| 1.x.x   | :x:                |
+| 2.10.x  | :white_check_mark: |
+| 2.9.x   | :white_check_mark: |
+| 2.8.x   | :white_check_mark: |
+| 2.7.x   | :white_check_mark: |
+| < 2.7   | :x:                |
 
 ---
 
@@ -25,7 +28,7 @@ You should receive a response within 48 hours. If accepted, we will work on a fi
 
 ### 1. Change Default Credentials
 
-**Before deploying**, change admin credentials in `config.php`:
+**Before deploying**, change admin credentials. Use the Setup Wizard (`setup.php` Step 5) or generate a hash manually:
 
 ```bash
 # Generate new password hash
@@ -78,9 +81,10 @@ This hides detailed error messages from users.
 # PHP files - read only for web server
 chmod 644 *.php
 
-# Database - read/write for web server only
-chmod 600 calendar.db
-chown www-data:www-data calendar.db
+# Database directory - read/write for web server
+chmod 755 data/
+chmod 600 data/calendar.db
+chown -R www-data:www-data data/
 
 # Directories
 chmod 755 ics/ admin/ api/ tools/
@@ -140,13 +144,9 @@ server {
 ```
 
 **Prevent direct access:**
-- Don't put `calendar.db` in web-accessible directory
-- Or use `.htaccess` to deny access:
-```apache
-<Files "calendar.db">
-    Require all denied
-</Files>
-```
+- Database is stored in `data/calendar.db` (not web root)
+- The `data/` directory has `.htaccess` with `Deny from all` — HTTP requests return 403
+- Do not move `calendar.db` to the web root
 
 ---
 
@@ -162,7 +162,7 @@ For DDoS protection, use Cloudflare or similar CDN.
 
 ### 8. Security Headers
 
-Headers are automatically set in `config.php`:
+Headers are automatically set in `functions/security.php`:
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: SAMEORIGIN`
 - `X-XSS-Protection: 1; mode=block`
@@ -229,16 +229,27 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Optional IP whitelist
 
 ✅ **Role-Based Access Control** (Added in v1.2.5, updated in v2.0.0)
-- Two roles: `admin` (full access) and `agent` (events management only)
+- Two roles: `admin` (full access) and `agent` (programs management only)
 - Defense in depth: Server-side HTML hiding + API-level role enforcement
-- Admin-only actions: user management, backup/restore
+- Admin-only actions: user management, backup/restore, contact channels, settings
 - Safety guards: Cannot delete self, cannot change own role, must keep 1+ active admin
+
+✅ **Feed & URL Security** (Added in v2.6.x–v2.7.x)
+- `stream_url` scheme validation: rejects non-http/https schemes (e.g. `javascript:`) — prevents stored XSS
+- ICS upload: MIME type validation + `BEGIN:VCALENDAR`/`END:VCALENDAR` structure check before parse
+- Inactive event data leak: requesting inactive/unknown slug returns 404 instead of leaking all events
+- Rate limit race condition: `flock(LOCK_EX)` wraps read→modify→write in `api/request.php`
+- XSS in filter-tag removal: `json_encode()` instead of `addslashes()` for artist/venue/type onclick values
+- LIKE SQL Injection (admin search): `%` and `_` wildcards escaped before LIKE query; `ESCAPE` clause added
+- Directory access: `data/`, `cache/`, `backups/`, `ics/` all have `Deny from all` in `.htaccess`
+- Path disclosure: public API error responses return generic messages; no server paths or PDO details
+- Concurrent cache write: `LOCK_EX` flag in `file_put_contents()` for all cache file writes
 
 ---
 
 ## Known Limitations
 
-### Current Version (2.10.2)
+### Current Version (v2.10.2)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -309,5 +320,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-02-28
-**Version:** 2.2.1
+**Last Updated:** 2026-03-13
+**Version:** 2.10.2
