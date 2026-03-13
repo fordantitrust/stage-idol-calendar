@@ -514,11 +514,20 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.9.0 (2026-03-13)
+
+- ✨ **Nav icons — Contact & How-to-use** — ย้ายออกจาก `<nav>` text links เป็น icon กลมใน `.header-top-left`; envelope SVG (contact), open-book SVG (how-to-use); ลำดับทุกหน้า: home → [event-schedule ถ้าอยู่ใน event context] → contact → how-to-use → event-picker
+- ✨ **Home icon → root เสมอ** — `credits.php`, `how-to-use.php`, `contact.php` เปลี่ยน href จาก `event_url('index.php')` เป็น `get_base_path() . '/'`; icon ใหม่ calendar SVG สำหรับย้อนกลับหน้า event (แสดงเฉพาะเมื่อ `$eventMeta` มีค่า)
+- ✨ **Event Picker Modal บน `credits.php`** — ปุ่ม grid-dots + modal ครบ; modal card link ไป `credits.php` ของ event นั้น; event picker CSS ย้ายจาก `index.css` → `common.css`
+- ✨ **`credits.php` event banner** — glassmorphism banner แสดงชื่องานใน header เมื่อดู credits ของ event เฉพาะ (`font-size: 1.35em, font-weight: 800`)
+- ✨ **`credits.php` global view grouped by event** — จัดกลุ่ม credits ตาม event; หัวข้อแต่ละกลุ่มเป็น link ไปหน้า schedule; ซ่อน credits ของ event ที่ inactive
+- 🎨 **Credits menu → "แหล่งข้อมูลอ้างอิง"** — translation keys `footer.credits`/`listing.credits` ครบ 3 ภาษา (TH/EN/JA); หน้า credits.php title แปลเป็นไทย
+
 ### v2.8.0 (2026-03-13)
 
 - ✨ **Event Picker Modal** — แทน `<select>` dropdown ด้วย modal แสดง event cards; ปุ่มเป็น icon กลม grid-dots 38px ที่มุมซ้ายบน (แทน version badge เดิม); card แสดงชื่อ, วันที่, status badge; event ที่กำลังดูมี highlight + "✓ ดูอยู่"
 - ✨ **Event Picker search + filter tabs** — ค้นหา event realtime (UTF-8/ไทย); filter tabs ตาม status (ทั้งหมด/กำลังจัดงาน/กำลังจะมาถึง/จบแล้ว); AND condition; empty state; i18n TH/EN/JA
-- ✨ **Version ย้ายไป footer (ทุกหน้า)** — ลบ version badge จากมุมซ้ายบนทุกหน้า รวม event listing homepage; แสดงต่อท้าย "Powered by Stage Idol Calendar" ใน footer ทุกหน้า (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`) เป็น `v2.8.0` monospace; `.footer-version` CSS class ใน `styles/common.css`
+- ✨ **Version ย้ายไป footer (ทุกหน้า)** — ลบ version badge จากมุมซ้ายบนทุกหน้า รวม event listing homepage; แสดงต่อท้าย "Powered by Stage Idol Calendar" ใน footer ทุกหน้า (`index.php`, `contact.php`, `credits.php`, `how-to-use.php`) เป็น `vX.X.X` monospace; `.footer-version` CSS class ใน `styles/common.css`
 - 🎨 **Event Picker sort order** — ✓ ดูอยู่ → ongoing (start DESC) → upcoming (start ASC) → past (start DESC); `usort()` ใน modal render loop
 - 🎨 **Event Picker mobile bottom-sheet** — slide up จากล่าง; list layout; CSS grid 2-col ต่อ row (ชื่อ+วันที่ / badges); ไม่ overflow, ไม่ wrap
 

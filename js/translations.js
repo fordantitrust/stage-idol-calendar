@@ -3,11 +3,12 @@ const translations = {
     th: {
         // Common
         'nav.home': '🏠 หน้าแรก',
+        'nav.eventSchedule': '📅 ตารางงาน',
         'nav.contact': '✉️ ติดต่อเรา',
         'nav.howToUse': '📖 วิธีการใช้งาน',
         'footer.howToUse': '📖 วิธีการใช้งาน',
         'footer.contact': '✉️ ติดต่อเรา',
-        'footer.credits': '📋 Credits',
+        'footer.credits': '📋 แหล่งข้อมูลอ้างอิง',
         'footer.copyright': '© 2026 Idol Stage Timetable. All rights reserved.',
         'footer.madeWith': 'สร้างด้วย ❤️ เพื่อแฟนคลับไอดอล',
         back: '← กลับ',
@@ -213,7 +214,7 @@ const translations = {
         'listing.upcoming': 'กำลังจะมาถึง',
         'listing.past': 'จบแล้ว',
         'listing.viewSchedule': '📋 ดูตารางเวลา',
-        'listing.credits': '📋 Credits',
+        'listing.credits': '📋 แหล่งข้อมูลอ้างอิง',
         'listing.readMore': '▼ อ่านเพิ่มเติม',
         'listing.noEvents': 'ยังไม่มี Event ในระบบ',
 
@@ -221,12 +222,12 @@ const translations = {
         'dateJump.label': '📅 ข้ามไปวันที่:',
 
         // Credits page
-        'credits.title': '📋 Credits & References',
+        'credits.title': '📋 แหล่งข้อมูลอ้างอิง',
         'credits.subtitle': 'แหล่งข้อมูลที่ใช้ในการจัดทำปฏิทิน',
-        'credits.list.title': '📋 Credits & References',
-        'credits.announcements.title': '📢 Official Announcements',
-        'credits.channels.title': '🔗 Official Channels',
-        'credits.disclaimer.title': 'Disclaimer:',
+        'credits.list.title': '📋 แหล่งข้อมูลอ้างอิง',
+        'credits.announcements.title': '📢 ประกาศทางการ',
+        'credits.channels.title': '🔗 ช่องทางทางการ',
+        'credits.disclaimer.title': 'ข้อสังเกต:',
         'credits.disclaimer.text': 'ข้อมูลในปฏิทินนี้รวบรวมจากแหล่งข้อมูลสาธารณะเพื่อความสะดวกในการติดตามกำหนดการ กรุณาตรวจสอบข้อมูลอย่างเป็นทางการจากผู้จัดงานก่อนเข้าร่วมงาน ข้อมูลอาจมีการเปลี่ยนแปลงโดยไม่แจ้งให้ทราบล่วงหน้า',
         'credits.noData': 'ยังไม่มีข้อมูล credits',
 
@@ -253,11 +254,12 @@ const translations = {
     en: {
         // Common
         'nav.home': '🏠 Home',
+        'nav.eventSchedule': '📅 Event Schedule',
         'nav.contact': '✉️ Contact Us',
         'nav.howToUse': '📖 How to Use',
         'footer.howToUse': '📖 How to Use',
         'footer.contact': '✉️ Contact Us',
-        'footer.credits': '📋 Credits',
+        'footer.credits': '📋 References',
         'footer.copyright': '© 2026 Idol Stage Timetable. All rights reserved.',
         'footer.madeWith': 'Made with ❤️ for Idol fans',
         back: '← Back',
@@ -463,7 +465,7 @@ const translations = {
         'listing.upcoming': 'Upcoming',
         'listing.past': 'Ended',
         'listing.viewSchedule': '📋 View Schedule',
-        'listing.credits': '📋 Credits',
+        'listing.credits': '📋 References',
         'listing.readMore': '▼ Read more',
         'listing.noEvents': 'No events in the system',
 
@@ -503,11 +505,12 @@ const translations = {
     ja: {
         // Common
         'nav.home': '🏠 ホーム',
+        'nav.eventSchedule': '📅 イベント',
         'nav.contact': '✉️ お問い合わせ',
         'nav.howToUse': '📖 使い方',
         'footer.howToUse': '📖 使い方',
         'footer.contact': '✉️ お問い合わせ',
-        'footer.credits': '📋 クレジット',
+        'footer.credits': '📋 参考資料',
         'footer.copyright': '© 2026 Idol Stage Timetable. All rights reserved.',
         'footer.madeWith': 'アイドルファンクラブのために ❤️ を込めて作りました',
         back: '← 戻る',
@@ -713,7 +716,7 @@ const translations = {
         'listing.upcoming': '開催予定',
         'listing.past': '終了',
         'listing.viewSchedule': '📋 スケジュールを見る',
-        'listing.credits': '📋 クレジット',
+        'listing.credits': '📋 参考資料',
         'listing.readMore': '▼ 続きを読む',
         'listing.noEvents': 'システムにイベントがありません',
 

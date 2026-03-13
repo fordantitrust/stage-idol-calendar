@@ -34,6 +34,26 @@ $eventMeta = get_event_by_slug($eventSlug);
 <body>
     <div class="container">
         <header>
+            <div class="header-top-left">
+                <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="หน้าแรก">
+                    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <path d="M10 2L2 9h2v9h5v-5h2v5h5V9h2L10 2z" fill="currentColor"/>
+                    </svg>
+                </a>
+                <?php if ($eventMeta): ?>
+                <a href="<?php echo event_url('index.php'); ?>" class="home-icon-btn" data-i18n-title="nav.eventSchedule" title="ตารางงาน">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </a>
+                <?php endif; ?>
+                <a href="<?php echo event_url('how-to-use.php'); ?>" class="home-icon-btn" data-i18n-title="nav.howToUse" title="วิธีการใช้งาน">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </a>
+            </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
                 <button class="lang-btn" data-lang="en" onclick="changeLanguage('en')">EN</button>
@@ -41,10 +61,6 @@ $eventMeta = get_event_by_slug($eventSlug);
             </div>
             <h1 data-i18n="contact.title">✉️ ติดต่อเรา</h1>
             <p data-i18n="contact.subtitle">หากพบปัญหาหรือต้องการข้อมูลเพิ่มเติม</p>
-            <nav class="header-nav">
-                <a href="<?php echo event_url('index.php'); ?>" class="header-nav-link" data-i18n="nav.home">🏠 หน้าแรก</a>
-                <a href="<?php echo event_url('how-to-use.php'); ?>" class="header-nav-link" data-i18n="nav.howToUse">📖 วิธีการใช้งาน</a>
-            </nav>
         </header>
 
         <div class="content">
