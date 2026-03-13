@@ -5,6 +5,14 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.1] - 2026-03-13
+
+### Fixed
+- **`contact.php` long URL overflow on mobile iOS** — added `word-break: break-all` and `overflow-wrap: anywhere` on contact channel `<a>` tags to prevent long URLs from exceeding layout width on narrow screens
+- **`credits.php` global view event order** — changed `ksort` to `krsort` so event groups are sorted newest-first (descending by `event_id`); "ทั่วไป" (no event) group moved to last position
+
+> **📁 Files changed:** `contact.php`, `credits.php`
+
 ## [2.10.0] - 2026-03-13
 
 ### Added
