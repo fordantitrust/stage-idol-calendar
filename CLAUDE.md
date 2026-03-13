@@ -514,6 +514,15 @@ END:VCALENDAR
 
 ## 📝 Changelog
 
+### v2.7.7 (2026-03-13)
+
+- 🎨 **Gantt bar layout — time + title inline** — ใน program bar เวลาและชื่อ program แสดงในแถวเดียวกัน (`flex row`) แทนการ stack แนวตั้ง; type badge ย้ายมาอยู่ด้านล่างแถว; title ตัดด้วย `…` แทน 2-line clamp; อ่านง่ายขึ้นเมื่อ bar สั้น
+
+### v2.7.6 (2026-03-13)
+
+- ✨ **Event name in page title** — `index.php` `<title>` แสดง `[ชื่องาน] - [ชื่อเว็บ]` เมื่อดู event เฉพาะ (เช่น `Idol Stage Feb 2026 - Idol Stage Timetable`); ช่วยให้ share social ได้ชื่องานชัดเจน; fallback เป็นชื่อเว็บอย่างเดียวเมื่ออยู่หน้า listing หรือชื่องาน = ชื่อเว็บ
+- 🐛 **`js/common.js` unused variable** — `const lang` ใน `openCalendarDetailModal()` ถูก declare แต่ไม่ถูกใช้; ลบออก
+
 ### v2.7.5 (2026-03-12)
 
 - 🐛 **`feed.php` SUMMARY comma truncation** — `icsEscape()` escaped commas to `\,` in SUMMARY; some clients (iOS, Outlook) misinterpret `\,` and truncate at that position; added `icsEscapeText()` for single-value TEXT properties (SUMMARY/LOCATION/DESCRIPTION) that leaves commas unescaped — matches Apple Calendar / Google Calendar export behaviour; `icsEscape()` (with comma escaping) retained for CATEGORIES where comma IS the RFC 5545 value delimiter

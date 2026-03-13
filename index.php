@@ -127,7 +127,13 @@ $hasTypes = !empty($types);
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title><?php echo htmlspecialchars(get_site_title()); ?> - Event Schedule</title>
+    <title><?php
+        $pageTitle = get_site_title();
+        if ($eventMeta && $eventMeta['name'] !== $pageTitle) {
+            $pageTitle = $eventMeta['name'] . ' - ' . $pageTitle;
+        }
+        echo htmlspecialchars($pageTitle);
+    ?></title>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>

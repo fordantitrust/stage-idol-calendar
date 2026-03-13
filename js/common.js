@@ -766,7 +766,6 @@ function escapeHtmlAttr(str) {
 
 // Calendar detail modal
 function openCalendarDetailModal(ev) {
-    const lang = translations[currentLang] || translations['th'];
     const platform = getStreamPlatform(ev.stream_url);
     const timeStart = ev.start ? ev.start.substring(11, 16) : '';
     const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
@@ -1091,9 +1090,11 @@ function renderGanttChart(events) {
                      data-description="${escapeHtml(description)}"
                      data-program-type="${escapeHtml(programType)}"
                      onclick="showEventTooltip(this, event)">
-                    <div class="gantt-program-time-v">${startTime}</div>
+                    <div class="gantt-program-row-v">
+                        <span class="gantt-program-time-v">${startTime}</span>
+                        <span class="gantt-program-title-v">${escapeHtml(title)}</span>
+                    </div>
                     ${programType ? `<div class="gantt-program-type-v">${escapeHtml(programType)}</div>` : ''}
-                    <div class="gantt-program-title-v">${escapeHtml(title)}</div>
                 </div>
             `;
         });
