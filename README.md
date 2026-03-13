@@ -17,63 +17,111 @@ A beautiful, responsive event calendar system designed for idol performances and
 ## ✨ Features
 
 ### 🎭 For Event Attendees
-| Feature | Description |
-|---------|-------------|
-| 🌸 **Sakura Theme** | Beautiful cherry blossom-themed UI with Japanese aesthetics |
-| 🌏 **Multi-language** | Full support for Thai, English, and Japanese (日本語) |
-| 📱 **Mobile Optimized** | Responsive design works perfectly on all devices including iOS |
-| 📊 **Dual View Modes** | Switch between List and Gantt Chart timeline views (all venue modes) |
-| 🔍 **Advanced Filtering** | Filter by artists, venues, program types, or search keywords; multi-value support |
-| 🏷️ **Program Types** | Filter programs by type with badge display on rows and Gantt bars |
-| 🖱️ **Quick Filter Badges** | Click any artist or type badge in results to instantly append that filter |
-| 📅 **Date Jump Bar** | Fixed-position navigation bar to jump quickly to any date in the schedule |
-| 📸 **Save as Image** | Export filtered schedule as PNG image (lazy-loaded html2canvas) |
-| 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. |
-| 🔔 **Live Subscription** | Subscribe to a live webcal:// feed — calendar apps auto-sync when programs change (no re-export needed) |
-| 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) |
-| 🎪 **Multi-Event** | Support for multiple conventions/events with URL-based or dropdown selection |
+| Feature | Description | Since |
+|---------|-------------|-------|
+| 🌸 **Sakura Theme** | Beautiful cherry blossom-themed UI with Japanese aesthetics | v1.0.0 |
+| 🌏 **Multi-language** | Full support for Thai, English, and Japanese (日本語) | v1.0.0 |
+| 📱 **Mobile Optimized** | Responsive design works perfectly on all devices including iOS | v1.0.0 |
+| 📊 **Dual View Modes** | Switch between List and Gantt Chart timeline views (all venue modes) | v1.0.0 |
+| 🔍 **Advanced Filtering** | Filter by artists, venues, program types, or search keywords; multi-value support | v1.0.0 |
+| 📸 **Save as Image** | Export filtered schedule as PNG image (lazy-loaded html2canvas) | v1.0.0 |
+| 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. | v1.0.0 |
+| 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) | v1.0.0 |
+| 🎪 **Multi-Event** | Support for multiple conventions/events with searchable modal card picker (filter by status) | v1.2.0 |
+| 📅 **Date Jump Bar** | Fixed-position navigation bar (with ◀ ▶ arrows + mousewheel scroll) to jump quickly to any date | v1.2.1 |
+| 🏷️ **Program Types** | Filter programs by type with badge display on rows and Gantt bars | v2.4.0 |
+| 🖱️ **Quick Filter Badges** | Click any artist or type badge in results to instantly append that filter | v2.4.1 |
+| 🔔 **Live Subscription** | Subscribe to a live webcal:// feed — calendar apps auto-sync when programs change (no re-export needed) | v2.5.0 |
+| 🔴 **Live Stream Links** | Platform icon (📷/𝕏/▶️/🔴) + join button displayed on programs that have a stream URL | v2.6.0 |
+| 📅 **Calendar View** | Monthly grid view for online/stream schedules (`venue_mode=calendar`); desktop chips + mobile day-panel with dot indicators | v2.7.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
-| Feature | Description |
-|---------|-------------|
-| 🛠️ **Setup Wizard** | Interactive 6-step install/maintenance wizard with Production Cleanup (`setup.php`) |
-| ⚙️ **Full CRUD** | Create, read, update, and delete programs via web interface |
-| 🏷️ **Program Types** | Assign free-text program types with autocomplete; filter by type in admin and public UI |
-| 📦 **Bulk Operations** | Select and edit/delete multiple programs at once (up to 100) |
-| ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple programs simultaneously |
-| 🎯 **Flexible Venue** | Add new venues on-the-fly with autocomplete suggestions |
-| 📊 **Custom Pagination** | Choose 20, 50, or 100 programs per page |
-| 📋 **Request Management** | Review and approve user-submitted program requests |
-| 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes |
-| 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations |
-| 📤 **ICS Upload** | Upload and preview ICS files before importing |
-| 💾 **Backup/Restore** | Backup and restore database with auto-safety backup before every restore |
-| 🎪 **Events Management** | Full CRUD for managing multiple events/conventions |
-| 🎨 **Per-Event Theme** | Assign a separate color theme to each event (7 themes); global theme fallback |
-| 📝 **Site Title Setting** | Customize site title from Admin Settings without editing code |
-| 🔐 **DB Auth & Multi-user** | Admin credentials in SQLite, supports multiple admin users |
-| 🔑 **Change Password** | Change admin password via UI with current password verification |
-| 👤 **User Management** | Full CRUD for admin users with role assignment |
-| 🛡️ **Role-Based Access** | Admin (full access) / Agent (programs management only) role system |
-| 🔒 **Secure Access** | Session-based authentication with optional IP whitelist |
-| 🔐 **CSRF Protection** | Token-based CSRF validation for all admin operations |
+| Feature | Description | Since |
+|---------|-------------|-------|
+| ⚙️ **Full CRUD** | Create, read, update, and delete programs via web interface | v1.0.0 |
+| 📋 **Request Management** | Review and approve user-submitted program requests | v1.0.0 |
+| 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes | v1.0.0 |
+| 📦 **Bulk Operations** | Select and edit/delete multiple programs at once (up to 100) | v1.1.0 |
+| ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple programs simultaneously | v1.1.0 |
+| 🎯 **Flexible Venue** | Add new venues on-the-fly with autocomplete suggestions | v1.1.0 |
+| 📊 **Custom Pagination** | Choose 20, 50, or 100 programs per page | v1.1.0 |
+| 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations | v1.1.0 |
+| 📤 **ICS Upload** | Upload and preview ICS files before importing | v1.1.0 |
+| 🔒 **Secure Access** | Session-based authentication with optional IP whitelist | v1.1.0 |
+| 🔐 **CSRF Protection** | Token-based CSRF validation for all admin operations | v1.1.0 |
+| 🎪 **Events Management** | Full CRUD for managing multiple events/conventions | v1.2.0 |
+| 💾 **Backup/Restore** | Backup and restore database with auto-safety backup before every restore | v1.2.3 |
+| 🔐 **DB Auth & Multi-user** | Admin credentials in SQLite, supports multiple admin users | v1.2.4 |
+| 🔑 **Change Password** | Change admin password via UI with current password verification | v1.2.4 |
+| 👤 **User Management** | Full CRUD for admin users with role assignment | v1.2.5 |
+| 🛡️ **Role-Based Access** | Admin (full access) / Agent (programs management only) role system | v1.2.5 |
+| 🛠️ **Setup Wizard** | Interactive 6-step install/maintenance wizard with Production Cleanup (`setup.php`) | v2.0.0 |
+| 🎨 **Per-Event Theme** | Assign a separate color theme to each event (7 themes); global theme fallback | v2.1.1 |
+| 📝 **Site Title & Disclaimer** | Customize site title (v2.2.0) and multilingual disclaimer (v2.10.0) from Admin Settings | v2.2.0 |
+| 🏷️ **Program Types** | Assign free-text program types with autocomplete; filter by type in admin and public UI | v2.4.0 |
+| 🔴 **Live Stream URL** | Set a stream URL per program; validates http/https scheme; badge displayed in admin list | v2.6.0 |
+| 📞 **Contact Channels** | Manage contact channels (DB-driven) via Admin › Contact tab; displays on contact page | v2.10.0 |
 
 ### ⚡ Technical Highlights
-| Feature | Description |
-|---------|-------------|
-| 🗄️ **SQLite Database** | Lightweight, high-performance storage via PDO SQLite |
-| 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers |
-| 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) with auto-invalidation |
-| 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support; live subscription feed (RFC 5545/7986) |
-| 🐳 **Docker Support** | One-command deployment with Docker Compose |
-| 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching |
-| 🧪 **1256 Unit Tests** | Automated test suite across 11 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) |
-| 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required |
+| Feature | Description | Since |
+|---------|-------------|-------|
+| 🗄️ **SQLite Database** | Lightweight, high-performance storage via PDO SQLite | v1.0.0 |
+| 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support; live subscription feed (RFC 5545/7986) | v1.0.0 |
+| 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required | v1.0.0 |
+| 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
+| 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) + Feed static file cache (1 hour) with auto-invalidation | v1.1.0 |
+| 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
+| 🧪 **1630 Unit Tests** | Automated test suite across 12 suites, CI/CD with GitHub Actions (PHP 8.1-8.3) | v1.1.0 |
+| 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
+| ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
+
+---
+
+## 🗓️ Feature Timeline
+
+> Based on [CHANGELOG.md](CHANGELOG.md). Pure bug-fix patch releases are grouped into ranges.
+
+| Version | Date | Key Features Added |
+|---------|------|--------------------|
+| **v1.0.0** | 2026-02-09 | Sakura theme · 3-language (TH/EN/JA) · List + Gantt Chart views · Artist/venue filtering · Save as Image · Export ICS · Admin CRUD + request management · SQLite storage · Session auth + IP whitelist · CSRF + XSS protection |
+| **v1.1.0** | 2026-02-11 | Docker support · Credits management (CRUD + cache) · Bulk operations & bulk edit (up to 100) · Flexible venue autocomplete · ICS file upload + preview import · Per-page selector (20/50/100) · Security overhaul (session hardening, timing-attack prevention, secure cookies, JSON_HEX_* flags) · 187 automated tests + CI/CD (PHP 8.1–8.3) |
+| **v1.2.0** | 2026-02-11 | Multi-Event (Conventions) support · Per-convention venue mode · `?event=slug` URL routing · Cache scoped per convention |
+| **v1.2.1** | 2026-02-12 | Clean URLs (no `.php` extension) · Date Jump Bar (fixed-position, IntersectionObserver) · ICS import event selector · Credits per-event assignment · Full i18n for request modal (20 new keys) |
+| **v1.2.3** | 2026-02-17 | Backup/Restore system (create, download, restore, upload, auto-backup before restore) · `data/` + `backups/` directory restructure · `DB_PATH` constant |
+| **v1.2.4** | 2026-02-17 | Database-based admin auth (`admin_users` table, multi-user) · Change Password UI · Backup delete fix |
+| **v1.2.5** | 2026-02-18 | User Management CRUD · Role-Based Access Control (admin / agent) · Role badge + lockout prevention |
+| **v2.0.0** ⚠️ | 2026-02-27 | **Breaking — run migration before upgrade:** DB tables renamed (`events`→`programs`, `events_meta`→`events`, `event_requests`→`program_requests`, FK columns renamed) · API actions renamed (`action=events`→`programs`, `event_meta_*`→`events_*`) · Terminology renamed ("Events"→"Programs", "Conventions"→"Events") · Setup Wizard (5-step) · Admin Help pages (TH + EN) · DB performance indexes (7 indexes, 2–5× speedup) · Login rate limiting (5/15 min/IP) · HTTP ETag + 304 for public API · Admin UI fully mobile responsive |
+| **v2.0.1** | 2026-02-27 | Google Analytics ID moved to `config/app.php` (configurable; set `''` to disable) |
+| **v2.1.0** | 2026-02-27 | Global Theme system (6 themes: Ocean / Forest / Midnight / Sunset / Dark / Gray) · Settings tab in Admin · CSS extracted to external files · Admin nav emoji icons |
+| **v2.1.1** | 2026-02-27 | Per-Event Theme (event overrides global; 7 themes total) · `get_site_theme($eventMeta)` priority chain |
+| **v2.2.0** | 2026-02-27 | Site Title editable from Admin Settings (saved to `cache/site-settings.json`; JS patching IIFE) |
+| **v2.2.1** | 2026-02-28 | Bug fixes: setup.php wrong schema (`summary`→`title`), empty events listing after init, sample programs seed on fresh install |
+| **v2.3.0** | 2026-03-02 | Event Contact Email field · ICS ORGANIZER redesign (event name + email instead of artist) · Production Cleanup wizard step (whitelist-based file deletion for Docs/Tests/Tools/Docker/CI) |
+| **v2.3.2 – 2.3.4** | 2026-03-02 | Bug fixes: timezone set to Asia/Bangkok + UTC→local conversion in IcsParser · Gantt overlap fix (unlimited stacking via inline style) · Gantt now shown in single-venue mode |
+| **v2.4.0** | 2026-03-02 | Program Type system (free-text + autocomplete, filter checkboxes, badges on rows and Gantt bars, `?type=` API filter, ICS `X-PROGRAM-TYPE`) |
+| **v2.4.1** | 2026-03-02 | Clickable filter badges (artist / type → `appendFilter()`) · Program Type dedicated column · Event name subtitle always shown below `<h1>` |
+| **v2.4.2** | 2026-03-02 | Admin Programs list: Organizer column renamed → Categories |
+| **v2.4.4** | 2026-03-03 | ICS Export VALARM (15-min reminder in exported `.ics`) · `tools/update-version.php` automation script · Documentation consolidated (QUICKSTART.md + SQLITE_MIGRATION.md merged) |
+| **v2.4.5 – 2.4.7** | 2026-03-03 | Collapse same-time / same-date display · Description expand modal + mobile card redesign + horizontal event listing cards · Venue name display in single-venue mode header |
+| **v2.5.0** | 2026-03-03 | ICS Live Subscription Feed (`feed.php`) — `webcal://` + `https://` · Subscribe button + modal · `invalidate_data_version_cache()` so subscribed calendars refresh after admin changes |
+| **v2.5.1** | 2026-03-03 | RFC 5545 line folding at 75 bytes (UTF-8 boundary safe, Outlook compatibility) · CATEGORIES comma-delimiter fix · Outlook subscribe instructions in modal · Mobile action buttons 3-column layout |
+| **v2.5.2** | 2026-03-03 | Feed static file cache (1 h, `cache/feed_*.ics`; bypasses SQLite on hit; auto-invalidated on admin write) |
+| **v2.6.0** | 2026-03-04 | Live Stream URL (`stream_url` column) — platform icon (📷/𝕏/▶️/🔴) + Join button on programs · Date Jump Bar ◀ ▶ arrows + mousewheel horizontal scroll |
+| **v2.6.1 – 2.6.5** | 2026-03-05–10 | Security hardening: LIKE wildcard injection (admin search) · directory access `Deny from all` · path disclosure in public API · `stream_url` scheme validation (rejects `javascript:`) · ICS upload MIME + structure validation · restore auto-backup abort on failure · XSS in filter-tag removal buttons · rate-limit race condition (`flock`) |
+| **v2.7.0** | 2026-03-11 | Calendar View (`venue_mode=calendar`): monthly 7-col grid · desktop program chips (icon + artist + time) · mobile dot indicators + day panel · all 6 themes via CSS variables · XSS-safe chip registry · full i18n auto-rerender |
+| **v2.7.1** | 2026-03-11 | Duration display in calendar detail modal · calendar border gap fix |
+| **v2.7.3 – 2.7.5** | 2026-03-12 | Security: inactive event data leak (slug→null→all-events) fixed across 5 files · 6 more security fixes (JS injection, datetime overflow, concurrent cache write, restore safety, ICS MIME, TOCTOU race) · feed.php SUMMARY comma truncation + header escaping fix |
+| **v2.7.6 – 2.7.7** | 2026-03-13 | Event name in `<title>` for social sharing · Gantt bar time + title inline (replaces stacked layout) |
+| **v2.8.0** | 2026-03-13 | Event Picker Modal (replaces `<select>`): card grid · real-time search · status filter tabs (All/Ongoing/Upcoming/Past) · sort order · mobile bottom-sheet · version badge moved to footer |
+| **v2.9.0** | 2026-03-13 | Nav icon buttons (contact envelope + how-to-use open-book) · Event Picker Modal on `credits.php` · Credits global view grouped by event (newest-first, inactive hidden) · Credits menu renamed to "แหล่งข้อมูลอ้างอิง" |
+| **v2.10.0** | 2026-03-13 | Contact Channels DB-driven (Admin › Contact tab CRUD; auto-created table) · Disclaimer multilingual TH/EN/JA editable from Admin › Settings |
+| **v2.10.1** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) |
 
 ---
 
 ## 📑 Table of Contents
 
+- [Feature Timeline](#️-feature-timeline)
 - [Quick Start](#-quick-start)
 - [Requirements](#-requirements)
 - [Installation](#-installation)
@@ -135,12 +183,13 @@ php tools/import-ics-to-sqlite.php
 | 🏢 **Filter by Venue** | Check venue checkboxes |
 | 🏷️ **Filter by Type** | Check program type checkboxes |
 | 🖱️ **Quick Filter** | Click any badge in results to append filter |
-| 📊 **Switch Views** | Toggle List / Gantt Chart |
-| 📅 **Jump to Date** | Use the fixed Date Jump Bar |
+| 📊 **Switch Views** | Toggle List / Gantt Chart (or Calendar in calendar mode) |
+| 📅 **Jump to Date** | Use the fixed Date Jump Bar (arrows or mousewheel to scroll) |
 | 📸 **Save Image** | Click "Save as Image" button |
 | 📅 **Export Calendar** | Click "Export to Calendar" button |
 | 🔔 **Subscribe** | Click "Subscribe" button for live webcal:// calendar link |
 | 📝 **Request Changes** | Click "Request to Add Event" or ✏️ button |
+| 🎪 **Switch Event** | Click the grid-dots icon (top-left) to open Event Picker modal |
 
 ---
 
@@ -260,9 +309,14 @@ Users can request to add new events or modify existing ones:
 - Auto-backup created before every restore operation
 - Delete old backup files
 
+**Contact Tab** (admin role only):
+- Create, edit, and delete contact channels (name, URL, description) stored in SQLite
+- Channels appear on the public contact page; empty state shown when no channels configured
+
 **Settings Tab** (admin role only):
 - Set **Site Title** — displayed in browser tab, page header, and ICS export (saved to `cache/site-settings.json`)
 - Set **Site Theme** — choose from 7 color themes: Sakura, Ocean, Forest, Midnight, Sunset, Dark, Gray
+- Set **Disclaimer** — multilingual disclaimer text (TH/EN/JA); displayed on public pages
 
 **Authentication & Roles:**
 - Admin credentials stored in SQLite (`admin_users` table) - supports multiple users
@@ -364,16 +418,18 @@ Access events via URL: `/event/slug` (e.g., `/event/idol-stage-feb-2026`)
 Toggle between multi-venue and single-venue layouts in [config/app.php](config/app.php):
 
 ```php
-define('VENUE_MODE', 'multi');   // Multiple venues: shows venue filter, Gantt view, venue columns
-define('VENUE_MODE', 'single');  // Single venue: hides venue filter, Gantt view, venue columns
+define('VENUE_MODE', 'multi');      // Multiple venues: shows venue filter, Gantt view, venue columns
+define('VENUE_MODE', 'single');     // Single venue: hides venue filter, Gantt view, venue columns
+define('VENUE_MODE', 'calendar');   // Calendar view: monthly grid layout for online/stream schedules
 ```
 
-| Feature | `multi` | `single` |
-|---------|---------|----------|
-| Venue filter (checkboxes) | Visible | Hidden |
-| List/Timeline toggle switch | Visible | Visible |
-| Venue column in event table | Visible | Hidden |
-| Venue column in admin table | Visible | Hidden |
+| Feature | `multi` | `single` | `calendar` |
+|---------|---------|----------|------------|
+| Venue filter (checkboxes) | Visible | Hidden | Hidden |
+| List/Timeline toggle switch | Visible | Visible | Hidden |
+| Monthly grid calendar | Hidden | Hidden | Visible |
+| Venue column in event table | Visible | Hidden | Hidden |
+| Venue column in admin table | Visible | Hidden | Hidden |
 
 ### Cache Configuration
 
@@ -445,7 +501,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           1256 automated tests (11 suites)
+├── tests/           1630 automated tests (12 suites)
 └── *.md             Documentation
 ```
 
@@ -519,7 +575,7 @@ Located in `tools/` folder:
 ### Running Tests
 
 ```bash
-# Run all 999 automated tests
+# Run all 1630 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -616,7 +672,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **1256 automated unit tests** covering all critical functionality:
+The project includes **1630 automated unit tests** covering all critical functionality:
 
 **Test Suites:**
 - 🔒 **SecurityTest** (7 tests) - Input sanitization, XSS protection, SQL injection prevention
@@ -629,7 +685,8 @@ The project includes **1256 automated unit tests** covering all critical functio
 - 📝 **SiteSettingsTest** (154 tests) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
 - 📧 **EventEmailTest** (19 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
 - 🏷️ **ProgramTypeTest** (35 tests) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
-- 🔔 **FeedTest** (49 tests) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance
+- 🔔 **FeedTest** (69 tests) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache
+- 🔴 **StreamUrlTest** (31 tests) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
 
 **Run All Tests:**
 ```bash
@@ -667,14 +724,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3']
 ```
 
-✅ **All 1256 tests pass on PHP 8.1, 8.2, and 8.3**
+✅ **All 1630 tests pass on PHP 8.1, 8.2, and 8.3**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 1256 tests
-Passed: 1256
+Total: 1630 tests
+Passed: 1630
 Pass Rate: 100.0%
 ```
 
