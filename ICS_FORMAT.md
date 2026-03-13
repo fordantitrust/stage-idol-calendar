@@ -455,8 +455,9 @@ The following characters must be escaped in ICS property values:
 
 | Character | Escaped Form | Used In | Example |
 |-----------|--------------|---------|---------|
-| `\` (backslash) | `\\` | All fields | `Path\\to\\file` → `Path\\\\to\\\\file` |
-| `,` (comma) | `\,` | CATEGORIES, DESCRIPTION, etc. | `A,B,C` → `A\,B\,C` |
+| `\` (backslash) | `\\` | All fields | `Path\to\file` → `Path\\to\\file` |
+| `,` (comma) | `\,` | DESCRIPTION, SUMMARY, LOCATION | `"a,b"` → `a\,b` |
+| `,` (comma) | **unescaped** | CATEGORIES (value delimiter) | `Artist A,Artist B` → two separate values |
 | `;` (semicolon) | `\;` | DESCRIPTION, etc. | `A;B` → `A\;B` |
 | `\n` (newline) | `\\n` | DESCRIPTION | Multiline text |
 | `\r` (carriage return) | Remove | All fields | Not needed in CRLF |
@@ -628,5 +629,5 @@ X-PROGRAM-TYPE:Live Stream         (Program type)
 
 ---
 
-**Last Updated**: 2026-03-05  
+**Last Updated**: 2026-03-13
 **Project**: Idol Stage Timetable v2.10.2

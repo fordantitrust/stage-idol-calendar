@@ -167,6 +167,11 @@ stage-idol-calendar/
 │   ├── migrate-rename-tables-columns.php
 │   ├── migrate-add-indexes.php
 │   ├── migrate-add-event-email-column.php
+│   ├── migrate-add-program-type-column.php
+│   ├── migrate-add-stream-url-column.php
+│   ├── migrate-add-theme-column.php
+│   ├── migrate-add-contact-channels-table.php
+│   ├── update-version.php
 │   ├── generate-password-hash.php
 │   ├── debug-parse.php
 │   └── test-parse.php
@@ -358,12 +363,16 @@ POST   ?action=backup_upload_restore     # Upload .db แล้ว restore
 | `migrate-add-requests-table.php` | สร้างตาราง event_requests |
 | `migrate-add-credits-table.php` | สร้างตาราง credits |
 | `migrate-add-events-meta-table.php` | สร้างตาราง events_meta + เพิ่ม event_meta_id |
-| `migrate-rename-tables-columns.php` | Rename tables/columns เป็น v1.2.9 schema (idempotent) |
+| `migrate-rename-tables-columns.php` | Rename tables/columns เป็น v2.0.0 schema (idempotent) |
 | `migrate-add-admin-users-table.php` | สร้างตาราง admin_users + seed จาก config |
 | `migrate-add-role-column.php` | เพิ่ม role column ใน admin_users |
-| `migrate-rename-tables-columns.php` | Rename tables/columns เป็น v1.2.9 schema (idempotent) |
 | `migrate-add-indexes.php` | DB performance indexes (idempotent, รันซ้ำได้) |
 | `migrate-add-event-email-column.php` | เพิ่ม email column ใน events table (idempotent) |
+| `migrate-add-program-type-column.php` | เพิ่ม program_type column ใน programs table (idempotent) |
+| `migrate-add-stream-url-column.php` | เพิ่ม stream_url column ใน programs table (idempotent) |
+| `migrate-add-theme-column.php` | เพิ่ม theme column ใน events table (idempotent) |
+| `migrate-add-contact-channels-table.php` | สร้างตาราง contact_channels (idempotent) |
+| `update-version.php` | อัปเดต APP_VERSION ใน 9 ไฟล์อัตโนมัติ (`php update-version.php X.Y.Z`) |
 | `generate-password-hash.php` | สร้าง password hash สำหรับ admin |
 | `debug-parse.php` | Debug การ parse ICS |
 | `test-parse.php` | ทดสอบ parse ไฟล์ |

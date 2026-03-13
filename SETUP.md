@@ -237,10 +237,8 @@ Access /admin ✅
 | `data/calendar.db` | SQLite database |
 | `config/admin.php` | Admin credentials (fallback) |
 | `config/app.php` | App version and settings |
-| `tools/import-ics-to-sqlite.php` | CLI import tool |
-| `tools/migrate-add-indexes.php` | DB performance indexes |
-| `tools/migrate-add-event-email-column.php` | Adds email column to events table |
-| `tools/migrate-add-program-type-column.php` | Adds program_type column to programs table |
+
+For all CLI migration scripts and their descriptions, see **[PROJECT-STRUCTURE.md — tools/](PROJECT-STRUCTURE.md#️-tools)**.
 
 ---
 

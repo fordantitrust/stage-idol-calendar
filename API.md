@@ -68,7 +68,9 @@ Response:
       "location": "Main Stage",
       "organizer": "Artist Name",
       "categories": "Artist Name",
-      "description": ""
+      "description": "",
+      "program_type": "Live Stream",
+      "stream_url": "https://www.youtube.com/live/..."
     }
   ]
 }
@@ -209,6 +211,8 @@ X-CSRF-Token: <token>
   "organizer": "Artist Name",
   "description": "Program details",
   "categories": "Artist Name",
+  "program_type": "Live Stream",
+  "stream_url": "https://www.youtube.com/live/channel",
   "event_id": 1
 }
 ```
@@ -361,11 +365,14 @@ X-CSRF-Token: <token>
   "end_date": "2026-02-08",
   "venue_mode": "multi",
   "is_active": true,
+  "theme": "sakura",
   "email": "contact@idol-stage.com"
 }
 ```
 
-**venue_mode**: `"multi"` (multiple venues) or `"single"` (single venue)
+**venue_mode**: `"multi"` (multiple venues + Gantt view) / `"single"` (single venue) / `"calendar"` (monthly calendar grid, v2.7.0+)
+
+**theme**: one of `sakura`, `ocean`, `forest`, `midnight`, `sunset`, `dark`, `gray` (or omit to use global setting)
 
 #### Events in Public URL
 
@@ -516,6 +523,88 @@ X-CSRF-Token: <token>
 
 ---
 
+### Settings Endpoints
+
+Site-wide settings stored in `cache/site-settings.json`. **admin role only** for save actions.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `title_get` | GET | Get current site title |
+| `title_save` | POST | Save site title |
+| `theme_get` | GET | Get current global theme |
+| `theme_save` | POST | Save global theme |
+| `disclaimer_get` | GET | Get disclaimer text (TH/EN/JA) |
+| `disclaimer_save` | POST | Save disclaimer text |
+
+#### Save Site Title
+
+```http
+POST /admin/api.php?action=title_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "site_title": "My Event Calendar" }
+```
+
+#### Save Theme
+
+```http
+POST /admin/api.php?action=theme_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "theme": "ocean" }
+```
+
+**theme**: `sakura` / `ocean` / `forest` / `midnight` / `sunset` / `dark` / `gray`
+
+#### Save Disclaimer
+
+```http
+POST /admin/api.php?action=disclaimer_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "disclaimer_th": "ข้อมูลนี้อาจมีการเปลี่ยนแปลง",
+  "disclaimer_en": "Information subject to change",
+  "disclaimer_ja": "情報は変更される場合があります"
+}
+```
+
+---
+
+### Contact Channels Endpoints
+
+Contact channels displayed on `contact.php`. **admin role only**.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `contact_channels_list` | GET | List all contact channels |
+| `contact_channels_get` | GET | Get a single channel |
+| `contact_channels_create` | POST | Create a new channel |
+| `contact_channels_update` | PUT | Update a channel |
+| `contact_channels_delete` | DELETE | Delete a channel |
+
+#### Create Contact Channel
+
+```http
+POST /admin/api.php?action=contact_channels_create
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "icon": "📷",
+  "title": "Instagram",
+  "description": "@idol_stage",
+  "url": "https://www.instagram.com/idol_stage/",
+  "display_order": 0,
+  "is_active": true
+}
+```
+
+---
+
 ### Account Endpoint
 
 | Action | Method | Description |
@@ -549,6 +638,8 @@ X-CSRF-Token: <token>
 | Events/Conventions (CRUD) | ✅ | ✅ |
 | User Management | ✅ | ❌ |
 | Backup/Restore | ✅ | ❌ |
+| Contact Channels (CRUD) | ✅ | ❌ |
+| Settings (title, theme, disclaimer) save | ✅ | ❌ |
 | Change own password | ✅ | ✅ |
 
 ---
@@ -557,7 +648,8 @@ X-CSRF-Token: <token>
 
 - [README.md](README.md) — Project overview + Quick Start
 - [INSTALLATION.md](INSTALLATION.md) — Detailed installation guide
-- [SQLITE_MIGRATION.md](SQLITE_MIGRATION.md) — Database schema
+- [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) — Database schema + file structure
+- [ICS_FORMAT.md](ICS_FORMAT.md) — ICS file format guide
 - [SECURITY.md](SECURITY.md) — Security policy
 
 ---

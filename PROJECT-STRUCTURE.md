@@ -31,11 +31,12 @@ stage-idol-calendar/
 
 | File | Purpose |
 |------|---------|
-| `index.php` | Main page — displays programs table (List + Gantt view) |
+| `index.php` | Main page — displays programs table (List + Gantt + Calendar view) |
 | `how-to-use.php` | How-to guide (3 languages: TH/EN/JA) |
-| `contact.php` | Contact page (3 languages) |
-| `credits.php` | Credits & References (loaded from DB + cache) |
+| `contact.php` | Contact page — channels loaded from DB (3 languages) |
+| `credits.php` | Credits & References (loaded from DB + cache, global/per-event view) |
 | `export.php` | Export ICS handler — download .ics from filtered programs |
+| `feed.php` | Live ICS subscription feed — ETag, static file cache, RFC 5545/7986 |
 | `api.php` | Public API endpoint (programs, organizers, locations, events_list) |
 | `setup.php` | Setup Wizard — fresh install & maintenance (6 steps) |
 | `config.php` | Bootstrap — loads all config/ and functions/ |
@@ -55,7 +56,7 @@ Configuration constants for the entire system, loaded via `config.php`
 | `admin.php` | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `SESSION_TIMEOUT`, `ADMIN_IP_WHITELIST_ENABLED`, `ADMIN_ALLOWED_IPS` | Admin auth fallback + IP whitelist |
 | `security.php` | Security rate limiting constants | Rate limiting config |
 | `database.php` | `DB_PATH` (`data/calendar.db`) | Database file path |
-| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s) | Cache TTL settings |
+| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s) | Cache TTL settings + ICS feed cache |
 
 ---
 
@@ -66,7 +67,7 @@ Helper functions loaded via `config.php`
 | File | Key Functions | Purpose |
 |------|--------------|---------|
 | `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()` | General utilities + DB singleton + site title/theme + multi-event helpers |
-| `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate |
+| `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_feed_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate (data version, credits, ICS feed) |
 | `admin.php` | `admin_login()`, `safe_session_start()`, `check_admin_session()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting |
 | `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `generate_csrf_token()`, `validate_csrf_token()` | XSS, CSRF, headers, IP whitelist |
 
@@ -99,11 +100,12 @@ Auto-created by the system
 
 | File | Purpose | TTL |
 |------|---------|-----|
-| `data_version.json` | Last data update timestamp (footer display) | 10 minutes |
+| `data_version.json` | Last data update timestamp (ETag for public API + feed) | 10 minutes |
 | `credits.json` | Credits data cache | 1 hour |
+| `feed_*.ics` | Static ICS feed cache files (key = md5 of sorted filters+eventId) | 1 hour |
 | `login_attempts.json` | Login rate limiting data | 15 minutes |
 | `site-theme.json` | Global site theme setting | Persistent (changed by admin) |
-| `site-settings.json` | Site settings: `site_title` (changed by admin) | Persistent (changed by admin) |
+| `site-settings.json` | Site settings: `site_title`, `disclaimer_th/en/ja` | Persistent (changed by admin) |
 
 ---
 
@@ -126,7 +128,7 @@ Admin panel — login required
 | File | Purpose |
 |------|---------|
 | `login.php` | Login page (rate limited: 5 attempts/15 min/IP) |
-| `index.php` | Admin dashboard — Tabs: Programs, Requests, Credits, Events, Users, Backup |
+| `index.php` | Admin dashboard — Tabs: Programs, Requests, Credits, Events, Users, Backup, Contact, Settings |
 | `api.php` | All CRUD API endpoints (requires session + CSRF token) |
 
 See [API.md](API.md) for admin endpoint documentation.
@@ -150,6 +152,10 @@ CLI scripts for developers — run via `php tools/script.php`
 | `migrate-add-indexes.php` | Add 7 performance indexes | ✅ |
 | `migrate-add-event-email-column.php` | Add `email` column to `events` | ✅ |
 | `migrate-add-program-type-column.php` | Add `program_type` column to `programs` | ✅ |
+| `migrate-add-stream-url-column.php` | Add `stream_url` column to `programs` | ✅ |
+| `migrate-add-theme-column.php` | Add `theme` column to `events` | ✅ |
+| `migrate-add-contact-channels-table.php` | Create `contact_channels` table | ✅ |
+| `update-version.php` | Bump `APP_VERSION` across 9 files automatically | - |
 | `generate-password-hash.php` | Generate bcrypt password hash | |
 | `debug-parse.php` | Debug ICS file parsing | |
 | `test-parse.php` | Test ICS parser | |
@@ -160,30 +166,35 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 999 tests, PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 1630 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 
-| File | Tests | Coverage |
-|------|-------|---------|
-| `TestRunner.php` | — | Lightweight test framework (20 assertion methods) |
-| `run-tests.php` | — | Main runner + colored output + suite selector |
-| `SecurityTest.php` | 7 | XSS, null bytes, input sanitization, safe errors |
-| `CacheTest.php` | 17 | Cache TTL, hit/miss, invalidation, fallback on error |
-| `AdminAuthTest.php` | 38 | Session, login, timing attack resistance, DB auth |
-| `CreditsApiTest.php` | 49 | Credits CRUD, bulk delete, SQL injection prevention |
-| `IntegrationTest.php` | 97 | Config, file structure, workflows, API, multi-event |
-| `UserManagementTest.php` | 116 | Role schema, RBAC helpers, user CRUD, permission guards |
-| `ThemeTest.php` | 140 | Theme system, get_site_theme(), per-event theme, CSS files, admin API |
-| `SiteSettingsTest.php` | 154 | Site title: get_site_title(), cache, fallbacks, admin API, page injection |
-| `EventEmailTest.php` | 19 | events.email schema, CRUD, validation logic, ICS ORGANIZER fallback |
-| `ProgramTypeTest.php` | 35 | program_type schema, migration, CRUD, public API type filter, admin API, UI features, translations |
+| File | Unique Tests | Cumulative | Coverage |
+|------|-------------|-----------|---------|
+| `TestRunner.php` | — | — | Lightweight test framework (20 assertion methods) |
+| `run-tests.php` | — | — | Main runner + colored output + suite selector |
+| `SecurityTest.php` | 7 | 7 | XSS, null bytes, input sanitization, safe errors |
+| `CacheTest.php` | 10 | 17 | Cache TTL, hit/miss, invalidation, fallback on error |
+| `AdminAuthTest.php` | 21 | 38 | Session, login, timing attack resistance, DB auth |
+| `CreditsApiTest.php` | 11 | 49 | Credits CRUD, bulk delete, SQL injection prevention |
+| `IntegrationTest.php` | 51 | 100 | Config, file structure, workflows, API, multi-event |
+| `UserManagementTest.php` | 19 | 119 | Role schema, RBAC helpers, user CRUD, permission guards |
+| `ThemeTest.php` | 24 | 143 | Theme system, get_site_theme(), per-event theme, CSS files |
+| `SiteSettingsTest.php` | 14 | 157 | Site title: get_site_title(), cache, fallbacks, admin API |
+| `EventEmailTest.php` | 19 | 176 | events.email schema, CRUD, validation, ICS ORGANIZER |
+| `ProgramTypeTest.php` | 35 | 211 | program_type schema, CRUD, API filter, UI badges, translations |
+| `FeedTest.php` | 80 | 291 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
+| `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
+
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 1630.
 
 ```bash
-# Run all 999 tests
+# Run all 1630 tests
 php tests/run-tests.php
 
 # Run specific suite
 php tests/run-tests.php SecurityTest
-php tests/run-tests.php UserManagementTest::testRoleColumn
+php tests/run-tests.php FeedTest
+php tests/run-tests.php StreamUrlTest::testStreamUrlColumn
 ```
 
 ---
@@ -204,13 +215,13 @@ php tests/run-tests.php UserManagementTest::testRoleColumn
 | File | Purpose |
 |------|---------|
 | `README.md` | Project overview + Quick Start |
-| `SETUP.md` | Setup Wizard guide (fresh install) |
-| `QUICKSTART.md` | 3-step quick start guide |
+| `SETUP.md` | Setup Wizard guide (fresh install + 6-step wizard) |
 | `INSTALLATION.md` | Detailed installation guide (Apache/Nginx/XAMPP/Docker) |
 | `API.md` | Full API endpoint documentation |
+| `ICS_FORMAT.md` | ICS file format guide (fields, examples, import/export) |
 | `PROJECT-STRUCTURE.md` | File structure (this file) |
 | `DOCKER.md` | Docker deployment guide |
-| `TESTING.md` | Manual testing checklist (129 cases) |
+| `TESTING.md` | Manual testing checklist |
 | `CHANGELOG.md` | Version history |
 | `CONTRIBUTING.md` | Contribution guidelines |
 | `SECURITY.md` | Security policy |
@@ -237,6 +248,7 @@ Individual show/performance records (formerly `events`).
 | `description` | TEXT | | Program description |
 | `categories` | TEXT | | Artist names (comma-separated) |
 | `program_type` | TEXT | DEFAULT NULL | Program type (free-text, v2.4.0+) |
+| `stream_url` | TEXT | DEFAULT NULL | Live stream URL (http/https only, v2.6.0+) |
 | `event_id` | INTEGER | FK → `events.id` | Event this program belongs to |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
@@ -285,7 +297,7 @@ Convention/event metadata for multi-event support (formerly `events_meta`).
 | `description` | TEXT | | Optional description |
 | `start_date` | DATE | | Event start date |
 | `end_date` | DATE | | Event end date |
-| `venue_mode` | TEXT | DEFAULT `'multi'` | `'multi'` or `'single'` |
+| `venue_mode` | TEXT | DEFAULT `'multi'` | `'multi'` / `'single'` / `'calendar'` (calendar grid view, v2.7.0+) |
 | `is_active` | BOOLEAN | DEFAULT 1 | Whether event is publicly visible |
 | `theme` | TEXT | DEFAULT NULL | Per-event color theme (v2.1.1+) |
 | `email` | TEXT | DEFAULT NULL | Contact email for ICS ORGANIZER field (v2.3.0+) |
@@ -330,6 +342,25 @@ Admin user credentials and roles.
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
 | `last_login_at` | DATETIME | | Last successful login |
+
+---
+
+### Table: `contact_channels`
+
+Contact channel entries displayed on `contact.php`. Auto-created by `ensureContactChannelsTable()` (v2.10.0+).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Channel ID |
+| `icon` | TEXT | DEFAULT `''` | Icon emoji or SVG string |
+| `title` | TEXT | NOT NULL DEFAULT `''` | Channel name/label |
+| `description` | TEXT | DEFAULT `''` | Additional description |
+| `url` | TEXT | DEFAULT `''` | Link URL |
+| `display_order` | INTEGER | DEFAULT 0 | Sort order (lower = shown first) |
+| `is_active` | INTEGER | DEFAULT 1 | Whether channel is publicly visible |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+> Managed via **Admin › Contact** tab (admin role only). Not required for setup — table is created on demand.
 
 ---
 
