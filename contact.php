@@ -99,7 +99,7 @@ $disclaimer = get_site_disclaimer();
                                 <p><?php echo htmlspecialchars($ch['description']); ?></p>
                                 <?php endif; ?>
                                 <?php if (!empty($ch['url'])): ?>
-                                <a href="<?php echo htmlspecialchars($ch['url']); ?>" target="_blank" rel="noopener noreferrer">
+                                <a href="<?php echo htmlspecialchars($ch['url']); ?>" target="_blank" rel="noopener noreferrer" style="word-break:break-all;overflow-wrap:anywhere;">
                                     <?php echo htmlspecialchars($ch['url']); ?>
                                 </a>
                                 <?php endif; ?>

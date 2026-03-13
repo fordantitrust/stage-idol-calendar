@@ -535,6 +535,11 @@ END:VCALENDAR
 
 - 🎨 **Gantt bar layout — time + title inline** — ใน program bar เวลาและชื่อ program แสดงในแถวเดียวกัน (`flex row`) แทนการ stack แนวตั้ง; type badge ย้ายมาอยู่ด้านล่างแถว; title ตัดด้วย `…` แทน 2-line clamp; อ่านง่ายขึ้นเมื่อ bar สั้น
 
+### v2.10.1 (2026-03-13)
+
+- 🐛 **`contact.php` long URL overflow on mobile iOS** — `word-break: break-all` + `overflow-wrap: anywhere` on contact channel `<a>` tags
+- 🐛 **`credits.php` global view event order** — `ksort` → `krsort`; event groups now newest-first; "ทั่วไป" group moved to last
+
 ### v2.10.0 (2026-03-13)
 
 - ✉️ **Contact Channels (DB-driven)** — ช่องทางติดต่อย้ายจาก hardcode → SQLite `contact_channels` table; Admin › Contact tab (admin role only) CRUD; auto-created via `ensureContactChannelsTable()`; `setup.php` `init_database` รองรับ

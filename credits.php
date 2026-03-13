@@ -139,11 +139,11 @@ foreach ($activeEvents as $ev) {
                 $key = ($c['event_id'] === null) ? 0 : intval($c['event_id']);
                 $grouped[$key][] = $c;
             }
-            // Put global (key=0) first, then sort remaining by key
+            // Sort by event_id descending (newest first), global (key=0) goes last
             $globalGroup = isset($grouped[0]) ? [0 => $grouped[0]] : [];
             unset($grouped[0]);
-            ksort($grouped);
-            $grouped = $globalGroup + $grouped;
+            krsort($grouped);
+            $grouped = $grouped + $globalGroup;
         }
         ?>
 
