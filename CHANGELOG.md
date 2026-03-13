@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Calendar view day panel language not updating** (`js/common.js`) — when changing language while a day panel was open, the date header in the panel remained in the previous language; fixed by persisting `_calActiveDayKey`/`_calActiveDayEvs` state in `openDayPanel()`, clearing in `closeDayPanel()`, and re-rendering the panel inside `renderAndMountCalendar()` after each language switch
+- **PHP 8.5 deprecation: `ReflectionProperty::setAccessible()`** (`tests/run-tests.php`) — removed two `setAccessible(true)` calls that are no-ops since PHP 8.1 and deprecated in PHP 8.5
+
+### Changed
+
+- **CI/CD: PHP 8.4 and 8.5 added to test matrix** (`.github/workflows/tests.yml`) — extended `php-version` matrix from `['8.1','8.2','8.3']` to `['8.1','8.2','8.3','8.4','8.5']`; also added missing migration scripts `migrate-add-stream-url-column.php` and `migrate-add-contact-channels-table.php` to both `test` and `integration-check` jobs
+
+> **📁 Files changed:** `js/common.js`, `tests/run-tests.php`, `.github/workflows/tests.yml`
 
 ## [2.10.1] - 2026-03-13
 
