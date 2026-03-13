@@ -13,7 +13,7 @@ jobs:
 
     strategy:
       matrix:
-        php-version: ['8.1', '8.2', '8.3']
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 
     steps:
       - name: Checkout code
@@ -47,6 +47,8 @@ jobs:
           php migrate-add-theme-column.php || true
           php migrate-add-event-email-column.php || true
           php migrate-add-program-type-column.php || true
+          php migrate-add-stream-url-column.php || true
+          php migrate-add-contact-channels-table.php || true
           cd ..
 
       - name: Run tests
@@ -105,6 +107,8 @@ jobs:
           php migrate-add-theme-column.php || true
           php migrate-add-event-email-column.php || true
           php migrate-add-program-type-column.php || true
+          php migrate-add-stream-url-column.php || true
+          php migrate-add-contact-channels-table.php || true
 
       - name: Run integration tests
         run: php tests/run-tests.php IntegrationTest

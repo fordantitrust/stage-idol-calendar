@@ -696,6 +696,13 @@ function renderAndMountCalendar() {
             this.classList.add('cal-day-selected');
         });
     });
+
+    // Re-render day panel if it was open before calendar was re-mounted (e.g. language change)
+    if (window._calActiveDayKey && window._calActiveDayEvs) {
+        openDayPanel(window._calActiveDayKey, window._calActiveDayEvs);
+        const selectedCell = container.querySelector(`.cal-day[data-calday="${CSS.escape(window._calActiveDayKey)}"]`);
+        if (selectedCell) selectedCell.classList.add('cal-day-selected');
+    }
 }
 
 function renderMonthCalendar(events, year, month) {
@@ -872,6 +879,9 @@ function closeCalDetailModal() {
 
 // Day panel (mobile: tap day → list of programs)
 function openDayPanel(dateKey, dayEvs) {
+    window._calActiveDayKey = dateKey;
+    window._calActiveDayEvs = dayEvs;
+
     const lang = translations[currentLang] || translations['th'];
 
     // Format date label
@@ -951,6 +961,8 @@ function closeDayPanel() {
     if (panel) panel.classList.remove('active');
     const calView = document.getElementById('month-calendar-view');
     if (calView) calView.querySelectorAll('.cal-day-selected').forEach(c => c.classList.remove('cal-day-selected'));
+    window._calActiveDayKey = null;
+    window._calActiveDayEvs = null;
 }
 
 // Show/hide gradient shadow at edges of .gantt-view when content overflows horizontally

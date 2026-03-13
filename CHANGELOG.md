@@ -5,6 +5,12 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.10.2] - 2026-03-13
+
+### Fixed
+
+- **Calendar view day panel language not updating** (`js/common.js`) — when changing language while a day panel was open, the date header in the panel remained in the previous language; fixed by persisting `_calActiveDayKey`/`_calActiveDayEvs` state in `openDayPanel()`, clearing in `closeDayPanel()`, and re-rendering the panel inside `renderAndMountCalendar()` after each language switch
+
 ## [2.10.1] - 2026-03-13
 
 ### Fixed

@@ -113,9 +113,7 @@ foreach ($testFiles as $testName => $testFile) {
     // Track results
     $reflection = new ReflectionObject($runner);
     $passedProp = $reflection->getProperty('passed');
-    $passedProp->setAccessible(true);
     $failedProp = $reflection->getProperty('failed');
-    $failedProp->setAccessible(true);
 
     $passed = $passedProp->getValue($runner);
     $failed = $failedProp->getValue($runner);

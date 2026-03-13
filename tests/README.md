@@ -163,7 +163,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ migrate-add-event-email-column.php exists in tools/
 - ✅ Migration is idempotent (skips ALTER TABLE when column already present)
 
-**Total: 637 automated tests** (all pass on PHP 8.1, 8.2, 8.3)
+**Total: 637 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
 
 > **Note**: Test counts shown per-suite are cumulative (the runner reloads all previously-defined `test*` functions). The "unique" count is the number of test functions in each file only.
 
@@ -218,7 +218,7 @@ Pass Rate: 100.0%
 
 ## 🔧 Requirements
 
-- PHP 8.1 or higher (tested on PHP 8.1, 8.2, 8.3)
+- PHP 8.1 or higher (tested on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
 - SQLite database (`calendar.db`) for database tests
 - Write permissions on `cache/` directory
 
@@ -393,7 +393,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php-version: ['8.1', '8.2', '8.3']
+        php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2

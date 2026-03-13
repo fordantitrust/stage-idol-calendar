@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v2.10.1
+File and folder structure for Idol Stage Timetable v2.10.2
 
 ---
 
@@ -160,7 +160,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 999 tests, PHP 8.1/8.2/8.3
+Automated test suite — 999 tests, PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Tests | Coverage |
 |------|-------|---------|
@@ -445,4 +445,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v2.10.1*
+*Idol Stage Timetable v2.10.2*
