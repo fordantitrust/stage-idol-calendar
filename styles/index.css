@@ -1895,11 +1895,20 @@ tr.program-live {
 
 /* Overlapping stacking: left/right set dynamically via inline style in renderGanttChart() */
 
+.gantt-program-row-v {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    min-width: 0;
+    margin-bottom: 2px;
+}
+
 .gantt-program-time-v {
     color: rgba(255,255,255,0.95);
     font-size: 0.7em;
     font-weight: 600;
-    margin-bottom: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .gantt-program-type-v {
@@ -1910,7 +1919,6 @@ tr.program-live {
     font-weight: 700;
     padding: 1px 5px;
     border-radius: 6px;
-    margin-bottom: 2px;
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
@@ -1920,11 +1928,11 @@ tr.program-live {
     color: white;
     font-size: 0.75em;
     line-height: 1.2;
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
@@ -2013,7 +2021,6 @@ tr.program-live {
 
     .gantt-program-title-v {
         font-size: 0.65em;
-        -webkit-line-clamp: 1;
     }
 
     .gantt-program-tooltip {

@@ -22,11 +22,26 @@ require_once __DIR__ . '/../config.php';
 /**
  * Replica of icsEscape() from feed.php.
  * Escapes special characters in an ICS text value (RFC 5545 §3.3.11).
+ * Used for individual CATEGORIES values where comma IS a value delimiter.
  */
 function _feed_icsEscape(string $value): string {
     $value = str_replace('\\', '\\\\', $value); // backslash must be first
     $value = str_replace(';',  '\\;',  $value);
     $value = str_replace(',',  '\\,',  $value);
+    $value = str_replace("\n", '\\n',  $value);
+    $value = str_replace("\r", '',     $value);
+    return $value;
+}
+
+/**
+ * Replica of icsEscapeText() from feed.php.
+ * Escapes for single-value TEXT properties (SUMMARY, LOCATION, DESCRIPTION).
+ * Commas are intentionally NOT escaped — comma is not a delimiter in these properties,
+ * and escaping it (\,) causes some calendar clients to truncate the title at that point.
+ */
+function _feed_icsEscapeText(string $value): string {
+    $value = str_replace('\\', '\\\\', $value);
+    $value = str_replace(';',  '\\;',  $value);
     $value = str_replace("\n", '\\n',  $value);
     $value = str_replace("\r", '',     $value);
     return $value;
@@ -158,6 +173,59 @@ function testIcsEscapeThaiTextPassthrough($test) {
     // Thai characters contain no ICS special chars — should be unchanged
     $thai = 'ชื่อศิลปิน';
     $test->assertEquals($thai, _feed_icsEscape($thai), 'Thai text with no special chars should pass through unchanged');
+}
+
+// ── 2b. icsEscapeText() — single-value TEXT (SUMMARY / LOCATION / DESCRIPTION) ────
+
+function testIcsEscapeTextCommaNotEscaped($test) {
+    $test->assertEquals(
+        'ONE BET, ALL IN',
+        _feed_icsEscapeText('ONE BET, ALL IN'),
+        'Comma must NOT be escaped in SUMMARY — some clients truncate on \\,'
+    );
+}
+
+function testIcsEscapeTextMultipleCommasNotEscaped($test) {
+    $test->assertEquals(
+        'A, B, C',
+        _feed_icsEscapeText('A, B, C'),
+        'Multiple commas must all be left as-is in single-value TEXT properties'
+    );
+}
+
+function testIcsEscapeTextSemicolonEscaped($test) {
+    $test->assertEquals('\\;', _feed_icsEscapeText(';'), 'Semicolon must still be escaped');
+}
+
+function testIcsEscapeTextBackslashEscaped($test) {
+    $test->assertEquals('\\\\', _feed_icsEscapeText('\\'), 'Backslash must still be doubled');
+}
+
+function testIcsEscapeTextNewlineEscaped($test) {
+    $test->assertEquals('\\n', _feed_icsEscapeText("\n"), 'Newline must still be escaped');
+}
+
+function testIcsEscapeTextCarriageReturnRemoved($test) {
+    $test->assertEquals('', _feed_icsEscapeText("\r"), 'Carriage return must still be stripped');
+}
+
+function testIcsEscapeTextTitleWithComma($test) {
+    $input    = 'ONE BET, ALL IN. FUYUBI\'S 9TH SINGLE 1ST PERFORMANCE';
+    $expected = 'ONE BET, ALL IN. FUYUBI\'S 9TH SINGLE 1ST PERFORMANCE';
+    $test->assertEquals($expected, _feed_icsEscapeText($input),
+        'Title with comma must pass through unchanged (no backslash before comma)');
+}
+
+function testFeedPhpDefinesIcsEscapeTextFunction($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $test->assertContains('function icsEscapeText', $src,
+        'feed.php must define icsEscapeText() for SUMMARY/LOCATION/DESCRIPTION escaping');
+}
+
+function testFeedPhpUseIcsEscapeTextForSummary($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $test->assertContains('icsEscapeText($event[\'title\'])', $src,
+        'feed.php must use icsEscapeText() (not icsEscape()) for SUMMARY to avoid comma truncation');
 }
 
 // ── 3. icsFold() — RFC 5545 Line Folding ─────────────────────────────────────
@@ -464,6 +532,18 @@ function testFeedPhpCategoriesDoesNotEscapeDelimiterComma($test) {
     // The source should split on ',' then escape each value then re-join — not escape the whole string
     $test->assertContains("implode(',', \$catValues)", $src,
         'feed.php CATEGORIES must use implode with unescaped comma as delimiter');
+}
+
+function testFeedPhpCalNameUsesIcsEscape($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $test->assertContains('icsEscape($calName)', $src,
+        'feed.php X-WR-CALNAME must use icsEscape() (comma escaped to \\,) to prevent comma-truncation of calendar name');
+}
+
+function testFeedPhpCalDescUsesIcsEscapeText($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $test->assertContains('icsEscapeText($siteTitle)', $src,
+        'feed.php X-WR-CALDESC and PRODID must escape site title through icsEscapeText()');
 }
 
 // ── 9. Feed Cache Constants ────────────────────────────────────────────────────

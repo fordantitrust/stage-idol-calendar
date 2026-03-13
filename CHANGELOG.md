@@ -5,6 +5,26 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.7] - 2026-03-13
+
+### Changed
+
+- 🎨 **Gantt bar layout — time + title inline** — inside each program bar, time and title are now displayed on the same row (`display: flex; align-items: baseline`) instead of stacked vertically; type badge moves below the row; title truncates with `…` (`white-space: nowrap; text-overflow: ellipsis`) instead of 2-line clamp; makes short bars more readable at a glance
+
+> **📁 Files changed:** `js/common.js`, `styles/index.css`
+
+## [2.7.6] - 2026-03-13
+
+### Added
+
+- ✨ **Event name in page title** — `index.php` `<title>` now renders `[Event Name] - [Site Name]` when viewing a specific event (e.g. `Idol Stage Feb 2026 - Idol Stage Timetable`); improves social sharing previews and browser tab clarity; falls back to site name only on the event listing page or when event name equals site name
+
+### Fixed
+
+- 🐛 **`js/common.js` unused variable** — `const lang` in `openCalendarDetailModal()` was declared but never referenced; removed to eliminate lint warning
+
+> **📁 Files changed:** `index.php`, `js/common.js`
+
 ## [2.7.5] - 2026-03-12
 
 ### Fixed
