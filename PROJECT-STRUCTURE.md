@@ -42,7 +42,7 @@ stage-idol-calendar/
 | `config.php` | Bootstrap — loads all config/ and functions/ |
 | `IcsParser.php` | ICS Parser class — parse .ics files → SQLite |
 | `.htaccess` | Apache clean URL rewrite rules (removes .php extension) |
-| `nginx-clean-url.conf` | Nginx clean URL config example |
+| `nginx-clean-url.conf` | Nginx complete server config (clean URLs, directory restrictions, security headers) |
 
 ---
 

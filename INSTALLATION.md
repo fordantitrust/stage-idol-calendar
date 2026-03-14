@@ -195,7 +195,7 @@ sudo chmod -R 755 /var/www/html/stage-idol-calendar
 
 **Server Block Example** (`/etc/nginx/sites-available/calendar`):
 
-See [nginx-clean-url.conf](nginx-clean-url.conf) for a complete example with clean URL support.
+See [nginx-clean-url.conf](nginx-clean-url.conf) for the full production-ready config. Minimal example:
 
 ```nginx
 server {
@@ -203,6 +203,25 @@ server {
     server_name calendar.example.com;
     root /var/www/html/stage-idol-calendar;
     index index.php;
+
+    autoindex off;
+
+    # Block sensitive directories
+    location ~* ^/(data|cache|backups|ics)(/|$) { deny all; }
+
+    # Restrict internal directories to LAN/localhost
+    location ~* ^/(config|functions|tests|tools)(/|$) {
+        allow 127.0.0.1;
+        allow ::1;
+        allow 192.168.0.0/16;
+        allow 10.0.0.0/8;
+        deny all;
+    }
+
+    # Block sensitive file types
+    location ~* \.(db|sqlite|sqlite3)$ { deny all; }
+    location ~ /\. { deny all; }
+    location ~* \.md$ { deny all; }
 
     # Event path routing for multi-event support
     location ~ ^/event/([^/]+)/([^/]+)$ {
@@ -212,7 +231,16 @@ server {
         rewrite ^/event/([^/]+)/?$ /index.php?event=$1 last;
     }
 
-    # Clean URLs - try without .php extension
+    # api/ subdirectory clean URLs
+    location ~ ^/api/([^/]+)$ {
+        rewrite ^/api/([^/]+)$ /api/$1.php last;
+    }
+
+    location /admin {
+        try_files $uri $uri/ /admin/index.php?$query_string;
+    }
+
+    # Clean URLs - strip .php extension
     location / {
         try_files $uri $uri/ $uri.php?$query_string;
     }
@@ -221,9 +249,6 @@ server {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;  # Adjust PHP version
     }
-
-    location ~ /\. { deny all; }
-    location ~ \.(db|sqlite|sqlite3)$ { deny all; }
 }
 ```
 
