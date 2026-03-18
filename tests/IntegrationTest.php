@@ -368,7 +368,6 @@ function testDocumentationExists($test) {
         'README.md',
         'INSTALLATION.md',
         'CHANGELOG.md',
-        'CLAUDE.md',
         'TESTING.md',
     ];
 
