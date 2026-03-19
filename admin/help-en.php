@@ -325,6 +325,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
             <a href="#import-type">↳ Program Type</a>
+            <a href="#feed">Feed / Subscribe</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
@@ -360,6 +361,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#import-type">Program Type</a></li>
                     </ul>
                 </li>
+                <li><a href="#artists">Tab: Artists</a></li>
+                <li><a href="#feed">Feed / Subscribe</a>
+                    <ul class="toc-sub">
+                        <li><a href="#feed-event">Event Feed</a></li>
+                        <li><a href="#feed-artist">Artist Feed</a></li>
+                    </ul>
+                </li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
@@ -380,13 +388,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     on the website — Programs (individual performances), Events (conventions/shows),
                     user-submitted Requests, Credits, and database Backups.
                 </p>
-                <p>The Admin Panel has <strong>8 main tabs</strong>:</p>
+                <p>The Admin Panel has <strong>9 main tabs</strong>:</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
                     <span class="tab-chip">🎵 Programs</span>
                     <span class="tab-chip">🎪 Events</span>
                     <span class="tab-chip">📝 Requests</span>
                     <span class="tab-chip">✨ Credits</span>
                     <span class="tab-chip">📤 Import</span>
+                    <span class="tab-chip">🎤 Artists</span>
                     <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
@@ -488,8 +497,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Date <span style="color:red">*</span></td><td>Date of the performance</td></tr>
                         <tr><td>Start Time / End Time <span style="color:red">*</span></td><td>Time in HH:MM format</td></tr>
                         <tr><td>Description</td><td>Optional additional details</td></tr>
-                        <tr><td>Categories</td><td>Tags / categories, comma-separated (<code>,</code>)</td></tr>
+                        <tr><td>Artist / Group</td><td>Artists associated with this program — type a name and press <kbd>Enter</kbd> or <kbd>,</kbd> to add a chip; click <code>×</code> to remove; autocomplete pulls from the Artists table (🎤 = solo, 🎵 = group); a new artist name not yet in the system will be created automatically when you click <strong>Save</strong></td></tr>
                         <tr><td>Program Type</td><td>Type of program, e.g. <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (optional, supports autocomplete from existing types)</td></tr>
+                        <tr><td>Live Stream URL</td><td>URL of the live stream (YouTube, X/Twitter, TikTok, etc.) — must begin with <code>https://</code>; any other value is silently ignored; once set, the public page displays a platform icon and a <strong>🔴 Join Live</strong> button; the ICS feed includes a <code>URL:</code> property for calendar apps</td></tr>
                     </tbody>
                 </table>
                 <ol class="steps" start="3">
@@ -518,7 +528,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tbody>
                         <tr><td>Select All</td><td>Select all programs on the current page</td></tr>
                         <tr><td>Deselect All</td><td>Clear all selections</td></tr>
-                        <tr><td>✏️ Bulk Edit</td><td>Update Venue / Organizer / Categories / Program Type for all selected programs at once (up to 100)</td></tr>
+                        <tr><td>✏️ Bulk Edit</td><td>Update Venue / Organizer / Artist&ndash;Group / Program Type for all selected programs at once (up to 100) — the Artist / Group field uses the same tag-input widget as the single-edit form</td></tr>
                         <tr><td>🗑️ Bulk Delete</td><td>Delete all selected programs at once (up to 100)</td></tr>
                     </tbody>
                 </table>
@@ -725,6 +735,89 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
                     <div>You can also import via the command line: <code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></div>
+                </div>
+            </section>
+
+            <!-- Artists Tab -->
+            <section class="help-section" id="artists">
+                <h2>🎤 Tab: Artists</h2>
+                <p>Manage all artists in the system. Artists can appear in programs across multiple events (Artist Reuse System).</p>
+
+                <h3>Artist Fields</h3>
+                <table class="help-table">
+                    <thead><tr><th>Field</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <tr><td>Name <span style="color:red">*</span></td><td>Primary artist name — used to match against CATEGORIES in ICS files</td></tr>
+                        <tr><td>Type</td><td><strong>Solo</strong> = individual artist | <strong>Group</strong> = band/group</td></tr>
+                        <tr><td>Group</td><td>For Solo artists — select which group they belong to (if any)</td></tr>
+                        <tr><td>Variants</td><td>Alternate names e.g. abbreviations, other languages, former names</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Variants (Alternate Names)</h3>
+                <p>Variants allow the system to match artist names from ICS files that may use different spellings:</p>
+                <ul>
+                    <li>Click the <strong>Variants</strong> button on an artist row to open the variants modal</li>
+                    <li>Click <strong>+ Add</strong>, type the alternate name, then click Add</li>
+                    <li>Click <strong>×</strong> next to a variant to remove it</li>
+                </ul>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>When importing an ICS file, the system auto-links programs to artists by matching CATEGORIES — both the primary name and all variants are checked.</div>
+                </div>
+
+                <h3>Artist Profile Page</h3>
+                <p>The artist name in the Artists table links to the public profile page <code>/artist/{id}</code> — showing that artist's programs grouped by event, for events that have not yet ended.</p>
+
+                <h3>Connection to the Program Form</h3>
+                <p>The <strong>Artist / Group</strong> field in the Add / Edit Program form connects directly to this Artists table:</p>
+                <ul>
+                    <li>Type a name → the system autocompletes from the Artists table</li>
+                    <li>Select from the dropdown or press <kbd>Enter</kbd> / <kbd>,</kbd> to add the name as a chip</li>
+                    <li>If the typed name <strong>does not exist</strong> in the system, a new artist record is created automatically when you click <em>Save</em></li>
+                    <li>On save, the <code>program_artists</code> junction table is synced immediately — the artist filter on the public event page reflects the change right away</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Artists created through the Program form will appear in this Artists tab automatically. You can add Variants or assign a group membership at any time afterwards.</div>
+                </div>
+            </section>
+
+            <!-- Feed / Subscribe -->
+            <section class="help-section" id="feed">
+                <h2>🔔 Feed / Subscribe</h2>
+                <p>The system provides ICS Subscription Feeds that calendar apps (Google Calendar, Apple Calendar, Outlook, Thunderbird) can pull automatically — subscribers receive updates without needing to export again.</p>
+
+                <h3 id="feed-event">📅 Event Feed</h3>
+                <p>The <strong>🔔 Subscribe</strong> button on the event schedule page (<code>/event/{slug}</code>) opens a modal where users can copy the feed URL or open it with webcal://. The URL automatically includes any active filters (artist[], venue[], type[]).</p>
+                <table class="help-table">
+                    <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>/feed</code></td><td>Feed for the Default Event (no slug)</td></tr>
+                        <tr><td><code>/event/{slug}/feed</code></td><td>Feed for a specific Event (supports artist[], venue[], type[] query string filters)</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Feeds use a static file cache (<code>cache/feed_*.ics</code>, TTL 1 hour). Every Admin write operation (add / edit / delete Program, ICS import) invalidates the cache immediately — subscribers will receive fresh data on their calendar app's next pull cycle.</div>
+                </div>
+
+                <h3 id="feed-artist">🎤 Artist Feed</h3>
+                <p>The artist profile page (<code>/artist/{id}</code>) offers two separate subscribe buttons:</p>
+                <table class="help-table">
+                    <thead><tr><th>Button</th><th>Endpoint</th><th>Pulls</th></tr></thead>
+                    <tbody>
+                        <tr><td>🔔 ArtistName</td><td><code>/artist/{id}/feed</code></td><td>All programs for this artist across every active event (name + all variant names)</td></tr>
+                        <tr><td>🔔 GroupName</td><td><code>/artist/{id}/feed?group=1</code></td><td>Programs performed as the artist's group (shown only when the artist has a group_id)</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Artist Feeds span all events and only include programs from <strong>Active events</strong>. They use the <code>artist_variants</code> table to match the artist name against the <code>categories</code> field in programs. Cache keys are separated between <code>_own</code> and <code>_group</code>.</div>
+                </div>
+                <div class="callout callout-warning">
+                    <span class="callout-icon">⚠️</span>
+                    <div>When you edit Artist Variants, the change will be reflected in the Artist Feed after the next pull cycle (cache TTL 1 hour, or after any Admin write to Programs / Artists).</div>
                 </div>
             </section>
 
@@ -987,6 +1080,19 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>Confirm the <code>.ics</code> file contains the required fields: <code>DTSTART</code>, <code>DTEND</code>, <code>SUMMARY</code></li>
                     <li>File size must not exceed <strong>5 MB</strong></li>
                     <li>Check the browser console or PHP error log for details</li>
+                </ul>
+
+                <h3>Q: I added a Program but the Feed (webcal) still shows old data</h3>
+                <ul>
+                    <li>The feed uses a static cache (TTL 1 hour). Every Admin write operation invalidates the cache immediately — but each calendar app has its own pull schedule (Apple ~1 hr, Google ~24 hr).</li>
+                    <li>To force an immediate refresh: in Apple Calendar press "Refresh"; in Outlook Desktop click "Sync"; in Google Calendar you need to remove and re-subscribe.</li>
+                </ul>
+
+                <h3>Q: The public page is slow after a large ICS import</h3>
+                <ul>
+                    <li>The system uses a Query Cache for the event schedule page (<code>cache/query_event_{id}.json</code>) and artist profile page (<code>cache/query_artist_{id}.json</code>) — TTL 1 hour.</li>
+                    <li>Every Admin write (add / edit / delete Program or Artist) invalidates the cache immediately. The first page load after invalidation rebuilds the cache; subsequent requests will be fast.</li>
+                    <li>To clear the cache manually: delete <code>cache/query_event_*.json</code> and <code>cache/query_artist_*.json</code> from the server.</li>
                 </ul>
 
                 <h3>Q: How do I assign a Program Type when importing an ICS file?</h3>

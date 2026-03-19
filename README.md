@@ -24,7 +24,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📱 **Mobile Optimized** | Responsive design works perfectly on all devices including iOS | v1.0.0 |
 | 📊 **Dual View Modes** | Switch between List and Gantt Chart timeline views (all venue modes) | v1.0.0 |
 | 🔍 **Advanced Filtering** | Filter by artists, venues, program types, or search keywords; multi-value support | v1.0.0 |
-| 📸 **Save as Image** | Export filtered schedule as PNG image (lazy-loaded html2canvas) | v1.0.0 |
+| 📸 **Save as Image** | Export filtered schedule as PNG image (server-side PHP GD, no external JS) | v3.3.0 |
 | 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. | v1.0.0 |
 | 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) | v1.0.0 |
 | 🎪 **Multi-Event** | Support for multiple conventions/events with searchable modal card picker (filter by status) | v1.2.0 |
@@ -34,6 +34,10 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔔 **Live Subscription** | Subscribe to a live webcal:// feed — calendar apps auto-sync when programs change (no re-export needed) | v2.5.0 |
 | 🔴 **Live Stream Links** | Platform icon (📷/𝕏/▶️/🔴) + join button displayed on programs that have a stream URL | v2.6.0 |
 | 📅 **Calendar View** | Monthly grid view for online/stream schedules (`venue_mode=calendar`); desktop chips + mobile day-panel with dot indicators | v2.7.0 |
+| 👤 **Artist Profiles** | Dedicated artist page (`/artist/{id}`) showing all programs grouped by event, group members, and variant names | v3.0.0 |
+| 🎪 **Cross-Event Section** | "Also appears in" section before the footer — shows other events the same artists perform at, with clickable profile links | v3.0.0 |
+| 🏷️ **Artist Badge Links** | Artist badges in program rows are split pills: left side filters, right `↗` opens artist profile page | v3.0.0 |
+| 🔔 **Artist Feed** | Subscribe to a per-artist `webcal://` feed (`/artist/{id}/feed`) — calendar apps auto-sync all programs for that artist across every event; members of a group get a separate feed button for group programs (`?group=1`) | v3.2.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -42,7 +46,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📋 **Request Management** | Review and approve user-submitted program requests | v1.0.0 |
 | 🔍 **Comparison View** | Side-by-side comparison of original vs. requested changes | v1.0.0 |
 | 📦 **Bulk Operations** | Select and edit/delete multiple programs at once (up to 100) | v1.1.0 |
-| ✏️ **Bulk Edit** | Update venue, organizer, or categories for multiple programs simultaneously | v1.1.0 |
+| ✏️ **Bulk Edit** | Update venue, organizer, or Artist/Group for multiple programs simultaneously; tag-input widget with autocomplete | v1.1.0 |
 | 🎯 **Flexible Venue** | Add new venues on-the-fly with autocomplete suggestions | v1.1.0 |
 | 📊 **Custom Pagination** | Choose 20, 50, or 100 programs per page | v1.1.0 |
 | 💳 **Credits Management** | Manage credits/references with full CRUD and bulk operations | v1.1.0 |
@@ -55,12 +59,13 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔑 **Change Password** | Change admin password via UI with current password verification | v1.2.4 |
 | 👤 **User Management** | Full CRUD for admin users with role assignment | v1.2.5 |
 | 🛡️ **Role-Based Access** | Admin (full access) / Agent (programs management only) role system | v1.2.5 |
-| 🛠️ **Setup Wizard** | Interactive 6-step install/maintenance wizard with Production Cleanup (`setup.php`) | v2.0.0 |
+| 🛠️ **Setup Wizard** | Interactive 6-step install/maintenance wizard with Production Cleanup (`setup.php`); bilingual TH/EN UI | v2.0.0 |
 | 🎨 **Per-Event Theme** | Assign a separate color theme to each event (7 themes); global theme fallback | v2.1.1 |
 | 📝 **Site Title & Disclaimer** | Customize site title (v2.2.0) and multilingual disclaimer (v2.10.0) from Admin Settings | v2.2.0 |
 | 🏷️ **Program Types** | Assign free-text program types with autocomplete; filter by type in admin and public UI | v2.4.0 |
 | 🔴 **Live Stream URL** | Set a stream URL per program; validates http/https scheme; badge displayed in admin list | v2.6.0 |
 | 📞 **Contact Channels** | Manage contact channels (DB-driven) via Admin › Contact tab; displays on contact page | v2.10.0 |
+| 🎤 **Artist Management** | Artists tab — manage artist records, assign group members, add/remove variant names (aliases); tag-input widget with autocomplete for Artist/Group field in program form | v3.0.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -69,11 +74,12 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📁 **ICS Compatible** | Import events from standard .ics calendar files; export with `?type=` filter support; live subscription feed (RFC 5545/7986) | v1.0.0 |
 | 🛠️ **No Dependencies** | Pure PHP, vanilla JavaScript, no frameworks required | v1.0.0 |
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
-| 🔄 **Smart Caching** | Data version cache (10 min) + Credits cache (1 hour) + Feed static file cache (1 hour) with auto-invalidation | v1.1.0 |
+| 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
 | 🧪 **1630 Unit Tests** | Automated test suite across 12 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
+| 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events| v3.0.0 |
 
 ---
 
@@ -115,7 +121,11 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v2.8.0** | 2026-03-13 | Event Picker Modal (replaces `<select>`): card grid · real-time search · status filter tabs (All/Ongoing/Upcoming/Past) · sort order · mobile bottom-sheet · version badge moved to footer |
 | **v2.9.0** | 2026-03-13 | Nav icon buttons (contact envelope + how-to-use open-book) · Event Picker Modal on `credits.php` · Credits global view grouped by event (newest-first, inactive hidden) · Credits menu renamed to "แหล่งข้อมูลอ้างอิง" |
 | **v2.10.0** | 2026-03-13 | Contact Channels DB-driven (Admin › Contact tab CRUD; auto-created table) · Disclaimer multilingual TH/EN/JA editable from Admin › Settings |
-| **v2.10.2** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) |
+| **v2.10.1 – 2.10.2** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) · calendar day panel language refresh |
+| **v3.0.0** 🔧 | 2026-03-18 | **Artist Reuse System** *(not breaking — run migration to enable new features)*: `artists` table (single source of truth) + `program_artists` junction (many-to-many) + `artist_variants` aliases · Artist Profile page (`/artist/{id}`) · Artist Profile programs toggle (own ↔ group, localStorage) · Clickable artist badge pills (filter + ↗ profile) · Artist filter event-count badges · "Also appears in" cross-event section before footer · Admin Artists tab: Variants modal (add/remove aliases) · ICS import auto-links via `artist_variants` DB table · **`setup.php` TH/EN bilingual** · **Tag-input widget** for Artist/Group field (autocomplete + auto-create on save) · **`artists_autocomplete` API** · **`syncProgramArtists()`** called on create/update — admin edits now sync `program_artists` |
+| **v3.1.0** ⚡ | 2026-03-19 | **Query Cache** — `index.php` + `artist.php` DB queries cached as JSON files (`cache/query_event_{id}.json`, `cache/query_artist_{id}.json`); TTL 1 hour; auto-invalidated on every admin program/artist/variant write; new helpers: `get_query_cache`, `save_query_cache`, `invalidate_query_cache`, `invalidate_artist_query_cache` · **Smart version update script** — `tools/update-version.php` now uses line-by-line replacement with skip patterns to preserve historical version labels (`(vX.Y.Z+)`, Feature Timeline rows, `### vX.Y.Z` headings, upgrade guide references) |
+| **v3.2.0** 🔔 | 2026-03-19 | **Artist ICS Feed** — `/artist/{id}/feed` (own programs) + `/artist/{id}/feed?group=1` (group programs); resolves name + `artist_variants`; `🔔 <ArtistName>` + `🔔 <GroupName>` buttons on profile page; cache `feed_artist_*_{own\|group}_*.ics` auto-invalidated on program writes · `styles/artist.css` extracted from inline styles |
+| **v3.3.0** 🖼️ | 2026-03-19 | **Server-side image export** — `image.php` generates PNG via PHP GD (replaces html2canvas); Sakura-themed table with time badge (sakura-medium pink, white text), column separators, date headers, type + artist badges, footer; single-venue mode hides venue column + shows venue in image header; passes current filters from URL params · **Image PNG cache** (`cache/images/img_{eventId}_{hash}.png`, TTL 1 hr, cache-key includes APP_VERSION; served via `readfile()` on hit; `invalidate_image_cache()` called automatically on admin writes) |
 
 ---
 
@@ -325,7 +335,13 @@ Users can request to add new events or modify existing ones:
 **Conventions Tab:**
 - Create, edit, and delete conventions/events
 - Configure name, slug, dates, venue mode, active status
-- Per-convention venue mode (multi/single)
+- Per-convention venue mode (multi/single/calendar)
+
+**Artists Tab** (admin + agent):
+- View all artists with program counts and number of events they appear in
+- Manage variant/alias names per artist via Variants modal (add/remove)
+- Artist name links to public profile page (`/artist/{id}`)
+- ICS import auto-links CATEGORIES field to artist records via name match and variant lookup
 
 **Users Tab** (admin role only):
 - Create, edit, and delete admin users
@@ -351,7 +367,7 @@ Users can request to add new events or modify existing ones:
 
 **Authentication & Roles:**
 - Admin credentials stored in SQLite (`admin_users` table) - supports multiple users
-- Role-based access: `admin` sees all tabs; `agent` sees Events, Requests, Import, Credits, Conventions only
+- Role-based access: `admin` sees all tabs; `agent` sees Programs, Requests, ICS Import, Credits, Events, Artists
 - Change Password button in admin header (current password required)
 - Fallback to `config/admin.php` if `admin_users` table doesn't exist
 
@@ -390,6 +406,7 @@ php migrate-add-program-type-column.php
 php migrate-add-stream-url-column.php
 php migrate-add-theme-column.php
 php migrate-add-contact-channels-table.php
+php migrate-add-artist-variants-table.php
 ```
 
 **(Optional) Enable IP whitelist** in `config/admin.php`:
@@ -434,7 +451,7 @@ See **[API.md](API.md)** for complete endpoint documentation with request/respon
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.10.2'); // Change this to force cache refresh
+define('APP_VERSION', '3.1.0'); // Change this to force cache refresh
 define('APP_NAME', 'Idol Stage Timetable'); // Default site title (fallback if not set via admin)
 ```
 
@@ -529,7 +546,7 @@ See **[ICS_FORMAT.md](ICS_FORMAT.md)** for complete ICS format reference guide.
 
 ```
 stage-idol-calendar/
-├── index.php / api.php / setup.php / ...   # Root PHP pages
+├── index.php / api.php / artist.php / ...  # Root PHP pages (artist.php = Artist Profile v3.0.0)
 ├── config/          Configuration constants (app, admin, security, database, cache)
 ├── functions/       Helper functions (helpers, cache, admin, security)
 ├── styles/ / js/   CSS + JavaScript (Sakura theme, translations)
@@ -664,7 +681,8 @@ See [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) for database schema, migration 
 
 ### Image Export Not Working
 
-- Check internet connection (html2canvas loads from CDN)
+- Ensure PHP GD extension is enabled: `php -m | grep gd`
+- Place a TrueType font in `fonts/` directory (see `fonts/README.md`)
 - Open browser console to check for errors
 - Ensure popup blocker is not blocking download
 
@@ -690,7 +708,7 @@ See [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) for database schema, migration 
 
 - **Backend**: PHP 8.1+ (tested on 8.1, 8.2, 8.3, 8.4, 8.5), SQLite
 - **Frontend**: Vanilla JavaScript, CSS3
-- **Libraries**: [html2canvas](https://html2canvas.hertzen.com/) (lazy-loaded for image export)
+- **Image Export**: PHP GD (server-side PNG generation, TrueType font support)
 - **Design**: Sakura (桜) theme with Material Design influences
 
 ### Use Case Example
@@ -772,9 +790,9 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 ## 📜 Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 2.10.2
+**Current Version**: 3.3.0
 
 ---
 

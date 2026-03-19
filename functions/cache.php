@@ -40,6 +40,9 @@ function get_data_version($eventId = null) {
             $stmt = $db->query("SELECT MAX(updated_at) as last_update FROM programs");
         }
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        $stmt = null;
+        $db = null;
 
         if ($result && $result['last_update']) {
             $version = date('j/n/Y H:i', strtotime($result['last_update']));
@@ -103,6 +106,9 @@ function get_cached_credits($eventId = null) {
             $stmt = $db->query("SELECT * FROM credits ORDER BY display_order ASC, created_at ASC");
         }
         $credits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        $stmt = null;
+        $db = null;
 
         // Save to cache
         if (!is_dir($cacheDir)) {
@@ -214,11 +220,128 @@ function invalidate_feed_cache($eventId = null) {
         }
     }
 
+    // Artist feed caches span all events — always invalidate them on any program change
+    foreach (glob($cacheDir . '/feed_artist_*.ics') ?: [] as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+
+    // Also invalidate image caches for this event
+    invalidate_image_cache($eventId);
+
     return $result;
 }
 
 /**
- * Invalidate all caches (data_version + credits + feed)
+ * Invalidate cached schedule PNG images for a given event (or all events).
+ *
+ * @param int|null $eventId Event ID, or null to clear all image caches
+ */
+function invalidate_image_cache($eventId = null) {
+    $cacheDir = defined('IMAGE_CACHE_DIR') ? IMAGE_CACHE_DIR : (dirname(__DIR__) . '/cache');
+
+    if (!is_dir($cacheDir)) {
+        return;
+    }
+
+    if ($eventId !== null) {
+        $files = array_merge(
+            glob($cacheDir . "/img_{$eventId}_*.png") ?: [],
+            glob($cacheDir . '/img_0_*.png') ?: []
+        );
+    } else {
+        $files = glob($cacheDir . '/img_*.png') ?: [];
+    }
+
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            @unlink($file);
+        }
+    }
+}
+
+/**
+ * Get cached DB query data
+ *
+ * @param string $filename Cache filename (without path), e.g. 'query_event_5.json'
+ * @return array|false Decoded data array, or false on cache miss / expiry / error
+ */
+function get_query_cache(string $filename) {
+    $cacheFile = QUERY_CACHE_DIR . '/' . $filename;
+    if (!file_exists($cacheFile)) return false;
+    if (time() - filemtime($cacheFile) > QUERY_CACHE_TTL) return false;
+    $raw = @file_get_contents($cacheFile);
+    if ($raw === false) return false;
+    $data = json_decode($raw, true);
+    return (is_array($data) && json_last_error() === JSON_ERROR_NONE) ? $data : false;
+}
+
+/**
+ * Save DB query data to cache
+ *
+ * @param string $filename Cache filename (without path)
+ * @param array  $data     Data to cache
+ */
+function save_query_cache(string $filename, array $data): void {
+    $cacheDir = QUERY_CACHE_DIR;
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+    file_put_contents($cacheDir . '/' . $filename, json_encode($data), LOCK_EX);
+}
+
+/**
+ * Invalidate event query cache (query_event_*.json)
+ * Call this after creating, updating, or deleting programs
+ *
+ * @param int|null $eventId Specific event to invalidate; null = all events
+ * @return bool
+ */
+function invalidate_query_cache(?int $eventId = null): bool {
+    $cacheDir = QUERY_CACHE_DIR;
+    if (!is_dir($cacheDir)) return true;
+
+    if ($eventId !== null) {
+        $files = [
+            $cacheDir . "/query_event_{$eventId}.json",
+            $cacheDir . '/query_event_0.json', // global (no-event-filter) page
+        ];
+    } else {
+        $files = glob($cacheDir . '/query_event_*.json') ?: [];
+    }
+
+    $result = true;
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+    return $result;
+}
+
+/**
+ * Invalidate all artist profile query caches (query_artist_*.json)
+ * Call this after modifying artists, programs, or artist_variants
+ *
+ * @return bool
+ */
+function invalidate_artist_query_cache(): bool {
+    $cacheDir = QUERY_CACHE_DIR;
+    if (!is_dir($cacheDir)) return true;
+
+    $files = glob($cacheDir . '/query_artist_*.json') ?: [];
+    $result = true;
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+    return $result;
+}
+
+/**
+ * Invalidate all caches (data_version + credits + feed + query)
  * Call this function after restoring database
  *
  * @return bool True if all caches were deleted successfully
@@ -231,7 +354,13 @@ function invalidate_all_caches() {
     }
 
     $result = true;
-    $patterns = ['data_version*.json', 'credits*.json', 'feed_*.ics'];
+    $patterns = [
+        'data_version*.json',
+        'credits*.json',
+        'feed_*.ics',
+        'query_event_*.json',
+        'query_artist_*.json',
+    ];
 
     foreach ($patterns as $pattern) {
         $files = glob($cacheDir . '/' . $pattern) ?: [];

@@ -70,9 +70,13 @@ class IcsParser {
                 $stmt->execute([':event_id' => $this->eventId]);
             } else {
                 $stmt = $this->db->query("
-                    SELECT id, uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, updated_at
-                    FROM programs
-                    ORDER BY start ASC
+                    SELECT p.id, p.uid, p.title, p.start, p.end, p.location,
+                           p.organizer, p.description, p.categories, p.program_type,
+                           p.stream_url, p.event_id, p.updated_at
+                    FROM programs p
+                    JOIN events e ON p.event_id = e.id
+                    WHERE e.is_active = 1
+                    ORDER BY p.start ASC
                 ");
             }
 

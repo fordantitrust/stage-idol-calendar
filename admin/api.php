@@ -206,6 +206,37 @@ switch ($action) {
     case 'contact_channels_delete':
         deleteContactChannel();
         break;
+    // Artists CRUD
+    case 'artists_list':
+        listArtists();
+        break;
+    case 'artists_autocomplete':
+        autocompleteArtists();
+        break;
+    case 'artists_get':
+        getArtist();
+        break;
+    case 'artists_create':
+        createArtist();
+        break;
+    case 'artists_update':
+        updateArtist();
+        break;
+    case 'artists_delete':
+        deleteArtist();
+        break;
+    case 'artists_groups':
+        listArtistGroups();
+        break;
+    case 'artists_variants_list':
+        listArtistVariants();
+        break;
+    case 'artists_variants_create':
+        createArtistVariant();
+        break;
+    case 'artists_variants_delete':
+        deleteArtistVariant();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
 }
@@ -424,8 +455,12 @@ function createProgram() {
 
         $id = $db->lastInsertId();
 
+        syncProgramArtists($db, (int)$id, $input['categories'] ?? '');
+
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, ['id' => $id, 'uid' => $uid], 'Event created successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to create event', $e->getMessage()));
@@ -508,8 +543,12 @@ function updateProgram() {
             return;
         }
 
+        syncProgramArtists($db, $id, $input['categories'] ?? '');
+
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, ['id' => $id], 'Event updated successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to update event', $e->getMessage()));
@@ -545,6 +584,8 @@ function deleteProgram() {
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, null, 'Event deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete event', $e->getMessage()));
@@ -599,6 +640,8 @@ function bulkDeletePrograms() {
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, [
             'deleted_count' => $deletedCount,
             'failed_count' => $failedCount,
@@ -712,6 +755,8 @@ function bulkUpdatePrograms() {
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, [
             'updated_count' => $updatedCount,
             'failed_count' => $failedCount,
@@ -1034,16 +1079,101 @@ function uploadAndParseIcs() {
     $_SESSION['pending_ics_file'] = $tempFile;
     $_SESSION['pending_ics_filename'] = basename($file['name']);
 
+    // Collect unmatched categories (before escaping)
+    $allCatCounts = [];
+    foreach ($events as $ev) {
+        foreach (explode(',', $ev['categories'] ?? '') as $cat) {
+            $cat = trim($cat);
+            if ($cat === '') continue;
+            $allCatCounts[$cat] = ($allCatCounts[$cat] ?? 0) + 1;
+        }
+    }
+
+    // Build variant → artist_id map from artist_variants table (DB-driven)
+    // Falls back to artists-mapping.json if artist_variants table doesn't exist yet
+    $variantToArtistId = []; // lowercase variant => artist_id
+
+    $hasVariantsTable = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+    )->fetch();
+
+    if ($hasVariantsTable) {
+        $vRows = $db->query("
+            SELECT av.variant, a.id AS artist_id
+            FROM artist_variants av
+            JOIN artists a ON a.id = av.artist_id
+        ")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($vRows as $vRow) {
+            $variantToArtistId[mb_strtolower(trim($vRow['variant']), 'UTF-8')] = (int)$vRow['artist_id'];
+        }
+    } else {
+        // Fallback: load from artists-mapping.json and resolve canonical → artist_id
+        $mappingFile = __DIR__ . '/../data/artists-mapping.json';
+        if (file_exists($mappingFile)) {
+            $mappingJson = json_decode(file_get_contents($mappingFile), true);
+            if ($mappingJson && isset($mappingJson['artists'])) {
+                foreach ($mappingJson['artists'] as $entry) {
+                    if (!empty($entry['skip'])) continue;
+                    $canonical = trim($entry['canonical'] ?? '');
+                    if ($canonical === '') continue;
+                    $s = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)');
+                    $s->execute([$canonical]);
+                    $aid = $s->fetchColumn();
+                    if (!$aid) continue;
+                    foreach ($entry['variants'] ?? [] as $variant) {
+                        $variantToArtistId[mb_strtolower(trim($variant), 'UTF-8')] = (int)$aid;
+                    }
+                }
+            }
+        }
+    }
+
+    $unmatchedCategories = [];
+    foreach ($allCatCounts as $cat => $count) {
+        $s = $db->prepare('SELECT id, name FROM artists WHERE LOWER(name) = LOWER(?)');
+        $s->execute([$cat]);
+        if ($s->fetch()) continue; // already matched directly
+
+        // Try variants map → find artist_id → get artist name
+        $catLower  = mb_strtolower($cat, 'UTF-8');
+        $suggested = null;
+        $artistId  = $variantToArtistId[$catLower] ?? null;
+        if ($artistId) {
+            $s2 = $db->prepare('SELECT id, name FROM artists WHERE id = ?');
+            $s2->execute([$artistId]);
+            $row = $s2->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $suggested = [
+                    'artist_id'   => (int)$row['id'],
+                    'artist_name' => htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8'),
+                ];
+            }
+        }
+
+        $unmatchedCategories[] = [
+            'name'      => htmlspecialchars($cat, ENT_QUOTES, 'UTF-8'),
+            'count'     => $count,
+            'suggested' => $suggested,
+        ];
+    }
+    usort($unmatchedCategories, fn($a, $b) => $b['count'] - $a['count']);
+
+    // All artists for mapping dropdown
+    $allArtists = $db->query('SELECT id, name, is_group FROM artists ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+    $allArtists = array_map(fn($a) => escapeOutputData($a, ['name']), $allArtists);
+
     // Escape output data
     $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'uid', 'program_type'];
     $events = escapeOutputData($events, $fieldsToEscape);
     $failed = escapeOutputData($failed, ['error', 'raw_data']);
 
     jsonResponse(true, [
-        'filename' => basename($file['name']),
-        'events' => $events,
-        'stats' => $stats,
-        'failed_events' => $failed
+        'filename'             => basename($file['name']),
+        'events'               => $events,
+        'stats'                => $stats,
+        'failed_events'        => $failed,
+        'unmatched_categories' => $unmatchedCategories,
+        'all_artists'          => $allArtists,
     ], 'File uploaded and parsed successfully');
 }
 
@@ -1068,8 +1198,9 @@ function confirmIcsImport() {
         jsonResponse(false, null, 'No events to import');
     }
 
-    $stats = ['inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
+    $stats = ['inserted' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0, 'artist_links' => 0];
     $errors = [];
+    $importedPrograms = []; // [{id, categories}]
 
     try {
         $db->beginTransaction();
@@ -1126,9 +1257,19 @@ function confirmIcsImport() {
                 if ($action === 'insert') {
                     $params[':event_id'] = $eventId;
                     $insertStmt->execute($params);
+                    $programId = (int)$db->lastInsertId();
+                    if ($programId) {
+                        $importedPrograms[] = ['id' => $programId, 'categories' => $event['categories'] ?? ''];
+                    }
                     $stats['inserted']++;
                 } elseif ($action === 'update') {
                     $updateStmt->execute($params);
+                    $s = $db->prepare('SELECT id FROM programs WHERE uid = :uid');
+                    $s->execute([':uid' => $event['uid']]);
+                    $programId = (int)$s->fetchColumn();
+                    if ($programId) {
+                        $importedPrograms[] = ['id' => $programId, 'categories' => $event['categories'] ?? ''];
+                    }
                     $stats['updated']++;
                 }
             } catch (PDOException $e) {
@@ -1139,6 +1280,101 @@ function confirmIcsImport() {
         }
 
         $db->commit();
+
+        // ---- Artist linking ----
+        // Build category (lowercase) → artist_id map from explicit mappings
+        $artistMappings = $input['artist_mappings'] ?? [];
+        $catToArtistId  = []; // lowercase cat => int|null (null = skip)
+
+        foreach ($artistMappings as $mapping) {
+            $cat    = mb_strtolower(trim(html_entity_decode($mapping['category'] ?? '', ENT_QUOTES, 'UTF-8')), 'UTF-8');
+            $action = $mapping['action'] ?? 'skip';
+
+            if ($action === 'skip') {
+                $catToArtistId[$cat] = null;
+            } elseif ($action === 'map' && !empty($mapping['artist_id'])) {
+                $catToArtistId[$cat] = intval($mapping['artist_id']);
+            } elseif ($action === 'create' && !empty($mapping['new_name'])) {
+                $newName = trim(html_entity_decode($mapping['new_name'], ENT_QUOTES, 'UTF-8'));
+                $isGroup = empty($mapping['is_group']) ? 0 : 1;
+                $now     = date('Y-m-d H:i:s');
+                $ins     = $db->prepare('INSERT OR IGNORE INTO artists (name, is_group, created_at, updated_at) VALUES (?, ?, ?, ?)');
+                $ins->execute([$newName, $isGroup, $now, $now]);
+                $newId = (int)$db->lastInsertId();
+                if (!$newId) {
+                    $s = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)');
+                    $s->execute([$newName]);
+                    $newId = (int)$s->fetchColumn();
+                }
+                if ($newId) $catToArtistId[$cat] = $newId;
+            }
+        }
+
+        // Build variant → artist_id map for auto-linking (artist_variants table or fallback JSON)
+        $variantIdMap = []; // lowercase variant => artist_id
+        $hasVariantsTable = (bool)$db->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+        )->fetch();
+
+        if ($hasVariantsTable) {
+            $vRows = $db->query("
+                SELECT av.variant, a.id AS artist_id
+                FROM artist_variants av
+                JOIN artists a ON a.id = av.artist_id
+            ")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($vRows as $vRow) {
+                $variantIdMap[mb_strtolower(trim($vRow['variant']), 'UTF-8')] = (int)$vRow['artist_id'];
+            }
+        } else {
+            $mappingFile = __DIR__ . '/../data/artists-mapping.json';
+            if (file_exists($mappingFile)) {
+                $mappingJson = json_decode(file_get_contents($mappingFile), true);
+                if ($mappingJson && isset($mappingJson['artists'])) {
+                    foreach ($mappingJson['artists'] as $entry) {
+                        if (!empty($entry['skip'])) continue;
+                        $canonical = trim($entry['canonical'] ?? '');
+                        if ($canonical === '') continue;
+                        $sv = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)');
+                        $sv->execute([$canonical]);
+                        $aid = $sv->fetchColumn();
+                        if (!$aid) continue;
+                        foreach ($entry['variants'] ?? [] as $variant) {
+                            $variantIdMap[mb_strtolower(trim($variant), 'UTF-8')] = (int)$aid;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Link programs to artists
+        $insertLink = $db->prepare('INSERT OR IGNORE INTO program_artists (program_id, artist_id) VALUES (?, ?)');
+        foreach ($importedPrograms as $prog) {
+            foreach (explode(',', html_entity_decode($prog['categories'], ENT_QUOTES, 'UTF-8')) as $catRaw) {
+                $catRaw   = trim($catRaw);
+                if ($catRaw === '') continue;
+                $catLower = mb_strtolower($catRaw, 'UTF-8');
+
+                if (array_key_exists($catLower, $catToArtistId)) {
+                    $artistId = $catToArtistId[$catLower];
+                } else {
+                    // Auto-match: 1) direct name (case-insensitive), 2) variant lookup
+                    $s = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)');
+                    $s->execute([$catRaw]);
+                    $artistId = $s->fetchColumn() ?: null;
+
+                    if (!$artistId && isset($variantIdMap[$catLower])) {
+                        $artistId = $variantIdMap[$catLower];
+                    }
+
+                    $catToArtistId[$catLower] = $artistId; // cache
+                }
+
+                if ($artistId) {
+                    $insertLink->execute([$prog['id'], $artistId]);
+                    if ($db->lastInsertId()) $stats['artist_links']++;
+                }
+            }
+        }
 
         // Save file to ics/ folder if requested
         $savedFilename = null;
@@ -1165,6 +1401,8 @@ function confirmIcsImport() {
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
+        invalidate_query_cache();
+        invalidate_artist_query_cache();
         jsonResponse(true, [
             'saved_filename' => $savedFilename,
             'stats' => $stats,
@@ -1174,6 +1412,80 @@ function confirmIcsImport() {
     } catch (Exception $e) {
         $db->rollBack();
         jsonResponse(false, null, 'Import failed: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Sync program_artists junction table for a single program based on its categories text.
+ * Deletes all existing links for the program, then re-inserts based on category names
+ * matched against the artists table (direct name match or variant lookup).
+ *
+ * Called after createProgram() and updateProgram() so that manual admin edits
+ * to the categories field are reflected in the artist filter on the public site.
+ *
+ * @param PDO $db    Active database connection
+ * @param int $programId
+ * @param string $categories  Comma-separated category string from the programs table
+ */
+function syncProgramArtists(PDO $db, int $programId, string $categories): void {
+    // Check program_artists table exists (v3.0.0+)
+    $hasPATable = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='program_artists'"
+    )->fetch();
+    if (!$hasPATable) return;
+
+    // Remove all existing artist links for this program
+    $db->prepare('DELETE FROM program_artists WHERE program_id = ?')->execute([$programId]);
+
+    if (trim($categories) === '') return;
+
+    // Build variant → artist_id map (lowercase)
+    $hasVTable = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+    )->fetch();
+    $variantIdMap = [];
+    if ($hasVTable) {
+        $rows = $db->query('SELECT LOWER(variant) AS v, artist_id FROM artist_variants')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $r) {
+            $variantIdMap[$r['v']] = (int)$r['artist_id'];
+        }
+    }
+
+    $insertLink = $db->prepare('INSERT OR IGNORE INTO program_artists (program_id, artist_id) VALUES (?, ?)');
+    $nameCache  = []; // lowercase name → artist_id|null
+
+    foreach (explode(',', $categories) as $catRaw) {
+        $catRaw = trim($catRaw);
+        if ($catRaw === '') continue;
+        $catLower = mb_strtolower($catRaw, 'UTF-8');
+
+        if (!array_key_exists($catLower, $nameCache)) {
+            // 1) exact name match (case-insensitive)
+            $s = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?)');
+            $s->execute([$catRaw]);
+            $artistId = $s->fetchColumn() ?: null;
+
+            // 2) variant lookup
+            if (!$artistId && isset($variantIdMap[$catLower])) {
+                $artistId = $variantIdMap[$catLower];
+            }
+
+            // 3) auto-create new artist if still not found
+            if (!$artistId) {
+                $now = date('Y-m-d H:i:s');
+                $db->prepare('INSERT INTO artists (name, is_group, created_at, updated_at) VALUES (?, 0, ?, ?)')
+                   ->execute([$catRaw, $now, $now]);
+                $artistId = (int)$db->lastInsertId();
+                // also add to variant cache so subsequent same-name entries reuse this id
+                $variantIdMap[$catLower] = $artistId;
+            }
+
+            $nameCache[$catLower] = (int)$artistId;
+        }
+
+        if ($nameCache[$catLower]) {
+            $insertLink->execute([$programId, $nameCache[$catLower]]);
+        }
     }
 }
 
@@ -2642,6 +2954,501 @@ function deleteContactChannel() {
     $stmt = $db->prepare("DELETE FROM contact_channels WHERE id = :id");
     $stmt->execute([':id' => $id]);
     jsonResponse(true, null, 'Channel deleted');
+}
+
+// ============================================================
+// Artists CRUD
+// ============================================================
+
+/**
+ * List artists with pagination, search, and type filter
+ */
+function listArtists() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    $page  = max(1, intval($_GET['page'] ?? 1));
+    $limit = max(1, min(100, intval($_GET['limit'] ?? 50)));
+    $offset = ($page - 1) * $limit;
+    $search = substr($_GET['search'] ?? '', 0, 200);
+
+    // Filter: '' = all, '1' = groups only, '0' = non-groups only
+    $isGroupFilter = isset($_GET['is_group']) && $_GET['is_group'] !== '' ? intval($_GET['is_group']) : null;
+
+    $allowedSortColumns = ['id', 'name', 'is_group', 'created_at'];
+    $sortColumn = in_array($_GET['sort'] ?? '', $allowedSortColumns) ? $_GET['sort'] : 'name';
+    $sortOrder  = ($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+
+    $where  = [];
+    $params = [];
+
+    if ($search !== '') {
+        $searchEscaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
+        $where[]       = "a.name LIKE :search ESCAPE '\\'";
+        $params[':search'] = '%' . $searchEscaped . '%';
+    }
+
+    if ($isGroupFilter !== null) {
+        $where[]           = "a.is_group = :is_group";
+        $params[':is_group'] = $isGroupFilter;
+    }
+
+    $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    try {
+        $countSql = "SELECT COUNT(*) as total FROM artists a $whereClause";
+        $stmt     = $db->prepare($countSql);
+        $stmt->execute($params);
+        $total = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+        // Check if artist_variants table exists (may not exist on older installs)
+        $hasVariantsTable = (bool)$db->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+        )->fetch();
+
+        $variantCountExpr = $hasVariantsTable
+            ? "(SELECT COUNT(*) FROM artist_variants av WHERE av.artist_id = a.id)"
+            : "0";
+
+        $sql = "
+            SELECT a.id, a.name, a.is_group, a.group_id, a.created_at,
+                   g.name AS group_name,
+                   $variantCountExpr AS variant_count
+            FROM artists a
+            LEFT JOIN artists g ON a.group_id = g.id
+            $whereClause
+            ORDER BY a.$sortColumn $sortOrder
+            LIMIT :limit OFFSET :offset
+        ";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit',  $limit,  PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $artists = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $artists = array_map(function($a) {
+            return escapeOutputData($a, ['name', 'group_name']);
+        }, $artists);
+
+        jsonResponse(true, [
+            'artists'    => $artists,
+            'pagination' => [
+                'page'       => $page,
+                'limit'      => $limit,
+                'total'      => $total,
+                'totalPages' => (int)ceil($total / $limit),
+            ],
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch artists', $e->getMessage()));
+    }
+}
+
+/**
+ * Lightweight artist autocomplete
+ * Returns id, name, is_group for names matching ?q= (up to 20 results).
+ * Used by the Artist/Group tag-input widget in the program form.
+ */
+function autocompleteArtists() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+    $q = substr(trim($_GET['q'] ?? ''), 0, 200);
+    try {
+        if ($q === '') {
+            $stmt = $db->query("SELECT id, name, is_group FROM artists ORDER BY name ASC LIMIT 50");
+        } else {
+            $escaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $q);
+            $stmt = $db->prepare("SELECT id, name, is_group FROM artists WHERE name LIKE :q ESCAPE '\\' ORDER BY name ASC LIMIT 20");
+            $stmt->execute([':q' => '%' . $escaped . '%']);
+        }
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $data = array_map(fn($r) => [
+            'id'       => (int)$r['id'],
+            'name'     => htmlspecialchars($r['name'], ENT_QUOTES, 'UTF-8'),
+            'is_group' => (bool)$r['is_group'],
+        ], $rows);
+        jsonResponse(true, $data);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Autocomplete failed', $e->getMessage()));
+    }
+}
+
+/**
+ * Get single artist by ID
+ */
+function getArtist() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid artist ID required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("
+            SELECT a.id, a.name, a.is_group, a.group_id,
+                   g.name AS group_name
+            FROM artists a
+            LEFT JOIN artists g ON a.group_id = g.id
+            WHERE a.id = :id
+        ");
+        $stmt->execute([':id' => $id]);
+        $artist = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$artist) {
+            jsonResponse(false, null, 'Artist not found');
+            return;
+        }
+
+        $artist = escapeOutputData($artist, ['name', 'group_name']);
+        jsonResponse(true, $artist);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch artist', $e->getMessage()));
+    }
+}
+
+/**
+ * Create new artist
+ */
+function createArtist() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $name  = trim($input['name'] ?? '');
+
+    if ($name === '') {
+        jsonResponse(false, null, 'Name is required');
+        return;
+    }
+    if (strlen($name) > 200) {
+        jsonResponse(false, null, 'Name is too long (max 200 characters)');
+        return;
+    }
+
+    $isGroup = empty($input['is_group']) ? 0 : 1;
+    $groupId = isset($input['group_id']) && $input['group_id'] !== '' ? intval($input['group_id']) : null;
+
+    // group_id only valid for non-groups
+    if ($isGroup) {
+        $groupId = null;
+    }
+
+    try {
+        $now  = date('Y-m-d H:i:s');
+        $stmt = $db->prepare("
+            INSERT INTO artists (name, is_group, group_id, created_at, updated_at)
+            VALUES (:name, :is_group, :group_id, :created_at, :updated_at)
+        ");
+        $stmt->execute([
+            ':name'       => $name,
+            ':is_group'   => $isGroup,
+            ':group_id'   => $groupId,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+
+        $id = $db->lastInsertId();
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+        jsonResponse(true, ['id' => $id], 'Artist created successfully');
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), 'UNIQUE') !== false) {
+            jsonResponse(false, null, 'Artist name already exists');
+        } else {
+            jsonResponse(false, null, safe_error_message('Failed to create artist', $e->getMessage()));
+        }
+    }
+}
+
+/**
+ * Update existing artist
+ */
+function updateArtist() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid artist ID required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $name  = trim($input['name'] ?? '');
+
+    if ($name === '') {
+        jsonResponse(false, null, 'Name is required');
+        return;
+    }
+    if (strlen($name) > 200) {
+        jsonResponse(false, null, 'Name is too long (max 200 characters)');
+        return;
+    }
+
+    $isGroup = empty($input['is_group']) ? 0 : 1;
+    $groupId = isset($input['group_id']) && $input['group_id'] !== '' ? intval($input['group_id']) : null;
+
+    if ($isGroup) {
+        $groupId = null;
+    }
+
+    // Prevent self-reference
+    if ($groupId !== null && $groupId === $id) {
+        jsonResponse(false, null, 'An artist cannot be a member of itself');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("
+            UPDATE artists
+            SET name = :name, is_group = :is_group, group_id = :group_id, updated_at = :updated_at
+            WHERE id = :id
+        ");
+        $stmt->execute([
+            ':name'       => $name,
+            ':is_group'   => $isGroup,
+            ':group_id'   => $groupId,
+            ':updated_at' => date('Y-m-d H:i:s'),
+            ':id'         => $id,
+        ]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Artist not found or no changes made');
+            return;
+        }
+
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+        jsonResponse(true, null, 'Artist updated successfully');
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), 'UNIQUE') !== false) {
+            jsonResponse(false, null, 'Artist name already exists');
+        } else {
+            jsonResponse(false, null, safe_error_message('Failed to update artist', $e->getMessage()));
+        }
+    }
+}
+
+/**
+ * Delete artist
+ */
+function deleteArtist() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) {
+        jsonResponse(false, null, 'Valid artist ID required');
+        return;
+    }
+
+    try {
+        // Check if this artist is used as a group by other artists
+        $stmt = $db->prepare("SELECT COUNT(*) FROM artists WHERE group_id = :id");
+        $stmt->execute([':id' => $id]);
+        $memberCount = $stmt->fetchColumn();
+
+        if ($memberCount > 0) {
+            jsonResponse(false, null, "Cannot delete: this artist is a group with $memberCount member(s). Reassign members first.");
+            return;
+        }
+
+        $stmt = $db->prepare("DELETE FROM artists WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Artist not found');
+            return;
+        }
+
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+        jsonResponse(true, null, 'Artist deleted successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete artist', $e->getMessage()));
+    }
+}
+
+/**
+ * List groups only (for group_id dropdown in artist modal)
+ */
+function listArtistGroups() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    try {
+        $stmt   = $db->query("SELECT id, name FROM artists WHERE is_group = 1 ORDER BY name ASC");
+        $groups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $groups = array_map(function($g) {
+            return escapeOutputData($g, ['name']);
+        }, $groups);
+
+        jsonResponse(true, ['groups' => $groups]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch groups', $e->getMessage()));
+    }
+}
+
+/**
+ * List variants for an artist
+ */
+function listArtistVariants() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    $artistId = isset($_GET['artist_id']) ? (int)$_GET['artist_id'] : 0;
+    if (!$artistId) {
+        jsonResponse(false, null, 'artist_id required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("
+            SELECT id, variant, created_at
+            FROM artist_variants
+            WHERE artist_id = ?
+            ORDER BY variant ASC
+        ");
+        $stmt->execute([$artistId]);
+        $variants = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $variants = array_map(fn($v) => escapeOutputData($v, ['variant']), $variants);
+
+        jsonResponse(true, ['variants' => $variants]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch variants', $e->getMessage()));
+    }
+}
+
+/**
+ * Create (add) a variant for an artist
+ */
+function createArtistVariant() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $body     = json_decode(file_get_contents('php://input'), true) ?? [];
+    $artistId = isset($body['artist_id']) ? (int)$body['artist_id'] : 0;
+    $variant  = trim($body['variant'] ?? '');
+
+    if (!$artistId) {
+        jsonResponse(false, null, 'artist_id required');
+        return;
+    }
+    if ($variant === '') {
+        jsonResponse(false, null, 'variant cannot be empty');
+        return;
+    }
+    if (mb_strlen($variant, 'UTF-8') > 200) {
+        jsonResponse(false, null, 'variant too long (max 200 characters)');
+        return;
+    }
+
+    try {
+        // Check artist exists
+        $check = $db->prepare("SELECT id FROM artists WHERE id = ?");
+        $check->execute([$artistId]);
+        if (!$check->fetch()) {
+            jsonResponse(false, null, 'Artist not found');
+            return;
+        }
+
+        // Check table exists (idempotent — table may not exist on older installs)
+        $tableExists = $db->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+        )->fetch();
+        if (!$tableExists) {
+            jsonResponse(false, null, 'artist_variants table not found. Run: php tools/migrate-add-artist-variants-table.php');
+            return;
+        }
+
+        $stmt = $db->prepare("INSERT OR IGNORE INTO artist_variants (artist_id, variant) VALUES (?, ?)");
+        $stmt->execute([$artistId, $variant]);
+        $newId = $db->lastInsertId();
+
+        if (!$newId) {
+            jsonResponse(false, null, 'Variant already exists for this artist');
+            return;
+        }
+
+        invalidate_artist_query_cache();
+        jsonResponse(true, ['id' => (int)$newId, 'variant' => htmlspecialchars($variant, ENT_QUOTES, 'UTF-8')], 'Variant added');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create variant', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete a variant
+ */
+function deleteArtistVariant() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') {
+        jsonResponse(false, null, 'DELETE method required');
+        return;
+    }
+
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    if (!$id) {
+        jsonResponse(false, null, 'id required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare("DELETE FROM artist_variants WHERE id = ?");
+        $stmt->execute([$id]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Variant not found');
+            return;
+        }
+
+        invalidate_artist_query_cache();
+        jsonResponse(true, null, 'Variant deleted');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete variant', $e->getMessage()));
+    }
 }
 
 /**

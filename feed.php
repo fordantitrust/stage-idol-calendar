@@ -54,6 +54,67 @@ if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
 $eventId     = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName   = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
+// ── Artist feed mode ───────────────────────────────────────────────────────────
+// When artist_id is provided (/artist/{id}/feed), ignore event scoping and
+// filter all programs by the artist's name + all variant names.
+// ?group=1 switches to the artist's group programs (uses group name + variants).
+$artistFeedId    = filter_var($_GET['artist_id'] ?? 0, FILTER_VALIDATE_INT,
+    ['options' => ['min_range' => 1]]);
+$artistFeedName  = null;
+$artistFeedGroup = !empty($_GET['group']) && $_GET['group'] === '1';
+
+if ($artistFeedId) {
+    try {
+        $dbAF = new PDO('sqlite:' . DB_PATH);
+        $dbAF->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmtAF = $dbAF->prepare("SELECT id, name, group_id FROM artists WHERE id = ?");
+        $stmtAF->execute([$artistFeedId]);
+        $artistFeedRow = $stmtAF->fetch(PDO::FETCH_ASSOC);
+        $stmtAF->closeCursor();
+        $stmtAF = null;
+
+        if (!$artistFeedRow) {
+            http_response_code(404);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "Artist not found.";
+            exit;
+        }
+
+        if ($artistFeedGroup && $artistFeedRow['group_id']) {
+            // Group feed: filter by the group's name + group's variants
+            $targetId = intval($artistFeedRow['group_id']);
+            $stmtG = $dbAF->prepare("SELECT name FROM artists WHERE id = ?");
+            $stmtG->execute([$targetId]);
+            $groupRow = $stmtG->fetch(PDO::FETCH_ASSOC);
+            $stmtG->closeCursor();
+            $stmtG = null;
+            $artistFeedName = $groupRow ? $groupRow['name'] : $artistFeedRow['name'];
+        } else {
+            // Own programs feed (default)
+            $targetId       = $artistFeedId;
+            $artistFeedName = $artistFeedRow['name'];
+        }
+
+        // Collect variant names for the target (artist or group)
+        $stmtAFV = $dbAF->prepare("SELECT variant FROM artist_variants WHERE artist_id = ?");
+        $stmtAFV->execute([$targetId]);
+        $artistFeedVariants = array_column($stmtAFV->fetchAll(PDO::FETCH_ASSOC), 'variant');
+        $stmtAFV->closeCursor();
+        $stmtAFV = null;
+        $dbAF = null;
+    } catch (PDOException $e) {
+        http_response_code(503);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "Database unavailable.";
+        exit;
+    }
+
+    // Override: fetch all events (no event restriction), filter by target names
+    $eventId       = null;
+    $eventName     = $artistFeedName;
+    $filterArtists = array_merge([$artistFeedName], $artistFeedVariants);
+}
+
 // ── ETag caching ──────────────────────────────────────────────────────────────
 $dataVersion = get_data_version($eventId);
 $etag = '"feed-' . md5($dataVersion . '-' . ($eventId ?? '0')) . '"';
@@ -69,9 +130,12 @@ if (
 }
 
 // ── Filter params ─────────────────────────────────────────────────────────────
-$filterArtists = get_sanitized_array_param('artist', 200, 50);
-$filterVenues  = get_sanitized_array_param('venue',  200, 50);
-$filterTypes   = get_sanitized_array_param('type',   200, 50);
+// In artist feed mode $filterArtists is already set above — do not overwrite it.
+if (!$artistFeedId) {
+    $filterArtists = get_sanitized_array_param('artist', 200, 50);
+}
+$filterVenues = get_sanitized_array_param('venue',  200, 50);
+$filterTypes  = get_sanitized_array_param('type',   200, 50);
 
 // ── Feed cache check ──────────────────────────────────────────────────────────
 // Cache key encodes the event + all active filters so each unique feed URL
@@ -81,13 +145,19 @@ $sortedArtists = $filterArtists; sort($sortedArtists);
 $sortedVenues  = $filterVenues;  sort($sortedVenues);
 $sortedTypes   = $filterTypes;   sort($sortedTypes);
 
-$feedCacheKey  = md5(json_encode([
-    'event'   => $eventId,
-    'artists' => $sortedArtists,
-    'venues'  => $sortedVenues,
-    'types'   => $sortedTypes,
-]));
-$feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventId ?? '0') . '_' . $feedCacheKey . '.ics';
+if ($artistFeedId) {
+    // Artist feed: cache key encodes artist id + group flag
+    $feedCacheKey  = md5($artistFeedId . ($artistFeedGroup ? '_group' : '_own'));
+    $feedCacheFile = FEED_CACHE_DIR . '/feed_artist_' . $artistFeedId . '_' . $feedCacheKey . '.ics';
+} else {
+    $feedCacheKey  = md5(json_encode([
+        'event'   => $eventId,
+        'artists' => $sortedArtists,
+        'venues'  => $sortedVenues,
+        'types'   => $sortedTypes,
+    ]));
+    $feedCacheFile = FEED_CACHE_DIR . '/feed_' . ($eventId ?? '0') . '_' . $feedCacheKey . '.ics';
+}
 
 if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_CACHE_TTL) {
     $cachedContent = @file_get_contents($feedCacheFile);
@@ -131,7 +201,9 @@ ob_start();
 
 $siteTitle  = get_site_title();
 $eventCount = count($filteredEvents);
-$calName    = ($eventName ? $eventName . ' - ' : '') . $siteTitle;
+$calName    = $artistFeedId
+    ? $artistFeedName . ' – ' . $siteTitle
+    : (($eventName ? $eventName . ' - ' : '') . $siteTitle);
 
 icsLine("BEGIN:VCALENDAR");
 icsLine("VERSION:2.0");
@@ -169,8 +241,8 @@ foreach ($filteredEvents as $event) {
         icsLine("DESCRIPTION:" . icsEscapeText($event['description']));
     }
 
-    if (!empty($event['stream_url'])) {
-        icsLine("URL:" . icsEscape($event['stream_url']));
+    if (!empty($event['stream_url']) && preg_match('/^https?:\/\//i', $event['stream_url'])) {
+        icsLine("URL:" . icsEscapeText($event['stream_url']));
     }
 
     // CATEGORIES: RFC 5545 uses comma as VALUE delimiter — do NOT escape delimiter commas.

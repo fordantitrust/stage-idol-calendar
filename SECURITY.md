@@ -4,11 +4,11 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 3.0.x   | :white_check_mark: |
 | 2.10.x  | :white_check_mark: |
 | 2.9.x   | :white_check_mark: |
 | 2.8.x   | :white_check_mark: |
-| 2.7.x   | :white_check_mark: |
-| < 2.7   | :x:                |
+| < 2.8   | :x:                |
 
 ---
 
@@ -249,7 +249,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (v2.10.2)
+### Current Version (v3.1.0)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -321,4 +321,4 @@ If you discover a security issue:
 ---
 
 **Last Updated:** 2026-03-13
-**Version:** 2.10.2
+**Version:** 3.1.0

@@ -69,6 +69,7 @@ const translations = {
         'calendar.prev': '◀',
         'calendar.next': '▶',
         'calendar.noPrograms': 'ไม่มี Program',
+        'section.crossEvent': '🎪 งานอื่นที่เกี่ยวข้องกับศิลปิน',
         'time.unit': 'น.',
         timeFormat: '24h',
         months: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
@@ -109,9 +110,9 @@ const translations = {
         'section2.quickFilter.tipText': 'filter ที่คลิกจะ append ต่อจาก filter ที่มีอยู่ — เลือกหลายศิลปิน/ประเภทได้โดยไม่ลบการเลือกเดิม',
         'section3.title': '💾 การบันทึกและส่งออก',
         'section3.image.title': '1. บันทึกเป็นรูปภาพ (📸)',
-        'section3.image.desc': 'บันทึกตารางกิจกรรมเป็นไฟล์รูปภาพ PNG เพื่อแชร์ในโซเชียลมีเดียหรือเก็บไว้ดูออฟไลน์',
-        'section3.image.note': '📱 หมายเหตุ:',
-        'section3.image.noteText': 'บนมือถือจะบันทึกแบบ card layout, บน desktop จะบันทึกแบบ table',
+        'section3.image.desc': 'สร้างรูปภาพ PNG ของตารางกิจกรรมฝั่ง server — ไม่พึ่ง library ภายนอก รองรับภาษาไทย ญี่ปุ่น และ symbol; สีโทนตรงกับ theme ของ event',
+        'section3.image.note': '🎨 หมายเหตุ:',
+        'section3.image.noteText': 'รูปภาพจะใช้สีโทนเดียวกับ theme ของ event (sakura/ocean/forest ฯลฯ) และรวม filter ที่เลือกไว้ปัจจุบัน',
         'section3.calendar.title': '2. ส่งออกไปปฏิทิน (📅)',
         'section3.calendar.desc': 'ดาวน์โหลดไฟล์ .ics เพื่อเพิ่มกิจกรรมเข้าในปฏิทินของคุณ (Google Calendar, Apple Calendar, Outlook)',
         'section3.calendar.steps': 'วิธีการ:',
@@ -189,6 +190,46 @@ const translations = {
         'section11.note': '💡 หมายเหตุ:',
         'section11.noteText': 'ปุ่ม Live ในรายการ program ช่วยให้เข้าถึง stream โดยตรง',
 
+        // Section 12: Artist Profile
+        'section12.title': '👤 หน้าโปรไฟล์ศิลปิน',
+        'section12.desc': 'ศิลปินแต่ละคนมีหน้าโปรไฟล์แสดง programs ทั้งหมดที่เคยปรากฏข้ามทุก event',
+        'section12.feature1': 'กดปุ่ม ↗ ข้างชื่อศิลปินใน badge หรือรายการตัวกรองเพื่อเปิดหน้าโปรไฟล์',
+        'section12.feature2': 'หน้าโปรไฟล์แสดง programs จัดกลุ่มตาม event — เฉพาะงานที่ยังไม่จบ',
+        'section12.feature3': 'หากศิลปินอยู่ในวง จะแสดง programs ที่แสดงในนามวงด้วย',
+        'section12.feature4': 'แสดง variant names (ชื่อเรียกอื่น) ของศิลปิน',
+        'section12.feature5': 'ส่วน "🎪 งานอื่นที่เกี่ยวข้องกับศิลปิน" ด้านล่างตารางแสดง events อื่นที่ศิลปินนี้มี program',
+
+        // Section 13: Past Events
+        'section13.title': '🗂️ งานที่จบแล้ว',
+        'section13.desc': 'กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว',
+        'section13.feature1': 'แสดงรายการงานที่จบแล้วแบบ pagination 5 รายการต่อหน้า',
+        'section13.feature2': 'กดปุ่ม "📋 ดูตารางเวลา" เพื่อเปิดตาราง program ของงานนั้น',
+
+        // Section 14: Event Picker
+        'section14.title': '🎪 การเลือก Event',
+        'section14.desc': 'เมื่อระบบมีหลาย events ปุ่ม 🎪 (grid-dots) ที่มุมซ้ายบนจะเปิด Event Picker Modal เพื่อเปลี่ยน event ที่ดูอยู่',
+        'section14.feature1': 'พิมพ์ค้นหาชื่อ event ได้ทันที (รองรับภาษาไทย/English)',
+        'section14.feature2': 'กรองตามสถานะ: ทั้งหมด / กำลังจัดงาน / กำลังจะมาถึง / จบแล้ว',
+        'section14.feature3': 'Event ที่กำลังดูอยู่จะมีเครื่องหมาย ✓ และ highlight',
+        'section14.tip': '💡 เคล็ดลับ:',
+        'section14.tipText': 'กดนอก modal หรือกด ✕ เพื่อปิด — สามารถเข้าถึง event ที่ต้องการได้จากทุกหน้า',
+
+        // Section 15: Artist Subscribe Feed
+        'section15.title': '🔔 Subscribe Feed ศิลปิน',
+        'section15.desc': 'ในหน้าโปรไฟล์ศิลปิน สามารถ subscribe ICS feed เฉพาะศิลปินนั้นได้ — ปฏิทินจะ sync เฉพาะ programs ของศิลปินที่เลือกจากทุก event',
+        'section15.feature1': 'ปุ่ม 🔔 ชื่อศิลปิน — subscribe programs ทั้งหมดของศิลปินข้ามทุก event',
+        'section15.feature2': 'ปุ่ม 🔔 ชื่อวง — subscribe programs ที่แสดงในนามวง (แสดงเฉพาะเมื่อศิลปินสังกัดวง)',
+        'section15.feature3': 'รองรับ Apple Calendar, Google Calendar, Outlook, Thunderbird — เหมือนกับ Subscribe ปกติ',
+        'section15.note': '💡 หมายเหตุ:',
+        'section15.noteText': 'Artist Feed ดึงข้อมูลข้ามทุก event อัตโนมัติ — ต่างจาก Subscribe ในหน้า event ที่กรองเฉพาะ event นั้น',
+
+        // Section 16: Live Stream
+        'section16.title': '🔴 Live Stream',
+        'section16.desc': 'เมื่อ program มีลิงก์ live stream จะแสดงไอคอน platform และปุ่ม 🔴 เข้าร่วม ในแถว program',
+        'section16.feature1': 'ไอคอน platform แสดงให้รู้ว่า stream อยู่ที่ไหน (YouTube, X/Twitter, TikTok, หรืออื่นๆ)',
+        'section16.feature2': 'กดปุ่ม "🔴 เข้าร่วม" เพื่อเปิดลิงก์ stream โดยตรง',
+        'section16.feature3': 'ใน Calendar View — chip บนปฏิทินจะ highlight สีพิเศษเมื่อ program มี stream',
+
         // Contact page
         'contact.title': '✉️ ติดต่อเรา',
         'contact.subtitle': 'หากพบปัญหาหรือต้องการข้อมูลเพิ่มเติม',
@@ -213,6 +254,12 @@ const translations = {
         'listing.credits': '📋 แหล่งข้อมูลอ้างอิง',
         'listing.readMore': '▼ อ่านเพิ่มเติม',
         'listing.noEvents': 'ยังไม่มี Event ในระบบ',
+        'listing.pagePrev': '←',
+        'listing.pageNext': '→',
+        'listing.pastEventsBtn': '🗂️ ดูงานที่จบแล้ว',
+        'listing.pastEventsTitle': '🗂️ งานที่จบแล้ว',
+        'listing.noPastEvents': 'ยังไม่มีงานที่จบแล้ว',
+        'listing.backToHome': '← กลับหน้าแรก',
 
         // Date jump bar
         'dateJump.label': '📅 ข้ามไปวันที่:',
@@ -245,7 +292,26 @@ const translations = {
         'modal.submit': 'ส่งคำขอ',
         'modal.submitting': 'กำลังส่ง...',
         'modal.submitSuccess': 'ส่งคำขอสำเร็จ! Admin จะตรวจสอบต่อไป',
-        'modal.submitError': 'ไม่สามารถส่งได้'
+        'modal.submitError': 'ไม่สามารถส่งได้',
+
+        // Artist profile page
+        'artist.pageTitle': '🎤 Artist Profile',
+        'artist.badgeSolo': '🎤 ศิลปิน / Solo',
+        'artist.badgeGroup': '🎵 กลุ่ม / Group',
+        'artist.group': 'วง:',
+        'artist.statsPrograms': 'programs',
+        'artist.statsEvents': 'events',
+        'artist.statsGroupPrograms': 'programs ในนามวง',
+        'artist.sectionMembers': '👥 สมาชิก',
+        'artist.sectionVariants': '🔤 Variant Names',
+        'artist.sectionGroupPrograms': '🎵 Programs ในนามวง',
+        'artist.sectionPrograms': '📅 Programs ทั้งหมด',
+        'artist.emptyPrograms': 'ยังไม่มี programs ที่เชื่อมกับศิลปินนี้',
+        'artist.colDate': 'วันที่',
+        'artist.colTime': 'เวลา',
+        'artist.colTitle': 'ชื่อ Program',
+        'artist.colVenue': 'เวที',
+        'artist.colType': 'ประเภท'
     },
     en: {
         // Common
@@ -316,6 +382,7 @@ const translations = {
         'calendar.prev': '◀',
         'calendar.next': '▶',
         'calendar.noPrograms': 'No programs',
+        'section.crossEvent': '🎪 Related events for these artists',
         'time.unit': '',
         timeFormat: '12h',
         months: ['January', 'February', 'March', 'April', 'May', 'June',
@@ -356,9 +423,9 @@ const translations = {
         'section2.quickFilter.tipText': 'Each click appends to existing filters — select multiple artists or types without clearing previous selections.',
         'section3.title': '💾 Save and Export',
         'section3.image.title': '1. Save as Image (📸)',
-        'section3.image.desc': 'Save the event schedule as a PNG image file to share on social media or view offline.',
-        'section3.image.note': '📱 Note:',
-        'section3.image.noteText': 'On mobile it saves as card layout, on desktop as table',
+        'section3.image.desc': 'Generates a PNG of the event schedule server-side — no external library required; supports Thai, Japanese, and symbols; colors match the event theme.',
+        'section3.image.note': '🎨 Note:',
+        'section3.image.noteText': 'The image uses the same color palette as the event theme (sakura/ocean/forest etc.) and reflects your current filter selection.',
         'section3.calendar.title': '2. Export to Calendar (📅)',
         'section3.calendar.desc': 'Download .ics file to add events to your calendar (Google Calendar, Apple Calendar, Outlook)',
         'section3.calendar.steps': 'How to:',
@@ -436,6 +503,46 @@ const translations = {
         'section11.note': '💡 Note:',
         'section11.noteText': 'The Live button in the program list opens the stream directly',
 
+        // Section 12: Artist Profile
+        'section12.title': '👤 Artist Profile',
+        'section12.desc': 'Each artist has a profile page listing all programs they have appeared in across every event.',
+        'section12.feature1': 'Tap the ↗ button next to an artist name in a badge or filter list to open the profile',
+        'section12.feature2': 'The profile groups programs by event — only events that have not ended are shown',
+        'section12.feature3': 'If the artist belongs to a group, programs performed as the group are shown too',
+        'section12.feature4': 'Shows all variant names (aliases) for the artist',
+        'section12.feature5': 'The "🎪 Related events for these artists" section at the bottom lists other events where this artist has programs',
+
+        // Section 13: Past Events
+        'section13.title': '🗂️ Past Events',
+        'section13.desc': 'Tap the "View past events" button at the bottom of the events listing to see all events that have ended.',
+        'section13.feature1': 'Lists ended events with pagination (5 per page)',
+        'section13.feature2': 'Tap "📋 View Schedule" to open the program timetable for that event',
+
+        // Section 14: Event Picker
+        'section14.title': '🎪 Switching Events',
+        'section14.desc': 'When the system has multiple events, the 🎪 (grid-dots) button at the top left opens the Event Picker Modal to switch the event you are viewing.',
+        'section14.feature1': 'Type to search events instantly (supports Thai and English)',
+        'section14.feature2': 'Filter by status: All / Ongoing / Upcoming / Ended',
+        'section14.feature3': 'The currently viewed event is marked with ✓ and highlighted',
+        'section14.tip': '💡 Tip:',
+        'section14.tipText': 'Tap outside the modal or press ✕ to close — accessible from any page in the system.',
+
+        // Section 15: Artist Subscribe Feed
+        'section15.title': '🔔 Subscribe to Artist Feed',
+        'section15.desc': 'On an artist profile page, you can subscribe to an ICS feed scoped to that artist — your calendar will sync only programs for that artist across all events.',
+        'section15.feature1': '🔔 ArtistName button — subscribe to all programs by this artist across every event',
+        'section15.feature2': '🔔 GroupName button — subscribe to programs performed as the group (shown only when the artist belongs to a group)',
+        'section15.feature3': 'Works with Apple Calendar, Google Calendar, Outlook, Thunderbird — same as the event Subscribe button',
+        'section15.note': '💡 Note:',
+        'section15.noteText': 'Artist feeds pull data across all events automatically — unlike the event Subscribe which is scoped to one event.',
+
+        // Section 16: Live Stream
+        'section16.title': '🔴 Live Stream',
+        'section16.desc': 'When a program has a live stream link, a platform icon and a 🔴 Join Live button appear on the program row.',
+        'section16.feature1': 'Platform icon shows where the stream is hosted (YouTube, X/Twitter, TikTok, or other)',
+        'section16.feature2': 'Tap "🔴 Join Live" to open the stream link directly',
+        'section16.feature3': 'In Calendar View — chips for programs with a stream are highlighted in a special accent color',
+
         // Contact page
         'contact.title': '✉️ Contact Us',
         'contact.subtitle': 'If you find any issues or need more information',
@@ -460,6 +567,12 @@ const translations = {
         'listing.credits': '📋 References',
         'listing.readMore': '▼ Read more',
         'listing.noEvents': 'No events in the system',
+        'listing.pagePrev': '←',
+        'listing.pageNext': '→',
+        'listing.pastEventsBtn': '🗂️ View Past Events',
+        'listing.pastEventsTitle': '🗂️ Past Events',
+        'listing.noPastEvents': 'No past events yet.',
+        'listing.backToHome': '← Back to Home',
 
         // Date jump bar
         'dateJump.label': '📅 Jump to date:',
@@ -492,7 +605,26 @@ const translations = {
         'modal.submit': 'Submit Request',
         'modal.submitting': 'Submitting...',
         'modal.submitSuccess': 'Request submitted successfully! Admin will review it.',
-        'modal.submitError': 'Unable to submit request'
+        'modal.submitError': 'Unable to submit request',
+
+        // Artist profile page
+        'artist.pageTitle': '🎤 Artist Profile',
+        'artist.badgeSolo': '🎤 Artist / Solo',
+        'artist.badgeGroup': '🎵 Group',
+        'artist.group': 'Group:',
+        'artist.statsPrograms': 'programs',
+        'artist.statsEvents': 'events',
+        'artist.statsGroupPrograms': 'programs as group',
+        'artist.sectionMembers': '👥 Members',
+        'artist.sectionVariants': '🔤 Variant Names',
+        'artist.sectionGroupPrograms': '🎵 Programs as group',
+        'artist.sectionPrograms': '📅 All Programs',
+        'artist.emptyPrograms': 'No programs linked to this artist yet.',
+        'artist.colDate': 'Date',
+        'artist.colTime': 'Time',
+        'artist.colTitle': 'Program',
+        'artist.colVenue': 'Venue',
+        'artist.colType': 'Type'
     },
     ja: {
         // Common
@@ -563,6 +695,7 @@ const translations = {
         'calendar.prev': '◀',
         'calendar.next': '▶',
         'calendar.noPrograms': 'プログラムなし',
+        'section.crossEvent': '🎪 このアーティストの関連イベント',
         'time.unit': '',
         timeFormat: '24h',
         months: ['1月', '2月', '3月', '4月', '5月', '6月',
@@ -603,9 +736,9 @@ const translations = {
         'section2.quickFilter.tipText': 'クリックするたびに既存のフィルターに追加されます — 以前の選択を削除せずに複数のアーティストやタイプを選択できます。',
         'section3.title': '💾 保存とエクスポート',
         'section3.image.title': '1. 画像として保存 (📸)',
-        'section3.image.desc': 'イベントスケジュールをPNG画像ファイルとして保存して、ソーシャルメディアで共有したり、オフラインで表示したりできます。',
-        'section3.image.note': '📱 注意:',
-        'section3.image.noteText': 'モバイルではカードレイアウト、デスクトップではテーブルとして保存されます',
+        'section3.image.desc': 'イベントスケジュールのPNGをサーバーサイドで生成 — 外部ライブラリ不要; タイ語・日本語・記号対応; 色はイベントのテーマに合わせて自動調整されます。',
+        'section3.image.note': '🎨 注意:',
+        'section3.image.noteText': '画像はイベントのテーマ（sakura/ocean/forestなど）と同じカラーパレットを使用し、現在のフィルター選択が反映されます。',
         'section3.calendar.title': '2. カレンダーにエクスポート (📅)',
         'section3.calendar.desc': '.icsファイルをダウンロードして、カレンダー（Googleカレンダー、Appleカレンダー、Outlook）にイベントを追加します',
         'section3.calendar.steps': '方法:',
@@ -683,6 +816,46 @@ const translations = {
         'section11.note': '💡 メモ:',
         'section11.noteText': 'プログラム一覧の Live ボタンでストリームに直接アクセス',
 
+        // Section 12: Artist Profile
+        'section12.title': '👤 アーティストプロフィール',
+        'section12.desc': '各アーティストには、すべてのイベントにわたって出演したプログラムを表示するプロフィールページがあります',
+        'section12.feature1': 'バッジやフィルターリストのアーティスト名横の ↗ ボタンでプロフィールを開く',
+        'section12.feature2': 'プロフィールはイベント別にプログラムをグループ化 — 終了していないイベントのみ表示',
+        'section12.feature3': 'アーティストがグループに所属している場合、グループとしての出演プログラムも表示',
+        'section12.feature4': 'アーティストの別名（バリアント名）をすべて表示',
+        'section12.feature5': '「🎪 このアーティストの関連イベント」セクションで、このアーティストがプログラムを持つ他のイベントを確認できます',
+
+        // Section 13: Past Events
+        'section13.title': '🗂️ 過去のイベント',
+        'section13.desc': 'イベント一覧ページ下部の「過去のイベントを見る」ボタンをタップして、終了したすべてのイベントを確認できます',
+        'section13.feature1': '終了したイベントをページネーションで表示（1ページ5件）',
+        'section13.feature2': '「📋 スケジュールを見る」ボタンでそのイベントのプログラム表を開く',
+
+        // Section 14: Event Picker
+        'section14.title': '🎪 イベントの切り替え',
+        'section14.desc': 'システムに複数のイベントがある場合、左上の 🎪（グリッドドット）ボタンでイベント選択モーダルを開き、閲覧するイベントを切り替えられます。',
+        'section14.feature1': 'イベント名をリアルタイム検索（日本語・タイ語・英語対応）',
+        'section14.feature2': 'ステータスでフィルタ: すべて / 開催中 / 開催予定 / 終了',
+        'section14.feature3': '現在閲覧中のイベントは ✓ マークとハイライトで表示',
+        'section14.tip': '💡 ヒント:',
+        'section14.tipText': 'モーダル外をタップするか ✕ で閉じます — システム内どのページからでもアクセス可能です。',
+
+        // Section 15: Artist Subscribe Feed
+        'section15.title': '🔔 アーティストフィードを購読',
+        'section15.desc': 'アーティストプロフィールページで、そのアーティスト専用のICSフィードを購読できます — すべてのイベントをまたいで、そのアーティストのプログラムだけをカレンダーに同期します。',
+        'section15.feature1': '🔔 アーティスト名ボタン — 全イベントのこのアーティストのプログラムを購読',
+        'section15.feature2': '🔔 グループ名ボタン — グループとして出演するプログラムを購読（グループ所属アーティストのみ表示）',
+        'section15.feature3': 'Apple Calendar・Google Calendar・Outlook・Thunderbird 対応',
+        'section15.note': '💡 メモ:',
+        'section15.noteText': 'アーティストフィードは全イベントを自動的に横断します — イベントページの Subscribe（そのイベントのみ）とは異なります。',
+
+        // Section 16: Live Stream
+        'section16.title': '🔴 ライブストリーム',
+        'section16.desc': 'プログラムにライブストリームリンクがある場合、プログラム行にプラットフォームアイコンと 🔴 参加ボタンが表示されます。',
+        'section16.feature1': 'プラットフォームアイコンでストリームの配信先を確認（YouTube、X/Twitter、TikTok、その他）',
+        'section16.feature2': '「🔴 参加する」ボタンでストリームリンクを直接開く',
+        'section16.feature3': 'カレンダービューでは、ストリームのあるプログラムのチップが特別なアクセントカラーでハイライト表示',
+
         // Contact page
         'contact.title': '✉️ お問い合わせ',
         'contact.subtitle': '問題が発生した場合や詳細情報が必要な場合',
@@ -707,6 +880,12 @@ const translations = {
         'listing.credits': '📋 参考資料',
         'listing.readMore': '▼ 続きを読む',
         'listing.noEvents': 'システムにイベントがありません',
+        'listing.pagePrev': '←',
+        'listing.pageNext': '→',
+        'listing.pastEventsBtn': '🗂️ 終了したイベントを見る',
+        'listing.pastEventsTitle': '🗂️ 終了したイベント',
+        'listing.noPastEvents': '終了したイベントはまだありません。',
+        'listing.backToHome': '← ホームに戻る',
 
         // Date jump bar
         'dateJump.label': '📅 日付にジャンプ:',
@@ -739,7 +918,26 @@ const translations = {
         'modal.submit': 'リクエスト送信',
         'modal.submitting': '送信中...',
         'modal.submitSuccess': 'リクエストが送信されました！管理者が確認します。',
-        'modal.submitError': '送信できませんでした'
+        'modal.submitError': '送信できませんでした',
+
+        // Artist profile page
+        'artist.pageTitle': '🎤 アーティストプロフィール',
+        'artist.badgeSolo': '🎤 アーティスト / ソロ',
+        'artist.badgeGroup': '🎵 グループ',
+        'artist.group': 'グループ:',
+        'artist.statsPrograms': 'プログラム',
+        'artist.statsEvents': 'イベント',
+        'artist.statsGroupPrograms': 'グループとしてのプログラム',
+        'artist.sectionMembers': '👥 メンバー',
+        'artist.sectionVariants': '🔤 バリアント名',
+        'artist.sectionGroupPrograms': '🎵 グループとしてのプログラム',
+        'artist.sectionPrograms': '📅 全プログラム',
+        'artist.emptyPrograms': 'このアーティストに関連するプログラムはまだありません。',
+        'artist.colDate': '日付',
+        'artist.colTime': '時間',
+        'artist.colTitle': 'プログラム名',
+        'artist.colVenue': 'ステージ',
+        'artist.colType': 'タイプ'
     }
 };
 

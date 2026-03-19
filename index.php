@@ -39,18 +39,168 @@ $showEventListing = MULTI_EVENT_MODE && $eventSlug === DEFAULT_EVENT_SLUG && cou
 
 // Only load calendar data when showing calendar view
 if (!$showEventListing) {
+    $queryCacheFile = 'query_event_' . ($eventId ?? '0') . '.json';
+    $qcd = get_query_cache($queryCacheFile);
+    if ($qcd !== false) {
+        $allEvents          = $qcd['all_events'];
+        $venues             = $qcd['venues'];
+        $types              = $qcd['types'];
+        $artists            = $qcd['artists'];
+        $artistMeta         = $qcd['artist_meta'];
+        $programArtistsMap  = $qcd['program_artists_map'];
+        $programArtistIdMap = $qcd['program_artist_id_map'];
+        $artistOtherEvents  = $qcd['artist_other_events'];
+        $useArtistsTable    = $qcd['use_artists_table'];
+    } else {
     $parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 
     // ดึงข้อมูลทั้งหมด
     $allEvents = $parser->getAllEvents();
-    $artists = $parser->getAllOrganizers();
     $venues = $parser->getAllLocations();
     $types = $parser->getAllTypes();
+
+    // ดึง artist list และ program→artists map จาก artists table (ถ้ามี)
+    // Fallback ไป categories text ถ้า program_artists ยังไม่มี
+    $artists       = [];
+    $artistMeta    = []; // name => ['id' => int, 'event_count' => int]
+    $programArtistsMap  = []; // program_id => [name, ...]
+    $programArtistIdMap = []; // program_id => [['id'=>int,'name'=>string], ...]
+    $artistOtherEvents  = []; // artist_id => [['id'=>int,'name'=>str,'slug'=>str], ...]
+    $useArtistsTable    = false;
+
+    try {
+        $dbArtists = new PDO('sqlite:' . DB_PATH);
+        $dbArtists->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $hasPATable = (bool)$dbArtists->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='program_artists'"
+        )->fetch();
+
+        if ($hasPATable) {
+            $useArtistsTable = true;
+
+            // Artist list for current event + total event_count across all events
+            if ($eventId !== null) {
+                $stmtA = $dbArtists->prepare("
+                    SELECT a.id, a.name,
+                        (SELECT COUNT(DISTINCT p2.event_id)
+                         FROM program_artists pa2
+                         JOIN programs p2 ON p2.id = pa2.program_id
+                         WHERE pa2.artist_id = a.id) AS event_count
+                    FROM artists a
+                    WHERE EXISTS (
+                        SELECT 1 FROM program_artists pa
+                        JOIN programs p ON p.id = pa.program_id
+                        WHERE pa.artist_id = a.id AND p.event_id = ?
+                    )
+                    ORDER BY a.name ASC
+                ");
+                $stmtA->execute([$eventId]);
+            } else {
+                $stmtA = $dbArtists->query("
+                    SELECT DISTINCT a.id, a.name,
+                        (SELECT COUNT(DISTINCT p2.event_id)
+                         FROM program_artists pa2
+                         JOIN programs p2 ON p2.id = pa2.program_id
+                         WHERE pa2.artist_id = a.id) AS event_count
+                    FROM artists a
+                    JOIN program_artists pa ON pa.artist_id = a.id
+                    ORDER BY a.name ASC
+                ");
+            }
+            while ($rowA = $stmtA->fetch(PDO::FETCH_ASSOC)) {
+                $artists[] = $rowA['name'];
+                $artistMeta[$rowA['name']] = [
+                    'id'          => (int)$rowA['id'],
+                    'event_count' => (int)$rowA['event_count'],
+                ];
+            }
+
+            // program→artists map (name + id)
+            if ($eventId !== null) {
+                $stmtPA = $dbArtists->prepare("
+                    SELECT pa.program_id, a.id AS artist_id, a.name
+                    FROM program_artists pa
+                    JOIN artists a ON a.id = pa.artist_id
+                    JOIN programs p ON p.id = pa.program_id
+                    WHERE p.event_id = ?
+                ");
+                $stmtPA->execute([$eventId]);
+            } else {
+                $stmtPA = $dbArtists->query("
+                    SELECT pa.program_id, a.id AS artist_id, a.name
+                    FROM program_artists pa
+                    JOIN artists a ON a.id = pa.artist_id
+                ");
+            }
+            while ($rowPA = $stmtPA->fetch(PDO::FETCH_ASSOC)) {
+                $pid = (int)$rowPA['program_id'];
+                $programArtistsMap[$pid][]  = $rowPA['name'];
+                $programArtistIdMap[$pid][] = [
+                    'id'   => (int)$rowPA['artist_id'],
+                    'name' => $rowPA['name'],
+                ];
+            }
+
+            // Other events each artist appears in (excluding current event)
+            if ($eventId !== null) {
+                $stmtOE = $dbArtists->prepare("
+                    SELECT pa.artist_id, e.id AS eid, e.name AS ename, e.slug AS eslug, e.end_date AS eend
+                    FROM program_artists pa
+                    JOIN programs p ON p.id = pa.program_id
+                    JOIN events e ON e.id = p.event_id
+                    WHERE p.event_id != ?
+                      AND e.is_active = 1
+                      AND (e.end_date IS NULL OR e.end_date >= date('now', 'localtime'))
+                      AND pa.artist_id IN (
+                          SELECT DISTINCT pa2.artist_id
+                          FROM program_artists pa2
+                          JOIN programs p2 ON p2.id = pa2.program_id
+                          WHERE p2.event_id = ?
+                      )
+                    GROUP BY pa.artist_id, e.id
+                    ORDER BY e.start_date ASC
+                ");
+                $stmtOE->execute([$eventId, $eventId]);
+                while ($rowOE = $stmtOE->fetch(PDO::FETCH_ASSOC)) {
+                    $artistOtherEvents[(int)$rowOE['artist_id']][] = [
+                        'id'   => (int)$rowOE['eid'],
+                        'name' => $rowOE['ename'],
+                        'slug' => $rowOE['eslug'],
+                    ];
+                }
+            }
+        }
+        $dbArtists = null;
+    } catch (PDOException $e) {
+        error_log('Artist table load error: ' . $e->getMessage());
+    }
+
+    // Fallback: ใช้ categories text field เดิม
+    if (!$useArtistsTable) {
+        $artists = $parser->getAllOrganizers();
+    }
+    save_query_cache($queryCacheFile, [
+        'all_events'            => $allEvents,
+        'venues'                => $venues,
+        'types'                 => $types,
+        'artists'               => $artists,
+        'artist_meta'           => $artistMeta,
+        'program_artists_map'   => $programArtistsMap,
+        'program_artist_id_map' => $programArtistIdMap,
+        'artist_other_events'   => $artistOtherEvents,
+        'use_artists_table'     => $useArtistsTable,
+    ]);
+    } // end query cache miss block
 } else {
     $allEvents = [];
     $artists = [];
     $venues = [];
     $types = [];
+    $programArtistsMap  = [];
+    $programArtistIdMap = [];
+    $artistMeta         = [];
+    $artistOtherEvents  = [];
+    $useArtistsTable    = false;
 }
 
 // รับค่า filter จาก GET parameters (รองรับหลายค่า) with sanitization
@@ -73,16 +223,27 @@ $filterArtistsSet = array_flip($filterArtists);
 $filterVenuesSet = array_flip($filterVenues);
 $filterTypesSet = array_flip($filterTypes);
 
-// กรองข้อมูล (ใช้ CATEGORIES สำหรับศิลปิน - รองรับหลายค่าแยกด้วย comma)
-$filteredEvents = array_filter($normalizedEvents, function($event) use ($filterArtistsSet, $filterVenuesSet, $filterTypesSet) {
-    // ตรวจสอบ artist/categories (รองรับหลายค่าแยกด้วย comma)
+// กรองข้อมูล
+$filteredEvents = array_filter($normalizedEvents, function($event) use ($filterArtistsSet, $filterVenuesSet, $filterTypesSet, $programArtistsMap, $useArtistsTable) {
+    // ตรวจสอบ artist filter
     $artistMatch = empty($filterArtistsSet);
     if (!$artistMatch) {
-        // Use isset() instead of in_array() for O(1) lookup
-        foreach ($event['categoriesArray'] as $category) {
-            if (isset($filterArtistsSet[$category])) {
-                $artistMatch = true;
-                break;
+        if ($useArtistsTable) {
+            // ใช้ program_artists junction table (canonical names)
+            $names = $programArtistsMap[(int)($event['id'] ?? 0)] ?? [];
+            foreach ($names as $name) {
+                if (isset($filterArtistsSet[$name])) {
+                    $artistMatch = true;
+                    break;
+                }
+            }
+        } else {
+            // Fallback: ใช้ categories text field เดิม
+            foreach ($event['categoriesArray'] as $category) {
+                if (isset($filterArtistsSet[$category])) {
+                    $artistMatch = true;
+                    break;
+                }
             }
         }
     }
@@ -211,28 +372,31 @@ $today = date('Y-m-d');
         <div class="program-listing">
             <h3 class="program-listing-title" data-i18n="listing.title">Events</h3>
             <?php
-            // Sort events: ongoing first, then upcoming, then past
+            // Sort events: ongoing first, then upcoming (exclude past & default slug)
             $today = date('Y-m-d');
-            $sortedEvents = $activeEvents;
+            $sortedEvents = array_values(array_filter($activeEvents, function($e) use ($today) {
+                if ($e['slug'] === DEFAULT_EVENT_SLUG) return false;
+                $end = $e['end_date'] ?? ($e['start_date'] ?? null);
+                return $end === null || $end >= $today;
+            }));
             usort($sortedEvents, function($a, $b) use ($today) {
                 $aStart = $a['start_date'] ?? '9999-12-31';
-                $aEnd = $a['end_date'] ?? $aStart;
+                $aEnd   = $a['end_date']   ?? $aStart;
                 $bStart = $b['start_date'] ?? '9999-12-31';
-                $bEnd = $b['end_date'] ?? $bStart;
-
-                // Determine status: 0=ongoing, 1=upcoming, 2=past
+                $bEnd   = $b['end_date']   ?? $bStart;
                 $aStatus = ($aStart <= $today && $aEnd >= $today) ? 0 : ($aStart > $today ? 1 : 2);
                 $bStatus = ($bStart <= $today && $bEnd >= $today) ? 0 : ($bStart > $today ? 1 : 2);
-
-                if ($aStatus !== $bStatus) {
-                    return $aStatus - $bStatus;
-                }
-                // Within same status, sort by start_date ascending for upcoming, descending for past
-                if ($aStatus === 2) {
-                    return strcmp($bStart, $aStart);
-                }
-                return strcmp($aStart, $bStart);
+                if ($aStatus !== $bStatus) return $aStatus - $bStatus;
+                return $aStatus === 2 ? strcmp($bStart, $aStart) : strcmp($aStart, $bStart);
             });
+
+            // Pagination
+            $perPage     = 10;
+            $totalItems  = count($sortedEvents);
+            $totalPages  = max(1, (int)ceil($totalItems / $perPage));
+            $currentPage = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
+            $pagedEvents = array_slice($sortedEvents, ($currentPage - 1) * $perPage, $perPage);
+            $baseUrl     = get_base_path() . '/';
             ?>
             <?php if (empty($sortedEvents)): ?>
                 <div class="no-events-listing">
@@ -241,30 +405,20 @@ $today = date('Y-m-d');
                 </div>
             <?php else: ?>
                 <div class="program-cards">
-                    <?php foreach ($sortedEvents as $ev): ?>
+                    <?php foreach ($pagedEvents as $ev): ?>
                     <?php
-                        // Skip the 'default' event in listing
-                        if ($ev['slug'] === DEFAULT_EVENT_SLUG) continue;
-
                         $evStart = $ev['start_date'] ?? null;
-                        $evEnd = $ev['end_date'] ?? $evStart;
+                        $evEnd   = $ev['end_date']   ?? $evStart;
                         $evStatus = 'upcoming';
                         if ($evStart && $evEnd) {
-                            if ($evStart <= $today && $evEnd >= $today) {
-                                $evStatus = 'ongoing';
-                            } elseif ($evEnd < $today) {
-                                $evStatus = 'past';
-                            }
+                            if ($evStart <= $today && $evEnd >= $today) $evStatus = 'ongoing';
+                            elseif ($evEnd < $today) $evStatus = 'past';
                         }
-
-                        // Format dates for display
-                        $displayStart = $evStart ? date('d/m/Y', strtotime($evStart)) : '-';
-                        $displayEnd = $evEnd ? date('d/m/Y', strtotime($evEnd)) : '-';
-
-                        // Per-event data version and credits
-                        $evMetaId = intval($ev['id']);
+                        $displayStart  = $evStart ? date('d/m/Y', strtotime($evStart)) : '-';
+                        $displayEnd    = $evEnd   ? date('d/m/Y', strtotime($evEnd))   : '-';
+                        $evMetaId      = intval($ev['id']);
                         $evDataVersion = get_data_version($evMetaId);
-                        $evCredits = get_cached_credits($evMetaId);
+                        $evCredits     = get_cached_credits($evMetaId);
                     ?>
                     <div class="program-card">
                         <div class="program-card-header">
@@ -300,7 +454,6 @@ $today = date('Y-m-d');
                                     <?php endif; ?>
                                 </div>
                             </div>
-
                             <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="program-card-link" data-i18n="listing.viewSchedule">
                                 📋 ดูตารางเวลา
                             </a>
@@ -308,7 +461,35 @@ $today = date('Y-m-d');
                     </div>
                     <?php endforeach; ?>
                 </div>
+
+                <?php if ($totalPages > 1): ?>
+                <nav class="pagination" aria-label="Pagination">
+                    <?php if ($currentPage > 1): ?>
+                        <a href="<?php echo $baseUrl . '?page=' . ($currentPage - 1); ?>" data-i18n="listing.pagePrev">←</a>
+                    <?php endif; ?>
+                    <?php for ($p = 1; $p <= $totalPages; $p++):
+                        if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 1):
+                    ?>
+                        <?php if ($p === $currentPage): ?>
+                            <span class="current"><?php echo $p; ?></span>
+                        <?php else: ?>
+                            <a href="<?php echo $baseUrl . '?page=' . $p; ?>"><?php echo $p; ?></a>
+                        <?php endif; ?>
+                    <?php elseif (abs($p - $currentPage) === 2): ?>
+                        <span class="ellipsis">…</span>
+                    <?php endif; endfor; ?>
+                    <?php if ($currentPage < $totalPages): ?>
+                        <a href="<?php echo $baseUrl . '?page=' . ($currentPage + 1); ?>" data-i18n="listing.pageNext">→</a>
+                    <?php endif; ?>
+                </nav>
+                <?php endif; ?>
             <?php endif; ?>
+
+            <div style="text-align:center;margin-top:20px;padding-bottom:8px">
+                <a href="<?php echo get_base_path(); ?>/past-events"
+                   class="past-events-btn"
+                   data-i18n="listing.pastEventsBtn">🗂️ ดูงานที่จบแล้ว</a>
+            </div>
         </div>
 
         <?php else: ?>
@@ -391,10 +572,17 @@ $today = date('Y-m-d');
                         <?php endif; ?>
                         <div class="checkbox-group" id="artistCheckboxes">
                             <?php foreach ($artists as $artist): ?>
+                                <?php $aMeta = $artistMeta[$artist] ?? null; ?>
                                 <label class="checkbox-label">
                                     <input type="checkbox" name="artist[]" value="<?php echo htmlspecialchars($artist); ?>"
                                            <?php echo (in_array($artist, $filterArtists)) ? 'checked' : ''; ?>>
                                     <span><?php echo htmlspecialchars($artist); ?></span>
+                                    <?php if ($aMeta && $aMeta['event_count'] > 1): ?>
+                                        <span class="artist-event-count" title="ปรากฏใน <?php echo $aMeta['event_count']; ?> งาน"><?php echo $aMeta['event_count']; ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($aMeta && !empty($aMeta['id'])): ?>
+                                        <a href="<?php echo get_base_path(); ?>/artist/<?php echo $aMeta['id']; ?>" target="_blank" class="artist-filter-profile-link" title="ดูโปรไฟล์">↗</a>
+                                    <?php endif; ?>
                                 </label>
                             <?php endforeach; ?>
                             <?php if (empty($artists)): ?>
@@ -402,6 +590,7 @@ $today = date('Y-m-d');
                             <?php endif; ?>
                         </div>
                     </div>
+
 
                     <?php if (!empty($types)): ?>
                     <div class="filter-item">
@@ -578,12 +767,30 @@ $today = date('Y-m-d');
                                                 <?php endif; ?>
                                             </td>
                                             <?php endif; ?>
-                                            <?php $cats = array_filter(array_map('trim', $event['categoriesArray'])); ?>
-                                            <td class="program-categories-cell<?php echo empty($cats) ? ' cell-empty' : ''; ?>">
-                                                <?php foreach ($cats as $cat): ?>
-                                                    <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($cat), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($cat); ?>">
-                                                        <?php echo htmlspecialchars($cat); ?>
-                                                    </button>
+                                            <?php
+                                                $pid = (int)($event['id'] ?? 0);
+                                                $artistLinks = $programArtistIdMap[$pid] ?? [];
+                                                if (empty($artistLinks)) {
+                                                    // fallback to raw categories text
+                                                    $cats = array_filter(array_map('trim', $event['categoriesArray']));
+                                                    foreach ($cats as $c) {
+                                                        $artistLinks[] = ['id' => null, 'name' => $c];
+                                                    }
+                                                }
+                                            ?>
+                                            <td class="program-categories-cell<?php echo empty($artistLinks) ? ' cell-empty' : ''; ?>">
+                                                <?php foreach ($artistLinks as $al): ?>
+                                                    <?php if (!empty($al['id'])): ?>
+                                                        <span class="program-categories-badge-wrap">
+                                                            <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($al['name']), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($al['name']); ?>">
+                                                                <?php echo htmlspecialchars($al['name']); ?>
+                                                            </button><a href="<?php echo get_base_path(); ?>/artist/<?php echo $al['id']; ?>" target="_blank" class="artist-profile-link" title="ดูโปรไฟล์ศิลปิน">↗</a>
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($al['name']), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($al['name']); ?>">
+                                                            <?php echo htmlspecialchars($al['name']); ?>
+                                                        </button>
+                                                    <?php endif; ?>
                                                 <?php endforeach; ?>
                                             </td>
                                             <td class="program-action-cell" style="text-align:center;">
@@ -620,6 +827,45 @@ $today = date('Y-m-d');
             <?php endif; ?>
         </div>
         <?php endif; ?> <!-- end showEventListing conditional -->
+
+        <?php
+        if ($eventId !== null && !empty($artistOtherEvents)):
+            $crossEvents = [];
+            foreach ($artistOtherEvents as $aId => $evList) {
+                $aName = '';
+                foreach ($artistMeta as $n => $m) {
+                    if ($m['id'] === $aId) { $aName = $n; break; }
+                }
+                foreach ($evList as $ev) {
+                    if (!isset($crossEvents[$ev['id']])) {
+                        $crossEvents[$ev['id']] = ['name' => $ev['name'], 'slug' => $ev['slug'], 'artists' => []];
+                    }
+                    $crossEvents[$ev['id']]['artists'][] = ['id' => $aId, 'name' => $aName];
+                }
+            }
+        ?>
+        <section class="cross-event-section">
+            <h3 class="cross-event-section-title" data-i18n="section.crossEvent">งานอื่นที่เกี่ยวข้องกับศิลปิน</h3>
+            <div class="cross-event-list">
+                <?php foreach ($crossEvents as $ceid => $cev): ?>
+                <div class="cross-event-item">
+                    <a href="<?php echo get_base_path(); ?>/event/<?php echo htmlspecialchars($cev['slug']); ?>"
+                       class="cross-event-name">
+                        <?php echo htmlspecialchars($cev['name']); ?>
+                    </a>
+                    <div class="cross-event-artists">
+                        <?php foreach ($cev['artists'] as $ca): ?>
+                        <a href="<?php echo get_base_path(); ?>/artist/<?php echo $ca['id']; ?>"
+                           class="cross-event-artist-chip">
+                            <?php echo htmlspecialchars($ca['name']); ?>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
 
         <footer>
             <div class="footer-text">

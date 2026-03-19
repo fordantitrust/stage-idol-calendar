@@ -361,6 +361,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
             <a href="#import-type">↳ Program Type</a>
+            <a href="#feed">Feed / Subscribe</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
@@ -396,6 +397,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#import-type">Program Type</a></li>
                     </ul>
                 </li>
+                <li><a href="#artists">Tab: Artists</a></li>
+                <li><a href="#feed">Feed / Subscribe</a>
+                    <ul class="toc-sub">
+                        <li><a href="#feed-event">Feed ตาม Event</a></li>
+                        <li><a href="#feed-artist">Artist Feed</a></li>
+                    </ul>
+                </li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
@@ -415,13 +423,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     Admin Panel ของ <strong>Idol Stage Timetable</strong> ใช้สำหรับจัดการข้อมูลทั้งหมดที่แสดงบนเว็บไซต์
                     รวมถึง Programs (รายการแสดง), Events (งาน/convention), คำขอจากผู้ใช้, Credits และการสำรองข้อมูล
                 </p>
-                <p>Admin Panel ประกอบด้วย <strong>8 แท็บหลัก</strong>:</p>
+                <p>Admin Panel ประกอบด้วย <strong>9 แท็บหลัก</strong>:</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
                     <span class="tab-chip">🎵 Programs</span>
                     <span class="tab-chip">🎪 Events</span>
                     <span class="tab-chip">📝 Requests</span>
                     <span class="tab-chip">✨ Credits</span>
                     <span class="tab-chip">📤 Import</span>
+                    <span class="tab-chip">🎤 Artists</span>
                     <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
                     <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
@@ -521,8 +530,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>วันที่ <span style="color:red">*</span></td><td>วันที่จัดการแสดง</td></tr>
                         <tr><td>เวลาเริ่ม / สิ้นสุด <span style="color:red">*</span></td><td>เวลาในรูปแบบ HH:MM</td></tr>
                         <tr><td>Description</td><td>รายละเอียดเพิ่มเติม</td></tr>
-                        <tr><td>Categories</td><td>แท็ก/หมวดหมู่ คั่นด้วยเครื่องหมาย comma (<code>,</code>)</td></tr>
+                        <tr><td>Artist / Group</td><td>ศิลปินที่เกี่ยวข้องกับ program นี้ — พิมพ์ชื่อแล้วกด <kbd>Enter</kbd> หรือ <kbd>,</kbd> เพื่อเพิ่ม chip; กด <code>×</code> เพื่อลบ; ระบบดึง autocomplete จากตาราง Artists (ไอคอน 🎤 = solo, 🎵 = group); ถ้าพิมพ์ชื่อใหม่ที่ยังไม่มีในระบบจะถูกสร้างอัตโนมัติเมื่อกด <strong>บันทึก</strong></td></tr>
                         <tr><td>Program Type</td><td>ประเภทของ program เช่น <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (ไม่บังคับ รองรับ autocomplete จาก type ที่มีในระบบ)</td></tr>
+                        <tr><td>Live Stream URL</td><td>URL ลิงก์ถ่ายทอดสด เช่น YouTube, X/Twitter, TikTok (ต้องเป็น <code>https://</code> เท่านั้น — ค่าอื่นจะถูก ignore); เมื่อกรอกแล้วหน้าเว็บจะแสดงไอคอน platform และปุ่ม <strong>🔴 เข้าร่วม</strong>; ไฟล์ ICS feed จะมี <code>URL:</code> property ด้วย</td></tr>
                     </tbody>
                 </table>
                 <ol class="steps" start="3">
@@ -551,7 +561,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tbody>
                         <tr><td>เลือกทั้งหมด</td><td>เลือก program ทุกรายการในหน้าปัจจุบัน</td></tr>
                         <tr><td>ยกเลิกทั้งหมด</td><td>ยกเลิกการเลือกทั้งหมด</td></tr>
-                        <tr><td>✏️ แก้ไขหลายรายการ</td><td>เปลี่ยน Venue / Organizer / Categories / Program Type ของรายการที่เลือกพร้อมกัน (สูงสุด 100)</td></tr>
+                        <tr><td>✏️ แก้ไขหลายรายการ</td><td>เปลี่ยน Venue / Organizer / Artist&ndash;Group / Program Type ของรายการที่เลือกพร้อมกัน (สูงสุด 100) — ฟิลด์ Artist / Group ใช้ tag-input widget เหมือนการแก้ไขเดี่ยว</td></tr>
                         <tr><td>🗑️ ลบหลายรายการ</td><td>ลบรายการที่เลือกทั้งหมดพร้อมกัน (สูงสุด 100)</td></tr>
                     </tbody>
                 </table>
@@ -758,6 +768,89 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
                     <div>สามารถ import ICS ผ่าน command line ได้ด้วย: <code>php tools/import-ics-to-sqlite.php --event=slug --type=stage</code></div>
+                </div>
+            </section>
+
+            <!-- Artists Tab -->
+            <section class="help-section" id="artists">
+                <h2>🎤 Tab: Artists</h2>
+                <p>จัดการข้อมูลศิลปินทั้งหมดในระบบ — ศิลปินสามารถปรากฏใน program ของหลาย events ได้ (Artist Reuse System)</p>
+
+                <h3>ข้อมูลของ Artist</h3>
+                <table class="help-table">
+                    <thead><tr><th>ฟิลด์</th><th>หมายเหตุ</th></tr></thead>
+                    <tbody>
+                        <tr><td>ชื่อ <span style="color:red">*</span></td><td>ชื่อหลักของศิลปิน ใช้ match กับ CATEGORIES ใน ICS</td></tr>
+                        <tr><td>ประเภท</td><td><strong>Solo</strong> = ศิลปินเดี่ยว | <strong>Group</strong> = วง/กลุ่ม</td></tr>
+                        <tr><td>กลุ่มที่สังกัด</td><td>สำหรับ Solo artist — เลือกวงที่สังกัด (ถ้ามี)</td></tr>
+                        <tr><td>Variants</td><td>ชื่อเรียกอื่น เช่น ชื่อย่อ, ชื่อภาษาอื่น, ชื่อเก่า</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Variants (ชื่อเรียกอื่น)</h3>
+                <p>ระบบใช้ variants เพื่อ match ชื่อศิลปินจากไฟล์ ICS ที่อาจสะกดต่างกัน:</p>
+                <ul>
+                    <li>กดปุ่ม <strong>Variants</strong> ในแถวของศิลปินเพื่อเปิด modal จัดการ variants</li>
+                    <li>กด <strong>+ เพิ่ม</strong> แล้วพิมพ์ชื่อเรียกอื่น → กด Add</li>
+                    <li>กด <strong>×</strong> ข้าง variant เพื่อลบ</li>
+                </ul>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>เมื่อ Import ICS ระบบจะ auto-link program กับ artist โดย match ชื่อจาก CATEGORIES — ทั้งชื่อหลักและ variants</div>
+                </div>
+
+                <h3>Artist Profile Page</h3>
+                <p>ชื่อ artist ในตาราง Artists เป็น link ไปหน้าโปรไฟล์ <code>/artist/{id}</code> ที่แสดงต่อผู้ใช้ — แสดง programs จัดกลุ่มตาม event เฉพาะงานที่ยังไม่จบ</p>
+
+                <h3>ความสัมพันธ์กับฟอร์ม Program</h3>
+                <p>ฟิลด์ <strong>Artist / Group</strong> ในฟอร์มเพิ่ม/แก้ไข Program เชื่อมตรงกับตาราง Artists นี้:</p>
+                <ul>
+                    <li>พิมพ์ชื่อ → ระบบ autocomplete จากตาราง Artists</li>
+                    <li>เลือกจาก dropdown หรือกด <kbd>Enter</kbd>/<kbd>,</kbd> เพื่อเพิ่มเป็น chip</li>
+                    <li>ถ้าชื่อที่พิมพ์ <strong>ไม่มีในระบบ</strong> จะถูกสร้าง artist ใหม่อัตโนมัติตอนกด <em>บันทึก</em></li>
+                    <li>เมื่อบันทึก ระบบ sync <code>program_artists</code> junction table ทันที → filter ศิลปินในหน้า public ทำงานถูกต้อง</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Artist ที่สร้างผ่านฟอร์ม Program จะปรากฏในตาราง Artists tab นี้โดยอัตโนมัติ สามารถเพิ่ม Variants หรือกำหนดกลุ่มที่สังกัดได้ภายหลัง</div>
+                </div>
+            </section>
+
+            <!-- Feed / Subscribe -->
+            <section class="help-section" id="feed">
+                <h2>🔔 Feed / Subscribe</h2>
+                <p>ระบบรองรับ ICS Subscription Feed ที่ปฏิทิน (Google Calendar, Apple Calendar, Outlook, Thunderbird) สามารถ pull อัตโนมัติได้ ผู้ใช้ไม่ต้อง export ซ้ำทุกครั้งที่ข้อมูลเปลี่ยน</p>
+
+                <h3 id="feed-event">📅 Feed ตาม Event</h3>
+                <p>ปุ่ม <strong>🔔 Subscribe</strong> ในหน้าแสดงตารางงาน (<code>/event/{slug}</code>) เปิด modal ให้ผู้ใช้ copy URL หรือกด webcal:// โดย URL จะรวม filter ปัจจุบัน (artist[], venue[], type[]) เข้าไปด้วยอัตโนมัติ</p>
+                <table class="help-table">
+                    <thead><tr><th>Endpoint</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>/feed</code></td><td>Feed ของ Default Event (ไม่ระบุ slug)</td></tr>
+                        <tr><td><code>/event/{slug}/feed</code></td><td>Feed ของ Event เฉพาะ (filter ด้วย artist[], venue[], type[] query string ได้)</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Feed ใช้ static file cache (<code>cache/feed_*.ics</code>, TTL 1 ชั่วโมง) — ทุกครั้งที่ Admin เขียนข้อมูล (เพิ่ม/แก้ไข/ลบ Program, import ICS) cache จะถูก invalidate ทันที ผู้ subscribe จะได้ข้อมูลใหม่ในรอบ pull ถัดไปของปฏิทิน</div>
+                </div>
+
+                <h3 id="feed-artist">🎤 Artist Feed (Feed เฉพาะศิลปิน)</h3>
+                <p>หน้าโปรไฟล์ศิลปิน (<code>/artist/{id}</code>) มีปุ่ม subscribe แยก 2 ปุ่ม:</p>
+                <table class="help-table">
+                    <thead><tr><th>ปุ่ม</th><th>Endpoint</th><th>ดึงข้อมูล</th></tr></thead>
+                    <tbody>
+                        <tr><td>🔔 ชื่อศิลปิน</td><td><code>/artist/{id}/feed</code></td><td>Programs ทั้งหมดของศิลปินข้ามทุก event (ชื่อ + variant names ทั้งหมด)</td></tr>
+                        <tr><td>🔔 ชื่อวง</td><td><code>/artist/{id}/feed?group=1</code></td><td>Programs ที่แสดงในนามวงที่ศิลปินสังกัด (แสดงเฉพาะเมื่อ artist มี group_id)</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Artist Feed ดึงข้อมูลข้ามทุก event — เฉพาะ programs จาก <strong>Active events</strong> เท่านั้น; ใช้ตาราง <code>artist_variants</code> ในการ match ชื่อ artist กับ field <code>categories</code> ของ program; cache key แยกระหว่าง <code>_own</code> และ <code>_group</code></div>
+                </div>
+                <div class="callout callout-warning">
+                    <span class="callout-icon">⚠️</span>
+                    <div>เมื่อแก้ไข Artist Variants ข้อมูลใน Artist Feed จะ reflect ใน pull รอบถัดไปอัตโนมัติ (cache TTL 1 ชั่วโมง หรือหลัง Admin เขียนข้อมูล Program/Artist)</div>
                 </div>
             </section>
 
@@ -1020,6 +1113,19 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>ตรวจสอบว่าไฟล์ .ics มี field <code>DTSTART</code>, <code>DTEND</code>, <code>SUMMARY</code> ครบ</li>
                     <li>ขนาดไฟล์ต้องไม่เกิน <strong>5MB</strong></li>
                     <li>ดู error log ใน browser console หรือ PHP error log</li>
+                </ul>
+
+                <h3>Q: เพิ่ม Program แล้ว Feed (webcal) ยังไม่อัปเดต</h3>
+                <ul>
+                    <li>Feed ใช้ static cache (TTL 1 ชั่วโมง) — ทุก write operation ใน Admin จะ invalidate cache ทันที แต่ปฏิทินแต่ละ app มีรอบ pull ของตัวเอง (Apple ~1 ชั่วโมง, Google ~24 ชั่วโมง)</li>
+                    <li>หากต้องการ force refresh: ใน Apple Calendar กด "Refresh" ที่ calendar; ใน Outlook Desktop คลิก "Sync"; ใน Google Calendar ต้อง remove แล้ว subscribe ใหม่</li>
+                </ul>
+
+                <h3>Q: หน้าเว็บโหลดช้าหลัง import ข้อมูลจำนวนมาก</h3>
+                <ul>
+                    <li>ระบบมี Query Cache สำหรับหน้า Event (<code>cache/query_event_{id}.json</code>) และหน้า Artist Profile (<code>cache/query_artist_{id}.json</code>) — TTL 1 ชั่วโมง</li>
+                    <li>ทุก write operation ใน Admin (เพิ่ม/แก้ไข/ลบ Program หรือ Artist) จะ invalidate cache ทันที; หลังจากนั้นการโหลดครั้งแรกจะ rebuild cache ใหม่ และ request ถัดไปจะเร็ว</li>
+                    <li>ถ้าต้องการล้าง cache ด้วยตนเอง: ลบไฟล์ <code>cache/query_event_*.json</code> และ <code>cache/query_artist_*.json</code> ผ่าน server</li>
                 </ul>
 
                 <h3>Q: ต้องการกำหนด Program Type ตอน import ICS</h3>

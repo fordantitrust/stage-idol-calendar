@@ -46,3 +46,30 @@ define('FEED_CACHE_DIR', dirname(__DIR__) . '/cache');
  * Default: 3600 seconds (1 hour)
  */
 define('FEED_CACHE_TTL', 3600);
+
+/**
+ * Query Cache Directory
+ * Directory where DB query result JSON files are stored
+ * Files: query_event_{id}.json, query_artist_{id}.json
+ */
+define('QUERY_CACHE_DIR', dirname(__DIR__) . '/cache');
+
+/**
+ * Query Cache TTL (Time To Live)
+ * How long to serve cached query results before re-querying the DB (in seconds)
+ * Default: 3600 seconds (1 hour)
+ */
+define('QUERY_CACHE_TTL', 3600);
+
+/**
+ * Image Cache Directory
+ * Directory where generated PNG schedule images are cached
+ */
+define('IMAGE_CACHE_DIR', dirname(__DIR__) . '/cache/images');
+
+/**
+ * Image Cache TTL (Time To Live)
+ * How long to serve a cached PNG before regenerating (in seconds)
+ * Default: 3600 seconds (1 hour)
+ */
+define('IMAGE_CACHE_TTL', 3600);

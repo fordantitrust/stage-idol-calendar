@@ -249,6 +249,98 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             white-space: nowrap;
         }
 
+        /* Artist Tag Input Widget */
+        .tag-input-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            padding: 5px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            background: #fff;
+            min-height: 38px;
+            cursor: text;
+            align-items: center;
+            position: relative;
+        }
+        .tag-input-wrapper:focus-within {
+            border-color: #E91E63;
+            box-shadow: 0 0 0 2px rgba(233,30,99,0.15);
+            outline: none;
+        }
+        .artist-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px 2px 10px;
+            background: linear-gradient(135deg, #FFB7C5, #E91E63);
+            color: #fff;
+            border-radius: 12px;
+            font-size: 0.82em;
+            font-weight: 600;
+            white-space: nowrap;
+            line-height: 1.5;
+        }
+        .artist-tag-remove {
+            cursor: pointer;
+            opacity: 0.75;
+            font-size: 1em;
+            line-height: 1;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .artist-tag-remove:hover { opacity: 1; background: rgba(255,255,255,0.55); }
+        .tag-input-field {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 0.92em;
+            min-width: 120px;
+            flex: 1;
+            padding: 2px 4px;
+            height: 26px;
+        }
+        .artist-suggestions {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 3px);
+            z-index: 2000;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.13);
+            max-height: 220px;
+            overflow-y: auto;
+            min-width: 220px;
+            display: none;
+        }
+        .artist-suggestion-item {
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .artist-suggestion-item:hover,
+        .artist-suggestion-item.active { background: #fdf2f8; }
+        .artist-suggestion-icon {
+            font-size: 0.8em;
+            color: #9ca3af;
+            background: #f3f4f6;
+            border-radius: 4px;
+            padding: 1px 5px;
+            flex-shrink: 0;
+        }
+        .artist-suggestion-new { color: #6366f1; font-style: italic; }
+        .tag-input-field::placeholder { color: #adb5bd; }
+
         /* Pagination */
         .pagination {
             display: flex;
@@ -986,6 +1078,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem">✨ Credits</button>
                 <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem">📤 Import</button>
                 <?php if ($adminRole === 'admin'): ?>
+                <button class="tab-mobile-item" onclick="switchTab('artists')" data-tab="artists" role="menuitem">🎤 Artists</button>                    
                 <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">👤 Users</button>
                 <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">💾 Backup</button>
                 <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem">⚙️ Settings</button>
@@ -1002,6 +1095,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <button class="tab-btn" onclick="switchTab('credits')">✨ Credits</button>
             <button class="tab-btn" onclick="switchTab('import')">📤 Import</button>
             <?php if ($adminRole === 'admin'): ?>
+            <button class="tab-btn" onclick="switchTab('artists')">🎤 Artists</button>
             <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
             <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
             <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
@@ -1059,7 +1153,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <?php if (VENUE_MODE === 'multi'): ?>
                     <th class="sortable" onclick="sortBy('location')">Venue <span class="sort-icon" data-col="location"></span></th>
                     <?php endif; ?>
-                    <th class="sortable" onclick="sortBy('categories')">Categories <span class="sort-icon" data-col="categories"></span></th>
+                    <th class="sortable" onclick="sortBy('categories')">Artist / Group <span class="sort-icon" data-col="categories"></span></th>
                     <th>Type</th>
                     <th>Actions</th>
                 </tr>
@@ -1156,6 +1250,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <button class="btn btn-sm btn-secondary" onclick="resetUpload()">ยกเลิก</button>
                 </div>
 
+                <!-- Artist Mapping Section -->
+                <div id="artistMappingSection" style="display:none; margin-bottom:20px; border:2px solid #fbbf24; border-radius:10px; overflow:hidden;">
+                    <div style="background:#fef3c7; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <strong>🎤 Artist Mapping — พบชื่อศิลปินที่ยังไม่มีใน database (<span id="unmatchedCount">0</span> รายการ)</strong>
+                        <small style="color:#92400e;">กำหนด mapping ก่อน confirm import เพื่อให้ระบบสร้าง artist links อัตโนมัติ</small>
+                    </div>
+                    <div style="overflow-x:auto; background:white;">
+                        <table class="events-table" style="margin:0; border-radius:0;">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อใน ICS (categories)</th>
+                                    <th style="width:60px; text-align:center;">Programs</th>
+                                    <th style="width:160px;">Action</th>
+                                    <th id="artistMappingTargetHeader" style="min-width:220px;">ปลายทาง</th>
+                                </tr>
+                            </thead>
+                            <tbody id="artistMappingBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div style="overflow-x:auto">
                     <table class="events-table preview-table">
                         <thead>
@@ -1207,6 +1322,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <span class="summary-icon">❌</span>
                             <span class="summary-label">ผิดพลาด:</span>
                             <span class="summary-value" id="summaryErrors">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-icon">🎤</span>
+                            <span class="summary-label">Artist links:</span>
+                            <span class="summary-value" id="summaryArtistLinks">0</span>
                         </div>
                     </div>
                     <div id="errorsList"></div>
@@ -1393,6 +1513,45 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         </div>
         <?php endif; ?>
 
+        <!-- Artists Section -->
+        <div id="artistsSection" style="display:none">
+            <div class="admin-toolbar">
+                <div class="search-wrapper">
+                    <input type="text" id="artistsSearchInput" placeholder="ค้นหาศิลปิน..." onkeyup="handleArtistsSearch(event)">
+                    <button type="button" class="clear-search" onclick="clearArtistsSearch()" title="Clear">&times;</button>
+                </div>
+                <select id="artistsTypeFilter" onchange="artistsCurrentPage=1;loadArtists()">
+                    <option value="">ทั้งหมด</option>
+                    <option value="1">กลุ่ม (Group)</option>
+                    <option value="0">บุคคล (Solo/Member)</option>
+                </select>
+                <select id="artistsPerPageSelect" onchange="changeArtistsPerPage()">
+                    <option value="50" selected>50 / หน้า</option>
+                    <option value="100">100 / หน้า</option>
+                </select>
+                <button class="btn btn-primary" onclick="openAddArtistModal()">+ เพิ่มศิลปิน</button>
+            </div>
+
+            <div class="table-scroll-wrapper">
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th class="sortable" onclick="sortArtistsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
+                        <th class="sortable" onclick="sortArtistsBy('name')">ชื่อ <span class="sort-icon" data-col="name"></span></th>
+                        <th class="sortable" onclick="sortArtistsBy('is_group')">ประเภท <span class="sort-icon" data-col="is_group"></span></th>
+                        <th>กลุ่มที่สังกัด</th>
+                        <th title="จำนวน variant names">Variants</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="artistsTableBody">
+                    <tr><td colspan="5" class="loading">Loading...</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <div class="pagination" id="artistsPagination"></div>
+        </div>
+
         <!-- Settings Section -->
         <?php if ($adminRole === 'admin'): ?>
         <div id="settingsSection" style="display:none">
@@ -1444,6 +1603,93 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </div>
         </div>
         <?php endif; ?>
+    </div>
+
+    <!-- Artist Modal -->
+    <div class="modal-overlay" id="artistModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-header">
+                <h2 id="artistModalTitle">เพิ่มศิลปิน</h2>
+                <button class="modal-close" onclick="closeArtistModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="artistForm" onsubmit="saveArtist(event)">
+                    <input type="hidden" id="artistId">
+
+                    <div class="form-group">
+                        <label for="artistName">ชื่อศิลปิน / กลุ่ม *</label>
+                        <input type="text" id="artistName" required maxlength="200" placeholder="ชื่อศิลปินหรือกลุ่ม">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal">
+                            <input type="checkbox" id="artistIsGroup" onchange="onArtistIsGroupChange()" style="width:18px;height:18px;accent-color:var(--admin-primary)">
+                            เป็นกลุ่ม (Group)
+                        </label>
+                        <small class="form-hint">เปิดเมื่อนี่คือกลุ่ม/วง; ปิดเมื่อนี่คือสมาชิก/ศิลปินเดี่ยว</small>
+                    </div>
+
+                    <div class="form-group" id="artistGroupIdRow">
+                        <label for="artistGroupId">กลุ่มที่สังกัด</label>
+                        <select id="artistGroupId">
+                            <option value="">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>
+                        </select>
+                        <small class="form-hint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeArtistModal()">ยกเลิก</button>
+                <button type="submit" form="artistForm" class="btn btn-primary">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Artist Modal -->
+    <div class="modal-overlay" id="deleteArtistModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2>ยืนยันการลบ</h2>
+                <button class="modal-close" onclick="closeDeleteArtistModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>คุณต้องการลบ "<span id="deleteArtistName"></span>" หรือไม่?</p>
+                <input type="hidden" id="deleteArtistId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteArtistModal()">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteArtist()">ลบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Artist Variants Modal -->
+    <div class="modal-overlay" id="artistVariantsModal">
+        <div class="modal" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2>Variants: <span id="artistVariantsName" style="font-weight:700"></span></h2>
+                <button class="modal-close" onclick="closeArtistVariantsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#6c757d;font-size:0.9em;margin-bottom:12px">
+                    Variant names คือชื่อสะกดอื่นๆ ของศิลปินนี้ (เช่น ตัวพิมพ์ใหญ่/เล็กต่างกัน หรือรูปแบบ "ชื่อ - กลุ่ม")
+                    ใช้สำหรับ auto-match ตอน ICS import
+                </p>
+                <div id="artistVariantsList" style="min-height:40px;margin-bottom:16px">
+                    <span style="color:#9ca3af">Loading...</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:stretch">
+                    <input type="text" id="newVariantInput" maxlength="200"
+                        placeholder="เพิ่ม variant name..."
+                        style="flex:1;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();addArtistVariant();}">
+                    <button class="btn btn-primary" onclick="addArtistVariant()">+ เพิ่ม</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeArtistVariantsModal()">ปิด</button>
+            </div>
+        </div>
     </div>
 
     <!-- User Modal (admin only) -->
@@ -1675,8 +1921,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
-                        <label for="categories">Categories</label>
-                        <input type="text" id="categories" placeholder="แยกด้วย comma">
+                        <label>Artist / Group</label>
+                        <div class="tag-input-wrapper" id="artistTagWrapper">
+                            <input type="text" id="categoriesInput" class="tag-input-field"
+                                   placeholder="พิมพ์ชื่อ artist…" autocomplete="off">
+                            <div class="artist-suggestions" id="artistSuggestions"></div>
+                        </div>
+                        <input type="hidden" id="categories">
+                        <small class="form-hint">พิมพ์แล้วเลือกจาก dropdown หรือกด <kbd>Enter</kbd> / <kbd>,</kbd> เพื่อเพิ่ม · ศิลปินใหม่จะถูกสร้างอัตโนมัติ</small>
                     </div>
 
                     <div class="form-group">
@@ -1752,10 +2004,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
-                        <label for="bulkEditCategories">Categories</label>
-                        <input type="text" id="bulkEditCategories" class="form-control"
-                               placeholder="-- ไม่เปลี่ยนแปลง --">
-                        <small class="form-hint">กรอกเพื่ออัปเดต categories ของ programs ทั้งหมดที่เลือก</small>
+                        <label>Artist / Group</label>
+                        <div class="tag-input-wrapper" id="bulkArtistTagWrapper">
+                            <input type="text" id="bulkCategoriesInput" class="tag-input-field"
+                                   placeholder="-- ไม่เปลี่ยนแปลง --" autocomplete="off">
+                            <div class="artist-suggestions" id="bulkArtistSuggestions"></div>
+                        </div>
+                        <input type="hidden" id="bulkEditCategories">
+                        <small class="form-hint">เพิ่ม tag เพื่ออัปเดต artist/group ของ programs ทั้งหมดที่เลือก · ว่าง = ไม่เปลี่ยนแปลง</small>
                     </div>
 
                     <div class="form-group">
@@ -2059,6 +2315,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Configuration
         const VENUE_MODE = '<?php echo VENUE_MODE; ?>';
         const ADMIN_ROLE = '<?php echo $adminRole; ?>';
+        const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;
 
         // State
         let currentPage = 1;
@@ -2069,6 +2326,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         let sortDirection = 'desc';
         let formChanged = false;
         let originalFormData = null;
+
+        // Artists state
+        let artistsCurrentPage = 1;
+        let artistsPerPage = 50;
+        let artistsSortColumn = 'name';
+        let artistsSortDirection = 'asc';
+        let artistsSearchTimeout = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -2095,7 +2359,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const labelMap = {
                     programs: '🎵 Programs', events: '🎪 Events', requests: '📝 Requests',
                     credits: '✨ Credits', import: '📤 Import', users: '👤 Users',
-                    backup: '💾 Backup', settings: '⚙️ Settings'
+                    backup: '💾 Backup', settings: '⚙️ Settings', contact: '✉️ Contact',
+                    artists: '🎤 Artists'
                 };
                 const labelEl = document.getElementById('tabMobileLabel');
                 if (labelEl) labelEl.textContent = labelMap[tab] || tab;
@@ -2116,6 +2381,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (settingsEl) settingsEl.style.display = tab === 'settings' ? 'block' : 'none';
             const contactEl = document.getElementById('contactSection');
             if (contactEl) contactEl.style.display = tab === 'contact' ? 'block' : 'none';
+            document.getElementById('artistsSection').style.display = tab === 'artists' ? 'block' : 'none';
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
             if (tab === 'events') loadEventsTab();
@@ -2123,6 +2389,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
             if (tab === 'settings' && ADMIN_ROLE === 'admin') { loadThemeSettings(); loadTitleSetting(); loadDisclaimerSetting(); }
             if (tab === 'contact' && ADMIN_ROLE === 'admin') loadContactChannels();
+            if (tab === 'artists') loadArtists();
         }
 
         // Mobile tab dropdown controls
@@ -2745,7 +3012,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('bulkEditCount').textContent = selectedIds.length;
             document.getElementById('bulkEditVenue').value = '';
             document.getElementById('bulkEditOrganizer').value = '';
-            document.getElementById('bulkEditCategories').value = '';
+            if (window.bulkArtistTagInput) window.bulkArtistTagInput.reset();
             document.getElementById('bulkEditProgramType').value = '';
 
             await loadVenuesForBulkEdit();
@@ -2883,6 +3150,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const filterVal = document.getElementById('eventMetaFilter')?.value || '';
             document.getElementById('eventConvention').value = filterVal;
 
+            if (window.artistTagInput) window.artistTagInput.reset();
             formChanged = false;
             document.getElementById('eventModal').classList.add('active');
         }
@@ -2913,7 +3181,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
-                document.getElementById('categories').value = event.categories || '';
+                if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
                 document.getElementById('programType').value = event.program_type || '';
                 document.getElementById('streamUrl').value = event.stream_url || '';
 
@@ -2953,7 +3221,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
-                document.getElementById('categories').value = event.categories || '';
+                if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
                 document.getElementById('programType').value = event.program_type || '';
                 document.getElementById('streamUrl').value = event.stream_url || '';
 
@@ -3118,6 +3386,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Global state for import
         let uploadedEvents = [];
         let previewData = {};
+        let unmatchedCategories = [];
+        let allArtistsForMapping = [];
 
         // Handle file selection
         function handleFileSelect(event) {
@@ -3157,8 +3427,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 hideLoading();
 
                 if (result.success) {
-                    previewData = result.data;
-                    uploadedEvents = result.data.events;
+                    previewData              = result.data;
+                    uploadedEvents           = result.data.events;
+                    unmatchedCategories      = result.data.unmatched_categories || [];
+                    allArtistsForMapping     = result.data.all_artists || [];
                     showPreview();
                     showToast(result.message, 'success');
                 } else {
@@ -3186,6 +3458,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('statNew').textContent = uploadedEvents.filter(e => !e.is_duplicate).length;
             document.getElementById('statDup').textContent = previewData.stats.duplicates;
             document.getElementById('statError').textContent = uploadedEvents.filter(e => e.validation_errors && e.validation_errors.length > 0).length;
+
+            // Render artist mapping section
+            renderArtistMappingSection();
 
             // Render table
             renderPreviewTable();
@@ -3397,7 +3672,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const importDefaultType = (document.getElementById('icsDefaultType')?.value || '').trim();
             const importBody = {
                 events: eventsToImport,
-                save_file: true
+                save_file: true,
+                artist_mappings: collectArtistMappings(),
             };
             if (importEventMetaId) {
                 importBody.event_id = parseInt(importEventMetaId);
@@ -3441,6 +3717,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('summaryUpdated').textContent = data.stats.updated;
             document.getElementById('summarySkipped').textContent = data.stats.skipped;
             document.getElementById('summaryErrors').textContent = data.stats.errors;
+            document.getElementById('summaryArtistLinks').textContent = data.stats.artist_links || 0;
 
             // Show errors if any
             const errorsList = document.getElementById('errorsList');
@@ -3455,8 +3732,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Reset upload state
         function resetUpload() {
-            uploadedEvents = [];
-            previewData = {};
+            uploadedEvents       = [];
+            previewData          = {};
+            unmatchedCategories  = [];
+            allArtistsForMapping = [];
             document.getElementById('uploadArea').style.display = 'block';
             document.getElementById('previewSection').style.display = 'none';
             document.getElementById('summarySection').style.display = 'none';
@@ -4942,6 +5221,648 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             })
             .catch(() => alert('Network error'));
         }
+
+        // ============================================================
+        // ICS Import — Artist Mapping
+        // ============================================================
+
+        function renderArtistMappingSection() {
+            const section = document.getElementById('artistMappingSection');
+            if (!unmatchedCategories.length) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            document.getElementById('unmatchedCount').textContent = unmatchedCategories.length;
+
+            const artistOptions = allArtistsForMapping.map(a =>
+                `<option value="${a.id}">${escapeHtml(a.name)}${a.is_group == 1 ? ' [กลุ่ม]' : ''}</option>`
+            ).join('');
+
+            const tbody = document.getElementById('artistMappingBody');
+            tbody.innerHTML = unmatchedCategories.map((cat, i) => {
+                const hasSuggestion = cat.suggested && cat.suggested.artist_id;
+                const defaultAction = hasSuggestion ? 'map' : 'auto';
+                return `
+                <tr id="mappingRow_${i}">
+                    <td><strong>${escapeHtml(cat.name)}</strong></td>
+                    <td style="text-align:center;">${cat.count}</td>
+                    <td>
+                        <select onchange="onMappingActionChange(${i})" id="mappingAction_${i}"
+                                style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9em;">
+                            <option value="auto" ${defaultAction==='auto'?'selected':''}>🔍 Auto (ข้ามถ้าไม่พบ)</option>
+                            <option value="map"  ${defaultAction==='map' ?'selected':''}>🔗 Map → ศิลปินที่มีอยู่</option>
+                            <option value="create">✨ สร้างศิลปินใหม่</option>
+                            <option value="skip">⏭️ ข้าม (ไม่ link)</option>
+                        </select>
+                    </td>
+                    <td id="mappingTarget_${i}"></td>
+                </tr>`;
+            }).join('');
+
+            // Render target cells (including pre-filled suggestions)
+            unmatchedCategories.forEach((cat, i) => renderMappingTarget(i));
+        }
+
+        function onMappingActionChange(i) {
+            renderMappingTarget(i);
+        }
+
+        function renderMappingTarget(i) {
+            const action = document.getElementById(`mappingAction_${i}`).value;
+            const target = document.getElementById(`mappingTarget_${i}`);
+            const cat    = unmatchedCategories[i];
+
+            const artistOptions = allArtistsForMapping.map(a =>
+                `<option value="${a.id}">${escapeHtml(a.name)}${a.is_group == 1 ? ' [กลุ่ม]' : ''}</option>`
+            ).join('');
+
+            if (action === 'map') {
+                const suggestedId = cat.suggested ? cat.suggested.artist_id : null;
+                const suggestedName = cat.suggested ? cat.suggested.artist_name : null;
+                const hint = suggestedId
+                    ? `<small style="color:#059669; font-size:0.8em;">📋 แนะนำจาก mapping file: <strong>${escapeHtml(suggestedName)}</strong></small>`
+                    : '';
+                const opts = allArtistsForMapping.map(a =>
+                    `<option value="${a.id}" ${suggestedId && a.id == suggestedId ? 'selected' : ''}>${escapeHtml(a.name)}${a.is_group == 1 ? ' [กลุ่ม]' : ''}</option>`
+                ).join('');
+                target.innerHTML = `
+                    <select id="mappingArtistId_${i}"
+                        style="width:100%; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9em;">
+                        <option value="">-- เลือกศิลปิน --</option>${opts}
+                    </select>${hint ? '<br>' + hint : ''}`;
+            } else if (action === 'create') {
+                target.innerHTML = `
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <input type="text" id="mappingNewName_${i}"
+                            value="${escapeHtml(cat.name)}"
+                            style="flex:1; min-width:120px; padding:6px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.9em;"
+                            placeholder="ชื่อศิลปิน">
+                        <label style="display:flex; align-items:center; gap:4px; font-size:0.85em; white-space:nowrap; cursor:pointer;">
+                            <input type="checkbox" id="mappingIsGroup_${i}" style="accent-color:var(--admin-primary)">
+                            เป็นกลุ่ม
+                        </label>
+                    </div>`;
+            } else if (action === 'skip') {
+                target.innerHTML = `<span style="color:#ef4444; font-size:0.85em;">ไม่สร้าง artist link สำหรับชื่อนี้</span>`;
+            } else {
+                target.innerHTML = `<span style="color:#94a3b8; font-size:0.85em;">— ระบบจะพยายาม match อัตโนมัติ —</span>`;
+            }
+        }
+
+        function collectArtistMappings() {
+            const mappings = [];
+            unmatchedCategories.forEach((cat, i) => {
+                const actionEl = document.getElementById(`mappingAction_${i}`);
+                if (!actionEl) return;
+                const action = actionEl.value;
+                if (action === 'auto') return; // ให้ API จัดการ auto-match เอง
+
+                const entry = { category: cat.name, action };
+
+                if (action === 'map') {
+                    const sel = document.getElementById(`mappingArtistId_${i}`);
+                    if (sel && sel.value) entry.artist_id = parseInt(sel.value);
+                    else entry.action = 'skip'; // ไม่ได้เลือก → skip
+                } else if (action === 'create') {
+                    const nameEl = document.getElementById(`mappingNewName_${i}`);
+                    const groupEl = document.getElementById(`mappingIsGroup_${i}`);
+                    entry.new_name = nameEl ? nameEl.value.trim() : cat.name;
+                    entry.is_group = groupEl && groupEl.checked ? 1 : 0;
+                    if (!entry.new_name) entry.action = 'skip';
+                }
+
+                mappings.push(entry);
+            });
+            return mappings;
+        }
+
+        // ============================================================
+        // Artists
+        // ============================================================
+
+        async function loadArtists() {
+            showLoading();
+            const search  = document.getElementById('artistsSearchInput')?.value || '';
+            const isGroup = document.getElementById('artistsTypeFilter')?.value ?? '';
+            let url = `api.php?action=artists_list&page=${artistsCurrentPage}&limit=${artistsPerPage}&sort=${artistsSortColumn}&order=${artistsSortDirection}&search=${encodeURIComponent(search)}`;
+            if (isGroup !== '') url += `&is_group=${encodeURIComponent(isGroup)}`;
+
+            try {
+                const response = await fetch(url);
+                const result   = await response.json();
+                if (result.success) {
+                    renderArtists(result.data.artists);
+                    renderArtistsPagination(result.data.pagination);
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to load artists', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function renderArtists(artists) {
+            const tbody = document.getElementById('artistsTableBody');
+            if (!artists.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบศิลปิน</td></tr>';
+                return;
+            }
+            tbody.innerHTML = artists.map(a => {
+                const typeBadge = a.is_group == 1
+                    ? `<span style="background:#e3f0ff;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">กลุ่ม</span>`
+                    : `<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">บุคคล</span>`;
+                const groupName = a.group_name ? escapeHtml(a.group_name) : '-';
+                const variantCount = a.variant_count > 0
+                    ? `<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">${a.variant_count}</span>`
+                    : `<span style="color:#9ca3af;font-size:0.85em">-</span>`;
+                return `
+                    <tr>
+                        <td>${a.id}</td>
+                        <td><strong><a href="${BASE_PATH}/artist/${a.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิด profile">${escapeHtml(a.name)}</a></strong></td>
+                        <td>${typeBadge}</td>
+                        <td>${groupName}</td>
+                        <td>${variantCount}</td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="openArtistVariantsModal(${a.id}, '${escapeHtml(a.name).replace(/'/g, "\\'")}')">Variants</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditArtistModal(${a.id})">แก้ไข</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteArtistModal(${a.id}, '${escapeHtml(a.name).replace(/'/g, "\\'")}')">ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderArtistsPagination(pagination) {
+            const container = document.getElementById('artistsPagination');
+            const { page, totalPages, total } = pagination;
+            if (totalPages <= 1) {
+                container.innerHTML = `<span class="pagination-info">ทั้งหมด ${total} รายการ</span>`;
+                return;
+            }
+            container.innerHTML = `
+                <button class="btn btn-secondary btn-sm" onclick="goToArtistPage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>&laquo; ก่อนหน้า</button>
+                <span class="pagination-info">หน้า ${page} / ${totalPages} (ทั้งหมด ${total} รายการ)</span>
+                <button class="btn btn-secondary btn-sm" onclick="goToArtistPage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>ถัดไป &raquo;</button>
+            `;
+        }
+
+        function goToArtistPage(page) {
+            artistsCurrentPage = page;
+            loadArtists();
+        }
+
+        function changeArtistsPerPage() {
+            artistsPerPage = parseInt(document.getElementById('artistsPerPageSelect').value);
+            artistsCurrentPage = 1;
+            loadArtists();
+        }
+
+        function handleArtistsSearch(event) {
+            if (event.key === 'Enter') {
+                artistsCurrentPage = 1;
+                loadArtists();
+                return;
+            }
+            clearTimeout(artistsSearchTimeout);
+            artistsSearchTimeout = setTimeout(() => {
+                artistsCurrentPage = 1;
+                loadArtists();
+            }, 300);
+        }
+
+        function clearArtistsSearch() {
+            document.getElementById('artistsSearchInput').value = '';
+            artistsCurrentPage = 1;
+            loadArtists();
+        }
+
+        function sortArtistsBy(column) {
+            if (artistsSortColumn === column) {
+                artistsSortDirection = artistsSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                artistsSortColumn = column;
+                artistsSortDirection = 'asc';
+            }
+            loadArtists();
+        }
+
+        function onArtistIsGroupChange() {
+            const isGroup = document.getElementById('artistIsGroup').checked;
+            document.getElementById('artistGroupIdRow').style.display = isGroup ? 'none' : 'block';
+        }
+
+        async function loadGroupsIntoSelect(selectedGroupId) {
+            try {
+                const response = await fetch('api.php?action=artists_groups');
+                const result   = await response.json();
+                if (!result.success) return;
+
+                const select = document.getElementById('artistGroupId');
+                select.innerHTML = '<option value="">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>';
+                result.data.groups.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g.id;
+                    opt.textContent = g.name;
+                    if (selectedGroupId && parseInt(g.id) === parseInt(selectedGroupId)) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to load groups', err);
+            }
+        }
+
+        async function openAddArtistModal() {
+            document.getElementById('artistModalTitle').textContent = 'เพิ่มศิลปิน';
+            document.getElementById('artistForm').reset();
+            document.getElementById('artistId').value = '';
+            document.getElementById('artistGroupIdRow').style.display = 'block';
+            await loadGroupsIntoSelect(null);
+            document.getElementById('artistModal').classList.add('active');
+        }
+
+        async function openEditArtistModal(id) {
+            showLoading();
+            try {
+                const response = await fetch(`api.php?action=artists_get&id=${id}`);
+                const result   = await response.json();
+                if (!result.success) {
+                    showToast(result.message, 'error');
+                    return;
+                }
+                const artist = result.data;
+
+                document.getElementById('artistModalTitle').textContent = 'แก้ไขศิลปิน';
+                document.getElementById('artistId').value = artist.id;
+                document.getElementById('artistName').value = artist.name;
+                document.getElementById('artistIsGroup').checked = artist.is_group == 1;
+                document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
+
+                await loadGroupsIntoSelect(artist.group_id);
+                document.getElementById('artistModal').classList.add('active');
+            } catch (err) {
+                showToast('Failed to load artist', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function closeArtistModal() {
+            document.getElementById('artistModal').classList.remove('active');
+        }
+
+        async function saveArtist(e) {
+            e.preventDefault();
+            const id = document.getElementById('artistId').value;
+            const groupIdVal = document.getElementById('artistGroupId').value;
+            const data = {
+                name:     document.getElementById('artistName').value,
+                is_group: document.getElementById('artistIsGroup').checked ? 1 : 0,
+                group_id: groupIdVal !== '' ? parseInt(groupIdVal) : null,
+            };
+
+            const isEdit = !!id;
+            const url    = isEdit ? `api.php?action=artists_update&id=${id}` : 'api.php?action=artists_create';
+            const method = isEdit ? 'PUT' : 'POST';
+
+            showLoading();
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify(data),
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeArtistModal();
+                    loadArtists();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to save artist', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function openDeleteArtistModal(id, name) {
+            document.getElementById('deleteArtistId').value = id;
+            document.getElementById('deleteArtistName').textContent = name;
+            document.getElementById('deleteArtistModal').classList.add('active');
+        }
+
+        function closeDeleteArtistModal() {
+            document.getElementById('deleteArtistModal').classList.remove('active');
+        }
+
+        async function confirmDeleteArtist() {
+            const id = document.getElementById('deleteArtistId').value;
+            showLoading();
+            try {
+                const response = await fetch(`api.php?action=artists_delete&id=${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeDeleteArtistModal();
+                    loadArtists();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to delete artist', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ============================================================
+        // Artist Variants
+        // ============================================================
+
+        let artistVariantsCurrentId = null;
+
+        async function openArtistVariantsModal(artistId, artistName) {
+            artistVariantsCurrentId = artistId;
+            document.getElementById('artistVariantsName').textContent = artistName;
+            document.getElementById('newVariantInput').value = '';
+            document.getElementById('artistVariantsModal').classList.add('active');
+            await loadArtistVariants();
+        }
+
+        function closeArtistVariantsModal() {
+            document.getElementById('artistVariantsModal').classList.remove('active');
+            artistVariantsCurrentId = null;
+            // Refresh artists list to update variant count
+            loadArtists();
+        }
+
+        async function loadArtistVariants() {
+            if (!artistVariantsCurrentId) return;
+            const listEl = document.getElementById('artistVariantsList');
+            listEl.innerHTML = '<span style="color:#9ca3af">Loading...</span>';
+            try {
+                const r = await fetch(`api.php?action=artists_variants_list&artist_id=${artistVariantsCurrentId}`);
+                const result = await r.json();
+                if (!result.success) {
+                    listEl.innerHTML = `<span style="color:#dc2626">${escapeHtml(result.message)}</span>`;
+                    return;
+                }
+                renderVariantsList(result.data.variants);
+            } catch (err) {
+                listEl.innerHTML = '<span style="color:#dc2626">Failed to load variants</span>';
+            }
+        }
+
+        function renderVariantsList(variants) {
+            const listEl = document.getElementById('artistVariantsList');
+            if (!variants.length) {
+                listEl.innerHTML = '<span style="color:#9ca3af;font-size:0.9em">ยังไม่มี variants</span>';
+                return;
+            }
+            listEl.innerHTML = variants.map(v => `
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:16px;padding:4px 10px;margin:3px;font-size:0.9em">
+                    ${escapeHtml(v.variant)}
+                    <button onclick="deleteArtistVariant(${v.id})"
+                        style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.1em;line-height:1;padding:0 0 0 2px;margin:0"
+                        title="ลบ variant นี้">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        async function addArtistVariant() {
+            const input = document.getElementById('newVariantInput');
+            const variant = input.value.trim();
+            if (!variant) { showToast('กรุณากรอก variant name', 'error'); return; }
+            if (!artistVariantsCurrentId) return;
+
+            try {
+                const r = await fetch('api.php?action=artists_variants_create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ artist_id: artistVariantsCurrentId, variant }),
+                });
+                const result = await r.json();
+                if (result.success) {
+                    input.value = '';
+                    await loadArtistVariants();
+                    showToast(result.message, 'success');
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to add variant', 'error');
+            }
+        }
+
+        async function deleteArtistVariant(id) {
+            try {
+                const r = await fetch(`api.php?action=artists_variants_delete&id=${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                });
+                const result = await r.json();
+                if (result.success) {
+                    await loadArtistVariants();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to delete variant', 'error');
+            }
+        }
+
+        // ================================================================
+        // ARTIST TAG INPUT — factory (shared by single-edit + bulk-edit)
+        // ================================================================
+        function createArtistTagInput(wrapperId, textInputId, hiddenInputId, suggestionsId, publicName) {
+            const wrapper      = document.getElementById(wrapperId);
+            const textInput    = document.getElementById(textInputId);
+            const hiddenInput  = document.getElementById(hiddenInputId);
+            const suggestionsEl= document.getElementById(suggestionsId);
+
+            if (!wrapper || !textInput || !hiddenInput || !suggestionsEl) return;
+
+            let tags           = [];
+            let suggestionData = [];
+            let activeIdx      = -1;
+            let debounceTimer  = null;
+
+            function renderTags() {
+                wrapper.querySelectorAll('.artist-tag').forEach(function (el) { el.remove(); });
+                tags.forEach(function (name, i) {
+                    const tag = document.createElement('span');
+                    tag.className = 'artist-tag';
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = name;
+                    const removeBtn = document.createElement('span');
+                    removeBtn.className = 'artist-tag-remove';
+                    removeBtn.dataset.idx = i;
+                    removeBtn.title = 'ลบ';
+                    removeBtn.textContent = '×';
+                    tag.appendChild(nameSpan);
+                    tag.appendChild(removeBtn);
+                    wrapper.insertBefore(tag, textInput);
+                });
+                hiddenInput.value = tags.join(', ');
+            }
+
+            function addTag(name) {
+                name = name.trim();
+                if (!name) return;
+                if (tags.some(function (t) { return t.toLowerCase() === name.toLowerCase(); })) {
+                    textInput.value = '';
+                    hideSuggestions();
+                    return;
+                }
+                tags.push(name);
+                renderTags();
+                textInput.value = '';
+                hideSuggestions();
+                if (typeof formChanged !== 'undefined') formChanged = true;
+            }
+
+            function removeTag(idx) {
+                tags.splice(idx, 1);
+                renderTags();
+                if (typeof formChanged !== 'undefined') formChanged = true;
+            }
+
+            function showSuggestions(items) {
+                suggestionData = items;
+                activeIdx = -1;
+                if (!items.length) { hideSuggestions(); return; }
+                suggestionsEl.innerHTML = '';
+                items.forEach(function (item, i) {
+                    const div = document.createElement('div');
+                    div.className = 'artist-suggestion-item';
+                    div.dataset.idx = i;
+                    const icon = item.is_group
+                        ? '<span class="artist-suggestion-icon">🎵 group</span>'
+                        : '<span class="artist-suggestion-icon">🎤 solo</span>';
+                    div.innerHTML = icon + '<span>' + escapeHtml(item.name) + '</span>';
+                    div.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        addTag(item.name);
+                    });
+                    suggestionsEl.appendChild(div);
+                });
+                suggestionsEl.style.display = 'block';
+            }
+
+            function hideSuggestions() {
+                suggestionsEl.style.display = 'none';
+                suggestionsEl.innerHTML = '';
+                suggestionData = [];
+                activeIdx = -1;
+            }
+
+            function highlightItem(idx) {
+                suggestionsEl.querySelectorAll('.artist-suggestion-item').forEach(function (el, i) {
+                    el.classList.toggle('active', i === idx);
+                });
+            }
+
+            async function fetchSuggestions(q) {
+                try {
+                    const res = await fetch('api.php?action=artists_autocomplete&q=' + encodeURIComponent(q));
+                    const result = await res.json();
+                    if (!result.success) return [];
+                    return result.data
+                        .filter(function (a) {
+                            return !tags.some(function (t) { return t.toLowerCase() === a.name.toLowerCase(); });
+                        })
+                        .map(function (a) { return { name: a.name, is_group: a.is_group }; });
+                } catch (e) { return []; }
+            }
+
+            wrapper.addEventListener('click', function (e) {
+                if (!e.target.classList.contains('artist-tag-remove')) { textInput.focus(); return; }
+                removeTag(parseInt(e.target.dataset.idx, 10));
+            });
+
+            textInput.addEventListener('input', function () {
+                const q = textInput.value.trim();
+                clearTimeout(debounceTimer);
+                if (!q) { hideSuggestions(); return; }
+                debounceTimer = setTimeout(async function () {
+                    showSuggestions(await fetchSuggestions(q));
+                }, 180);
+            });
+
+            textInput.addEventListener('keydown', function (e) {
+                const items = suggestionsEl.querySelectorAll('.artist-suggestion-item');
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIdx = Math.min(activeIdx + 1, items.length - 1);
+                    highlightItem(activeIdx); return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIdx = Math.max(activeIdx - 1, -1);
+                    highlightItem(activeIdx); return;
+                }
+                if (e.key === 'Escape') { hideSuggestions(); return; }
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    if (activeIdx >= 0 && suggestionData[activeIdx]) {
+                        addTag(suggestionData[activeIdx].name);
+                    } else {
+                        const q = textInput.value.replace(/,$/, '').trim();
+                        if (q) addTag(q);
+                    }
+                    return;
+                }
+                if (e.key === 'Backspace' && textInput.value === '' && tags.length > 0) {
+                    removeTag(tags.length - 1);
+                }
+            });
+
+            textInput.addEventListener('blur', function () { setTimeout(hideSuggestions, 180); });
+            textInput.addEventListener('focus', async function () {
+                const q = textInput.value.trim();
+                if (q) showSuggestions(await fetchSuggestions(q));
+            });
+
+            const api = {
+                setValue: function (csv) {
+                    tags = csv ? csv.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : [];
+                    textInput.value = '';
+                    hideSuggestions();
+                    renderTags();
+                },
+                reset: function () {
+                    tags = [];
+                    textInput.value = '';
+                    hiddenInput.value = '';
+                    hideSuggestions();
+                    renderTags();
+                },
+            };
+            if (publicName) window[publicName] = api;
+            if (hiddenInput.value) api.setValue(hiddenInput.value);
+            return api;
+        }
+
+        // ================================================================
+        // ARTIST TAG INPUT — initialise both instances via factory
+        // ================================================================
+        createArtistTagInput(
+            'artistTagWrapper', 'categoriesInput', 'categories', 'artistSuggestions',
+            'artistTagInput'
+        );
+        createArtistTagInput(
+            'bulkArtistTagWrapper', 'bulkCategoriesInput', 'bulkEditCategories', 'bulkArtistSuggestions',
+            'bulkArtistTagInput'
+        );
 
     </script>
 </body>

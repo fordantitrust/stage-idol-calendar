@@ -76,6 +76,10 @@ Click **"Initialize Database"** to:
    - `program_requests` — User-submitted add/edit requests
    - `credits` — Credits and references
    - `admin_users` — Admin user accounts
+   - `contact_channels` — Contact channels (DB-driven)
+   - `artists` — Artist/group master records (reused across events)
+   - `program_artists` — Many-to-many junction: programs ↔ artists
+   - `artist_variants` — Alias/alternate names per artist (for ICS auto-linking)
 3. Seed the default admin user (from `config/admin.php`)
 4. Seed a default event (slug: `default`) and **3 sample programs** so you can see the real layout immediately:
    - Opening Ceremony, Artist Performance, Closing Stage (dated today)
@@ -242,4 +246,4 @@ For all CLI migration scripts and their descriptions, see **[PROJECT-STRUCTURE.m
 
 ---
 
-*Idol Stage Timetable v2.10.2*
+*Idol Stage Timetable v3.1.0*

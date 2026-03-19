@@ -345,6 +345,66 @@
     color: #6c757d;
 }
 
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin: 24px 0 8px;
+    flex-wrap: wrap;
+}
+.pagination a,
+.pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 18px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.pagination a {
+    border: 2px solid var(--sakura-light, #FFB7C5);
+    color: var(--sakura-deep, #C2185B);
+    background: transparent;
+}
+.pagination a:hover {
+    background: var(--sakura-light, #FFB7C5);
+    color: #fff;
+}
+.pagination span.current {
+    background: var(--sakura-dark, #E91E63);
+    color: #fff;
+    border: 2px solid var(--sakura-dark, #E91E63);
+}
+.pagination span.ellipsis {
+    color: #9ca3af;
+    border: none;
+    min-width: auto;
+    padding: 0 4px;
+}
+
+.past-events-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 20px;
+    border: 2px solid var(--sakura-light, #FFB7C5);
+    color: var(--sakura-deep, #C2185B);
+    background: transparent;
+    font-size: 0.95em;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.past-events-btn:hover {
+    background: var(--sakura-light, #FFB7C5);
+    color: #fff;
+}
+
 /* Mobile: compact adjustments */
 @media (max-width: 768px) {
     .program-selector select {
@@ -952,6 +1012,132 @@ header p {
 .program-type-badge {
     background: #e3f0ff;
     color: #1565c0;
+}
+
+/* Artist badge wrap: badge + profile link inline */
+.program-categories-badge-wrap {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 2px 2px 2px 0;
+}
+.program-categories-badge-wrap .program-categories-badge {
+    margin: 0;
+    border-radius: 16px 0 0 16px;
+}
+.artist-profile-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    background: var(--sakura-deep);
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 700;
+    border-radius: 0 16px 16px 0;
+    text-decoration: none;
+    opacity: 0.85;
+    transition: opacity 0.15s;
+}
+.artist-profile-link:hover {
+    opacity: 1;
+}
+
+/* Artist filter: event count badge + profile link */
+.checkbox-label .artist-event-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--sakura-dark);
+    color: #fff;
+    font-size: 0.72em;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.artist-filter-profile-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--sakura-bg);
+    color: var(--sakura-deep);
+    font-size: 0.75em;
+    font-weight: 700;
+    margin-left: 4px;
+    text-decoration: none;
+    vertical-align: middle;
+    opacity: 0.8;
+    transition: opacity 0.15s, background 0.15s;
+}
+.artist-filter-profile-link:hover {
+    opacity: 1;
+    background: var(--sakura-light);
+}
+
+/* Cross-event section (full-width, before footer) */
+.cross-event-section {
+    margin-top: 20px;
+    margin-bottom: 40px;
+    padding: 0 30px;
+}
+.cross-event-section-title {
+    background: var(--sakura-gradient);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin: 0 0 20px 0;
+    font-size: 1.3em;
+    font-weight: 600;
+}
+.cross-event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.cross-event-item {
+    background: var(--card-bg, white);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    padding: 14px 16px;
+}
+.cross-event-name {
+    display: inline-block;
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--sakura-dark);
+    text-decoration: none;
+    margin-bottom: 8px;
+}
+.cross-event-name:hover {
+    text-decoration: underline;
+}
+.cross-event-artists {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.cross-event-artist-chip {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 12px;
+    background: var(--sakura-bg, #fff0f5);
+    color: var(--sakura-deep);
+    font-size: 0.82em;
+    font-weight: 500;
+    text-decoration: none;
+    border: 1px solid var(--sakura-light, #FFB7C5);
+    transition: background 0.15s;
+}
+.cross-event-artist-chip:hover {
+    background: var(--sakura-light, #FFB7C5);
+    color: #fff;
 }
 
 /* Live stream row highlight */

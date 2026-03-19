@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v2.10.2
+All API endpoints for Idol Stage Timetable v3.1.0
 
 ---
 
@@ -605,6 +605,44 @@ X-CSRF-Token: <token>
 
 ---
 
+### Artist Variants Endpoints
+
+Manage alias/variant names per artist — used by ICS import to auto-link alternate spellings.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `artists_variants_list` | GET | List all variants for an artist (`?artist_id=X`) |
+| `artists_variants_create` | POST | Add a new variant to an artist |
+| `artists_variants_delete` | DELETE | Remove a variant (`?id=X`) |
+
+#### List Variants
+
+```http
+GET /admin/api.php?action=artists_variants_list&artist_id=5
+```
+
+#### Add Variant
+
+```http
+POST /admin/api.php?action=artists_variants_create
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "artist_id": 5,
+  "variant": "Alternative Spelling"
+}
+```
+
+#### Delete Variant
+
+```http
+DELETE /admin/api.php?action=artists_variants_delete&id=12
+X-CSRF-Token: <token>
+```
+
+---
+
 ### Account Endpoint
 
 | Action | Method | Description |
@@ -640,6 +678,7 @@ X-CSRF-Token: <token>
 | Backup/Restore | ✅ | ❌ |
 | Contact Channels (CRUD) | ✅ | ❌ |
 | Settings (title, theme, disclaimer) save | ✅ | ❌ |
+| Artist Variants (list, create, delete) | ✅ | ✅ |
 | Change own password | ✅ | ✅ |
 
 ---
@@ -654,4 +693,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v2.10.2*
+*Idol Stage Timetable v3.1.0*

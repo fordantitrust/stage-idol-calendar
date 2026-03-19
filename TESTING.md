@@ -18,6 +18,7 @@ Complete test cases for all features and security aspects.
 10. [Performance Testing](#performance-testing)
 11. [Edge Cases & Error Handling](#edge-cases--error-handling)
 12. [User Management & Roles](#user-management--roles)
+13. [Artist Reuse System](#artist-reuse-system)
 
 ---
 
@@ -1880,7 +1881,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v2.10.2
+**Version**: v3.1.0
 
 **Result**: Pass / Fail
 
@@ -2015,6 +2016,133 @@ _________________________________
 **Expected Result**:
 - ✅ HTTP 200 OK
 - ✅ Programs list returned
+
+---
+
+---
+
+## 13. Artist Reuse System
+
+### 13.1 Artist Profile Page
+
+**Test Case 13.1.1**: Artist profile page loads
+
+**Steps**:
+1. Go to `/artist/1` (replace `1` with a valid artist ID)
+
+**Expected Result**:
+- ✅ Page loads with artist name in header
+- ✅ Programs grouped by event (active events first)
+- ✅ Variant names displayed (if any)
+
+---
+
+**Test Case 13.1.2**: Invalid artist ID returns 404
+
+**Steps**:
+1. Go to `/artist/99999`
+
+**Expected Result**:
+- ✅ 404 page displayed
+- ✅ No PHP errors
+
+---
+
+**Test Case 13.1.3**: Group artist shows member chips
+
+**Steps**:
+1. Navigate to a group artist profile
+
+**Expected Result**:
+- ✅ Member chips displayed linking to individual profiles
+- ✅ Clicking a chip opens that member's profile
+
+---
+
+### 13.2 Clickable Artist Badges
+
+**Test Case 13.2.1**: Artist badge splits into filter + profile link
+
+**Steps**:
+1. Open an event page with programs
+2. Locate a program with linked artists (from `program_artists` table)
+
+**Expected Result**:
+- ✅ Badge renders as split pill: artist name (left) + ↗ (right)
+- ✅ Clicking artist name appends filter
+- ✅ Clicking ↗ opens `/artist/{id}` in new tab
+
+---
+
+**Test Case 13.2.2**: Unlinked artist renders as plain badge
+
+**Steps**:
+1. Find a program whose categories are not in `program_artists` table
+
+**Expected Result**:
+- ✅ Plain badge (no ↗ link) rendered
+- ✅ Clicking badge still appends filter
+
+---
+
+### 13.3 Artist Variants (Admin)
+
+**Test Case 13.3.1**: View variants for an artist
+
+**Steps**:
+1. Login as admin
+2. Go to Admin › Artists tab
+3. Click "Variants" on any artist
+
+**Expected Result**:
+- ✅ Modal opens showing existing variants as chips
+- ✅ Variant count badge matches displayed variants
+
+---
+
+**Test Case 13.3.2**: Add a new variant
+
+**Steps**:
+1. In Variants modal, type a new variant name
+2. Click Add
+
+**Expected Result**:
+- ✅ Variant appears immediately in the chip list
+- ✅ Variant count badge updates
+
+---
+
+**Test Case 13.3.3**: Delete a variant
+
+**Steps**:
+1. In Variants modal, click ✕ on an existing variant
+
+**Expected Result**:
+- ✅ Variant removed from chip list immediately
+- ✅ Variant count badge decreases
+
+---
+
+### 13.4 Cross-Event Section
+
+**Test Case 13.4.1**: "Also appears in" section renders on event pages
+
+**Steps**:
+1. Open an event page that has artists appearing in other events
+
+**Expected Result**:
+- ✅ "🎪 ศิลปินนี้ยังปรากฏใน" / "Also appears in" section visible before footer
+- ✅ Cards show other event names (link to schedule) + artist chips (link to profile)
+
+---
+
+**Test Case 13.4.2**: Section hidden on homepage listing
+
+**Steps**:
+1. Open the homepage (no `?event=` parameter)
+
+**Expected Result**:
+- ✅ Cross-event section not rendered
 
 ---
 

@@ -531,9 +531,14 @@ function testAdminUiProgramsListShowsEventCategories($test) {
 function testAdminUiProgramsListColumnHeader($test) {
     $src = file_get_contents(dirname(__DIR__) . '/admin/index.php');
     $test->assertContains(
-        '>Categories <span class="sort-icon" data-col="categories"',
+        "sortBy('categories')",
         $src,
-        "admin/index.php programs list should have Categories column header with sort icon"
+        "admin/index.php programs list should have categories sort in column header"
+    );
+    $test->assertContains(
+        'data-col="categories"',
+        $src,
+        "admin/index.php programs list should have sort icon with data-col=categories"
     );
 }
 

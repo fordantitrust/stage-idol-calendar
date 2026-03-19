@@ -1,0 +1,223 @@
+/**
+ * Artist Profile Page Styles
+ * Idol Stage Timetable
+ */
+
+/* ── Artist header card ──────────────────────────────────────────────────── */
+.artist-profile-header {
+    background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%));
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    color: #fff;
+}
+.artist-profile-header h1 {
+    margin: 0 0 6px;
+    font-size: 1.7em;
+    font-weight: 800;
+    line-height: 1.2;
+    border: none;
+    padding: 0;
+}
+.artist-meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.artist-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.82em;
+    font-weight: 700;
+    background: rgba(255,255,255,.25);
+}
+.artist-group-link { color: #fff; text-decoration: underline; font-weight: 600; }
+.artist-stats { opacity: .85; font-size: 0.9em; margin-top: 4px; }
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+.artist-section { margin-bottom: 28px; }
+.artist-section h3 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--sakura-deep, #C2185B);
+    border-bottom: 2px solid var(--sakura-light, #FFB7C5);
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+.variant-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.variant-chip {
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 3px 11px;
+    font-size: 0.85em;
+    color: #374151;
+}
+
+.member-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.member-chip {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 4px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #1d4ed8;
+    text-decoration: none;
+}
+.member-chip:hover { background: #dbeafe; }
+
+/* ── Programs table ──────────────────────────────────────────────────────── */
+.event-group { margin-bottom: 28px; }
+.event-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.event-group-header a {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--sakura-deep, #C2185B);
+    text-decoration: none;
+}
+.event-group-header a:hover { text-decoration: underline; }
+.programs-table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+.programs-table th {
+    text-align: left;
+    padding: 7px 10px;
+    background: #fdf2f8;
+    color: #9d174d;
+    font-weight: 700;
+    border-bottom: 2px solid #fbcfe8;
+    white-space: nowrap;
+}
+.programs-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #fce7f3;
+    vertical-align: top;
+}
+.programs-table tr:last-child td { border-bottom: none; }
+.programs-table tr:hover td { background: #fdf2f8; }
+.prog-time { white-space: nowrap; font-variant-numeric: tabular-nums; color: #6b7280; font-size: 0.9em; }
+.prog-type-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 9px;
+    font-size: 0.78em;
+    font-weight: 600;
+    background: #fce7f3;
+    color: #9d174d;
+}
+.prog-stream-btn {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9px;
+    font-size: 0.78em;
+    font-weight: 600;
+    background: #fee2e2;
+    color: #b91c1c;
+    text-decoration: none;
+}
+.prog-stream-btn:hover { background: #fecaca; }
+.table-scroll-wrapper { overflow-x: auto; }
+.empty-state { color: #9ca3af; font-style: italic; padding: 16px 0; }
+
+/* ── Programs toggle ─────────────────────────────────────────────────────── */
+.programs-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 14px;
+    border: 2px solid var(--sakura-light, #FFB7C5);
+    border-radius: 10px;
+    overflow: hidden;
+    width: fit-content;
+}
+.programs-toggle-btn {
+    padding: 7px 18px;
+    font-size: 0.9em;
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--sakura-deep, #C2185B);
+    transition: background 0.15s, color 0.15s;
+}
+.programs-toggle-btn.active {
+    background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%));
+    color: #fff;
+}
+.programs-toggle-btn:not(.active):hover { background: #fdf2f8; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+.btn-secondary { background: #6c757d; color: white; }
+.btn-secondary:hover { background: #5a6268; }
+.btn-subscribe {
+    background: linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%);
+    color: white;
+}
+.btn-subscribe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(106,27,154,0.4);
+}
+
+/* ── Subscribe modal ─────────────────────────────────────────────────────── */
+.req-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.req-modal-overlay.active { display: flex; }
+.req-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 15px 50px rgba(0,0,0,.3);
+}
+.req-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--sakura-gradient);
+    color: #fff;
+    flex-shrink: 0;
+}
+.req-modal-header h2 { margin: 0; font-size: 1.1rem; }
+.req-close { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+.req-modal-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
+.req-modal-footer {
+    padding: 12px 20px;
+    background: var(--bg-light, #f8f9fa);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .artist-profile-header { padding: 16px; }
+    .artist-profile-header h1 { font-size: 1.3em; }
+    .programs-toggle-btn { padding: 7px 12px; font-size: 0.85em; }
+}

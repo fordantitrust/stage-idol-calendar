@@ -10,6 +10,12 @@
     # Event path main page: /event/slug → index.php?event=slug
     RewriteRule ^event/([^/]+)/?$ index.php?event=$1 [L,QSA]
 
+    # Artist feed: /artist/{id}/feed → feed.php?artist_id={id}
+    RewriteRule ^artist/([0-9]+)/feed/?$ feed.php?artist_id=$1 [L,QSA]
+
+    # Artist profile: /artist/{id} → artist.php?id={id}
+    RewriteRule ^artist/([0-9]+)/?$ artist.php?id=$1 [L,QSA]
+
     # Remove .php extension (public pages only, not admin)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

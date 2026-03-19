@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v2.10.2
+File and folder structure for Idol Stage Timetable v3.1.0
 
 ---
 
@@ -38,6 +38,7 @@ stage-idol-calendar/
 | `export.php` | Export ICS handler — download .ics from filtered programs |
 | `feed.php` | Live ICS subscription feed — ETag, static file cache, RFC 5545/7986 |
 | `api.php` | Public API endpoint (programs, organizers, locations, events_list) |
+| `artist.php` | Artist Profile page — `/artist/{id}`; all programs grouped by event; group members, variants |
 | `setup.php` | Setup Wizard — fresh install & maintenance (6 steps) |
 | `config.php` | Bootstrap — loads all config/ and functions/ |
 | `IcsParser.php` | ICS Parser class — parse .ics files → SQLite |
@@ -155,6 +156,7 @@ CLI scripts for developers — run via `php tools/script.php`
 | `migrate-add-stream-url-column.php` | Add `stream_url` column to `programs` | ✅ |
 | `migrate-add-theme-column.php` | Add `theme` column to `events` | ✅ |
 | `migrate-add-contact-channels-table.php` | Create `contact_channels` table | ✅ |
+| `migrate-add-artist-variants-table.php` | Create `artist_variants` table + import variants from `data/artists-mapping.json` | ✅ |
 | `update-version.php` | Bump `APP_VERSION` across 9 files automatically | - |
 | `generate-password-hash.php` | Generate bcrypt password hash | |
 | `debug-parse.php` | Debug ICS file parsing | |
@@ -364,6 +366,59 @@ Contact channel entries displayed on `contact.php`. Auto-created by `ensureConta
 
 ---
 
+### Table: `artists`
+
+Artist/group records shared across all events (v3.0.0+).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Artist ID |
+| `name` | TEXT | UNIQUE NOT NULL | Canonical display name |
+| `is_group` | INTEGER | DEFAULT 0 | 1 = group/unit, 0 = solo artist |
+| `group_id` | INTEGER | FK → `artists.id` | Parent group (if this artist is a member) |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
+
+> **Reuse rate**: 74.7% of artists (62/83) appear in 2+ events.
+
+---
+
+### Table: `program_artists`
+
+Many-to-many junction between programs and artists (v3.0.0+).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Row ID |
+| `program_id` | INTEGER | FK → `programs.id` ON DELETE CASCADE | Program |
+| `artist_id` | INTEGER | FK → `artists.id` ON DELETE CASCADE | Artist |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Link creation time |
+
+**Unique constraint**: `(program_id, artist_id)`
+
+> ICS import auto-links CATEGORIES field → `artist_id` via direct name match and `artist_variants` lookup.
+> 98.2% of programs with categories are linked (336/342).
+
+---
+
+### Table: `artist_variants`
+
+Alias/variant names for artists — used by ICS import to recognise alternate spellings (v3.0.0+).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Variant ID |
+| `artist_id` | INTEGER | FK → `artists.id` ON DELETE CASCADE | Owning artist |
+| `variant` | TEXT | NOT NULL | Alternate name / alias |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Unique constraint**: `(artist_id, variant)`
+**Index**: `idx_artist_variants_artist_id`
+
+> Managed via **Admin › Artists** tab — Variants modal per artist. Seeded from `data/artists-mapping.json` by migration script.
+
+---
+
 ## 📊 Performance
 
 ### ICS Files vs. SQLite (500 events)
@@ -476,4 +531,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v2.10.2*
+*Idol Stage Timetable v3.1.0*

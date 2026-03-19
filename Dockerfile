@@ -7,7 +7,21 @@ FROM php:8.1-apache
 RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
     sqlite3 \
-    && docker-php-ext-install pdo pdo_sqlite \
+    # GD + FreeType (required for image.php server-side PNG generation)
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libpng-dev \
+    # Thai font — Loma/TLWG (lightweight, full Thai coverage)
+    fonts-thai-tlwg \
+    # Japanese / CJK font — Noto Sans CJK (Hiragana, Katakana, Kanji, CJK punctuation 【】「」)
+    # image.php uses a separate $fontCjk slot detected via Hiragana differential pixel test
+    fonts-noto-cjk \
+    # Symbol fallback font — GNU Unifont (BMP symbols ♾ ★ ✓ ⌚; also covers Hiragana/Katakana
+    # as a secondary CJK fallback when fonts-noto-cjk is not present)
+    fonts-unifont \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_sqlite gd \
+    && fc-cache -fv \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -21,7 +35,7 @@ WORKDIR /var/www/html
 COPY . /var/www/html/
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /var/www/html/cache \
+RUN mkdir -p /var/www/html/cache/images \
     && mkdir -p /var/www/html/ics \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \

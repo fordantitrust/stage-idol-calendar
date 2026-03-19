@@ -508,6 +508,7 @@ CATEGORIES:Artist A\, Jr.,Artist B
    - System creates/updates database records
    - Files saved to `ics/` folder as `upload_YYYYMMDD_HHMMSS.ics`
    - ICS parsing creates `stream_url` from `URL:` property
+   - **v3.0.0+**: CATEGORIES values are automatically linked to `artist_id` in the `artists` table via direct name match and `artist_variants` alias lookup — enables clickable profile badges and the cross-event "Also appears in" section
 
 ### Automatic Export Steps
 
@@ -630,4 +631,4 @@ X-PROGRAM-TYPE:Live Stream         (Program type)
 ---
 
 **Last Updated**: 2026-03-13
-**Project**: Idol Stage Timetable v2.10.2
+**Project**: Idol Stage Timetable v3.1.0

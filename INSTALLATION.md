@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '2.10.2'); // Change to force cache refresh
+define('APP_VERSION', '3.1.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -467,7 +467,13 @@ define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 **Events Tab** (Conventions/Meta-Events):
 - Create, edit, delete events (conventions)
 - Configure name, slug, dates, venue mode, active status
-- Per-event venue mode (multi/single)
+- Per-event venue mode (multi/single/calendar)
+
+**Artists Tab** (admin role only):
+- View all artists with program counts and event appearances
+- Manage variant/alias names per artist via modal
+- Click artist name to open profile page (`/artist/{id}`)
+- Artist records are reused across events (74.7% reuse rate)
 
 **Requests Tab**:
 - View pending user requests
@@ -852,7 +858,7 @@ See [.github/workflows/tests.yml](.github/workflows/tests.yml)
 ### Manual Testing Checklist
 
 For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which includes:
-- 129 manual test cases
+- 140+ manual test cases (including Artist Reuse System)
 - Security testing procedures
 - Performance benchmarks
 - Edge case scenarios

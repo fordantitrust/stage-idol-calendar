@@ -5,6 +5,140 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-03-19
+
+### Added
+- 🖼️ **Server-side image export** (`image.php`) — replaces html2canvas with PHP GD; generates PNG server-side with no external JS dependency; supports Thai/multi-byte text via TrueType fonts (Sarabun/Noto, fallback to system fonts); `fonts/README.md` added with font download instructions
+- 🎨 **Image layout** — Sakura-themed table with alternating row colors; column header; date group headers; program rows with time badge (sakura-medium pink, white text, compact fixed height), title, venue, type badge, artist badges; vertical column separators between fields; footer with site title + generated timestamp
+- 📋 **Single-venue image mode** — when `venue_mode=single`, venue column is removed and venue name (from first program) is shown below event title in image header
+- 🔔 **Image export uses current filters** — `saveAsImage()` in `js/common.js` passes current URL query params (artist, venue, type, q, event) to `/image` endpoint; `_t` timestamp prevents browser caching
+- 🗄️ **Image cache** (`cache/images/`) — generated PNGs cached server-side for 1 hour (key = md5 of event + filters + lang + APP_VERSION); served via `readfile()` on hit; auto-invalidated when programs are created/updated/deleted via `invalidate_image_cache()`; `IMAGE_CACHE_DIR` + `IMAGE_CACHE_TTL` constants in `config/cache.php`
+- 🔤 **Three-font architecture** (`image.php`) — `gdText()` / `gdMeasure()` split text into per-character runs and route each character to the correct font: Thai/Latin → main font; Japanese/CJK → `$fontCjk`; BMP symbols → symbol fallback font
+- 🔤 **Japanese / CJK font support** — `isCjkCodepoint()` detects Hiragana (U+3040–U+309F), Katakana (U+30A0–U+30FF), Kanji (U+4E00–U+9FFF), CJK Symbols & Punctuation (U+3000–U+303F, covers 【】「」『』 etc.), and Fullwidth Forms (U+FF00–U+FF9F); `$fontCjk` auto-detected via differential pixel test: か (U+304B) vs き (U+304D) — distinct shapes confirm real Hiragana glyphs
+- 🔤 **GNU Unifont as shared-hosting CJK fallback** — `unifont.ttf` / `unifont.otf` added to CJK font candidates; users who place Unifont for symbol support automatically get Japanese rendering without additional files; covers full BMP including Hiragana, Katakana, and common Kanji
+- 🔤 **SMP Math Alphanumeric normalization** — `gdNormalizeSmp()` converts Mathematical Alphanumeric Symbols (U+1D400–U+1D7FF) to base ASCII before GD rendering since PHP GD/libgd cannot handle 4-byte UTF-8 (SMP) on many systems; 𝗕𝗔𝗖𝗞 𝗜𝗡 𝗧𝗜𝗠𝗘 → BACK IN TIME; `gdMapMathChar()` covers all major letter/digit style ranges (Bold, Italic, Sans-Serif, Monospace, etc.)
+- 🔤 **Reliable font detection** — symbol fallback: differential pixel test ♾ (U+267E) vs ★ (U+2605); CJK: か vs き; both use BMP 3-byte UTF-8 (reliable on all GD builds); rejects color/bitmap fonts (CBDT → 0 pixels) and fonts where both chars render as identical .notdef
+
+### Changed
+- 🔄 **`saveAsImage()` rewrite** — removed html2canvas lazy-load; replaced with `fetch()` to `/image` endpoint; downloads PNG via Blob URL
+- 🔄 **Image cache key includes active font paths** — adding or replacing a font file automatically busts cached images; prevents serving stale PNGs generated before a font was installed
+- 🐛 **Japanese labels now render correctly** — column headers (時間 プログラム 会場 タイプ), date group headers (2026年3月19日（水）), and "no programs" message (プログラムなし) were using `imagettftext()` directly (bypassing per-character routing); changed to `gdText()` so Japanese text is correctly routed to `$fontCjk`
+- 🐛 **LIVE indicator `●` → `*`** — `●` (U+25CF) rendered as missing-glyph square on some fonts; replaced with ASCII `*` which all fonts support
+- 📖 **`fonts/README.md` rewritten for shared hosting** — new structure: Section 1 (Thai font), Section 2 (GNU Unifont — recommended, covers symbols + Japanese in one file), Section 3 (Symbola — symbol-only alternative), Section 4 (dedicated Noto Sans JP — higher quality Japanese); warning about Google Fonts variable font vs static version; recommended setups table
+- 🐳 **Dockerfile** — added `fonts-noto-cjk` for proper Japanese rendering in Docker; updated comments to reflect three-font architecture
+- 🎨 **Theme-aware image palette** — generated PNG matches the event's theme; `get_site_theme($eventMeta)` is called before the cache check so each theme gets its own cached image; palette lookup table covers all 7 themes (sakura/ocean/forest/midnight/sunset/dark/gray) with per-theme RGB values for: header background (deep), column header (medium), accent badges, date section background, date text, borders, alternating row tint, and venue subtitle; theme is included in the image cache key so switching a theme automatically invalidates previous cached images
+- 🐛 **Artist filter mismatch fix** — `image.php` was filtering artists via the `categories` text field while `index.php` uses the `program_artists` junction table (canonical artist names); fixed by reading `program_artists_map` from query cache when available, and querying the `program_artists` table directly when cache is cold; fallback to `categories` text when junction table is absent — mirrors `index.php` `$useArtistsTable` logic exactly
+- ⚡ **Image cache key: `xxh128` replaces `md5`** — `hash('xxh128', ...)` is faster than `md5()` for non-cryptographic cache key generation; produces 32 hex chars (same length as md5); PHP 8.1+ built-in
+- 🛠️ **`setup.php` v3.3.0 support** — GD extension check (`extension_loaded('gd') && function_exists('imagettftext')`) added as optional requirement in Step 1; `cache/images/` and `fonts/` directories added to Step 2 directory checks; font file detection for NotoSansThai, NotoSansJP, NotoEmoji, Symbola, unifont (all tested and confirmed working); summary badges (Thai/Latin ✅, Japanese/CJK ✅, Symbols/Emoji ✅); font rows displayed inline with directory rows using `check-row` class for consistent margin/padding
+
+> **📁 Files changed:** `image.php` (new), `js/common.js`, `fonts/README.md` (new), `config/cache.php`, `functions/cache.php`, `Dockerfile`, `nginx-clean-url.conf`, `setup.php`
+
+## [3.2.0] - 2026-03-19
+
+### Added
+- **Artist ICS Subscription Feed** (`/artist/{id}/feed`) — live `webcal://` + `https://` feed scoped to a single artist across all events; resolves artist name + all variant names from `artist_variants` table for `categories`-based filtering; cache file `cache/feed_artist_{id}_{hash}.ics` (TTL 1 hour); 404 on unknown artist
+- **Group programs feed** (`/artist/{id}/feed?group=1`) — when artist belongs to a group, `?group=1` resolves the `group_id` and filters by group name + group variants; cache key includes `_own` / `_group` suffix
+- **`styles/artist.css`** — extracted all inline `<style>` from `artist.php` into a standalone stylesheet (artist header, badges, programs table, toggle, `.btn`, `.btn-subscribe`, `.req-modal-overlay` / modal styles)
+
+### Changed
+- **Subscribe buttons on Artist Profile** — header card shows `🔔 <ArtistName>` button; members of a group get a second `🔔 <GroupName>` button for group programs feed; both buttons labeled with the actual name (not generic "Subscribe")
+- **`openSubscribeModal(isGroup)` in `js/common.js`** — accepts `isGroup` flag; builds URL as `/artist/{id}/feed` or `/artist/{id}/feed?group=1`; falls back to existing event-feed logic when not on artist page
+- **`invalidate_feed_cache()` in `functions/cache.php`** — always deletes `feed_artist_*.ics` alongside event-specific files, since artist feeds span all events
+- **`.htaccess`** — new rewrite rule `^artist/([0-9]+)/feed/?$` → `feed.php?artist_id=$1` (placed before the existing artist profile rule)
+
+> **📁 Files changed:** `feed.php`, `artist.php`, `js/common.js`, `functions/cache.php`, `.htaccess`, `styles/artist.css` (new)
+
+## [3.1.0] - 2026-03-19
+
+### Added
+- **Query Cache for event page** (`index.php`) — DB query results (programs, venues, types, artists, artist maps, cross-event data) cached as `cache/query_event_{id}.json`; cache key includes `$eventId` (0 = no filter); IcsParser + all PDO queries skipped on cache hit; filtering still applied PHP-side from cached data
+- **Query Cache for artist profile page** (`artist.php`) — artist info, members, variants, programs, and group programs cached as `cache/query_artist_{id}.json`; all DB queries skipped on cache hit; derived vars (`$byEvent`, `$groupByEvent`, `$totalPrograms`) re-computed from cached data on every request
+- **`get_query_cache(string $filename): array|false`** — reads JSON cache file; returns `false` on miss, expiry, or decode error; uses `filemtime()` for TTL check
+- **`save_query_cache(string $filename, array $data): void`** — writes array as JSON with `LOCK_EX` to prevent concurrent write corruption
+- **`invalidate_query_cache(?int $eventId): bool`** — deletes `cache/query_event_{id}.json` + `cache/query_event_0.json` (global page); no `$eventId` = delete all `query_event_*.json`
+- **`invalidate_artist_query_cache(): bool`** — deletes all `cache/query_artist_*.json` files
+- **`QUERY_CACHE_DIR`** and **`QUERY_CACHE_TTL`** constants in `config/cache.php`; TTL default 3600 s; shares the `cache/` directory
+
+### Changed
+- `invalidate_all_caches()` — now also deletes `query_event_*.json` and `query_artist_*.json` patterns (used after DB restore)
+- Admin API program write operations (create, update, delete, bulk delete, bulk update, ICS import confirm) — now call `invalidate_query_cache()` + `invalidate_artist_query_cache()` alongside existing `invalidate_data_version_cache()` + `invalidate_feed_cache()`
+- Admin API artist write operations (create, update, delete) — now call `invalidate_artist_query_cache()` alongside existing `invalidate_data_version_cache()`
+- Admin API variant write operations (create, delete) — now call `invalidate_artist_query_cache()` (previously had no cache invalidation)
+
+> **📁 Files changed:** `config/cache.php`, `functions/cache.php`, `index.php`, `artist.php`, `admin/api.php`, `tools/update-version.php`, `README.md`, `PROJECT-STRUCTURE.md`, `ICS_FORMAT.md`
+
+### Fixed
+- **`tools/update-version.php` — smart line-by-line replacement** — เปลี่ยนจาก global `str_replace` เป็น line-by-line พร้อม skip patterns; บรรทัดที่เป็น historical version label จะไม่ถูกแทนที่: `(vX.Y.Z+)` (introduced-in label), `**vX.Y.Z+**:` (bold introduced-in), `| vX.Y.Z |` (table Since column), `| **vX.Y.Z**` (Feature Timeline rows), `### vX.Y.Z —` (historical headings), upgrade guide references (`Upgrading from`, `new vX.Y.Z features`, `all vX.Y.Z features`), inline code comments (`= Something vX.Y.Z`)
+- **`README.md`, `PROJECT-STRUCTURE.md`, `ICS_FORMAT.md`** — แก้ไข version labels ของ Artist Reuse System features (v3.0.0 → v3.1.0 ผิดพลาดจาก update-version.php ก่อนหน้า) กลับเป็น v3.0.0 ให้ถูกต้อง
+
+---
+
+## [3.0.0] - 2026-03-18
+
+### Added
+- **Artist Reuse System** — `artists` table as single source of truth across all events; artist records reused via `program_artists` junction table.
+- **`program_artists` junction table** — many-to-many `programs ↔ artists`; ICS import auto-links CATEGORIES field to `artist_id` by direct name match and variant lookup
+- **`artist_variants` table** — stores alias/variant names per artist; manageable via Admin UI variants modal
+- **Artist Profile page** (`artist.php`) — `/artist/{id}`; displays all programs grouped by event; shows group members and variant names; `.htaccess` rewrite `^artist/([0-9]+)` → `artist.php?id=$1`
+- **Artist Profile programs toggle** (`artist.php`) — pill-style toggle between "Programs ทั้งหมด" (own) and "Programs ในนามวง" (group); shown only when artist belongs to a group; default is own programs; choice persists in `localStorage` per artist
+- **Clickable artist badges** — artist badge in program rows is a split pill: left button filters by artist, right `↗` link opens artist profile; uses `program_artists` junction for artist id
+- **Artist filter — event count badge** — each artist checkbox shows a pink count bubble when the artist appears in multiple events, plus a `↗` profile link
+- **"Also appears in" cross-event section** — rendered before the footer on every event page; groups shared artists by event as flex-wrap cards with artist chips linking to profiles
+- **Admin Artists tab** — Variants column shows variant count per artist; Variants button opens modal to add/remove variant names; artist name is a link to the profile page
+- **Migration** — `tools/migrate-add-artist-variants-table.php` (idempotent); auto-imports variants from `data/artists-mapping.json`
+- **Admin API** — `artists_variants_list`, `artists_variants_create`, `artists_variants_delete`
+- **`setup.php` bilingual support (TH / EN)** — language switcher (TH / EN buttons) in setup header; session-based detection (`$_SESSION['setup_lang']`, `?lang=th` / `?lang=en` GET param); all visible UI translated: lock banner, status banners, 6 step titles/badges/labels/descriptions, migration table, config summary, quick links, footer; JS `confirm()` / `alert()` strings injected via PHP `setupI18n` object using `json_encode()` for XSS safety
+
+### Changed
+- ICS import (`uploadAndParseIcs`, `confirmIcsImport`) now uses `artist_variants` DB table instead of `data/artists-mapping.json` for auto-linking artist names
+- Artist filter in `index.php` reads from `artists` table directly instead of the `categories` text field (falls back to text field if `program_artists` table is absent)
+- Admin Programs list — "Categories" column header renamed to **"Artist / Group"**
+- Admin Program form — "Categories" label renamed to **"Artist / Group"**; plain text input replaced with **tag-input widget**: artist chips with `×` remove, autocomplete dropdown from `artists` table (🎤 solo / 🎵 group icons), type-and-Enter/comma to add free-text name; new artists created in `artists` table on Save
+- Admin Bulk Edit — "Categories" label renamed to **"Artist / Group"**; same tag-input chip widget with autocomplete applied (shared via `createArtistTagInput()` factory function)
+
+### Fixed
+- `createProgram()` and `updateProgram()` now call `syncProgramArtists()` — categories edited through Admin UI are reflected in the `program_artists` junction table immediately, so artist filter on the public event page works correctly after saving
+- `syncProgramArtists()` auto-creates a new `artists` record (`is_group = 0`) when a category name has no direct name match or variant match, preventing manually typed artist names from being silently dropped
+
+### Added (continued)
+- **`artists_autocomplete` Admin API** (`?action=artists_autocomplete&q=...`) — lightweight GET endpoint returning `id`, `name`, `is_group` for matching artists (up to 20; returns top 50 when query is empty); used by the tag-input widget in the program form
+- **`createArtistTagInput()` JS factory function** (`admin/index.php`) — shared factory that initializes the tag-input widget for both the single-program form and the Bulk Edit form (different element IDs, same logic); eliminates code duplication; exposes `setValue()` and `reset()` on the returned public API object
+
+> **📁 Files changed:** `artist.php` *(new)*, `tools/migrate-add-artist-variants-table.php` *(new)*, `admin/api.php`, `admin/index.php`, `index.php`, `.htaccess`, `styles/index.css`, `setup.php`, `tests/ProgramTypeTest.php`
+
+### Upgrade Notes
+
+> **ℹ️ Not a breaking change** — existing data and all functionality continue to work unchanged after deploying the new code. Fallback code detects whether the new tables exist and gracefully falls back to the `categories` text field if they don't.
+
+**What works without migration** (out of the box):
+- ✅ Programs list, Gantt, Calendar view — unchanged
+- ✅ Artist filter — works from `categories` text field (fallback mode)
+- ✅ ICS import — works (fallback: skips artist auto-linking if tables absent)
+- ✅ All admin operations — unchanged
+
+**What requires migration** (to enable new v3.0.0 features):
+- ❌ Artist Profile page (`/artist/{id}`) — empty until `artists` table is populated
+- ❌ Split badge pills (filter + ↗ profile link) — shows plain badge instead
+- ❌ Event-count bubble on artist filter — hidden
+- ❌ "Also appears in" cross-event section — not rendered
+- ❌ Admin Artists tab Variants modal — variants column empty
+
+**Migration steps** (run once after deploying):
+
+```bash
+cd tools
+
+# 1. Create tables + import variant names from data/artists-mapping.json
+php migrate-add-artist-variants-table.php
+
+# 2. Link existing programs to artists via CATEGORIES field
+php migrate-artists-from-mapping.php
+```
+
+After migration, all v3.0.0 features activate automatically.
+
+---
+
 ## [2.10.2] - 2026-03-13
 
 ### Fixed

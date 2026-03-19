@@ -178,125 +178,49 @@ function showNotification(message, isError = false) {
     }, 3000);
 }
 
-// Lazy load html2canvas
-let html2canvasLoaded = false;
-let html2canvasLoading = false;
-
-function loadHtml2Canvas() {
-    return new Promise((resolve, reject) => {
-        if (html2canvasLoaded) {
-            resolve();
-            return;
-        }
-
-        if (html2canvasLoading) {
-            // Wait for existing load to complete
-            const checkInterval = setInterval(() => {
-                if (html2canvasLoaded) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 100);
-            return;
-        }
-
-        html2canvasLoading = true;
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        script.onload = () => {
-            html2canvasLoaded = true;
-            html2canvasLoading = false;
-            resolve();
-        };
-        script.onerror = () => {
-            html2canvasLoading = false;
-            reject(new Error('Failed to load html2canvas'));
-        };
-        document.head.appendChild(script);
-    });
-}
-
-// Save as image function with lazy loading
+// Save as image — server-side PHP GD rendering
 async function saveAsImage() {
     const button = event.target;
     button.disabled = true;
     const originalText = button.textContent;
-    button.textContent = translations[currentLang]['message.generating'];
+    button.textContent = translations[currentLang]['message.generating'] || '...';
 
     try {
-        // Lazy load html2canvas
-        await loadHtml2Canvas();
+        // Build query params from current page state
+        const params = new URLSearchParams(window.location.search);
+        params.set('lang', currentLang);
+        if (typeof EVENT_SLUG !== 'undefined' && EVENT_SLUG &&
+            (typeof DEFAULT_EVENT_SLUG === 'undefined' || EVENT_SLUG !== DEFAULT_EVENT_SLUG)) {
+            params.set('event', EVENT_SLUG);
+        }
 
-        const container = document.querySelector('.container');
-        const filtersSection = document.querySelector('.filters');
-        const isMobile = window.innerWidth <= 768;
+        params.set('_t', Date.now());
+        const url = (typeof BASE_PATH !== 'undefined' ? BASE_PATH : '') + '/image?' + params.toString();
 
-        // Store original styles
-        const originalBackground = document.body.style.background;
-        const originalPadding = document.body.style.padding;
-        const originalFiltersDisplay = filtersSection ? filtersSection.style.display : null;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Server returned ' + response.status);
+        }
+        const contentType = response.headers.get('Content-Type') || '';
+        if (!contentType.startsWith('image/')) {
+            throw new Error('Unexpected response type: ' + contentType);
+        }
 
-        // Hide filters temporarily
-        if (filtersSection) filtersSection.style.display = 'none';
-
-        // Adjust styles temporarily for better image
-        document.body.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        document.body.style.padding = isMobile ? '10px' : '20px';
-
-        // html2canvas options
-        const canvasOptions = {
-            scale: 2,
-            backgroundColor: null,
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            windowWidth: isMobile ? window.innerWidth : 1200,
-            width: isMobile ? container.scrollWidth : null,
-            onclone: function(clonedDoc) {
-                const clonedContainer = clonedDoc.querySelector('.container');
-                if (clonedContainer) {
-                    if (isMobile) {
-                        clonedContainer.style.margin = '0';
-                        clonedContainer.style.maxWidth = '100%';
-                    } else {
-                        clonedContainer.style.margin = '0 auto';
-                        clonedContainer.style.maxWidth = '1200px';
-                    }
-                }
-                // ซ่อน column แจ้งแก้ไข
-                clonedDoc.querySelectorAll('.col-edit-request, .program-action-cell').forEach(function(el) {
-                    el.style.display = 'none';
-                });
-            }
-        };
-
-        // Generate image
-        const canvas = await html2canvas(container, canvasOptions);
-
-        // Restore original styles
-        document.body.style.background = originalBackground;
-        document.body.style.padding = originalPadding;
-        if (filtersSection) filtersSection.style.display = originalFiltersDisplay;
-
-        // Create filename
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
         const date = new Date();
         const dateStr = date.toISOString().split('T')[0];
-        const deviceType = isMobile ? 'mobile' : 'desktop';
-        const filename = `stage-idol-calendar-${dateStr}-${deviceType}.png`;
+        const filename = `stage-idol-${dateStr}.png`;
 
-        // Download image
-        canvas.toBlob(function(blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = url;
-            link.click();
-            URL.revokeObjectURL(url);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = objectUrl;
+        link.click();
+        URL.revokeObjectURL(objectUrl);
 
-            button.disabled = false;
-            button.textContent = originalText;
-            showNotification(translations[currentLang]['message.success']);
-        });
+        button.disabled = false;
+        button.textContent = originalText;
+        showNotification(translations[currentLang]['message.success']);
 
     } catch (error) {
         console.error('Error generating image:', error);
@@ -454,31 +378,44 @@ document.addEventListener('keydown', function(e) {
 // ICS Subscription Feed
 // ========================================
 
-function openSubscribeModal() {
+function openSubscribeModal(isGroup, feedName) {
     var basePath = (typeof BASE_PATH !== 'undefined') ? BASE_PATH : '';
-    var feedPath = basePath + '/feed';
-    if (typeof EVENT_SLUG !== 'undefined' && EVENT_SLUG &&
-        typeof DEFAULT_EVENT_SLUG !== 'undefined' && EVENT_SLUG !== DEFAULT_EVENT_SLUG) {
-        feedPath = basePath + '/event/' + EVENT_SLUG + '/feed';
-    }
+    var feedUrl;
 
-    // Collect current filter selections from the form
-    var params = new URLSearchParams();
-    var form = document.querySelector('form');
-    if (form) {
-        var formData = new FormData(form);
-        for (var pair of formData.entries()) {
-            if (pair[0] === 'artist[]' || pair[0] === 'venue[]' || pair[0] === 'type[]') {
-                params.append(pair[0], pair[1]);
+    if (typeof ARTIST_ID !== 'undefined' && ARTIST_ID) {
+        // Artist profile page: feed filtered to this artist (or their group) across all events
+        feedUrl = window.location.protocol + '//' + window.location.host +
+                  basePath + '/artist/' + ARTIST_ID + '/feed';
+        if (isGroup) feedUrl += '?group=1';
+    } else {
+        // Event page: feed for this event with current filter selections
+        var feedPath = basePath + '/feed';
+        if (typeof EVENT_SLUG !== 'undefined' && EVENT_SLUG &&
+            typeof DEFAULT_EVENT_SLUG !== 'undefined' && EVENT_SLUG !== DEFAULT_EVENT_SLUG) {
+            feedPath = basePath + '/event/' + EVENT_SLUG + '/feed';
+        }
+
+        // Collect current filter selections from the form
+        var params = new URLSearchParams();
+        var form = document.querySelector('form');
+        if (form) {
+            var formData = new FormData(form);
+            for (var pair of formData.entries()) {
+                if (pair[0] === 'artist[]' || pair[0] === 'venue[]' || pair[0] === 'type[]') {
+                    params.append(pair[0], pair[1]);
+                }
             }
         }
+
+        feedUrl = window.location.protocol + '//' + window.location.host + feedPath;
+        var paramsStr = params.toString();
+        if (paramsStr) feedUrl += '?' + paramsStr;
     }
 
-    var feedUrl = window.location.protocol + '//' + window.location.host + feedPath;
-    var paramsStr = params.toString();
-    if (paramsStr) feedUrl += '?' + paramsStr;
-
     var webcalUrl = feedUrl.replace(/^https?:\/\//, 'webcal://');
+
+    var nameEl = document.getElementById('subscribeFeedName');
+    if (nameEl) nameEl.textContent = feedName ? '🎤 ' + feedName : '';
 
     document.getElementById('subscribeWebcalLink').href = webcalUrl;
     document.getElementById('subscribeFeedUrl').value = feedUrl;

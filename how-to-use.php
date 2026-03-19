@@ -120,10 +120,10 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <h2 data-i18n="section3.title">💾 การบันทึกและส่งออก</h2>
 
                 <h3 data-i18n="section3.image.title">1. บันทึกเป็นรูปภาพ (📸)</h3>
-                <p data-i18n="section3.image.desc">บันทึกตารางกิจกรรมเป็นไฟล์รูปภาพ PNG เพื่อแชร์ในโซเชียลมีเดียหรือเก็บไว้ดูออฟไลน์</p>
+                <p data-i18n="section3.image.desc">สร้างรูปภาพ PNG ของตารางกิจกรรมฝั่ง server — ไม่พึ่ง library ภายนอก รองรับภาษาไทย ญี่ปุ่น และ symbol; สีโทนตรงกับ theme ของ event</p>
                 <div class="feature-box">
-                    <strong data-i18n="section3.image.note">📱 หมายเหตุ:</strong>
-                    <span data-i18n="section3.image.noteText">บนมือถือจะบันทึกแบบ card layout, บน desktop จะบันทึกแบบ table</span>
+                    <strong data-i18n="section3.image.note">🎨 หมายเหตุ:</strong>
+                    <span data-i18n="section3.image.noteText">รูปภาพจะใช้สีโทนเดียวกับ theme ของ event (sakura/ocean/forest ฯลฯ) และรวม filter ที่เลือกไว้ปัจจุบัน</span>
                 </div>
 
                 <h3 data-i18n="section3.calendar.title">2. ส่งออกไปปฏิทิน (📅)</h3>
@@ -227,6 +227,65 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li data-i18n="section10.feature1">มองหาป้าย "▼ อ่านเพิ่มเติม" ใต้ description</li>
                     <li data-i18n="section10.feature2">กดที่ description หรือป้าย "▼ อ่านเพิ่มเติม" เพื่อเปิด modal แสดงข้อมูลเต็ม</li>
                     <li data-i18n="section10.feature3">กด ✕ หรือ tap นอก modal เพื่อปิด</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</h2>
+                <p data-i18n="section12.desc">ศิลปินแต่ละคนมีหน้าโปรไฟล์แสดง programs ทั้งหมดที่เคยปรากฏข้ามทุก event</p>
+                <ul>
+                    <li data-i18n="section12.feature1">กดปุ่ม <strong>↗</strong> ข้างชื่อศิลปินใน badge หรือรายการตัวกรองเพื่อเปิดหน้าโปรไฟล์</li>
+                    <li data-i18n="section12.feature2">หน้าโปรไฟล์แสดง programs จัดกลุ่มตาม event — เฉพาะงานที่ยังไม่จบ</li>
+                    <li data-i18n="section12.feature3">หากศิลปินอยู่ในวง จะแสดง programs ที่แสดงในนามวงด้วย</li>
+                    <li data-i18n="section12.feature4">แสดง variant names (ชื่อเรียกอื่น) ของศิลปิน</li>
+                    <li data-i18n="section12.feature5">ส่วน "🎪 งานอื่นที่เกี่ยวข้องกับศิลปิน" ด้านล่างตารางแสดง events อื่นที่ศิลปินนี้มี program</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section13.title">🗂️ งานที่จบแล้ว</h2>
+                <p data-i18n="section13.desc">กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว</p>
+                <ul>
+                    <li data-i18n="section13.feature1">แสดงรายการงานที่จบแล้วแบบ pagination 5 รายการต่อหน้า</li>
+                    <li data-i18n="section13.feature2">กดปุ่ม "📋 ดูตารางเวลา" เพื่อเปิดตาราง program ของงานนั้น</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section14.title">🎪 การเลือก Event</h2>
+                <p data-i18n="section14.desc">เมื่อระบบมีหลาย events ปุ่ม 🎪 (grid-dots) ที่มุมซ้ายบนจะเปิด Event Picker Modal เพื่อเปลี่ยน event ที่ดูอยู่</p>
+                <ul>
+                    <li data-i18n="section14.feature1">พิมพ์ค้นหาชื่อ event ได้ทันที (รองรับภาษาไทย/English)</li>
+                    <li data-i18n="section14.feature2">กรองตามสถานะ: ทั้งหมด / กำลังจัดงาน / กำลังจะมาถึง / จบแล้ว</li>
+                    <li data-i18n="section14.feature3">Event ที่กำลังดูอยู่จะมีเครื่องหมาย ✓ และ highlight</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section14.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section14.tipText">กดนอก modal หรือกด ✕ เพื่อปิด — สามารถเข้าถึง event ที่ต้องการได้จากทุกหน้า</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</h2>
+                <p data-i18n="section15.desc">ในหน้าโปรไฟล์ศิลปิน สามารถ subscribe ICS feed เฉพาะศิลปินนั้นได้ — ปฏิทินจะ sync เฉพาะ programs ของศิลปินที่เลือกจากทุก event</p>
+                <ul>
+                    <li data-i18n="section15.feature1">ปุ่ม 🔔 ชื่อศิลปิน — subscribe programs ทั้งหมดของศิลปินข้ามทุก event</li>
+                    <li data-i18n="section15.feature2">ปุ่ม 🔔 ชื่อวง — subscribe programs ที่แสดงในนามวง (แสดงเฉพาะเมื่อศิลปินสังกัดวง)</li>
+                    <li data-i18n="section15.feature3">รองรับ Apple Calendar, Google Calendar, Outlook, Thunderbird — เหมือนกับ Subscribe ปกติ</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section15.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section15.noteText">Artist Feed ดึงข้อมูลข้ามทุก event อัตโนมัติ — ต่างจาก Subscribe ในหน้า event ที่กรองเฉพาะ event นั้น</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 data-i18n="section16.title">🔴 Live Stream</h2>
+                <p data-i18n="section16.desc">เมื่อ program มีลิงก์ live stream จะแสดงไอคอน platform และปุ่ม 🔴 เข้าร่วม ในแถว program</p>
+                <ul>
+                    <li data-i18n="section16.feature1">ไอคอน platform แสดงให้รู้ว่า stream อยู่ที่ไหน (YouTube, X/Twitter, TikTok, หรืออื่นๆ)</li>
+                    <li data-i18n="section16.feature2">กดปุ่ม "🔴 เข้าร่วม" เพื่อเปิดลิงก์ stream โดยตรง</li>
+                    <li data-i18n="section16.feature3">ใน Calendar View — chip บนปฏิทินจะ highlight สีพิเศษเมื่อ program มี stream</li>
                 </ul>
             </div>
 

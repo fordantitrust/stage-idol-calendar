@@ -56,3 +56,4 @@ config.local.php
 /backups
 /.claude
 *.code-workspace
+CLAUDE.md
