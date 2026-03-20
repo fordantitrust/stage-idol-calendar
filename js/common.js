@@ -1359,4 +1359,15 @@ function injectFavNavButton() {
     aDash.setAttribute('aria-label', 'My Upcoming Programs');
     aDash.textContent = '📅';
     topLeft.appendChild(aDash);
+
+    // Silent background validation — remove stale slug if server rejects it
+    fetch(base + '/api/favorites?action=get&slug=' + encodeURIComponent(slug))
+        .then(function(res) {
+            if (res.status === 400 || res.status === 404) {
+                localStorage.removeItem('fav_slug');
+                aFav.remove();
+                aDash.remove();
+            }
+        })
+        .catch(function() { /* network error — leave buttons, retry next page */ });
 }

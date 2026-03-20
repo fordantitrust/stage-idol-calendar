@@ -2232,4 +2232,41 @@ tr.program-live {
 .btn-edit-request{background:none;border:1px solid #ddd;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:1rem;transition:all .2s}
 .btn-edit-request:hover{background:#fff3e0;border-color:#ff9800}
 .program-action-cell{white-space:nowrap}
+
+/* ── Listing Calendar (Homepage) ─────────────────────────────────────────── */
+.listing-cal-section{padding:0 30px 8px}
+.listing-cal-section-title{text-align:center;font-size:1.5em;color:#333;margin-top:10px;margin-bottom:24px;font-weight:700}
+.listing-cal-wrap{background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;padding:20px}
+.listing-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:0 4px}
+.listing-cal-title{font-size:1.1rem;font-weight:700;color:#333}
+.listing-cal-nav{background:none;border:1px solid #ddd;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;color:#888;flex-shrink:0;transition:all .2s}
+.listing-cal-nav:hover:not(:disabled){border-color:var(--sakura-dark,#e91e63);color:var(--sakura-dark,#e91e63);background:var(--sakura-border,#fce4ec)}
+.listing-cal-nav:disabled{opacity:.3;cursor:default}
+.listing-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.listing-cal-dow{text-align:center;font-size:.75rem;font-weight:700;color:#aaa;padding:6px 0 8px;letter-spacing:.02em}
+.listing-cal-day{text-align:center;padding:6px 2px;border-radius:8px;font-size:.88rem;color:#444;min-height:42px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;transition:background .15s}
+.listing-cal-day.other-month{color:#ccc}
+.listing-cal-day.today .listing-cal-day-num{background:var(--sakura-medium,#f48fb1);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.listing-cal-day.has-programs{cursor:pointer}
+.listing-cal-day.has-programs:hover{background:var(--sakura-border,#fce4ec)}
+.listing-cal-day-num{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.listing-cal-dot{width:6px;height:6px;border-radius:50%;background:var(--sakura-dark,#e91e63)}
+/* Day modal */
+.listing-day-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.listing-day-overlay.open{display:flex}
+.listing-day-modal{background:#fff;border-radius:12px;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.listing-day-modal-header{background:var(--sakura-gradient);display:flex;align-items:center;justify-content:space-between;padding:14px 18px;flex-shrink:0;border-radius:12px 12px 0 0}
+.listing-day-modal-title{font-size:1rem;font-weight:700;color:#fff}
+.listing-day-modal-close{background:rgba(255,255,255,.25);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;color:#fff;font-size:1.1rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.listing-day-modal-close:hover{background:rgba(255,255,255,.45)}
+.listing-day-modal-body{overflow-y:auto;padding:14px 16px 16px;flex:1;display:flex;flex-direction:column;gap:10px}
+/* Mini event cards inside day modal */
+.lcal-event-card{border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;transition:transform .15s,box-shadow .15s}
+.lcal-event-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(233,30,99,.15)}
+.lcal-event-card-header{background:var(--sakura-gradient);padding:10px 14px;display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
+.lcal-event-card-name{font-size:.95rem;font-weight:700;color:#fff;flex:1;line-height:1.3}
+.lcal-event-card-dates{font-size:.78rem;color:rgba(255,255,255,.9);white-space:nowrap;flex-shrink:0}
+.lcal-event-card-body{background:#fff;padding:10px 14px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.lcal-event-link{display:inline-flex;align-items:center;padding:7px 14px;background:var(--sakura-gradient);color:#fff;text-decoration:none;border-radius:7px;font-weight:600;font-size:.82rem;white-space:nowrap;flex-shrink:0;transition:all .2s}
+.lcal-event-link:hover{box-shadow:0 3px 10px var(--sakura-dark-40,rgba(233,30,99,.4))}
 /* btn-edit-request desktop style (outside mobile query — only affects desktop) */

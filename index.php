@@ -28,7 +28,15 @@ if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
 
 $eventId = $eventMeta ? intval($eventMeta['id']) : null;
 $currentVenueMode = get_event_venue_mode($eventMeta);
-$activeEvents = get_all_active_events();
+// Try listing cache (stores activeEvents + listingCalData together)
+$_listingCache = get_query_cache('query_listing.json');
+if ($_listingCache !== false) {
+    $activeEvents            = $_listingCache['active_events'];
+    $_listingCalDataFromCache = $_listingCache['listing_cal_data'];
+} else {
+    $activeEvents            = get_all_active_events();
+    $_listingCalDataFromCache = null; // needs computation later
+}
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
 
 // Check if we should show event listing (homepage) or calendar view
@@ -281,6 +289,47 @@ unset($dayEvents); // ยกเลิก reference
 // แสดง column "ประเภท" เมื่อมี program ที่มี program_type อย่างน้อย 1 รายการ
 $hasTypes = !empty($types);
 $today = date('Y-m-d');
+
+// Prepare listing calendar data — events (per date) from all active events (homepage only)
+// date => [unique events that have at least one program on that date]
+$listingCalData = [];
+if ($_listingCalDataFromCache !== null) {
+    // Cache hit: restore calendar data
+    $listingCalData = $_listingCalDataFromCache;
+} elseif ($showEventListing) {
+    // Cache miss: run query
+    try {
+        $dbLC = new PDO('sqlite:' . DB_PATH);
+        $dbLC->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmtLC = $dbLC->prepare("
+            SELECT DISTINCT DATE(p.start) AS program_date,
+                   e.id, e.name, e.slug, e.start_date, e.end_date
+            FROM programs p
+            JOIN events e ON e.id = p.event_id AND e.is_active = 1
+            WHERE e.slug != ?
+            ORDER BY program_date ASC, e.name ASC
+        ");
+        $stmtLC->execute([DEFAULT_EVENT_SLUG]);
+        foreach ($stmtLC->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $date = $row['program_date'];
+            if (!$date || $date === '0000-00-00') continue;
+            $listingCalData[$date][] = [
+                'id'         => (int)$row['id'],
+                'name'       => $row['name'],
+                'slug'       => $row['slug'],
+                'start_date' => $row['start_date'],
+                'end_date'   => $row['end_date'],
+            ];
+        }
+        $stmtLC->closeCursor(); $stmtLC = null;
+        $dbLC = null;
+    } catch (PDOException $e) { /* continue */ }
+    // Save listing cache (only when on the listing page so listing_cal_data is meaningful)
+    save_query_cache('query_listing.json', [
+        'active_events'    => $activeEvents,
+        'listing_cal_data' => $listingCalData,
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -369,8 +418,23 @@ $today = date('Y-m-d');
             </nav>
         </header>
 
+        <?php if (!empty($listingCalData)): ?>
+        <!-- Listing Calendar -->
+        <div class="listing-cal-section">
+            <h3 class="listing-cal-section-title" data-i18n="listing.calTitle">📅 ปฏิทินกิจกรรม</h3>
+            <div class="listing-cal-wrap">
+                <div class="listing-cal-header">
+                    <button class="listing-cal-nav" id="lcalPrevBtn" onclick="lcalNav(-1)" aria-label="Previous month">◀</button>
+                    <span class="listing-cal-title" id="lcalTitle"></span>
+                    <button class="listing-cal-nav" id="lcalNextBtn" onclick="lcalNav(1)" aria-label="Next month">▶</button>
+                </div>
+                <div class="listing-cal-grid" id="lcalGrid"></div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <div class="program-listing">
-            <h3 class="program-listing-title" data-i18n="listing.title">Events</h3>
+            <h3 class="program-listing-title" data-i18n="listing.title">🎪 รายการกิจกรรม</h3>
             <?php
             // Sort events: ongoing first, then upcoming (exclude past & default slug)
             $today = date('Y-m-d');
@@ -489,6 +553,17 @@ $today = date('Y-m-d');
                 <a href="<?php echo get_base_path(); ?>/past-events"
                    class="past-events-btn"
                    data-i18n="listing.pastEventsBtn">🗂️ ดูงานที่จบแล้ว</a>
+            </div>
+        </div>
+
+        <!-- Listing Calendar Day Modal -->
+        <div class="listing-day-overlay" id="lcalDayOverlay" onclick="if(event.target===this)closeLcalDayModal()">
+            <div class="listing-day-modal" role="dialog" aria-modal="true">
+                <div class="listing-day-modal-header">
+                    <span class="listing-day-modal-title" id="lcalDayTitle"></span>
+                    <button class="listing-day-modal-close" onclick="closeLcalDayModal()" aria-label="Close">×</button>
+                </div>
+                <div class="listing-day-modal-body" id="lcalDayBody"></div>
             </div>
         </div>
 
@@ -1354,6 +1429,195 @@ $today = date('Y-m-d');
         });
     })();
     </script>
+
+    <?php if (!empty($listingCalData)): ?>
+    <script>
+    // ── Listing Calendar (Homepage) ────────────────────────────────────────────
+    const LISTING_CAL_DATA = <?= json_encode($listingCalData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+    const LCAL_MONTHS_LONG = {
+        th: ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'],
+        en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+        ja: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+    };
+    const LCAL_MONTHS = {
+        th: ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],
+        en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+        ja: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']
+    };
+    const LCAL_DAYS = {
+        th: ['อา','จ','อ','พ','พฤ','ศ','ส'],
+        en: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+        ja: ['日','月','火','水','木','金','土']
+    };
+
+    // Build sorted list of months that have programs
+    const _lcalDates = Object.keys(LISTING_CAL_DATA).sort();
+    const _lcalMonthSet = {};
+    _lcalDates.forEach(function(d) { _lcalMonthSet[d.slice(0,7)] = true; });
+    const LCAL_MONTH_KEYS = Object.keys(_lcalMonthSet).sort();
+
+    // Default to current month if it exists, else nearest future month, else last month
+    (function() {
+        var todayKey = new Date().toISOString().slice(0,7);
+        var idx = LCAL_MONTH_KEYS.indexOf(todayKey);
+        if (idx < 0) {
+            // find nearest upcoming month
+            for (var i = 0; i < LCAL_MONTH_KEYS.length; i++) {
+                if (LCAL_MONTH_KEYS[i] >= todayKey) { idx = i; break; }
+            }
+        }
+        window._lcalIdx = idx >= 0 ? idx : LCAL_MONTH_KEYS.length - 1;
+    })();
+
+    function _lcalYM() {
+        var parts = (LCAL_MONTH_KEYS[window._lcalIdx] || '').split('-');
+        return { year: parseInt(parts[0]), month: parseInt(parts[1]) - 1 };
+    }
+
+    function renderLcal(lang) {
+        var grid  = document.getElementById('lcalGrid');
+        var title = document.getElementById('lcalTitle');
+        var prev  = document.getElementById('lcalPrevBtn');
+        var next  = document.getElementById('lcalNextBtn');
+        if (!grid) return;
+
+        var ym = _lcalYM();
+        var year = ym.year, month = ym.month;
+        var months = LCAL_MONTHS_LONG[lang] || LCAL_MONTHS_LONG.th;
+        var days   = LCAL_DAYS[lang] || LCAL_DAYS.th;
+        var todayStr = new Date().toISOString().slice(0,10);
+
+        if (title) title.textContent = months[month] + ' ' + year;
+        if (prev) prev.disabled = (window._lcalIdx <= 0);
+        if (next) next.disabled = (window._lcalIdx >= LCAL_MONTH_KEYS.length - 1);
+
+        var html = '';
+        for (var i = 0; i < 7; i++) {
+            html += '<div class="listing-cal-dow">' + days[i] + '</div>';
+        }
+
+        var firstDay = new Date(year, month, 1).getDay();
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (var i = 0; i < firstDay; i++) {
+            html += '<div class="listing-cal-day other-month"></div>';
+        }
+
+        for (var d = 1; d <= daysInMonth; d++) {
+            var mm = String(month + 1).padStart(2, '0');
+            var dd = String(d).padStart(2, '0');
+            var dateStr = year + '-' + mm + '-' + dd;
+            var hasP = !!LISTING_CAL_DATA[dateStr];
+            var isToday = (dateStr === todayStr);
+
+            var cls = 'listing-cal-day';
+            if (hasP)    cls += ' has-programs';
+            if (isToday) cls += ' today';
+
+            var onclick = hasP ? ' onclick="openLcalDayModal(\'' + dateStr + '\')"' : '';
+            html += '<div class="' + cls + '"' + onclick + '>';
+            html += '<span class="listing-cal-day-num">' + d + '</span>';
+            if (hasP) html += '<span class="listing-cal-dot"></span>';
+            html += '</div>';
+        }
+
+        var total = firstDay + daysInMonth;
+        var trailing = (7 - (total % 7)) % 7;
+        for (var i = 0; i < trailing; i++) {
+            html += '<div class="listing-cal-day other-month"></div>';
+        }
+
+        grid.innerHTML = html;
+    }
+
+    function lcalNav(dir) {
+        window._lcalIdx = Math.max(0, Math.min(LCAL_MONTH_KEYS.length - 1, window._lcalIdx + dir));
+        renderLcal(window.currentLang || 'th');
+    }
+
+    function openLcalDayModal(dateStr) {
+        var events = LISTING_CAL_DATA[dateStr];
+        if (!events || !events.length) return;
+
+        var d = new Date(dateStr + 'T00:00:00');
+        var months = LCAL_MONTHS[window.currentLang] || LCAL_MONTHS.th;
+        var days   = LCAL_DAYS[window.currentLang]   || LCAL_DAYS.th;
+        var label  = d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ' (' + days[d.getDay()] + ')';
+
+        var titleEl = document.getElementById('lcalDayTitle');
+        var bodyEl  = document.getElementById('lcalDayBody');
+        if (titleEl) titleEl.textContent = label;
+        if (bodyEl) {
+            var lang = window.currentLang || 'th';
+            var tr = (window.translations && window.translations[lang]) || {};
+            var todayStr = new Date().toISOString().slice(0,10);
+            var html = '';
+            events.forEach(function(ev) {
+                var start = ev.start_date || '';
+                var end   = ev.end_date   || start;
+                var status = (end < todayStr) ? 'past'
+                           : (start <= todayStr && end >= todayStr) ? 'ongoing'
+                           : 'upcoming';
+                var statusLabel = tr['listing.' + status] || status;
+                var fmtDate = function(iso) {
+                    if (!iso) return '';
+                    var p = iso.slice(0,10).split('-');
+                    return p[2] + '/' + p[1] + '/' + p[0];
+                };
+                var dStart = fmtDate(start);
+                var dEnd   = fmtDate(end);
+                var dateRange = dStart + (dEnd && dEnd !== dStart ? ' – ' + dEnd : '');
+                var viewLabel = tr['listing.viewSchedule'] || '📋 ดูตารางเวลา';
+
+                html += '<div class="lcal-event-card">';
+                html += '<div class="lcal-event-card-header">';
+                html += '<span class="lcal-event-card-name">' + _lcEsc(ev.name) + '</span>';
+                if (dateRange) html += '<span class="lcal-event-card-dates">📅 ' + _lcEsc(dateRange) + '</span>';
+                html += '</div>';
+                html += '<div class="lcal-event-card-body">';
+                html += '<span class="program-card-badge ' + status + '">' + _lcEsc(statusLabel) + '</span>';
+                html += '<a href="' + BASE_PATH + '/event/' + _lcEsc(ev.slug) + '" class="lcal-event-link">' + _lcEsc(viewLabel) + '</a>';
+                html += '</div></div>';
+            });
+            bodyEl.innerHTML = html;
+        }
+
+        var overlay = document.getElementById('lcalDayOverlay');
+        if (overlay) overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLcalDayModal() {
+        var overlay = document.getElementById('lcalDayOverlay');
+        if (overlay) overlay.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function _lcEsc(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            var overlay = document.getElementById('lcalDayOverlay');
+            if (overlay && overlay.classList.contains('open')) closeLcalDayModal();
+        }
+    });
+
+    // Hook into language switcher
+    (function() {
+        var _origCL = window.changeLanguage;
+        window.changeLanguage = function(lang) {
+            _origCL(lang);
+            renderLcal(lang);
+        };
+    })();
+
+    document.addEventListener('DOMContentLoaded', function() {
+        renderLcal(window.currentLang || 'th');
+    });
+    </script>
+    <?php endif; ?>
     <?php endif; ?>
 
 <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>

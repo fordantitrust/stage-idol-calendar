@@ -306,9 +306,13 @@ function invalidate_query_cache(?int $eventId = null): bool {
         $files = [
             $cacheDir . "/query_event_{$eventId}.json",
             $cacheDir . '/query_event_0.json', // global (no-event-filter) page
+            $cacheDir . '/query_listing.json',  // homepage listing + calendar
         ];
     } else {
-        $files = glob($cacheDir . '/query_event_*.json') ?: [];
+        $files = array_merge(
+            glob($cacheDir . '/query_event_*.json') ?: [],
+            [$cacheDir . '/query_listing.json']
+        );
     }
 
     $result = true;

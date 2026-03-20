@@ -66,12 +66,66 @@ $eventMeta = get_event_by_slug($eventSlug);
         </header>
 
         <div class="content">
-            <div class="section">
+
+            <nav class="toc-section">
+                <h2 class="toc-title" data-i18n="toc.title">📋 สารบัญ</h2>
+                <ol class="toc-list">
+                    <li><a href="#s-overview" data-i18n="section1.title">🎯 ภาพรวม</a></li>
+                    <li><a href="#s-event-picker" data-i18n="section14.title">🎪 การเลือก Event</a></li>
+                    <li><a href="#s-homepage-cal" data-i18n="section18.title">📅 ปฏิทินกิจกรรมบนหน้าแรก</a></li>
+                    <li><a href="#s-filtering" data-i18n="section2.title">🔍 การกรองข้อมูล</a></li>
+                    <li><a href="#s-date-jump" data-i18n="section9.title">📅 กระโดดไปวันที่</a></li>
+                    <li><a href="#s-program-detail" data-i18n="section10.title">📖 ดูรายละเอียด Program</a></li>
+                    <li><a href="#s-live-stream" data-i18n="section16.title">🔴 Live Stream</a></li>
+                    <li><a href="#s-gantt" data-i18n="section7.title">📊 มุมมองไทม์ไลน์ (Gantt Chart)</a></li>
+                    <li><a href="#s-calendar-view" data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</a></li>
+                    <li><a href="#s-export" data-i18n="section3.title">💾 การบันทึกและส่งออก</a></li>
+                    <li><a href="#s-artist-profile" data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</a></li>
+                    <li><a href="#s-artist-feed" data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</a></li>
+                    <li><a href="#s-favorites" data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</a></li>
+                    <li><a href="#s-past-events" data-i18n="section13.title">🗂️ งานที่จบแล้ว</a></li>
+                    <li><a href="#s-request" data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</a></li>
+                    <li><a href="#s-language" data-i18n="section4.title">🌍 การเปลี่ยนภาษา</a></li>
+                    <li><a href="#s-mobile" data-i18n="section5.title">📱 การใช้งานบนมือถือ</a></li>
+                    <li><a href="#s-faq" data-i18n="section6.title">❓ คำถามที่พบบ่อย</a></li>
+                </ol>
+            </nav>
+
+            <div class="section" id="s-overview">
                 <h2 data-i18n="section1.title">🎯 ภาพรวม</h2>
                 <p data-i18n="section1.desc">ปฏิทินกิจกรรมนี้ช่วยให้คุณดูตารางการแสดงของศิลปิน Idol ทั้งหมดในงาน Idol Stage Event ได้อย่างง่ายดาย พร้อมฟีเจอร์การกรองและส่งออกข้อมูล</p>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-event-picker">
+                <h2 data-i18n="section14.title">🎪 การเลือก Event</h2>
+                <p data-i18n="section14.desc">เมื่อระบบมีหลาย events ปุ่ม 🎪 (grid-dots) ที่มุมซ้ายบนจะเปิด Event Picker Modal เพื่อเปลี่ยน event ที่ดูอยู่</p>
+                <ul>
+                    <li data-i18n="section14.feature1">พิมพ์ค้นหาชื่อ event ได้ทันที (รองรับภาษาไทย/English)</li>
+                    <li data-i18n="section14.feature2">กรองตามสถานะ: ทั้งหมด / กำลังจัดงาน / กำลังจะมาถึง / จบแล้ว</li>
+                    <li data-i18n="section14.feature3">Event ที่กำลังดูอยู่จะมีเครื่องหมาย ✓ และ highlight</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section14.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section14.tipText">กดนอก modal หรือกด ✕ เพื่อปิด — สามารถเข้าถึง event ที่ต้องการได้จากทุกหน้า</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-homepage-cal">
+                <h2 data-i18n="section18.title">📅 ปฏิทินกิจกรรมบนหน้าแรก</h2>
+                <p data-i18n="section18.desc">หน้าแรก (รายการ Events) มีปฏิทินรายเดือนแสดงภาพรวมว่าวันไหนมีกิจกรรมบ้าง</p>
+                <ul>
+                    <li data-i18n="section18.feature1">วันที่มีกิจกรรมจะแสดง <strong>dot สีชมพู</strong> ด้านล่างตัวเลข</li>
+                    <li data-i18n="section18.feature2">กดวันที่มี dot เพื่อเปิด modal แสดงรายการ <strong>Events ที่จัดขึ้นในวันนั้น</strong> พร้อมสถานะและปุ่มดูตาราง</li>
+                    <li data-i18n="section18.feature3">กด ◀ ▶ เพื่อเลื่อนเดือน — เลื่อนได้เฉพาะเดือนที่มีข้อมูล</li>
+                    <li data-i18n="section18.feature4">ปฏิทินแสดงกิจกรรมจาก <strong>ทุก events ที่ active</strong> รวมงานที่จบแล้ว</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section18.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section18.tipText">วันปัจจุบันจะ highlight ด้วยวงกลมสีชมพู ทำให้หาวันนี้ได้ง่าย</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-filtering">
                 <h2 data-i18n="section2.title">🔍 การกรองข้อมูล</h2>
 
                 <h3 data-i18n="section2.filter1.title">1. กรองตามศิลปิน</h3>
@@ -116,7 +170,68 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </div>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-date-jump">
+                <h2 data-i18n="section9.title">📅 กระโดดไปวันที่</h2>
+                <p data-i18n="section9.desc">เมื่องานมีหลายวัน แถบวันที่จะปรากฏที่ด้านล่างของหน้าจอ (fixed position) ช่วยให้เลื่อนไปยังวันที่ต้องการได้ทันที</p>
+                <ul>
+                    <li data-i18n="section9.feature1">กดปุ่มวันที่ที่ต้องการเพื่อเลื่อนหน้าไปยังส่วนนั้นทันที</li>
+                    <li data-i18n="section9.feature2">วันที่ที่กำลังดูอยู่จะ highlight อัตโนมัติ (ใช้ IntersectionObserver)</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section9.tip">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section9.tipText">แถบวันที่จะซ่อนตัวเองเมื่อไม่มีหลายวัน และปรากฏเฉพาะเมื่อมี program มากกว่า 1 วันเท่านั้น</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-program-detail">
+                <h2 data-i18n="section10.title">📖 ดูรายละเอียด Program</h2>
+                <p data-i18n="section10.desc">description ของ program บางรายการอาจถูกตัดสั้นลง (clamp) — สามารถกดเพื่อดูข้อมูลเต็มได้:</p>
+                <ul>
+                    <li data-i18n="section10.feature1">มองหาป้าย "▼ อ่านเพิ่มเติม" ใต้ description</li>
+                    <li data-i18n="section10.feature2">กดที่ description หรือป้าย "▼ อ่านเพิ่มเติม" เพื่อเปิด modal แสดงข้อมูลเต็ม</li>
+                    <li data-i18n="section10.feature3">กด ✕ หรือ tap นอก modal เพื่อปิด</li>
+                </ul>
+            </div>
+
+            <div class="section" id="s-live-stream">
+                <h2 data-i18n="section16.title">🔴 Live Stream</h2>
+                <p data-i18n="section16.desc">เมื่อ program มีลิงก์ live stream จะแสดงไอคอน platform และปุ่ม 🔴 เข้าร่วม ในแถว program</p>
+                <ul>
+                    <li data-i18n="section16.feature1">ไอคอน platform แสดงให้รู้ว่า stream อยู่ที่ไหน (YouTube, X/Twitter, TikTok, หรืออื่นๆ)</li>
+                    <li data-i18n="section16.feature2">กดปุ่ม "🔴 เข้าร่วม" เพื่อเปิดลิงก์ stream โดยตรง</li>
+                    <li data-i18n="section16.feature3">ใน Calendar View — chip บนปฏิทินจะ highlight สีพิเศษเมื่อ program มี stream</li>
+                </ul>
+            </div>
+
+            <div class="section" id="s-gantt">
+                <h2 data-i18n="section7.title">📊 มุมมองไทม์ไลน์ (Gantt Chart)</h2>
+                <p data-i18n="section7.desc">นอกจากมุมมองรายการแล้ว ยังมีมุมมองไทม์ไลน์ที่ช่วยให้เห็นภาพรวมของกิจกรรมทั้งวัน:</p>
+                <div class="feature-box">
+                    <strong>🔄</strong>
+                    <span data-i18n="section7.toggle">ใช้ Toggle Switch ด้านล่างปุ่มค้นหาเพื่อสลับมุมมอง</span>
+                </div>
+                <ul>
+                    <li data-i18n="section7.feature1">แสดงหลายเวทีพร้อมกัน เห็นช่วงเวลาซ้อนทับได้ง่าย</li>
+                    <li data-i18n="section7.feature2">คลิกที่แถบ program เพื่อดูรายละเอียด</li>
+                    <li data-i18n="section7.feature3">ระบบจะจำมุมมองที่คุณเลือกไว้</li>
+                </ul>
+            </div>
+
+            <div class="section" id="s-calendar-view">
+                <h2 data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</h2>
+                <p data-i18n="section11.desc">สำหรับ event ที่ Admin กำหนดเป็นโหมด Calendar ระบบจะแสดงผลเป็นปฏิทินรายเดือนแทนตาราง:</p>
+                <ul>
+                    <li data-i18n="section11.feature1">กด chip บนวันที่ (desktop) เพื่อดูรายละเอียด program</li>
+                    <li data-i18n="section11.feature2">กดที่วัน (mobile) เพื่อเปิด panel แสดงรายการ program ของวันนั้น</li>
+                    <li data-i18n="section11.feature3">ปุ่ม ◀ ▶ เลื่อนระหว่างเดือนที่มีข้อมูล</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section11.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section11.noteText">ปุ่ม Live ในรายการ program ช่วยให้เข้าถึง stream โดยตรง</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-export">
                 <h2 data-i18n="section3.title">💾 การบันทึกและส่งออก</h2>
 
                 <h3 data-i18n="section3.image.title">1. บันทึกเป็นรูปภาพ (📸)</h3>
@@ -153,84 +268,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </div>
             </div>
 
-            <div class="section">
-                <h2 data-i18n="section4.title">🌍 การเปลี่ยนภาษา</h2>
-                <p data-i18n="section4.desc">คลิกปุ่มเปลี่ยนภาษาที่มุมขวาบนเพื่อสลับระหว่าง:</p>
-                <ul>
-                    <li data-i18n="section4.lang1"><strong>TH</strong> - ภาษาไทย (เวลาแบบ 24 ชม., ปี พ.ศ.)</li>
-                    <li data-i18n="section4.lang2"><strong>EN</strong> - English (12-hour format, Christian year)</li>
-                    <li data-i18n="section4.lang3"><strong>日本</strong> - 日本語 (24時間形式)</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section7.title">📊 มุมมองไทม์ไลน์ (Gantt Chart)</h2>
-                <p data-i18n="section7.desc">นอกจากมุมมองรายการแล้ว ยังมีมุมมองไทม์ไลน์ที่ช่วยให้เห็นภาพรวมของกิจกรรมทั้งวัน:</p>
-                <div class="feature-box">
-                    <strong>🔄</strong>
-                    <span data-i18n="section7.toggle">ใช้ Toggle Switch ด้านล่างปุ่มค้นหาเพื่อสลับมุมมอง</span>
-                </div>
-                <ul>
-                    <li data-i18n="section7.feature1">แสดงหลายเวทีพร้อมกัน เห็นช่วงเวลาซ้อนทับได้ง่าย</li>
-                    <li data-i18n="section7.feature2">คลิกที่แถบ program เพื่อดูรายละเอียด</li>
-                    <li data-i18n="section7.feature3">ระบบจะจำมุมมองที่คุณเลือกไว้</li>
-                </ul>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</h2>
-                <p data-i18n="section11.desc">สำหรับ event ที่ Admin กำหนดเป็นโหมด Calendar ระบบจะแสดงผลเป็นปฏิทินรายเดือนแทนตาราง:</p>
-                <ul>
-                    <li data-i18n="section11.feature1">กด chip บนวันที่ (desktop) เพื่อดูรายละเอียด program</li>
-                    <li data-i18n="section11.feature2">กดที่วัน (mobile) เพื่อเปิด panel แสดงรายการ program ของวันนั้น</li>
-                    <li data-i18n="section11.feature3">ปุ่ม ◀ ▶ เลื่อนระหว่างเดือนที่มีข้อมูล</li>
-                </ul>
-                <div class="feature-box">
-                    <strong data-i18n="section11.note">💡 หมายเหตุ:</strong>
-                    <span data-i18n="section11.noteText">ปุ่ม Live ในรายการ program ช่วยให้เข้าถึง stream โดยตรง</span>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</h2>
-                <p data-i18n="section8.desc">หากพบว่าข้อมูลไม่ครบ หรือมี program ใหม่ที่ยังไม่มีในระบบ คุณสามารถแจ้งได้:</p>
-
-                <h3 data-i18n="section8.add.title">1. แจ้งเพิ่ม Program ใหม่</h3>
-                <p data-i18n="section8.add.desc">กดปุ่ม "📝 แจ้งเพิ่ม Program" แล้วกรอกข้อมูล program ที่ต้องการ</p>
-
-                <h3 data-i18n="section8.modify.title">2. แจ้งแก้ไข Program ที่มีอยู่</h3>
-                <p data-i18n="section8.modify.desc">กดปุ่ม "✏️" ที่ program ที่ต้องการแก้ไข ระบบจะ pre-fill ข้อมูลให้</p>
-
-                <div class="feature-box">
-                    <strong data-i18n="section8.note.title">💡 หมายเหตุ:</strong>
-                    <span data-i18n="section8.note.text">คำขอของคุณจะถูกส่งไปให้ Admin ตรวจสอบก่อนจะแสดงในระบบ</span>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section9.title">📅 กระโดดไปวันที่</h2>
-                <p data-i18n="section9.desc">เมื่องานมีหลายวัน แถบวันที่จะปรากฏที่ด้านล่างของหน้าจอ (fixed position) ช่วยให้เลื่อนไปยังวันที่ต้องการได้ทันที</p>
-                <ul>
-                    <li data-i18n="section9.feature1">กดปุ่มวันที่ที่ต้องการเพื่อเลื่อนหน้าไปยังส่วนนั้นทันที</li>
-                    <li data-i18n="section9.feature2">วันที่ที่กำลังดูอยู่จะ highlight อัตโนมัติ (ใช้ IntersectionObserver)</li>
-                </ul>
-                <div class="feature-box">
-                    <strong data-i18n="section9.tip">💡 เคล็ดลับ:</strong>
-                    <span data-i18n="section9.tipText">แถบวันที่จะซ่อนตัวเองเมื่อไม่มีหลายวัน และปรากฏเฉพาะเมื่อมี program มากกว่า 1 วันเท่านั้น</span>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section10.title">📖 ดูรายละเอียด Program</h2>
-                <p data-i18n="section10.desc">description ของ program บางรายการอาจถูกตัดสั้นลง (clamp) — สามารถกดเพื่อดูข้อมูลเต็มได้:</p>
-                <ul>
-                    <li data-i18n="section10.feature1">มองหาป้าย "▼ อ่านเพิ่มเติม" ใต้ description</li>
-                    <li data-i18n="section10.feature2">กดที่ description หรือป้าย "▼ อ่านเพิ่มเติม" เพื่อเปิด modal แสดงข้อมูลเต็ม</li>
-                    <li data-i18n="section10.feature3">กด ✕ หรือ tap นอก modal เพื่อปิด</li>
-                </ul>
-            </div>
-
-            <div class="section">
+            <div class="section" id="s-artist-profile">
                 <h2 data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</h2>
                 <p data-i18n="section12.desc">ศิลปินแต่ละคนมีหน้าโปรไฟล์แสดง programs ทั้งหมดที่เคยปรากฏข้ามทุก event</p>
                 <ul>
@@ -242,7 +280,21 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </ul>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-artist-feed">
+                <h2 data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</h2>
+                <p data-i18n="section15.desc">ในหน้าโปรไฟล์ศิลปิน สามารถ subscribe ICS feed เฉพาะศิลปินนั้นได้ — ปฏิทินจะ sync เฉพาะ programs ของศิลปินที่เลือกจากทุก event</p>
+                <ul>
+                    <li data-i18n="section15.feature1">ปุ่ม 🔔 ชื่อศิลปิน — subscribe programs ทั้งหมดของศิลปินข้ามทุก event</li>
+                    <li data-i18n="section15.feature2">ปุ่ม 🔔 ชื่อวง — subscribe programs ที่แสดงในนามวง (แสดงเฉพาะเมื่อศิลปินสังกัดวง)</li>
+                    <li data-i18n="section15.feature3">รองรับ Apple Calendar, Google Calendar, Outlook, Thunderbird — เหมือนกับ Subscribe ปกติ</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section15.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section15.noteText">Artist Feed ดึงข้อมูลข้ามทุก event อัตโนมัติ — ต่างจาก Subscribe ในหน้า event ที่กรองเฉพาะ event นั้น</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-favorites">
                 <h2 data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</h2>
                 <p data-i18n="section17.desc">ติดตามศิลปินที่ชื่นชอบเพื่อดู upcoming programs ของพวกเขาได้สะดวก โดยไม่ต้องสร้างบัญชี</p>
 
@@ -288,7 +340,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </div>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-past-events">
                 <h2 data-i18n="section13.title">🗂️ งานที่จบแล้ว</h2>
                 <p data-i18n="section13.desc">กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว</p>
                 <ul>
@@ -297,45 +349,33 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </ul>
             </div>
 
-            <div class="section">
-                <h2 data-i18n="section14.title">🎪 การเลือก Event</h2>
-                <p data-i18n="section14.desc">เมื่อระบบมีหลาย events ปุ่ม 🎪 (grid-dots) ที่มุมซ้ายบนจะเปิด Event Picker Modal เพื่อเปลี่ยน event ที่ดูอยู่</p>
-                <ul>
-                    <li data-i18n="section14.feature1">พิมพ์ค้นหาชื่อ event ได้ทันที (รองรับภาษาไทย/English)</li>
-                    <li data-i18n="section14.feature2">กรองตามสถานะ: ทั้งหมด / กำลังจัดงาน / กำลังจะมาถึง / จบแล้ว</li>
-                    <li data-i18n="section14.feature3">Event ที่กำลังดูอยู่จะมีเครื่องหมาย ✓ และ highlight</li>
-                </ul>
+            <div class="section" id="s-request">
+                <h2 data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</h2>
+                <p data-i18n="section8.desc">หากพบว่าข้อมูลไม่ครบ หรือมี program ใหม่ที่ยังไม่มีในระบบ คุณสามารถแจ้งได้:</p>
+
+                <h3 data-i18n="section8.add.title">1. แจ้งเพิ่ม Program ใหม่</h3>
+                <p data-i18n="section8.add.desc">กดปุ่ม "📝 แจ้งเพิ่ม Program" แล้วกรอกข้อมูล program ที่ต้องการ</p>
+
+                <h3 data-i18n="section8.modify.title">2. แจ้งแก้ไข Program ที่มีอยู่</h3>
+                <p data-i18n="section8.modify.desc">กดปุ่ม "✏️" ที่ program ที่ต้องการแก้ไข ระบบจะ pre-fill ข้อมูลให้</p>
+
                 <div class="feature-box">
-                    <strong data-i18n="section14.tip">💡 เคล็ดลับ:</strong>
-                    <span data-i18n="section14.tipText">กดนอก modal หรือกด ✕ เพื่อปิด — สามารถเข้าถึง event ที่ต้องการได้จากทุกหน้า</span>
+                    <strong data-i18n="section8.note.title">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section8.note.text">คำขอของคุณจะถูกส่งไปให้ Admin ตรวจสอบก่อนจะแสดงในระบบ</span>
                 </div>
             </div>
 
-            <div class="section">
-                <h2 data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</h2>
-                <p data-i18n="section15.desc">ในหน้าโปรไฟล์ศิลปิน สามารถ subscribe ICS feed เฉพาะศิลปินนั้นได้ — ปฏิทินจะ sync เฉพาะ programs ของศิลปินที่เลือกจากทุก event</p>
+            <div class="section" id="s-language">
+                <h2 data-i18n="section4.title">🌍 การเปลี่ยนภาษา</h2>
+                <p data-i18n="section4.desc">คลิกปุ่มเปลี่ยนภาษาที่มุมขวาบนเพื่อสลับระหว่าง:</p>
                 <ul>
-                    <li data-i18n="section15.feature1">ปุ่ม 🔔 ชื่อศิลปิน — subscribe programs ทั้งหมดของศิลปินข้ามทุก event</li>
-                    <li data-i18n="section15.feature2">ปุ่ม 🔔 ชื่อวง — subscribe programs ที่แสดงในนามวง (แสดงเฉพาะเมื่อศิลปินสังกัดวง)</li>
-                    <li data-i18n="section15.feature3">รองรับ Apple Calendar, Google Calendar, Outlook, Thunderbird — เหมือนกับ Subscribe ปกติ</li>
-                </ul>
-                <div class="feature-box">
-                    <strong data-i18n="section15.note">💡 หมายเหตุ:</strong>
-                    <span data-i18n="section15.noteText">Artist Feed ดึงข้อมูลข้ามทุก event อัตโนมัติ — ต่างจาก Subscribe ในหน้า event ที่กรองเฉพาะ event นั้น</span>
-                </div>
-            </div>
-
-            <div class="section">
-                <h2 data-i18n="section16.title">🔴 Live Stream</h2>
-                <p data-i18n="section16.desc">เมื่อ program มีลิงก์ live stream จะแสดงไอคอน platform และปุ่ม 🔴 เข้าร่วม ในแถว program</p>
-                <ul>
-                    <li data-i18n="section16.feature1">ไอคอน platform แสดงให้รู้ว่า stream อยู่ที่ไหน (YouTube, X/Twitter, TikTok, หรืออื่นๆ)</li>
-                    <li data-i18n="section16.feature2">กดปุ่ม "🔴 เข้าร่วม" เพื่อเปิดลิงก์ stream โดยตรง</li>
-                    <li data-i18n="section16.feature3">ใน Calendar View — chip บนปฏิทินจะ highlight สีพิเศษเมื่อ program มี stream</li>
+                    <li data-i18n="section4.lang1"><strong>TH</strong> - ภาษาไทย (เวลาแบบ 24 ชม., ปี พ.ศ.)</li>
+                    <li data-i18n="section4.lang2"><strong>EN</strong> - English (12-hour format, Christian year)</li>
+                    <li data-i18n="section4.lang3"><strong>日本</strong> - 日本語 (24時間形式)</li>
                 </ul>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-mobile">
                 <h2 data-i18n="section5.title">📱 การใช้งานบนมือถือ</h2>
                 <p data-i18n="section5.desc">หน้าเว็บนี้ออกแบบให้ใช้งานบนมือถือได้อย่างสะดวก:</p>
                 <ul>
@@ -346,7 +386,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </ul>
             </div>
 
-            <div class="section">
+            <div class="section" id="s-faq">
                 <h2 data-i18n="section6.title">❓ คำถามที่พบบ่อย</h2>
 
                 <h3 data-i18n="section6.q1">Q: ข้อมูลจะอัปเดตบ่อยแค่ไหน?</h3>

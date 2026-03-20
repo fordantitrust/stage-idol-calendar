@@ -5,6 +5,59 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.7] - 2026-03-20
+
+### Added
+- **`fav_slug` recovery UX** — when the favorites token in localStorage is expired or invalid, `my-favorites.php` and `my.php` error screens now show two action buttons: "🗑️ ล้างออกจาก Browser" (clears `fav_slug` from localStorage and redirects home) and "✨ สร้าง Favorites ใหม่" (POSTs to `api/favorites.php?action=create`, saves the new slug, redirects to the new URL) — users no longer need developer tools to recover from a stale token
+- **Silent self-healing in `injectFavNavButton()`** — after injecting ⭐/📅 nav buttons, `common.js` now performs a background `fetch` to validate the stored slug against the server; on 400/404 response it removes `fav_slug` from localStorage and removes the injected buttons automatically
+- **Translation keys** — `fav.clearStorage` and `fav.createError` added in TH/EN/JA
+
+> **📁 Files changed:** `my-favorites.php`, `my.php`, `js/common.js`, `js/translations.js`
+
+## [3.6.6] - 2026-03-20
+
+### Added
+- 📋 **TOC (สารบัญ) ในหน้าวิธีการใช้งาน** — `<nav class="toc-section">` แสดงรายชื่อ 18 หัวข้อเป็น 2 คอลัมน์ (mobile: 1 คอลัมน์); แต่ละรายการเป็น anchor link ข้ามไปยัง section ที่ต้องการได้ทันที; label ใช้ `data-i18n` เดิมของแต่ละ section — re-render ตาม TH/EN/JA อัตโนมัติ
+- 🔑 **`toc.title` translation key** — TH `📋 สารบัญ` / EN `📋 Table of Contents` / JA `📋 目次`
+
+### Changed
+- 🔀 **จัดลำดับ sections ใหม่** ตามความสำคัญ: ภาพรวม → เลือก Event → ปฏิทินหน้าแรก → กรองข้อมูล → กระโดดไปวันที่ → ดูรายละเอียด → Live Stream → Gantt → Calendar View → บันทึก/ส่งออก → โปรไฟล์ศิลปิน → Subscribe Feed ศิลปิน → My Favorites → งานที่จบแล้ว → แจ้งเพิ่ม/แก้ไข → ภาษา → มือถือ → FAQ
+- 🔑 **`id` attributes ครบทุก section** — `id="s-overview"`, `id="s-event-picker"`, ... `id="s-faq"` สำหรับ anchor navigation
+
+**📁 Files changed:**
+- `how-to-use.php`
+- `js/translations.js`
+- `styles/how-to-use.css`
+
+## [3.6.5] - 2026-03-20
+
+### Added
+- ⚡ **Query cache สำหรับหน้าแรก** (`cache/query_listing.json`, TTL 3600s) — cache `$activeEvents` (get_all_active_events()) และ `$listingCalData` (calendar data) ร่วมกัน; cache hit ข้าม DB query ทั้ง 2 ชุด; cache miss รันทั้ง 2 query แล้วบันทึก; invalidated เมื่อมี program หรือ event เปลี่ยนแปลง
+
+### Changed
+- 🔄 **`invalidate_query_cache()`** — เพิ่ม `query_listing.json` ในรายการ invalidation ทั้ง specific-event และ global patterns
+- 🔄 **Admin `createEvent()` / `updateEvent()` / `deleteEvent()`** — เรียก `invalidate_query_cache()` เพื่อ bust `query_listing.json` เมื่อ event เปลี่ยนแปลง (ก่อนหน้านี้ event writes ไม่ invalidate query cache)
+
+**📁 Files changed:**
+- `index.php`
+- `functions/cache.php`
+- `admin/api.php`
+
+## [3.6.4] - 2026-03-20
+
+### Added
+- 📅 **Homepage Calendar View** — monthly calendar above the Events listing on the homepage; days with programs show a pink dot; clicking a day opens a modal listing the **Events** (conventions) active on that day — each shown as a mini event card with gradient header (name + date range), status badge (กำลังจัดงาน / กำลังจะมาถึง / จบแล้ว), and "📋 ดูตารางเวลา" button; calendar navigates per month (defaults to current month); shows all active events including past; language-aware month/day labels re-render on language switch
+
+### Changed
+- 🎨 **Calendar section title** — `"📅 ปฏิทินกิจกรรม"` header now has `margin-top: 10px` for better visual separation
+- 🎨 **Events listing title** — renamed from `"Events"` → `"🎪 รายการกิจกรรม"` (EN: `🎪 Events`, JA: `🎪 イベント一覧`) with icon prefix
+
+**📁 Files changed:**
+- `index.php`
+- `styles/index.css`
+- `js/translations.js`
+- `how-to-use.php`
+
 ## [3.6.3] - 2026-03-20
 
 ### Changed

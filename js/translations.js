@@ -82,6 +82,7 @@ const translations = {
         // How to use page
         'howToUse.title': '📖 วิธีการใช้งาน',
         'howToUse.subtitle': 'คู่มือการใช้งานปฏิทินกิจกรรม your event',
+        'toc.title': '📋 สารบัญ',
         'section1.title': '🎯 ภาพรวม',
         'section1.desc': 'ปฏิทินกิจกรรมนี้ช่วยให้คุณดูตารางการแสดงของศิลปิน Idol ทั้งหมดในงาน your event ได้อย่างง่ายดาย พร้อมฟีเจอร์การกรองและส่งออกข้อมูล',
         'section2.title': '🔍 การกรองข้อมูล',
@@ -199,6 +200,15 @@ const translations = {
         'section12.feature4': 'แสดง variant names (ชื่อเรียกอื่น) ของศิลปิน',
         'section12.feature5': 'ส่วน "🎪 งานอื่นที่เกี่ยวข้องกับศิลปิน" ด้านล่างตารางแสดง events อื่นที่ศิลปินนี้มี program',
 
+        // Section 18: Homepage Calendar
+        'section18.title': '📅 ปฏิทินกิจกรรมบนหน้าแรก',
+        'section18.desc': 'หน้าแรก (รายการ Events) มีปฏิทินรายเดือนแสดงภาพรวมว่าวันไหนมีกิจกรรมบ้าง',
+        'section18.feature1': 'วันที่มีกิจกรรมจะแสดง dot สีชมพู ด้านล่างตัวเลข',
+        'section18.feature2': 'กดวันที่มี dot เพื่อเปิด modal แสดงรายการ Events ที่จัดขึ้นในวันนั้น พร้อมสถานะและปุ่มดูตาราง',
+        'section18.feature3': 'กด ◀ ▶ เพื่อเลื่อนเดือน — เลื่อนได้เฉพาะเดือนที่มีข้อมูล',
+        'section18.feature4': 'ปฏิทินแสดงกิจกรรมจากทุก events ที่ active รวมงานที่จบแล้ว',
+        'section18.tip': '💡 เคล็ดลับ:',
+        'section18.tipText': 'วันปัจจุบันจะ highlight ด้วยวงกลมสีชมพู ทำให้หาวันนี้ได้ง่าย',
         // Section 13: Past Events
         'section13.title': '🗂️ งานที่จบแล้ว',
         'section13.desc': 'กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว',
@@ -273,7 +283,8 @@ const translations = {
         'contact.disclaimer.title': '⚠️ ข้อจำกัดความรับผิดชอบ',
         'contact.disclaimer.text': 'ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของงาน your event organizers อีกครั้ง',
         // Event listing page
-        'listing.title': 'รายการ Events',
+        'listing.calTitle': '📅 ปฏิทินกิจกรรม',
+        'listing.title': '🎪 รายการกิจกรรม',
         'listing.ongoing': 'กำลังจัดงาน',
         'listing.upcoming': 'กำลังจะมาถึง',
         'listing.past': 'จบแล้ว',
@@ -382,7 +393,9 @@ const translations = {
         'fav.noSlug': 'ไม่พบ Favorites ใน URL นี้',
         'fav.goToMyFav': '⭐ ไปที่ My Favorites',
         'fav.noAccess': 'ไม่มีสิทธิ์เข้าใช้งาน',
-        'fav.noAccessDesc': 'หน้านี้ต้องการ URL เฉพาะตัว กรุณาใช้ลิงก์ที่บันทึกไว้'
+        'fav.noAccessDesc': 'หน้านี้ต้องการ URL เฉพาะตัว กรุณาใช้ลิงก์ที่บันทึกไว้',
+        'fav.clearStorage': '🗑️ ล้างออกจาก Browser',
+        'fav.createError': 'ไม่สามารถสร้าง Favorites ได้ กรุณาลองใหม่'
     },
     en: {
         // Common
@@ -466,6 +479,7 @@ const translations = {
         // How to use page
         'howToUse.title': '📖 How to Use',
         'howToUse.subtitle': 'User Guide for Idol Stage Timetable',
+        'toc.title': '📋 Table of Contents',
         'section1.title': '🎯 Overview',
         'section1.desc': 'This calendar helps you easily view the performance schedule of all Idol artists at your event, with filtering and export features.',
         'section2.title': '🔍 Filtering Data',
@@ -583,6 +597,15 @@ const translations = {
         'section12.feature4': 'Shows all variant names (aliases) for the artist',
         'section12.feature5': 'The "🎪 Related events for these artists" section at the bottom lists other events where this artist has programs',
 
+        // Section 18: Homepage Calendar
+        'section18.title': '📅 Homepage Event Calendar',
+        'section18.desc': 'The homepage (Events listing) features a monthly calendar showing an overview of which days have activities.',
+        'section18.feature1': 'Days with events show a pink dot below the date number.',
+        'section18.feature2': 'Tap a day with a dot to open a modal listing all Events on that day — with status badge and a View Schedule button.',
+        'section18.feature3': 'Use ◀ ▶ to navigate months — navigation is limited to months that have data.',
+        'section18.feature4': 'The calendar shows activities from all active events, including past ones.',
+        'section18.tip': '💡 Tip:',
+        'section18.tipText': 'Today\'s date is highlighted with a pink circle so you can find it at a glance.',
         // Section 13: Past Events
         'section13.title': '🗂️ Past Events',
         'section13.desc': 'Tap the "View past events" button at the bottom of the events listing to see all events that have ended.',
@@ -657,7 +680,8 @@ const translations = {
         'contact.disclaimer.title': '⚠️ Disclaimer',
         'contact.disclaimer.text': 'This is an Unofficial Calendar created for the convenience of event visitors. Information may differ from the actual schedule of the organizers. Please check the latest information from the official your event organizers website again.',
         // Event listing page
-        'listing.title': 'Events',
+        'listing.calTitle': '📅 Event Calendar',
+        'listing.title': '🎪 Events',
         'listing.ongoing': 'Ongoing',
         'listing.upcoming': 'Upcoming',
         'listing.past': 'Ended',
@@ -766,7 +790,9 @@ const translations = {
         'fav.noSlug': 'No Favorites found at this URL',
         'fav.goToMyFav': '⭐ Go to My Favorites',
         'fav.noAccess': 'Access Denied',
-        'fav.noAccessDesc': 'This page requires a personal URL. Please use your saved link.'
+        'fav.noAccessDesc': 'This page requires a personal URL. Please use your saved link.',
+        'fav.clearStorage': '🗑️ Clear from Browser',
+        'fav.createError': 'Failed to create Favorites. Please try again.'
     },
     ja: {
         // Common
@@ -850,6 +876,7 @@ const translations = {
         // How to use page
         'howToUse.title': '📖 使い方',
         'howToUse.subtitle': 'your event カレンダーユーザーガイド',
+        'toc.title': '📋 目次',
         'section1.title': '🎯 概要',
         'section1.desc': 'このカレンダーは、your eventのすべてのアイドルアーティストのパフォーマンススケジュールを簡単に表示でき、フィルタリングとエクスポート機能を備えています。',
         'section2.title': '🔍 データのフィルタリング',
@@ -967,6 +994,15 @@ const translations = {
         'section12.feature4': 'アーティストの別名（バリアント名）をすべて表示',
         'section12.feature5': '「🎪 このアーティストの関連イベント」セクションで、このアーティストがプログラムを持つ他のイベントを確認できます',
 
+        // Section 18: Homepage Calendar
+        'section18.title': '📅 トップページのイベントカレンダー',
+        'section18.desc': 'トップページ（イベント一覧）には月別カレンダーがあり、どの日にアクティビティがあるかを一目で確認できます。',
+        'section18.feature1': 'イベントがある日はカレンダーの日付の下にピンク色のドットが表示されます。',
+        'section18.feature2': 'ドットのある日をタップすると、その日に開催されるイベント一覧のモーダルが開きます — ステータスバッジとスケジュール表示ボタン付き。',
+        'section18.feature3': '◀ ▶ で月を移動できます — データがある月のみ移動可能。',
+        'section18.feature4': 'カレンダーはすべてのアクティブなイベント（終了済みを含む）の情報を表示します。',
+        'section18.tip': '💡 ヒント:',
+        'section18.tipText': '今日の日付はピンクの丸でハイライトされるので、すぐに見つけられます。',
         // Section 13: Past Events
         'section13.title': '🗂️ 過去のイベント',
         'section13.desc': 'イベント一覧ページ下部の「過去のイベントを見る」ボタンをタップして、終了したすべてのイベントを確認できます',
@@ -1041,7 +1077,8 @@ const translations = {
         'contact.disclaimer.title': '⚠️ 免責事項',
         'contact.disclaimer.text': 'これはイベント来場者の便宜のために作成された非公式カレンダーです。情報は主催者の実際のスケジュールと異なる場合があります。your event organizers公式ウェブサイトから最新情報を再度確認してください。',
         // Event listing page
-        'listing.title': 'イベント一覧',
+        'listing.calTitle': '📅 イベントカレンダー',
+        'listing.title': '🎪 イベント一覧',
         'listing.ongoing': '開催中',
         'listing.upcoming': '開催予定',
         'listing.past': '終了',
@@ -1150,7 +1187,9 @@ const translations = {
         'fav.noSlug': 'このURLにお気に入りが見つかりません',
         'fav.goToMyFav': '⭐ My Favoritesへ',
         'fav.noAccess': 'アクセス権限がありません',
-        'fav.noAccessDesc': 'このページは専用URLが必要です。保存したリンクをお使いください。'
+        'fav.noAccessDesc': 'このページは専用URLが必要です。保存したリンクをお使いください。',
+        'fav.clearStorage': '🗑️ ブラウザから削除',
+        'fav.createError': 'お気に入りを作成できませんでした。再試行してください。'
     }
 };
 

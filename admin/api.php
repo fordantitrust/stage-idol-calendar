@@ -1995,6 +1995,7 @@ function createEvent() {
             ':now2' => $now
         ]);
 
+        invalidate_query_cache();
         jsonResponse(true, ['id' => $db->lastInsertId()], 'Convention created successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to create convention', $e->getMessage()));
@@ -2073,6 +2074,7 @@ function updateEvent() {
             return;
         }
 
+        invalidate_query_cache();
         jsonResponse(true, ['id' => $id], 'Convention updated successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to update convention', $e->getMessage()));
@@ -2115,6 +2117,7 @@ function deleteEvent() {
             return;
         }
 
+        invalidate_query_cache();
         jsonResponse(true, null, 'Convention deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete convention', $e->getMessage()));

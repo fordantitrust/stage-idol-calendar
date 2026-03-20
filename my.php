@@ -319,7 +319,10 @@ foreach ($byDate as $date => $progs) {
                     ? 'Favorites นี้ถูกลบเนื่องจากไม่มีการใช้งานเกิน 365 วัน'
                     : 'URL ไม่ถูกต้องหรือ HMAC ไม่ตรงกัน' ?>
             </p>
-            <a href="<?= get_base_path() ?>/my-favorites" class="btn btn-primary" data-i18n="fav.newFav">สร้าง Favorites ใหม่</a>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px">
+                <button class="btn" onclick="clearFavSlug()" data-i18n="fav.clearStorage">🗑️ ล้างออกจาก Browser</button>
+                <button class="btn btn-primary" onclick="createNewFav('my-favorites')" data-i18n="fav.newFav">✨ สร้าง Favorites ใหม่</button>
+            </div>
         </div>
 
     <?php else: ?>
@@ -683,6 +686,27 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFavTitles(currentLang);
     if (CAL_MONTHS.length) renderFavCal(currentLang);
 });
+
+// ── Error recovery ────────────────────────────────────────────────────────────
+function clearFavSlug() {
+    localStorage.removeItem('fav_slug');
+    window.location.href = BASE_PATH + '/';
+}
+
+async function createNewFav(redirectPage) {
+    const btn = event.target;
+    btn.disabled = true;
+    try {
+        const res = await fetch(BASE_PATH + '/api/favorites?action=create', {method:'POST'});
+        if (!res.ok) throw new Error('create failed');
+        const data = await res.json();
+        localStorage.setItem('fav_slug', data.slug);
+        window.location.href = BASE_PATH + '/' + redirectPage + '/' + encodeURIComponent(data.slug);
+    } catch(e) {
+        btn.disabled = false;
+        alert((translations[currentLang] && translations[currentLang]['fav.createError']) || 'ไม่สามารถสร้าง Favorites ได้ กรุณาลองใหม่');
+    }
+}
 
 // ── Auto-save slug ────────────────────────────────────────────────────────────
 if (window.FAV_SLUG) {
