@@ -5,6 +5,14 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.8] - 2026-03-21
+
+### Fixed
+- 🐛 **`credits.php` missing `BASE_PATH` → `fav_slug` cleared on visit** — `credits.php` was the only public page that did not define `window.BASE_PATH` / `const BASE_PATH` before loading `common.js`; when `injectFavNavButton()` ran, `base` fell back to `''` and the background validation fetch went to `/api/favorites?...` (root-relative) instead of the correct subdirectory path; sites hosted in a subdirectory (e.g. `/stage-idol-calendar/`) received a 404, which triggered `localStorage.removeItem('fav_slug')` and silently removed the user's favorites shortcut buttons; fixed by adding `const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;` in the inline script before `common.js` loads
+
+**📁 Files changed:**
+- `credits.php`
+
 ## [3.6.7] - 2026-03-20
 
 ### Added

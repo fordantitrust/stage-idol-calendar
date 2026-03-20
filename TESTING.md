@@ -781,7 +781,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 3.6.7**: Rate limit window reset
+**Test Case 3.6.8**: Rate limit window reset
 
 **Steps**:
 1. Hit rate limit
@@ -794,7 +794,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 3.6.7**: Different IPs independent limits
+**Test Case 3.6.8**: Different IPs independent limits
 
 **Steps**:
 1. Submit 10 requests from IP A
@@ -808,7 +808,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 3.6 Input Validation
 
-**Test Case 3.6.7**: Max length - Title
+**Test Case 3.6.8**: Max length - Title
 
 **Steps**:
 1. Submit credit with 201-character title
@@ -819,7 +819,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 3.6.7**: Max length - Description
+**Test Case 3.6.8**: Max length - Description
 
 **Steps**:
 1. Submit 1001-character description
@@ -830,7 +830,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 3.6.7**: Array size limit
+**Test Case 3.6.8**: Array size limit
 
 **Steps**:
 1. Submit bulk delete with 101 IDs

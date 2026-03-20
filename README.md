@@ -121,6 +121,13 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v3.5.0** | 2026-03-20 | Copy Artist modal (pre-filled + variant checkboxes) · Bulk Import Artists (paste list, up to 500, optional group) · Bulk select + Add to Group / Remove from Group · `/my` + `/my-favorites` full i18n (TH/EN/JA) · access denied on missing slug · aligned footer + dual nav buttons |
 | **v3.5.1** | 2026-03-20 | My Favorites: separate solo artists / groups sections · A→Z / Z→A sort per section (preference saved to localStorage) · My Upcoming Programs sorted by program datetime across events |
 | **v3.5.2** | 2026-03-20 | My Upcoming Programs: mini calendar view with dot indicators · click date → day programs modal · calendar re-renders on language change · how-to-use.php section17 + admin/help.php Artists tab docs updated · FavoritesTest (84 tests → 2036 total, 13 suites) |
+| **v3.5.3–3.5.4** | 2026-03-20 | Bug fixes: admin form `'`/`&` HTML entity double-encoding in JSON API responses · admin artist profile link pointing to wrong path (`/admin/artist/{id}`) |
+| **v3.6.0** | 2026-03-20 | Personal ICS Feed (`/my/{slug}/feed`) — subscribe to upcoming programs of followed artists via webcal:// · Subscribe button + modal on My Upcoming Programs · `functions/ics.php` shared ICS helpers |
+| **v3.6.1–3.6.3** | 2026-03-20 | Personal feed cache shard co-location (`.ics` + `.json` same shard dir, cleanup together) · Admin Events tab: sortable columns (client-side, default Start Date DESC) · My Upcoming Programs includes group programs when a followed solo artist belongs to a group |
+| **v3.6.4** | 2026-03-20 | Homepage Calendar View — monthly grid showing events with programs; click date → modal with mini event cards; navigate by month; re-renders on language switch |
+| **v3.6.5–3.6.6** | 2026-03-20 | Homepage listing query cache (`cache/query_listing.json`, TTL 1 hr, auto-invalidated on event/program writes) · How-to-use page: 18-item 2-column TOC + section reorder by importance |
+| **v3.6.7** | 2026-03-20 | `fav_slug` recovery UX on error screens (Clear from Browser + Create New Favorites buttons) · Silent self-healing in `injectFavNavButton()` (background fetch removes stale slug automatically) |
+| **v3.6.8** | 2026-03-21 | Bug fix: `credits.php` was missing `BASE_PATH`, causing `injectFavNavButton()` to fetch `/api/favorites` at root instead of correct subdirectory path → 404 → `fav_slug` silently cleared from localStorage |
 
 ---
 
@@ -790,7 +797,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 3.6.7
+**Current Version**: 3.6.8
 
 ---
 

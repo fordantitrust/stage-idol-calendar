@@ -259,7 +259,8 @@ foreach ($activeEvents as $ev) {
     </div>
 
     <!-- Shared JavaScript -->
-    <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
+    <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;
+    const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 
