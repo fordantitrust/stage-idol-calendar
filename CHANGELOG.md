@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.6.2] - 2026-03-20
 
 ### Added
-- 📊 **Admin Events tab — sortable columns** — ตาราง Events ใน Admin Panel รองรับการ sort โดยคลิกที่ header: `#`, `Name`, `Start Date`, `End Date`, `Active`, `Programs`; client-side sort (ไม่ต้อง reload จาก API); default sort `Start Date DESC` (ใหม่ก่อน); คลิกซ้ำสลับ asc/desc; icon ↕ / ↑ / ↓ แสดงสถานะ sort
+- 📊 **Admin Events tab — sortable columns** — the Events table in Admin Panel supports sorting by clicking any column header: `#`, `Name`, `Start Date`, `End Date`, `Active`, `Programs`; client-side sort (no API reload required); default sort `Start Date DESC` (newest first); click again to toggle asc/desc; ↕ / ↑ / ↓ icons indicate sort state
 
 **📁 Files changed:**
 - `admin/index.php`
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.6.1] - 2026-03-20
 
 ### Changed
-- 🗂️ **Personal feed cache — shard co-location** — ย้ายไฟล์ cache `.ics` ของ personal feed จาก `cache/feed_fav_{md5}.ics` (flat) ไปอยู่ใน `cache/favorites/{shard}/{token}.ics` แทน (shard เดียวกับ `.json` ของ favorites); GC `fav_cleanup_expired()` ลบทั้ง `.json` และ `.ics` ของ token ที่หมดอายุในคราวเดียวกัน; ไม่มี behavior change สำหรับผู้ใช้
+- 🗂️ **Personal feed cache — shard co-location** — personal feed `.ics` cache files moved from `cache/feed_fav_{md5}.ics` (flat directory) into `cache/favorites/{shard}/{token}.ics` (same shard directory as the favorites `.json` file); `fav_cleanup_expired()` GC now deletes both `.json` and `.ics` for expired tokens together; no user-visible behavior change
 
 **📁 Files changed:**
 - `my-feed.php`
@@ -26,11 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 🔔 **Personal ICS Subscription Feed** (`my-feed.php`) — live webcal feed scoped to a user's favorited artists; URL `/my/{slug}/feed` (via `.htaccess`); shows all upcoming programs from followed artists across active events; SUMMARY prefixed with `[Event Name]` for context in calendar apps; RFC 5545 compliant (line folding, CATEGORIES delimiter, VALARM 15-min reminder)
-- 🔔 **Subscribe button on My Upcoming Programs** — 🔔 Subscribe button เพิ่มใน Save URL banner; เปิด modal แสดง webcal:// link (Apple Calendar / iOS / Thunderbird) + https:// URL + Copy button + Outlook instructions + sync frequency notice
-- 📦 **`functions/ics.php`** — แยก ICS helper functions (`icsLine`, `icsFold`, `icsEscape`, `icsEscapeText`) ออกจาก `feed.php` เป็น shared file; `feed.php` และ `my-feed.php` ต่างก็ `require_once 'functions/ics.php'`
+- 🔔 **Subscribe button on My Upcoming Programs** — 🔔 Subscribe button added to the Save URL banner; opens a modal with webcal:// link (Apple Calendar / iOS / Thunderbird) + https:// URL + Copy button + Outlook subscription instructions + sync frequency notice
+- 📦 **`functions/ics.php`** — ICS helper functions (`icsLine`, `icsFold`, `icsEscape`, `icsEscapeText`) extracted from `feed.php` into a shared file; both `feed.php` and `my-feed.php` `require_once 'functions/ics.php'`
 
 ### Changed
-- 🏗️ **`feed.php` refactor** — ลบ function definitions ออก ใช้ `functions/ics.php` แทน; behavior ไม่เปลี่ยน
+- 🏗️ **`feed.php` refactor** — removed inline function definitions; now delegates to `functions/ics.php`; no behavior change
 
 **📁 Files changed:**
 - `my-feed.php` (new)
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.5.4] - 2026-03-20
 
 ### Fixed
-- 🐛 **Admin artist profile link 404** — ลิงก์ชื่อศิลปินในหน้า Admin › Artists ชี้ไป `/admin/artist/{id}` แทน `/artist/{id}` เนื่องจาก `BASE_PATH` ถูก resolve จาก `SCRIPT_NAME` ของ `admin/index.php` ได้ค่า `/admin`; แก้โดยเพิ่ม JS constant `APP_ROOT = dirname(BASE_PATH)` แล้วใช้ `APP_ROOT` สำหรับลิงก์ที่ชี้ไปหน้า public
+- 🐛 **Admin artist profile link 404** — artist name links in Admin › Artists were pointing to `/admin/artist/{id}` instead of `/artist/{id}` because `BASE_PATH` resolves from `admin/index.php`'s `SCRIPT_NAME` and returns `/admin`; fixed by adding JS constant `APP_ROOT = dirname(BASE_PATH)` and using `APP_ROOT` for all links pointing to public pages
 
 **📁 Files changed:**
 - `admin/index.php`
@@ -101,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - 🔄 **Artists table** — added a checkbox column (individual + select-all) for bulk selection
-- 🔄 **`my.php` footer** — aligned with `index.php`: "สร้างด้วย ❤️ เพื่อแฟนไอดอล", GitHub link, version badge
+- 🔄 **`my.php` footer** — aligned with `index.php`: "Built with ❤️ for idol fans" tagline, GitHub link, version badge
 - 🔄 **`my-favorites.php` footer** — same footer alignment as `index.php`
 - 🔄 **`my.php` header nav** — both ⭐ My Favorites and 📅 My Upcoming Programs buttons always shown when slug is present; current page button highlighted (sakura-medium background)
 - 🔄 **`my-favorites.php` header nav** — both ⭐ and 📅 buttons always shown when slug is present; current page button highlighted
