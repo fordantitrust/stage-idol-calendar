@@ -261,6 +261,9 @@ $eventMeta = get_event_by_slug($eventSlug);
 
                 <h3 data-i18n="section17.myupcoming.title">3. หน้า My Upcoming Programs (📅)</h3>
                 <p data-i18n="section17.myupcoming.desc">แสดง programs ที่กำลังจะมาถึงจากศิลปินที่ติดตาม จัดกลุ่มตามวันที่ อัปเดตอัตโนมัติเมื่อ Admin เพิ่มข้อมูล</p>
+                <ul>
+                    <li data-i18n="section17.myupcoming.group">ถ้าศิลปินที่ติดตามอยู่ในวง/กลุ่ม — programs ที่แสดงในนามวงนั้นจะถูกรวมแสดงให้อัตโนมัติ โดยไม่ต้อง follow วงแยก</li>
+                </ul>
 
                 <h3 data-i18n="section17.cal.title">📅 Mini Calendar View</h3>
                 <ul>
