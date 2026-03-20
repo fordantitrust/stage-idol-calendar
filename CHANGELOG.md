@@ -8,21 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.6.7] - 2026-03-20
 
 ### Added
-- **`fav_slug` recovery UX** — when the favorites token in localStorage is expired or invalid, `my-favorites.php` and `my.php` error screens now show two action buttons: "🗑️ ล้างออกจาก Browser" (clears `fav_slug` from localStorage and redirects home) and "✨ สร้าง Favorites ใหม่" (POSTs to `api/favorites.php?action=create`, saves the new slug, redirects to the new URL) — users no longer need developer tools to recover from a stale token
-- **Silent self-healing in `injectFavNavButton()`** — after injecting ⭐/📅 nav buttons, `common.js` now performs a background `fetch` to validate the stored slug against the server; on 400/404 response it removes `fav_slug` from localStorage and removes the injected buttons automatically
-- **Translation keys** — `fav.clearStorage` and `fav.createError` added in TH/EN/JA
+- 🔧 **`fav_slug` recovery UX** — when the favorites token in localStorage is expired or invalid, `my-favorites.php` and `my.php` error screens now show two recovery buttons: "🗑️ Clear from Browser" (removes `fav_slug` from localStorage and redirects to home) and "✨ Create New Favorites" (POSTs to `api/favorites.php?action=create`, saves the new slug to localStorage, and redirects to the new favorites URL) — users no longer need to open developer tools to recover from a stale token
+- 🔧 **Silent self-healing in `injectFavNavButton()`** — after injecting ⭐/📅 nav buttons, a background `fetch` validates the stored slug against the server; on 400/404 response it automatically removes `fav_slug` from localStorage and removes the injected buttons
+- 🌐 **Translation keys** — added `fav.clearStorage` and `fav.createError` in TH/EN/JA
 
-> **📁 Files changed:** `my-favorites.php`, `my.php`, `js/common.js`, `js/translations.js`
+**📁 Files changed:**
+- `my-favorites.php`
+- `my.php`
+- `js/common.js`
+- `js/translations.js`
 
 ## [3.6.6] - 2026-03-20
 
 ### Added
-- 📋 **TOC (สารบัญ) ในหน้าวิธีการใช้งาน** — `<nav class="toc-section">` แสดงรายชื่อ 18 หัวข้อเป็น 2 คอลัมน์ (mobile: 1 คอลัมน์); แต่ละรายการเป็น anchor link ข้ามไปยัง section ที่ต้องการได้ทันที; label ใช้ `data-i18n` เดิมของแต่ละ section — re-render ตาม TH/EN/JA อัตโนมัติ
+- 📋 **Table of Contents on How-to-Use page** — `<nav class="toc-section">` renders 18 section links in a 2-column grid (1 column on mobile); each item is an anchor link that jumps directly to the target section; labels use existing `data-i18n` keys and re-render automatically when switching TH/EN/JA
 - 🔑 **`toc.title` translation key** — TH `📋 สารบัญ` / EN `📋 Table of Contents` / JA `📋 目次`
 
 ### Changed
-- 🔀 **จัดลำดับ sections ใหม่** ตามความสำคัญ: ภาพรวม → เลือก Event → ปฏิทินหน้าแรก → กรองข้อมูล → กระโดดไปวันที่ → ดูรายละเอียด → Live Stream → Gantt → Calendar View → บันทึก/ส่งออก → โปรไฟล์ศิลปิน → Subscribe Feed ศิลปิน → My Favorites → งานที่จบแล้ว → แจ้งเพิ่ม/แก้ไข → ภาษา → มือถือ → FAQ
-- 🔑 **`id` attributes ครบทุก section** — `id="s-overview"`, `id="s-event-picker"`, ... `id="s-faq"` สำหรับ anchor navigation
+- 🔀 **Section order reorganized by priority** — Overview → Event Picker → Homepage Calendar → Filtering → Date Jump Bar → Program Detail Modal → Live Stream → Gantt Chart → Calendar View → Save/Export → Artist Profile → Artist Feed Subscribe → My Favorites → Past Events → Submit Request → Language → Mobile → FAQ; all sections have `id="s-*"` attributes for anchor navigation
 
 **📁 Files changed:**
 - `how-to-use.php`
@@ -32,11 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.6.5] - 2026-03-20
 
 ### Added
-- ⚡ **Query cache สำหรับหน้าแรก** (`cache/query_listing.json`, TTL 3600s) — cache `$activeEvents` (get_all_active_events()) และ `$listingCalData` (calendar data) ร่วมกัน; cache hit ข้าม DB query ทั้ง 2 ชุด; cache miss รันทั้ง 2 query แล้วบันทึก; invalidated เมื่อมี program หรือ event เปลี่ยนแปลง
+- ⚡ **Homepage listing query cache** (`cache/query_listing.json`, TTL 3600s) — caches both `$activeEvents` (from `get_all_active_events()`) and `$listingCalData` (homepage calendar dot data) together in a single file; a cache hit skips both DB queries entirely; a cache miss runs both queries and saves the result; automatically invalidated when any program or event is modified
 
 ### Changed
-- 🔄 **`invalidate_query_cache()`** — เพิ่ม `query_listing.json` ในรายการ invalidation ทั้ง specific-event และ global patterns
-- 🔄 **Admin `createEvent()` / `updateEvent()` / `deleteEvent()`** — เรียก `invalidate_query_cache()` เพื่อ bust `query_listing.json` เมื่อ event เปลี่ยนแปลง (ก่อนหน้านี้ event writes ไม่ invalidate query cache)
+- 🔄 **`invalidate_query_cache()`** — `query_listing.json` added to the invalidation list for both specific-event and global (null) call patterns
+- 🔄 **Admin `createEvent()` / `updateEvent()` / `deleteEvent()`** — now call `invalidate_query_cache()` to bust `query_listing.json` when event metadata changes; previously event writes did not invalidate the query cache
 
 **📁 Files changed:**
 - `index.php`
