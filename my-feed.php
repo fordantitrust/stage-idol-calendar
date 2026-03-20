@@ -101,6 +101,14 @@ if (!empty($artistIds)) {
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pls = implode(',', array_fill(0, count($artistIds), '?'));
 
+        // Expand artist IDs to include groups that followed artists belong to
+        $stmtG = $db->prepare("SELECT group_id FROM artists WHERE id IN ($pls) AND group_id IS NOT NULL");
+        $stmtG->execute($artistIds);
+        $groupIds = array_column($stmtG->fetchAll(PDO::FETCH_ASSOC), 'group_id');
+        $stmtG->closeCursor(); $stmtG = null;
+        $allArtistIds = array_values(array_unique(array_merge($artistIds, array_map('intval', $groupIds))));
+        $plsAll = implode(',', array_fill(0, count($allArtistIds), '?'));
+
         $today = date('Y-m-d');
         $stmt  = $db->prepare("
             SELECT DISTINCT p.id, p.title, p.start, p.end, p.location,
@@ -110,12 +118,12 @@ if (!empty($artistIds)) {
             FROM programs p
             JOIN events e ON e.id = p.event_id AND e.is_active = 1
             WHERE p.id IN (
-                SELECT DISTINCT pa.program_id FROM program_artists pa WHERE pa.artist_id IN ($pls)
+                SELECT DISTINCT pa.program_id FROM program_artists pa WHERE pa.artist_id IN ($plsAll)
             )
             AND DATE(p.start) >= :today
             ORDER BY p.start ASC
         ");
-        $stmt->execute(array_merge($artistIds, ['today' => $today]));
+        $stmt->execute(array_merge($allArtistIds, ['today' => $today]));
         $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
         $stmt = null;

@@ -61,6 +61,16 @@ if (!empty($artistIds)) {
         }
         $stmtA->closeCursor(); $stmtA = null;
 
+        // Also include programs of groups that followed artists belong to
+        $groupIds = [];
+        foreach ($artistsMap as $a) {
+            if (!empty($a['group_id'])) {
+                $groupIds[] = (int)$a['group_id'];
+            }
+        }
+        $allArtistIds = array_values(array_unique(array_merge($artistIds, $groupIds)));
+        $plsAll = implode(',', array_fill(0, count($allArtistIds), '?'));
+
         $today = date('Y-m-d');
         $stmtP = $db->prepare("
             SELECT DISTINCT p.id, p.title, p.start AS start_date, p.end AS end_date,
@@ -69,11 +79,11 @@ if (!empty($artistIds)) {
             FROM programs p
             JOIN events e ON e.id = p.event_id AND e.is_active = 1
             WHERE p.id IN (
-                SELECT DISTINCT pa.program_id FROM program_artists pa WHERE pa.artist_id IN ($pls)
+                SELECT DISTINCT pa.program_id FROM program_artists pa WHERE pa.artist_id IN ($plsAll)
             )
             AND DATE(p.start) >= :today ORDER BY p.start ASC
         ");
-        $stmtP->execute(array_merge($artistIds, ['today' => $today]));
+        $stmtP->execute(array_merge($allArtistIds, ['today' => $today]));
         $programs = $stmtP->fetchAll(PDO::FETCH_ASSOC);
         $stmtP->closeCursor(); $stmtP = null;
         $db = null;

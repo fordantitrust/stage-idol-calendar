@@ -5,6 +5,15 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.3] - 2026-03-20
+
+### Changed
+- 🔔 **My Upcoming Programs — include group programs** — if a followed artist belongs to a group, programs linked to that group are now included automatically in `my.php` and `my-feed.php`; group IDs are resolved from `artists.group_id` and merged into the program query `artist_id IN (...)` set; no changes to followed-artist list or UI
+
+**📁 Files changed:**
+- `my.php`
+- `my-feed.php`
+
 ## [3.6.2] - 2026-03-20
 
 ### Added
