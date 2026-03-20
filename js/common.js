@@ -1325,4 +1325,38 @@ document.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     changeLanguage(currentLang);
     initializeView();
+    injectFavNavButton();
 });
+
+// Inject ⭐ My Favorites shortcut into header when fav_slug exists in localStorage
+function injectFavNavButton() {
+    const slug = localStorage.getItem('fav_slug');
+    if (!slug) return;
+
+    const topLeft = document.querySelector('.header-top-left');
+    if (!topLeft) return;
+
+    // Don't inject on the favorites pages themselves
+    const path = window.location.pathname;
+    if (/\/my(-favorites)?(\/|\.php|$)/.test(path)) return;
+
+    const base = (typeof BASE_PATH !== 'undefined' ? BASE_PATH : '');
+
+    // ⭐ My Favorites → /my-favorites/{slug}
+    const aFav = document.createElement('a');
+    aFav.href = base + '/my-favorites/' + encodeURIComponent(slug);
+    aFav.className = 'home-icon-btn';
+    aFav.title = 'My Favorites';
+    aFav.setAttribute('aria-label', 'My Favorites');
+    aFav.textContent = '⭐';
+    topLeft.appendChild(aFav);
+
+    // 📅 My Upcoming Programs → /my/{slug}
+    const aDash = document.createElement('a');
+    aDash.href = base + '/my/' + encodeURIComponent(slug);
+    aDash.className = 'home-icon-btn';
+    aDash.title = 'My Upcoming Programs';
+    aDash.setAttribute('aria-label', 'My Upcoming Programs');
+    aDash.textContent = '📅';
+    topLeft.appendChild(aDash);
+}

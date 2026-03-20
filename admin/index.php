@@ -1408,14 +1408,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <table class="events-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Name</th>
+                        <th class="sortable" onclick="sortEventsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('name')">Name <span class="sort-icon" data-col="name"></span></th>
                         <th>Slug</th>
-                        <th>Start Date</th>
-                        <th>End Date</th>
+                        <th class="sortable" onclick="sortEventsBy('start_date')">Start Date <span class="sort-icon" data-col="start_date"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('end_date')">End Date <span class="sort-icon" data-col="end_date"></span></th>
                         <th>Venue Mode</th>
-                        <th>Active</th>
-                        <th>Programs</th>
+                        <th class="sortable" onclick="sortEventsBy('is_active')">Active <span class="sort-icon" data-col="is_active"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('event_count')">Programs <span class="sort-icon" data-col="event_count"></span></th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -1530,12 +1530,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <option value="100">100 / หน้า</option>
                 </select>
                 <button class="btn btn-primary" onclick="openAddArtistModal()">+ เพิ่มศิลปิน</button>
+                <button class="btn btn-secondary" onclick="openImportArtistsModal()">📥 Import หลายคน</button>
+            </div>
+
+            <!-- Bulk Actions Toolbar -->
+            <div id="artistsBulkToolbar" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;margin-bottom:8px;flex-wrap:wrap">
+                <span id="artistsBulkCount" style="font-weight:600;color:#856404"></span>
+                <button class="btn btn-secondary btn-sm" onclick="openBulkAddToGroupModal()">👥 เพิ่มเข้ากลุ่ม</button>
+                <button class="btn btn-secondary btn-sm" onclick="artistsBulkClearGroup()">🚫 ถอดออกจากกลุ่ม</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearArtistSelection()">✕ ยกเลิก</button>
             </div>
 
             <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
                     <tr>
+                        <th style="width:36px;text-align:center"><input type="checkbox" id="artistsSelectAll" onchange="selectAllArtists(this.checked)" style="width:16px;height:16px;cursor:pointer" title="เลือกทั้งหมด"></th>
                         <th class="sortable" onclick="sortArtistsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
                         <th class="sortable" onclick="sortArtistsBy('name')">ชื่อ <span class="sort-icon" data-col="name"></span></th>
                         <th class="sortable" onclick="sortArtistsBy('is_group')">ประเภท <span class="sort-icon" data-col="is_group"></span></th>
@@ -1545,7 +1555,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </tr>
                 </thead>
                 <tbody id="artistsTableBody">
-                    <tr><td colspan="5" class="loading">Loading...</td></tr>
+                    <tr><td colspan="7" class="loading">Loading...</td></tr>
                 </tbody>
             </table>
             </div>
@@ -1615,6 +1625,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <div class="modal-body">
                 <form id="artistForm" onsubmit="saveArtist(event)">
                     <input type="hidden" id="artistId">
+                    <input type="hidden" id="artistCopySourceId">
 
                     <div class="form-group">
                         <label for="artistName">ชื่อศิลปิน / กลุ่ม *</label>
@@ -1635,6 +1646,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <option value="">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>
                         </select>
                         <small class="form-hint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
+                    </div>
+
+                    <!-- Copy Variants Section (shown only in copy mode) -->
+                    <div id="artistCopyVariantsSection" style="display:none">
+                        <hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                            <label style="font-weight:600;margin:0">Variants ที่จะ copy</label>
+                            <div style="display:flex;gap:6px">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(true)">เลือกทั้งหมด</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(false)">ยกเลิกทั้งหมด</button>
+                            </div>
+                        </div>
+                        <div id="artistCopyVariantsList" style="max-height:180px;overflow-y:auto;border:1px solid #e9ecef;border-radius:6px;padding:8px;background:#fafafa">
+                            <span style="color:#9ca3af;font-size:0.9em">กำลังโหลด...</span>
+                        </div>
+                        <small style="color:#6c757d;font-size:0.85em;display:block;margin-top:6px">เลือก variants ที่ต้องการ copy ไปยังศิลปินใหม่ สามารถเพิ่ม/ลบเพิ่มเติมได้ภายหลัง</small>
                     </div>
                 </form>
             </div>
@@ -1688,6 +1715,79 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeArtistVariantsModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Add Artists to Group Modal -->
+    <div class="modal-overlay" id="bulkAddToGroupModal">
+        <div class="modal" style="max-width: 460px;">
+            <div class="modal-header">
+                <h2>👥 เพิ่มเข้ากลุ่ม</h2>
+                <button class="modal-close" onclick="closeBulkAddToGroupModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#6c757d;margin-bottom:16px">เลือกกลุ่มที่ต้องการเพิ่มศิลปินที่เลือกทั้งหมดเข้า</p>
+                <div class="form-group">
+                    <label for="bulkGroupSelect">กลุ่มปลายทาง *</label>
+                    <select id="bulkGroupSelect" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
+                        <option value="">-- เลือกกลุ่ม --</option>
+                    </select>
+                </div>
+                <p id="bulkGroupNote" style="font-size:0.85em;color:#6c757d">หมายเหตุ: ศิลปินที่เป็น "กลุ่ม" จะถูกข้ามไป เฉพาะ "บุคคล/Solo" เท่านั้นที่จะถูกอัปเดต</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeBulkAddToGroupModal()">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="confirmBulkAddToGroup()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Artists Modal -->
+    <div class="modal-overlay" id="importArtistsModal">
+        <div class="modal" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2>📥 Import ศิลปินหลายคน</h2>
+                <button class="modal-close" onclick="closeImportArtistsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Step 1: Input -->
+                <div id="importArtistsStep1">
+                    <div class="form-group">
+                        <label for="importArtistsTextarea" style="font-weight:600">รายชื่อศิลปิน <span style="font-weight:normal;color:#6c757d">(1 บรรทัด = 1 ศิลปิน)</span></label>
+                        <textarea id="importArtistsTextarea" rows="10"
+                            style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;resize:vertical"
+                            placeholder="ชื่อศิลปิน 1&#10;ชื่อศิลปิน 2&#10;ชื่อศิลปิน 3&#10;..."></textarea>
+                        <small style="color:#6c757d">บรรทัดว่างและชื่อที่ซ้ำกันจะถูกข้ามอัตโนมัติ</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="importArtistsIsGroup" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal">
+                            <input type="checkbox" id="importArtistsIsGroup" onchange="onImportIsGroupChange()" style="width:16px;height:16px;accent-color:var(--admin-primary)">
+                            <span style="font-weight:600">เป็นกลุ่ม (Group)</span>
+                        </label>
+                        <small class="form-hint">เปิดเมื่อรายชื่อทั้งหมดนี้คือกลุ่ม/วง</small>
+                    </div>
+                    <div class="form-group" id="importArtistsGroupRow">
+                        <label for="importArtistsGroupSelect">เพิ่มเข้ากลุ่ม <span style="font-weight:normal;color:#6c757d">(ถ้าต้องการ)</span></label>
+                        <select id="importArtistsGroupSelect" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
+                            <option value="">-- ไม่สังกัดกลุ่ม --</option>
+                        </select>
+                        <small class="form-hint">เลือกกลุ่มที่ศิลปินที่ import จะสังกัด (ไม่บังคับ)</small>
+                    </div>
+                </div>
+
+                <!-- Step 2: Results -->
+                <div id="importArtistsStep2" style="display:none">
+                    <div id="importArtistsSummary" style="margin-bottom:12px;padding:10px 14px;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0;font-weight:600"></div>
+                    <div id="importArtistsResults" style="max-height:320px;overflow-y:auto;border:1px solid #e9ecef;border-radius:6px;background:#fafafa;padding:8px"></div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeImportArtistsModal()">ปิด</button>
+                <button type="button" class="btn btn-secondary" id="importArtistsBackBtn" style="display:none" onclick="importArtistsGoBack()">← กลับ</button>
+                <button type="button" class="btn btn-primary" id="importArtistsSubmitBtn" onclick="submitImportArtists()">นำเข้า</button>
             </div>
         </div>
     </div>
@@ -2316,6 +2416,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         const VENUE_MODE = '<?php echo VENUE_MODE; ?>';
         const ADMIN_ROLE = '<?php echo $adminRole; ?>';
         const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;
+        const APP_ROOT = <?php echo json_encode(rtrim(dirname(get_base_path()), '/')); ?>;
 
         // State
         let currentPage = 1;
@@ -4254,6 +4355,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         let conventionsFormChanged = false;
 
+        // Events Tab Sort State
+        let eventsSortColumn    = 'start_date';
+        let eventsSortDirection = 'desc';
+        let _eventsData         = [];
+
         // Load Events Tab
         async function loadEventsTab() {
             showLoading();
@@ -4267,7 +4373,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const result = await response.json();
 
                 if (result.success) {
-                    renderEventsTab(result.data);
+                    _eventsData = result.data;
+                    renderEventsTab(_eventsData);
+                    updateEventsSortIcons();
                 } else {
                     showToast(result.message, 'error');
                 }
@@ -4288,7 +4396,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 return;
             }
 
-            tbody.innerHTML = conventions.map(conv => {
+            // Client-side sort
+            const sorted = [...conventions].sort((a, b) => {
+                let va = a[eventsSortColumn] ?? '';
+                let vb = b[eventsSortColumn] ?? '';
+                if (eventsSortColumn === 'id' || eventsSortColumn === 'event_count' || eventsSortColumn === 'is_active') {
+                    va = Number(va) || 0;
+                    vb = Number(vb) || 0;
+                }
+                if (va < vb) return eventsSortDirection === 'asc' ? -1 : 1;
+                if (va > vb) return eventsSortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            tbody.innerHTML = sorted.map(conv => {
                 const activeLabel = conv.is_active
                     ? '<span class="status-approved">Active</span>'
                     : '<span class="status-rejected">Inactive</span>';
@@ -4332,6 +4453,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function clearEventsSearch() {
             document.getElementById('conventionsSearchInput').value = '';
             loadEventsTab();
+        }
+
+        // Events Tab Sorting
+        function sortEventsBy(column) {
+            if (eventsSortColumn === column) {
+                eventsSortDirection = eventsSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                eventsSortColumn = column;
+                eventsSortDirection = (column === 'start_date' || column === 'end_date') ? 'desc' : 'asc';
+            }
+            updateEventsSortIcons();
+            renderEventsTab(_eventsData);
+        }
+
+        function updateEventsSortIcons() {
+            document.querySelectorAll('#eventsSection .sort-icon').forEach(icon => {
+                icon.classList.remove('asc', 'desc');
+                if (icon.dataset.col === eventsSortColumn) {
+                    icon.classList.add(eventsSortDirection);
+                }
+            });
         }
 
         // Open Add Event Modal
@@ -5367,7 +5509,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function renderArtists(artists) {
             const tbody = document.getElementById('artistsTableBody');
             if (!artists.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">ไม่พบศิลปิน</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">ไม่พบศิลปิน</td></tr>';
                 return;
             }
             tbody.innerHTML = artists.map(a => {
@@ -5378,17 +5520,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const variantCount = a.variant_count > 0
                     ? `<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">${a.variant_count}</span>`
                     : `<span style="color:#9ca3af;font-size:0.85em">-</span>`;
+                const safeName = escapeHtml(a.name).replace(/'/g, "\\'");
                 return `
                     <tr>
+                        <td style="text-align:center"><input type="checkbox" class="artist-checkbox" data-id="${a.id}" data-is-group="${a.is_group}" onchange="updateArtistBulkToolbar()" style="width:16px;height:16px;cursor:pointer"></td>
                         <td>${a.id}</td>
-                        <td><strong><a href="${BASE_PATH}/artist/${a.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิด profile">${escapeHtml(a.name)}</a></strong></td>
+                        <td><strong><a href="${APP_ROOT}/artist/${a.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิด profile">${escapeHtml(a.name)}</a></strong></td>
                         <td>${typeBadge}</td>
                         <td>${groupName}</td>
                         <td>${variantCount}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openArtistVariantsModal(${a.id}, '${escapeHtml(a.name).replace(/'/g, "\\'")}')">Variants</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openArtistVariantsModal(${a.id}, '${safeName}')">Variants</button>
                             <button class="btn btn-secondary btn-sm" onclick="openEditArtistModal(${a.id})">แก้ไข</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteArtistModal(${a.id}, '${escapeHtml(a.name).replace(/'/g, "\\'")}')">ลบ</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openCopyArtistModal(${a.id})" title="Copy artist">Copy</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteArtistModal(${a.id}, '${safeName}')">ลบ</button>
                         </td>
                     </tr>
                 `;
@@ -5476,11 +5621,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
         }
 
+        function resetArtistCopyState() {
+            document.getElementById('artistCopySourceId').value = '';
+            document.getElementById('artistCopyVariantsSection').style.display = 'none';
+            document.getElementById('artistCopyVariantsList').innerHTML = '<span style="color:#9ca3af;font-size:0.9em">กำลังโหลด...</span>';
+        }
+
         async function openAddArtistModal() {
             document.getElementById('artistModalTitle').textContent = 'เพิ่มศิลปิน';
             document.getElementById('artistForm').reset();
             document.getElementById('artistId').value = '';
             document.getElementById('artistGroupIdRow').style.display = 'block';
+            resetArtistCopyState();
             await loadGroupsIntoSelect(null);
             document.getElementById('artistModal').classList.add('active');
         }
@@ -5501,6 +5653,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('artistName').value = artist.name;
                 document.getElementById('artistIsGroup').checked = artist.is_group == 1;
                 document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
+                resetArtistCopyState();
 
                 await loadGroupsIntoSelect(artist.group_id);
                 document.getElementById('artistModal').classList.add('active');
@@ -5511,14 +5664,71 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
         }
 
+        async function openCopyArtistModal(id) {
+            showLoading();
+            try {
+                // Fetch artist data
+                const [artistRes, variantsRes] = await Promise.all([
+                    fetch(`api.php?action=artists_get&id=${id}`),
+                    fetch(`api.php?action=artists_variants_list&artist_id=${id}`),
+                ]);
+                const artistResult   = await artistRes.json();
+                const variantsResult = await variantsRes.json();
+
+                if (!artistResult.success) {
+                    showToast(artistResult.message, 'error');
+                    return;
+                }
+                const artist   = artistResult.data;
+                const variants = variantsResult.success ? variantsResult.data.variants : [];
+
+                // Pre-fill modal
+                document.getElementById('artistModalTitle').textContent = `Copy ศิลปิน: ${artist.name}`;
+                document.getElementById('artistId').value     = '';          // create new
+                document.getElementById('artistCopySourceId').value = id;
+                document.getElementById('artistName').value   = artist.name + ' (copy)';
+                document.getElementById('artistIsGroup').checked = artist.is_group == 1;
+                document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
+
+                await loadGroupsIntoSelect(artist.group_id);
+
+                // Render variants checkboxes
+                const section = document.getElementById('artistCopyVariantsSection');
+                const listEl  = document.getElementById('artistCopyVariantsList');
+                section.style.display = 'block';
+                if (!variants.length) {
+                    listEl.innerHTML = '<span style="color:#9ca3af;font-size:0.9em">ไม่มี variants</span>';
+                } else {
+                    listEl.innerHTML = variants.map(v => `
+                        <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;user-select:none">
+                            <input type="checkbox" class="copy-variant-cb" data-variant="${escapeHtml(v.variant)}" checked style="width:15px;height:15px;cursor:pointer">
+                            <span style="font-size:0.9em">${escapeHtml(v.variant)}</span>
+                        </label>
+                    `).join('');
+                }
+
+                document.getElementById('artistModal').classList.add('active');
+            } catch (err) {
+                showToast('Failed to load artist', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function copyVariantsSelectAll(checked) {
+            document.querySelectorAll('.copy-variant-cb').forEach(cb => { cb.checked = checked; });
+        }
+
         function closeArtistModal() {
             document.getElementById('artistModal').classList.remove('active');
+            resetArtistCopyState();
         }
 
         async function saveArtist(e) {
             e.preventDefault();
-            const id = document.getElementById('artistId').value;
-            const groupIdVal = document.getElementById('artistGroupId').value;
+            const id          = document.getElementById('artistId').value;
+            const copySourceId = document.getElementById('artistCopySourceId').value;
+            const groupIdVal  = document.getElementById('artistGroupId').value;
             const data = {
                 name:     document.getElementById('artistName').value,
                 is_group: document.getElementById('artistIsGroup').checked ? 1 : 0,
@@ -5537,13 +5747,30 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     body: JSON.stringify(data),
                 });
                 const result = await response.json();
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    closeArtistModal();
-                    loadArtists();
-                } else {
+                if (!result.success) {
                     showToast(result.message, 'error');
+                    return;
                 }
+
+                // If this was a copy, create selected variants for the new artist
+                if (!isEdit && copySourceId && result.data && result.data.id) {
+                    const newId = result.data.id;
+                    const checkedCbs = [...document.querySelectorAll('.copy-variant-cb:checked')];
+                    for (const cb of checkedCbs) {
+                        const variant = cb.dataset.variant;
+                        try {
+                            await fetch('api.php?action=artists_variants_create', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                                body: JSON.stringify({ artist_id: newId, variant }),
+                            });
+                        } catch (_) { /* continue on variant error */ }
+                    }
+                }
+
+                showToast(result.message, 'success');
+                closeArtistModal();
+                loadArtists();
             } catch (err) {
                 showToast('Failed to save artist', 'error');
             } finally {
@@ -5677,6 +5904,240 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
             } catch (err) {
                 showToast('Failed to delete variant', 'error');
+            }
+        }
+
+        // ============================================================
+        // Artist Bulk Selection & Bulk Add to Group
+        // ============================================================
+
+        function getSelectedArtistIds() {
+            return [...document.querySelectorAll('.artist-checkbox:checked')].map(cb => parseInt(cb.dataset.id));
+        }
+
+        function updateArtistBulkToolbar() {
+            const ids     = getSelectedArtistIds();
+            const toolbar = document.getElementById('artistsBulkToolbar');
+            const countEl = document.getElementById('artistsBulkCount');
+            if (ids.length > 0) {
+                toolbar.style.display = 'flex';
+                countEl.textContent   = `เลือก ${ids.length} รายการ`;
+            } else {
+                toolbar.style.display = 'none';
+            }
+            // Sync select-all checkbox state
+            const all  = document.querySelectorAll('.artist-checkbox');
+            const chk  = document.getElementById('artistsSelectAll');
+            if (chk) chk.checked = all.length > 0 && ids.length === all.length;
+        }
+
+        function selectAllArtists(checked) {
+            document.querySelectorAll('.artist-checkbox').forEach(cb => { cb.checked = checked; });
+            updateArtistBulkToolbar();
+        }
+
+        function clearArtistSelection() {
+            document.querySelectorAll('.artist-checkbox').forEach(cb => { cb.checked = false; });
+            const chk = document.getElementById('artistsSelectAll');
+            if (chk) chk.checked = false;
+            updateArtistBulkToolbar();
+        }
+
+        async function openBulkAddToGroupModal() {
+            const ids = getSelectedArtistIds();
+            if (!ids.length) { showToast('กรุณาเลือกศิลปินก่อน', 'error'); return; }
+            // Load groups into select
+            try {
+                const r = await fetch('api.php?action=artists_groups');
+                const result = await r.json();
+                const sel = document.getElementById('bulkGroupSelect');
+                sel.innerHTML = '<option value="">-- เลือกกลุ่ม --</option>';
+                if (result.success) {
+                    result.data.groups.forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g.id;
+                        opt.textContent = g.name;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (err) { /* ignore */ }
+            document.getElementById('bulkAddToGroupModal').classList.add('active');
+        }
+
+        function closeBulkAddToGroupModal() {
+            document.getElementById('bulkAddToGroupModal').classList.remove('active');
+        }
+
+        async function confirmBulkAddToGroup() {
+            const ids     = getSelectedArtistIds();
+            const groupId = document.getElementById('bulkGroupSelect').value;
+            if (!groupId) { showToast('กรุณาเลือกกลุ่ม', 'error'); return; }
+            showLoading();
+            try {
+                const r = await fetch('api.php?action=artists_bulk_set_group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ ids, group_id: parseInt(groupId) }),
+                });
+                const result = await r.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeBulkAddToGroupModal();
+                    clearArtistSelection();
+                    loadArtists();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to update artists', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function artistsBulkClearGroup() {
+            const ids = getSelectedArtistIds();
+            if (!ids.length) { showToast('กรุณาเลือกศิลปินก่อน', 'error'); return; }
+            if (!confirm(`ถอด ${ids.length} ศิลปินออกจากกลุ่มทั้งหมด?`)) return;
+            showLoading();
+            try {
+                const r = await fetch('api.php?action=artists_bulk_set_group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ ids, group_id: '' }),
+                });
+                const result = await r.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    clearArtistSelection();
+                    loadArtists();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (err) {
+                showToast('Failed to update artists', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // ============================================================
+        // Import Artists
+        // ============================================================
+
+        async function openImportArtistsModal() {
+            // Reset to step 1
+            document.getElementById('importArtistsTextarea').value = '';
+            document.getElementById('importArtistsIsGroup').checked = false;
+            document.getElementById('importArtistsGroupRow').style.display = 'block';
+            document.getElementById('importArtistsStep1').style.display = 'block';
+            document.getElementById('importArtistsStep2').style.display = 'none';
+            document.getElementById('importArtistsSubmitBtn').style.display = '';
+            document.getElementById('importArtistsSubmitBtn').textContent = 'นำเข้า';
+            document.getElementById('importArtistsBackBtn').style.display = 'none';
+
+            // Load groups
+            try {
+                const r = await fetch('api.php?action=artists_groups');
+                const result = await r.json();
+                const sel = document.getElementById('importArtistsGroupSelect');
+                sel.innerHTML = '<option value="">-- ไม่สังกัดกลุ่ม --</option>';
+                if (result.success) {
+                    result.data.groups.forEach(g => {
+                        const opt = document.createElement('option');
+                        opt.value = g.id;
+                        opt.textContent = g.name;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (_) {}
+
+            document.getElementById('importArtistsModal').classList.add('active');
+        }
+
+        function closeImportArtistsModal() {
+            document.getElementById('importArtistsModal').classList.remove('active');
+        }
+
+        function onImportIsGroupChange() {
+            const isGroup = document.getElementById('importArtistsIsGroup').checked;
+            // Groups cannot have a parent group
+            document.getElementById('importArtistsGroupRow').style.display = isGroup ? 'none' : 'block';
+        }
+
+        function importArtistsGoBack() {
+            document.getElementById('importArtistsStep1').style.display = 'block';
+            document.getElementById('importArtistsStep2').style.display = 'none';
+            document.getElementById('importArtistsSubmitBtn').style.display = '';
+            document.getElementById('importArtistsSubmitBtn').textContent = 'นำเข้า';
+            document.getElementById('importArtistsBackBtn').style.display = 'none';
+        }
+
+        async function submitImportArtists() {
+            const raw     = document.getElementById('importArtistsTextarea').value;
+            const isGroup = document.getElementById('importArtistsIsGroup').checked ? 1 : 0;
+            const groupSel = document.getElementById('importArtistsGroupSelect');
+            const groupId  = (!isGroup && groupSel.value) ? parseInt(groupSel.value) : null;
+
+            // Parse names: split by newline, trim, deduplicate, remove empty
+            const seen  = new Set();
+            const names = raw.split('\n')
+                .map(n => n.trim())
+                .filter(n => n.length > 0)
+                .filter(n => { if (seen.has(n)) return false; seen.add(n); return true; });
+
+            if (!names.length) {
+                showToast('กรุณากรอกชื่อศิลปินอย่างน้อย 1 ชื่อ', 'error');
+                return;
+            }
+
+            showLoading();
+            try {
+                const r = await fetch('api.php?action=artists_bulk_import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ names, is_group: isGroup, group_id: groupId }),
+                });
+                const result = await r.json();
+                if (!result.success) {
+                    showToast(result.message, 'error');
+                    return;
+                }
+
+                // Show results step
+                const results = result.data.results;
+                const created = results.filter(r => r.status === 'created').length;
+                const dupes   = results.filter(r => r.status === 'duplicate').length;
+                const errors  = results.filter(r => r.status === 'error').length;
+
+                const summaryEl = document.getElementById('importArtistsSummary');
+                summaryEl.innerHTML = `✅ สร้างใหม่ <strong>${created}</strong> คน` +
+                    (dupes  ? ` &nbsp;|&nbsp; ⚠️ ซ้ำ <strong>${dupes}</strong> คน`  : '') +
+                    (errors ? ` &nbsp;|&nbsp; ❌ ข้อผิดพลาด <strong>${errors}</strong> คน` : '');
+                summaryEl.style.background = errors ? '#fef2f2' : (dupes ? '#fffbeb' : '#f0fdf4');
+                summaryEl.style.borderColor = errors ? '#fecaca' : (dupes ? '#fde68a' : '#bbf7d0');
+
+                document.getElementById('importArtistsResults').innerHTML = results.map(r => {
+                    const icon  = r.status === 'created' ? '✅' : r.status === 'duplicate' ? '⚠️' : '❌';
+                    const color = r.status === 'created' ? '#166534' : r.status === 'duplicate' ? '#854d0e' : '#991b1b';
+                    const label = r.status === 'created' ? 'สร้างแล้ว' : r.status === 'duplicate' ? 'ซ้ำ (ข้าม)' : `ผิดพลาด: ${escapeHtml(r.message || '')}`;
+                    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 6px;border-bottom:1px solid #f0f0f0">
+                        <span>${icon}</span>
+                        <span style="flex:1;font-size:0.9em">${escapeHtml(r.name)}</span>
+                        <span style="font-size:0.8em;color:${color}">${label}</span>
+                    </div>`;
+                }).join('');
+
+                document.getElementById('importArtistsStep1').style.display = 'none';
+                document.getElementById('importArtistsStep2').style.display = 'block';
+                document.getElementById('importArtistsSubmitBtn').style.display = 'none';
+                document.getElementById('importArtistsBackBtn').style.display = '';
+
+                if (created > 0) loadArtists();
+            } catch (err) {
+                showToast('Failed to import artists', 'error');
+            } finally {
+                hideLoading();
             }
         }
 

@@ -217,9 +217,9 @@ function testIcsEscapeTextTitleWithComma($test) {
 }
 
 function testFeedPhpDefinesIcsEscapeTextFunction($test) {
-    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $src = file_get_contents(dirname(__DIR__) . '/functions/ics.php');
     $test->assertContains('function icsEscapeText', $src,
-        'feed.php must define icsEscapeText() for SUMMARY/LOCATION/DESCRIPTION escaping');
+        'functions/ics.php must define icsEscapeText() for SUMMARY/LOCATION/DESCRIPTION escaping');
 }
 
 function testFeedPhpUseIcsEscapeTextForSummary($test) {
@@ -516,15 +516,15 @@ function testFeedPhpHasRfcRefreshInterval($test) {
 }
 
 function testFeedPhpDefinesIcsFoldFunction($test) {
-    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $src = file_get_contents(dirname(__DIR__) . '/functions/ics.php');
     $test->assertContains('function icsFold', $src,
-        'feed.php must define icsFold() for RFC 5545 §3.1 line-folding');
+        'functions/ics.php must define icsFold() for RFC 5545 §3.1 line-folding');
 }
 
 function testFeedPhpDefinesIcsEscapeFunction($test) {
-    $src = file_get_contents(dirname(__DIR__) . '/feed.php');
+    $src = file_get_contents(dirname(__DIR__) . '/functions/ics.php');
     $test->assertContains('function icsEscape', $src,
-        'feed.php must define icsEscape() for RFC 5545 §3.3.11 text escaping');
+        'functions/ics.php must define icsEscape() for RFC 5545 §3.3.11 text escaping');
 }
 
 function testFeedPhpCategoriesDoesNotEscapeDelimiterComma($test) {

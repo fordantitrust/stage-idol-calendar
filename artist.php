@@ -296,6 +296,9 @@ function include_404(string $msg): never {
                         🔔 <?php echo htmlspecialchars($artist['group_name'], ENT_QUOTES, 'UTF-8'); ?>
                     </button>
                     <?php endif; ?>
+                    <button class="btn btn-fav" id="favBtn" onclick="toggleFavArtist()" style="background:linear-gradient(135deg,#fff8e1,#fff3cd);border:1px solid #ffe082;color:#f57f17;">
+                        ☆ ติดตาม
+                    </button>
                 </div>
             </div>
 
@@ -427,6 +430,86 @@ function include_404(string $msg): never {
     const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;
     window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;
     window.ARTIST_ID  = <?php echo (int)$artistId; ?>;
+
+    // ─── Favorites ───────────────────────────────────────────────────────────────
+    (function () {
+        const ARTIST_ID = window.ARTIST_ID;
+        const btn = document.getElementById('favBtn');
+        if (!btn || !ARTIST_ID) return;
+
+        let _isFollowing = false;
+
+        function setFollowing(f) {
+            _isFollowing = f;
+            btn.innerHTML = f ? '★ ติดตามแล้ว' : '☆ ติดตาม';
+            btn.style.background = f ? 'linear-gradient(135deg,#fff9c4,#fff176)' : 'linear-gradient(135deg,#fff8e1,#fff3cd)';
+        }
+
+        // Check current status
+        const slug = localStorage.getItem('fav_slug');
+        if (slug) {
+            fetch(BASE_PATH + '/api/favorites?action=get&slug=' + encodeURIComponent(slug))
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                    if (data && Array.isArray(data.artists) && data.artists.includes(ARTIST_ID)) {
+                        setFollowing(true);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        window.toggleFavArtist = async function () {
+            btn.disabled = true;
+            let currentSlug = localStorage.getItem('fav_slug');
+
+            if (_isFollowing && currentSlug) {
+                // Unfollow
+                const r = await fetch(BASE_PATH + '/api/favorites?action=remove&slug=' + encodeURIComponent(currentSlug), {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({artist_id: ARTIST_ID})
+                });
+                btn.disabled = false;
+                if (r.ok) {
+                    setFollowing(false);
+                } else {
+                    const e = await r.json();
+                    alert(e.error || 'เกิดข้อผิดพลาด');
+                }
+                return;
+            }
+
+            const isNew = !currentSlug;
+
+            // Create favorites if not exists
+            if (!currentSlug) {
+                const r = await fetch(BASE_PATH + '/api/favorites?action=create', {method: 'POST'});
+                const j = await r.json();
+                if (!r.ok) { btn.disabled = false; alert(j.error || 'เกิดข้อผิดพลาด'); return; }
+                currentSlug = j.slug;
+                localStorage.setItem('fav_slug', currentSlug);
+            }
+
+            // Follow
+            const r2 = await fetch(BASE_PATH + '/api/favorites?action=add&slug=' + encodeURIComponent(currentSlug), {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({artist_id: ARTIST_ID})
+            });
+
+            btn.disabled = false;
+            if (r2.ok) {
+                if (isNew) {
+                    window.location.href = BASE_PATH + '/my-favorites/' + encodeURIComponent(currentSlug);
+                } else {
+                    setFollowing(true);
+                }
+            } else {
+                const e = await r2.json();
+                alert(e.error || 'เกิดข้อผิดพลาด');
+            }
+        };
+    })();
 
     <?php if (!empty($groupByEvent)): ?>
     (function () {

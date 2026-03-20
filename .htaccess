@@ -16,6 +16,18 @@
     # Artist profile: /artist/{id} → artist.php?id={id}
     RewriteRule ^artist/([0-9]+)/?$ artist.php?id=$1 [L,QSA]
 
+    # My Favorites list: /my-favorites/{slug} → my-favorites.php?slug={slug}
+    RewriteRule ^my-favorites/([0-9a-f-]+)/?$ my-favorites.php?slug=$1 [L,QSA]
+
+    # Personal ICS feed: /my/{slug}/feed → my-feed.php?slug={slug}
+    RewriteRule ^my/([0-9a-f-]+)/feed/?$ my-feed.php?slug=$1 [L,QSA]
+
+    # My Upcoming Programs: /my/{slug} → my.php?slug={slug}
+    RewriteRule ^my/([0-9a-f-]+)/?$ my.php?slug=$1 [L,QSA]
+
+    # Favorites API: /api/favorites → api/favorites.php
+    RewriteRule ^api/favorites/?$ api/favorites.php [L,QSA]
+
     # Remove .php extension (public pages only, not admin)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d

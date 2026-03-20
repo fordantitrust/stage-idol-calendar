@@ -38,6 +38,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🎪 **Cross-Event Section** | "Also appears in" section before the footer — shows other events the same artists perform at, with clickable profile links | v3.0.0 |
 | 🏷️ **Artist Badge Links** | Artist badges in program rows are split pills: left side filters, right `↗` opens artist profile page | v3.0.0 |
 | 🔔 **Artist Feed** | Subscribe to a per-artist `webcal://` feed (`/artist/{id}/feed`) — calendar apps auto-sync all programs for that artist across every event; members of a group get a separate feed button for group programs (`?group=1`) | v3.2.0 |
+| ⭐ **Anonymous Favorites** | Follow artists without creating an account — UUID v7 + HMAC-signed personal slug stored in localStorage; data persists 365 days with auto-touch | v3.4.0 |
+| 📅 **My Upcoming Programs** | Personal page (`/my/{slug}`) showing upcoming programs from all followed artists, grouped by event and date — auto-updates when admin adds new programs | v3.4.0 |
+| 🌟 **My Favorites Page** | Personal page (`/my-favorites/{slug}`) listing all followed artists with profile links and one-tap unfollow; ⭐ + 📅 nav shortcuts always shown on both pages (current page highlighted) | v3.4.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -66,6 +69,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔴 **Live Stream URL** | Set a stream URL per program; validates http/https scheme; badge displayed in admin list | v2.6.0 |
 | 📞 **Contact Channels** | Manage contact channels (DB-driven) via Admin › Contact tab; displays on contact page | v2.10.0 |
 | 🎤 **Artist Management** | Artists tab — manage artist records, assign group members, add/remove variant names (aliases); tag-input widget with autocomplete for Artist/Group field in program form | v3.0.0 |
+| 📋 **Copy Artist** | Copy any artist (solo or group) — pre-filled modal lets you verify/edit name, type, group, and choose which variant aliases to carry over before saving | v3.5.0 |
+| 📥 **Bulk Import Artists** | Paste a list of artist names (1 per line, up to 500) with optional group assignment; step-2 result screen shows created / duplicate / error per name | v3.5.0 |
+| ☑️ **Bulk Artist Actions** | Select multiple artists with checkboxes; bulk "Add to Group" modal or "Remove from Group" in one click | v3.5.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -76,7 +82,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **1630 Unit Tests** | Automated test suite across 12 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **2036 Unit Tests** | Automated test suite across 13 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events| v3.0.0 |
@@ -89,43 +95,32 @@ A beautiful, responsive event calendar system designed for idol performances and
 
 | Version | Date | Key Features Added |
 |---------|------|--------------------|
-| **v1.0.0** | 2026-02-09 | Sakura theme · 3-language (TH/EN/JA) · List + Gantt Chart views · Artist/venue filtering · Save as Image · Export ICS · Admin CRUD + request management · SQLite storage · Session auth + IP whitelist · CSRF + XSS protection |
-| **v1.1.0** | 2026-02-11 | Docker support · Credits management (CRUD + cache) · Bulk operations & bulk edit (up to 100) · Flexible venue autocomplete · ICS file upload + preview import · Per-page selector (20/50/100) · Security overhaul (session hardening, timing-attack prevention, secure cookies, JSON_HEX_* flags) · 187 automated tests + CI/CD (PHP 8.1–8.3) |
-| **v1.2.0** | 2026-02-11 | Multi-Event (Conventions) support · Per-convention venue mode · `?event=slug` URL routing · Cache scoped per convention |
-| **v1.2.1** | 2026-02-12 | Clean URLs (no `.php` extension) · Date Jump Bar (fixed-position, IntersectionObserver) · ICS import event selector · Credits per-event assignment · Full i18n for request modal (20 new keys) |
-| **v1.2.3** | 2026-02-17 | Backup/Restore system (create, download, restore, upload, auto-backup before restore) · `data/` + `backups/` directory restructure · `DB_PATH` constant |
-| **v1.2.4** | 2026-02-17 | Database-based admin auth (`admin_users` table, multi-user) · Change Password UI · Backup delete fix |
-| **v1.2.5** | 2026-02-18 | User Management CRUD · Role-Based Access Control (admin / agent) · Role badge + lockout prevention |
-| **v2.0.0** ⚠️ | 2026-02-27 | **Breaking — run migration before upgrade:** DB tables renamed (`events`→`programs`, `events_meta`→`events`, `event_requests`→`program_requests`, FK columns renamed) · API actions renamed (`action=events`→`programs`, `event_meta_*`→`events_*`) · Terminology renamed ("Events"→"Programs", "Conventions"→"Events") · Setup Wizard (5-step) · Admin Help pages (TH + EN) · DB performance indexes (7 indexes, 2–5× speedup) · Login rate limiting (5/15 min/IP) · HTTP ETag + 304 for public API · Admin UI fully mobile responsive |
-| **v2.0.1** | 2026-02-27 | Google Analytics ID moved to `config/app.php` (configurable; set `''` to disable) |
-| **v2.1.0** | 2026-02-27 | Global Theme system (6 themes: Ocean / Forest / Midnight / Sunset / Dark / Gray) · Settings tab in Admin · CSS extracted to external files · Admin nav emoji icons |
-| **v2.1.1** | 2026-02-27 | Per-Event Theme (event overrides global; 7 themes total) · `get_site_theme($eventMeta)` priority chain |
-| **v2.2.0** | 2026-02-27 | Site Title editable from Admin Settings (saved to `cache/site-settings.json`; JS patching IIFE) |
-| **v2.2.1** | 2026-02-28 | Bug fixes: setup.php wrong schema (`summary`→`title`), empty events listing after init, sample programs seed on fresh install |
-| **v2.3.0** | 2026-03-02 | Event Contact Email field · ICS ORGANIZER redesign (event name + email instead of artist) · Production Cleanup wizard step (whitelist-based file deletion for Docs/Tests/Tools/Docker/CI) |
-| **v2.3.2 – 2.3.4** | 2026-03-02 | Bug fixes: timezone set to Asia/Bangkok + UTC→local conversion in IcsParser · Gantt overlap fix (unlimited stacking via inline style) · Gantt now shown in single-venue mode |
-| **v2.4.0** | 2026-03-02 | Program Type system (free-text + autocomplete, filter checkboxes, badges on rows and Gantt bars, `?type=` API filter, ICS `X-PROGRAM-TYPE`) |
-| **v2.4.1** | 2026-03-02 | Clickable filter badges (artist / type → `appendFilter()`) · Program Type dedicated column · Event name subtitle always shown below `<h1>` |
-| **v2.4.2** | 2026-03-02 | Admin Programs list: Organizer column renamed → Categories |
-| **v2.4.4** | 2026-03-03 | ICS Export VALARM (15-min reminder in exported `.ics`) · `tools/update-version.php` automation script · Documentation consolidated (QUICKSTART.md + SQLITE_MIGRATION.md merged) |
-| **v2.4.5 – 2.4.7** | 2026-03-03 | Collapse same-time / same-date display · Description expand modal + mobile card redesign + horizontal event listing cards · Venue name display in single-venue mode header |
-| **v2.5.0** | 2026-03-03 | ICS Live Subscription Feed (`feed.php`) — `webcal://` + `https://` · Subscribe button + modal · `invalidate_data_version_cache()` so subscribed calendars refresh after admin changes |
-| **v2.5.1** | 2026-03-03 | RFC 5545 line folding at 75 bytes (UTF-8 boundary safe, Outlook compatibility) · CATEGORIES comma-delimiter fix · Outlook subscribe instructions in modal · Mobile action buttons 3-column layout |
-| **v2.5.2** | 2026-03-03 | Feed static file cache (1 h, `cache/feed_*.ics`; bypasses SQLite on hit; auto-invalidated on admin write) |
-| **v2.6.0** | 2026-03-04 | Live Stream URL (`stream_url` column) — platform icon (📷/𝕏/▶️/🔴) + Join button on programs · Date Jump Bar ◀ ▶ arrows + mousewheel horizontal scroll |
-| **v2.6.1 – 2.6.5** | 2026-03-05–10 | Security hardening: LIKE wildcard injection (admin search) · directory access `Deny from all` · path disclosure in public API · `stream_url` scheme validation (rejects `javascript:`) · ICS upload MIME + structure validation · restore auto-backup abort on failure · XSS in filter-tag removal buttons · rate-limit race condition (`flock`) |
-| **v2.7.0** | 2026-03-11 | Calendar View (`venue_mode=calendar`): monthly 7-col grid · desktop program chips (icon + artist + time) · mobile dot indicators + day panel · all 6 themes via CSS variables · XSS-safe chip registry · full i18n auto-rerender |
-| **v2.7.1** | 2026-03-11 | Duration display in calendar detail modal · calendar border gap fix |
-| **v2.7.3 – 2.7.5** | 2026-03-12 | Security: inactive event data leak (slug→null→all-events) fixed across 5 files · 6 more security fixes (JS injection, datetime overflow, concurrent cache write, restore safety, ICS MIME, TOCTOU race) · feed.php SUMMARY comma truncation + header escaping fix |
-| **v2.7.6 – 2.7.7** | 2026-03-13 | Event name in `<title>` for social sharing · Gantt bar time + title inline (replaces stacked layout) |
-| **v2.8.0** | 2026-03-13 | Event Picker Modal (replaces `<select>`): card grid · real-time search · status filter tabs (All/Ongoing/Upcoming/Past) · sort order · mobile bottom-sheet · version badge moved to footer |
-| **v2.9.0** | 2026-03-13 | Nav icon buttons (contact envelope + how-to-use open-book) · Event Picker Modal on `credits.php` · Credits global view grouped by event (newest-first, inactive hidden) · Credits menu renamed to "แหล่งข้อมูลอ้างอิง" |
-| **v2.10.0** | 2026-03-13 | Contact Channels DB-driven (Admin › Contact tab CRUD; auto-created table) · Disclaimer multilingual TH/EN/JA editable from Admin › Settings |
-| **v2.10.1 – 2.10.2** | 2026-03-13 | Bug fixes: contact URL overflow on iOS (`word-break: break-all`) · credits global view newest-first (`krsort`) · calendar day panel language refresh |
-| **v3.0.0** 🔧 | 2026-03-18 | **Artist Reuse System** *(not breaking — run migration to enable new features)*: `artists` table (single source of truth) + `program_artists` junction (many-to-many) + `artist_variants` aliases · Artist Profile page (`/artist/{id}`) · Artist Profile programs toggle (own ↔ group, localStorage) · Clickable artist badge pills (filter + ↗ profile) · Artist filter event-count badges · "Also appears in" cross-event section before footer · Admin Artists tab: Variants modal (add/remove aliases) · ICS import auto-links via `artist_variants` DB table · **`setup.php` TH/EN bilingual** · **Tag-input widget** for Artist/Group field (autocomplete + auto-create on save) · **`artists_autocomplete` API** · **`syncProgramArtists()`** called on create/update — admin edits now sync `program_artists` |
-| **v3.1.0** ⚡ | 2026-03-19 | **Query Cache** — `index.php` + `artist.php` DB queries cached as JSON files (`cache/query_event_{id}.json`, `cache/query_artist_{id}.json`); TTL 1 hour; auto-invalidated on every admin program/artist/variant write; new helpers: `get_query_cache`, `save_query_cache`, `invalidate_query_cache`, `invalidate_artist_query_cache` · **Smart version update script** — `tools/update-version.php` now uses line-by-line replacement with skip patterns to preserve historical version labels (`(vX.Y.Z+)`, Feature Timeline rows, `### vX.Y.Z` headings, upgrade guide references) |
-| **v3.2.0** 🔔 | 2026-03-19 | **Artist ICS Feed** — `/artist/{id}/feed` (own programs) + `/artist/{id}/feed?group=1` (group programs); resolves name + `artist_variants`; `🔔 <ArtistName>` + `🔔 <GroupName>` buttons on profile page; cache `feed_artist_*_{own\|group}_*.ics` auto-invalidated on program writes · `styles/artist.css` extracted from inline styles |
-| **v3.3.0** 🖼️ | 2026-03-19 | **Server-side image export** — `image.php` generates PNG via PHP GD (replaces html2canvas); Sakura-themed table with time badge (sakura-medium pink, white text), column separators, date headers, type + artist badges, footer; single-venue mode hides venue column + shows venue in image header; passes current filters from URL params · **Image PNG cache** (`cache/images/img_{eventId}_{hash}.png`, TTL 1 hr, cache-key includes APP_VERSION; served via `readfile()` on hit; `invalidate_image_cache()` called automatically on admin writes) |
+| **v1.0.0** | 2026-02-09 | Sakura theme · 3-language UI · List + Gantt views · Artist/venue filtering · Save as Image · Export ICS · Admin CRUD · SQLite storage · Session auth + CSRF/XSS protection |
+| **v1.1.0** | 2026-02-11 | Docker support · Credits management · Bulk operations (up to 100) · ICS upload + preview import · Security overhaul · 187 automated tests + CI/CD |
+| **v1.2.0** | 2026-02-11 | Multi-Event support · Per-convention venue mode · `?event=slug` URL routing |
+| **v1.2.1** | 2026-02-12 | Clean URLs · Date Jump Bar · Credits per-event · Full i18n |
+| **v1.2.3** | 2026-02-17 | Backup/Restore system with auto-safety backup |
+| **v1.2.4** | 2026-02-17 | DB-based admin auth (multi-user) · Change Password UI |
+| **v1.2.5** | 2026-02-18 | User Management CRUD · Role-Based Access Control (admin / agent) |
+| **v2.0.0** ⚠️ | 2026-02-27 | **Breaking (run migration):** Tables & API actions renamed · Setup Wizard · DB indexes (2–5× speedup) · Login rate limiting · Admin UI mobile responsive |
+| **v2.1.x** | 2026-02-27 | Global + Per-Event Theme system (7 themes) · Google Analytics config |
+| **v2.2.0** | 2026-02-27 | Site Title editable from Admin Settings |
+| **v2.3.0** | 2026-03-02 | Event Contact Email · ICS ORGANIZER redesign · Production Cleanup wizard step |
+| **v2.4.x** | 2026-03-02–03 | Program Type system (filter, badges, API) · Clickable filter badges · ICS VALARM reminders · Mobile UI improvements |
+| **v2.5.x** | 2026-03-03 | ICS Live Subscription Feed (`webcal://`) · Subscribe button + modal · Feed static file cache (1 hr) |
+| **v2.6.x** | 2026-03-04–10 | Live Stream URL (platform icon + Join button) · Date Jump Bar arrows/scroll · Security hardening (7 fixes) |
+| **v2.7.x** | 2026-03-11–13 | Calendar View (monthly grid, `venue_mode=calendar`) · Security fixes (inactive event leak + 6 more) · Event name in page title |
+| **v2.8.0** | 2026-03-13 | Event Picker Modal (replaces dropdown) — card grid, search, status tabs, mobile bottom-sheet |
+| **v2.9.0** | 2026-03-13 | Nav icon buttons · Event Picker on credits page · Credits grouped by event |
+| **v2.10.0** | 2026-03-13 | Contact Channels (DB-driven, Admin CRUD) · Multilingual Disclaimer setting |
+| **v3.0.0** | 2026-03-18 | Artist Reuse System — `artists` table + `program_artists` junction + `artist_variants` · Artist Profile page (`/artist/{id}`) · Clickable artist badge pills · "Also appears in" cross-event section · Admin Artists tab + tag-input widget |
+| **v3.1.0** | 2026-03-19 | Query Cache for event + artist pages (1 hr, auto-invalidated on writes) |
+| **v3.2.0** | 2026-03-19 | Artist ICS Feed (`/artist/{id}/feed`) — per-artist webcal subscription across all events |
+| **v3.3.0** | 2026-03-19 | Server-side image export (PHP GD, theme-aware PNG, 1 hr cache) · Three-font architecture (Thai/Latin/CJK/Symbol) |
+| **v3.4.0** | 2026-03-20 | Anonymous Favorites — follow artists without login · My Favorites page (`/my-favorites/{slug}`) · My Upcoming Programs page (`/my/{slug}`) · Persistent ⭐ + 📅 nav shortcuts on every page |
+| **v3.5.0** | 2026-03-20 | Copy Artist modal (pre-filled + variant checkboxes) · Bulk Import Artists (paste list, up to 500, optional group) · Bulk select + Add to Group / Remove from Group · `/my` + `/my-favorites` full i18n (TH/EN/JA) · access denied on missing slug · aligned footer + dual nav buttons |
+| **v3.5.1** | 2026-03-20 | My Favorites: separate solo artists / groups sections · A→Z / Z→A sort per section (preference saved to localStorage) · My Upcoming Programs sorted by program datetime across events |
+| **v3.5.2** | 2026-03-20 | My Upcoming Programs: mini calendar view with dot indicators · click date → day programs modal · calendar re-renders on language change · how-to-use.php section17 + admin/help.php Artists tab docs updated · FavoritesTest (84 tests → 2036 total, 13 suites) |
 
 ---
 
@@ -231,6 +226,8 @@ php tools/import-ics-to-sqlite.php
 | 🔔 **Subscribe** | Click "Subscribe" button for live webcal:// calendar link |
 | 📝 **Request Changes** | Click "Request to Add Event" or ✏️ button |
 | 🎪 **Switch Event** | Click the grid-dots icon (top-left) to open Event Picker modal |
+| ⭐ **Follow Artist** | Tap ☆ Follow on any artist profile page — no account needed |
+| 📅 **My Upcoming** | Bookmark `/my/{slug}` for your personalized upcoming programs page |
 
 ---
 
@@ -557,7 +554,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           1630 automated tests (12 suites)
+├── tests/           2036 automated tests (13 suites)
 └── *.md             Documentation
 ```
 
@@ -623,7 +620,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all 1630 automated tests
+# Run all 2036 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -721,7 +718,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **1630 automated unit tests** covering all critical functionality:
+The project includes **2036 automated unit tests** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
@@ -736,6 +733,7 @@ The project includes **1630 automated unit tests** covering all critical functio
 - 🏷️ **ProgramTypeTest** (211) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
 - 🔔 **FeedTest** (291) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache, feed SUMMARY/header escaping
 - 🔴 **StreamUrlTest** (322) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
+- ⭐ **FavoritesTest** (406) - config constants, UUID v7 format/uniqueness, HMAC, slug build/parse/tamper resistance, file I/O (write→read roundtrip, sharded path), api/favorites.php actions, my-favorites.php solo/group split + sort, my.php mini calendar + day modal, translations 3-language coverage, common.js nav injection, artist.php follow/unfollow, .htaccess routing
 
 **Run All Tests:**
 ```bash
@@ -773,14 +771,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 1630 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 2036 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 1630 tests
-Passed: 1630
+Total: 2036 tests
+Passed: 2036
 Pass Rate: 100.0%
 ```
 
@@ -792,7 +790,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 3.3.0
+**Current Version**: 3.6.2
 
 ---
 

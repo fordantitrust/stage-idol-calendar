@@ -1,5 +1,6 @@
 # Idol Stage Timetable - Dockerfile
 # PHP 8.1+ with Apache and SQLite support
+# Updated for v3.6.2
 
 FROM php:8.1-apache
 
@@ -36,6 +37,7 @@ COPY . /var/www/html/
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/www/html/cache/images \
+    && mkdir -p /var/www/html/cache/favorites \
     && mkdir -p /var/www/html/ics \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \

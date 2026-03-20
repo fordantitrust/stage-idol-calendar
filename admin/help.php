@@ -614,6 +614,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Calendar mode ซ่อน Toggle List/Timeline โดยอัตโนมัติ และรองรับทุก theme สี</div>
                 </div>
 
+                <h3>การเรียงลำดับ (Sorting)</h3>
+                <p>คลิกที่หัวคอลัมน์เพื่อเรียงลำดับ — คลิกซ้ำเพื่อสลับ ↑ / ↓ ไอคอน ↕ หมายถึงยังไม่ได้เรียง</p>
+                <table class="help-table">
+                    <thead><tr><th>คอลัมน์</th><th>หมายเหตุ</th></tr></thead>
+                    <tbody>
+                        <tr><td>#</td><td>เรียงตาม ID</td></tr>
+                        <tr><td>Name</td><td>เรียงตามชื่อ event (A→Z / Z→A)</td></tr>
+                        <tr><td>Start Date</td><td>เรียงตามวันเริ่มงาน (ค่าเริ่มต้น: ใหม่ก่อน)</td></tr>
+                        <tr><td>End Date</td><td>เรียงตามวันสิ้นสุดงาน</td></tr>
+                        <tr><td>Active</td><td>เรียงตามสถานะ Active/Inactive</td></tr>
+                        <tr><td>Programs</td><td>เรียงตามจำนวน program ในงาน</td></tr>
+                    </tbody>
+                </table>
+
                 <h3>การใช้งาน URL</h3>
                 <p>เข้าถึง event เฉพาะผ่าน URL: <code>/event/{slug}</code></p>
                 <p>ตัวอย่าง: <code>/event/idol-stage-feb-2026</code></p>
@@ -797,6 +811,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
                     <div>เมื่อ Import ICS ระบบจะ auto-link program กับ artist โดย match ชื่อจาก CATEGORIES — ทั้งชื่อหลักและ variants</div>
+                </div>
+
+                <h3>Copy Artist (คัดลอกศิลปิน)</h3>
+                <p>ปุ่ม <strong>Copy</strong> ในแต่ละแถวของตาราง Artists เปิด modal สำหรับสร้างศิลปินใหม่โดยอิงจากศิลปินที่มีอยู่:</p>
+                <ul>
+                    <li>ข้อมูลถูก pre-fill จากต้นฉบับ (ชื่อ + " (copy)", ประเภท, กลุ่มที่สังกัด)</li>
+                    <li>ส่วน <strong>Variants ที่จะ copy</strong> แสดง checkbox ทุก variant ของต้นฉบับ (ติ๊กทั้งหมด default)</li>
+                    <li>ปุ่ม "เลือกทั้งหมด" / "ยกเลิกทั้งหมด" สำหรับ variants; สามารถแก้ไขทุก field ก่อน Save</li>
+                    <li>หลัง Save ระบบสร้าง artist ใหม่ แล้ว loop สร้าง variants ที่เลือกทั้งหมด</li>
+                </ul>
+
+                <h3>Bulk Import Artists (นำเข้าหลายคนพร้อมกัน)</h3>
+                <p>ปุ่ม <strong>📥 Import หลายคน</strong> ใน toolbar เปิด modal สำหรับ import ศิลปินหลายคนในคราวเดียว:</p>
+                <ul>
+                    <li><strong>Step 1</strong>: พิมพ์ชื่อศิลปิน 1 บรรทัดต่อ 1 คน (สูงสุด 500 ชื่อ); เลือก checkbox "เป็นกลุ่ม" และกลุ่มปลายทาง (ถ้ามี)</li>
+                    <li><strong>Step 2</strong>: ดูผลลัพธ์ ✅ สร้างใหม่ / ⚠️ ชื่อซ้ำ / ❌ Error พร้อม summary bar; artist list refresh อัตโนมัติ</li>
+                </ul>
+
+                <h3>Bulk Select & Bulk Actions (เลือกหลายคนพร้อมกัน)</h3>
+                <p>ตาราง Artists มี checkbox column สำหรับเลือกหลายคนพร้อมกัน — Bulk Toolbar (แถบสีเหลือง) แสดงขึ้นเมื่อเลือกอย่างน้อย 1 รายการ:</p>
+                <table class="help-table">
+                    <thead><tr><th>Action</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td>👥 เพิ่มเข้ากลุ่ม</td><td>เปิด modal เลือกกลุ่มปลายทาง → ตั้ง <code>group_id</code> ให้ศิลปินที่เลือกทั้งหมด (ข้าม artists ที่เป็น Group)</td></tr>
+                        <tr><td>🚫 ถอดออกจากกลุ่ม</td><td>ตั้ง <code>group_id = null</code> ให้ศิลปินที่เลือกทั้งหมด</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Bulk Add to Group ข้าม artists ที่มี <code>is_group = 1</code> โดยอัตโนมัติ — SQL กรอง <code>WHERE is_group = 0</code> เฉพาะ Solo artists เท่านั้น</div>
                 </div>
 
                 <h3>Artist Profile Page</h3>

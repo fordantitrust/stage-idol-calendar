@@ -1,5 +1,5 @@
 # Directory - Restricted Access
-# Block all direct HTTP access to cache files
-
+Options -Indexes
 Order Deny,Allow
 Deny from all
+

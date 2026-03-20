@@ -128,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             __DIR__ . '/backups'      => 'backups/',
             __DIR__ . '/ics'          => 'ics/',
             __DIR__ . '/fonts'        => 'fonts/',
+            __DIR__ . '/cache/favorites' => 'cache/favorites/',
         ];
         $created = 0;
         foreach ($toCreate as $path => $label) {
@@ -902,6 +903,9 @@ $phpChecks = [
 // GD is optional — don't block setup if missing
 $allPhpOk = !in_array(false, array_map(fn($c) => $c['ok'] || !empty($c['optional']), $phpChecks));
 
+// 1c. Favorites HMAC secret check (optional — only relevant if favorites feature is used)
+$_favSecretOk = defined('FAVORITES_HMAC_SECRET') && FAVORITES_HMAC_SECRET !== 'REPLACE_WITH_GENERATED_SECRET';
+
 // 2. Directories
 $dirChecks = [
     'data'         => ['label' => 'data/',         'path' => __DIR__ . '/data',         'need_write' => true,  'purpose' => $isEn ? 'Stores database'                     : 'เก็บ database'],
@@ -910,6 +914,7 @@ $dirChecks = [
     'backups'      => ['label' => 'backups/',      'path' => __DIR__ . '/backups',      'need_write' => true,  'purpose' => $isEn ? 'Stores backup files'                 : 'เก็บ backup files'],
     'ics'          => ['label' => 'ics/',          'path' => __DIR__ . '/ics',          'need_write' => false, 'purpose' => $isEn ? 'Stores ICS files (optional)'         : 'เก็บไฟล์ ICS (optional)'],
     'fonts'        => ['label' => 'fonts/',        'path' => __DIR__ . '/fonts',        'need_write' => false, 'purpose' => $isEn ? 'TrueType fonts for image export (optional, see fonts/README.md)' : 'TrueType fonts สำหรับ image export (optional, ดู fonts/README.md)'],
+    'cache_favorites' => ['label' => 'cache/favorites/', 'path' => __DIR__ . '/cache/favorites', 'need_write' => true,  'purpose' => $isEn ? 'Stores anonymous favorites JSON files' : 'เก็บไฟล์ favorites (anonymous)'],
 ];
 foreach ($dirChecks as &$dc) {
     $dc['exists'] = is_dir($dc['path']);
@@ -1625,7 +1630,7 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                 </div>
                 <div class="step-content">
                     <strong><?= $isEn ? 'Create Required Directories' : 'สร้าง Directories ที่จำเป็น' ?></strong>
-                    <p><?= $isEn ? 'Folders' : 'โฟลเดอร์' ?> <code>data/</code>, <code>cache/</code>, <code>cache/images/</code>, <code>backups/</code>, <code>ics/</code>, <code>fonts/</code></p>
+                    <p><?= $isEn ? 'Folders' : 'โฟลเดอร์' ?> <code>data/</code>, <code>cache/</code>, <code>cache/images/</code>, <code>cache/favorites/</code>, <code>backups/</code>, <code>ics/</code>, <code>fonts/</code></p>
                 </div>
             </div>
             <div class="step">
@@ -1818,6 +1823,29 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
             </div>
             <?php endif; ?>
         <?php endif; ?>
+
+        <!-- Favorites HMAC Secret check -->
+        <div class="check-row" style="border-top:2px solid #f0f0f0; font-weight:600; font-size:0.9rem; color:#555; background:#fafafa;">
+            ⭐ <?= $isEn ? 'Favorites System' : 'ระบบ Favorites' ?>
+            <span style="font-size:0.8rem; font-weight:normal; color:#999; margin-left:8px;">
+                <?= $isEn ? 'Anonymous favorites for tracking artists' : 'ติดตามศิลปินแบบ anonymous' ?>
+            </span>
+        </div>
+        <div class="check-row">
+            <span class="check-icon"><?= $_favSecretOk ? '✅' : '⚠️' ?></span>
+            <span class="check-label">
+                HMAC Secret
+                <span style="color:#999; font-size:0.82rem; margin-left:6px;"><?= $isEn ? 'config/favorites.php' : 'config/favorites.php' ?></span>
+                <?php if (!$_favSecretOk): ?>
+                <span class="fix-hint">💡 <?= $isEn
+                    ? 'Run <code>php tools/generate-favorites-secret.php</code> then paste into <code>config/favorites.php</code>'
+                    : 'รัน <code>php tools/generate-favorites-secret.php</code> แล้ว paste ลงใน <code>config/favorites.php</code>' ?></span>
+                <?php endif; ?>
+            </span>
+            <span class="check-value <?= $_favSecretOk ? 'ok' : 'warning' ?>">
+                <?= $_favSecretOk ? ($isEn ? 'configured' : 'ตั้งค่าแล้ว') : ($isEn ? 'not configured' : 'ยังไม่ได้ตั้งค่า') ?>
+            </span>
+        </div>
     </div>
 
     <!-- Step 3: Database -->

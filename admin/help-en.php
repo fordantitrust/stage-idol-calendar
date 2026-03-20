@@ -581,6 +581,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Calendar mode automatically hides the List/Timeline toggle and is compatible with all color themes.</div>
                 </div>
 
+                <h3>Sorting</h3>
+                <p>Click any column header to sort — click again to toggle ↑ / ↓. The ↕ icon means unsorted.</p>
+                <table class="help-table">
+                    <thead><tr><th>Column</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <tr><td>#</td><td>Sort by ID</td></tr>
+                        <tr><td>Name</td><td>Sort by event name (A→Z / Z→A)</td></tr>
+                        <tr><td>Start Date</td><td>Sort by event start date (default: newest first)</td></tr>
+                        <tr><td>End Date</td><td>Sort by event end date</td></tr>
+                        <tr><td>Active</td><td>Sort by Active / Inactive status</td></tr>
+                        <tr><td>Programs</td><td>Sort by number of programs in the event</td></tr>
+                    </tbody>
+                </table>
+
                 <h3>Accessing Events via URL</h3>
                 <p>Each event can be accessed directly via: <code>/event/{slug}</code></p>
                 <p>Example: <code>/event/idol-stage-feb-2026</code></p>
@@ -764,6 +778,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="callout callout-tip">
                     <span class="callout-icon">💡</span>
                     <div>When importing an ICS file, the system auto-links programs to artists by matching CATEGORIES — both the primary name and all variants are checked.</div>
+                </div>
+
+                <h3>Copy Artist</h3>
+                <p>The <strong>Copy</strong> button on each artist row opens a modal to create a new artist based on an existing one:</p>
+                <ul>
+                    <li>Fields are pre-filled from the original (name + " (copy)", type, group membership)</li>
+                    <li>A <strong>Variants to copy</strong> section lists all variants of the original with checkboxes (all checked by default)</li>
+                    <li>"Select all" / "Deselect all" buttons are available for variants; all fields can be edited before saving</li>
+                    <li>After saving, the system creates the new artist then loops through selected variants to create them</li>
+                </ul>
+
+                <h3>Bulk Import Artists</h3>
+                <p>The <strong>📥 Import Multiple</strong> button in the toolbar opens a modal for importing many artists at once:</p>
+                <ul>
+                    <li><strong>Step 1</strong>: Enter one artist name per line (up to 500 names); optionally check "Is a Group" and select a destination group</li>
+                    <li><strong>Step 2</strong>: Review results — ✅ Created / ⚠️ Duplicate / ❌ Error — with a summary bar; the artist list refreshes automatically</li>
+                </ul>
+
+                <h3>Bulk Select &amp; Bulk Actions</h3>
+                <p>The Artists table has a checkbox column for selecting multiple artists at once. A Bulk Toolbar (yellow bar) appears when at least one artist is selected:</p>
+                <table class="help-table">
+                    <thead><tr><th>Action</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>👥 Add to Group</td><td>Opens a modal to choose a destination group → sets <code>group_id</code> on all selected artists (Group-type artists are skipped)</td></tr>
+                        <tr><td>🚫 Remove from Group</td><td>Sets <code>group_id = null</code> on all selected artists</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Bulk Add to Group automatically skips artists with <code>is_group = 1</code> — the SQL filters <code>WHERE is_group = 0</code> so only Solo artists are affected.</div>
                 </div>
 
                 <h3>Artist Profile Page</h3>

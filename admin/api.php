@@ -237,6 +237,12 @@ switch ($action) {
     case 'artists_variants_delete':
         deleteArtistVariant();
         break;
+    case 'artists_bulk_set_group':
+        artistsBulkSetGroup();
+        break;
+    case 'artists_bulk_import':
+        artistsBulkImport();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
 }
@@ -785,8 +791,7 @@ function getVenues() {
 
         $venues = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            // Escape HTML เพื่อป้องกัน XSS
-            $venues[] = htmlspecialchars($row['location'], ENT_QUOTES, 'UTF-8');
+            $venues[] = $row['location'];
         }
 
         jsonResponse(true, $venues);
@@ -811,7 +816,7 @@ function getTypes() {
 
         $types = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $types[] = htmlspecialchars($row['program_type'], ENT_QUOTES, 'UTF-8');
+            $types[] = $row['program_type'];
         }
 
         jsonResponse(true, $types);
@@ -1145,13 +1150,13 @@ function uploadAndParseIcs() {
             if ($row) {
                 $suggested = [
                     'artist_id'   => (int)$row['id'],
-                    'artist_name' => htmlspecialchars($row['name'], ENT_QUOTES, 'UTF-8'),
+                    'artist_name' => $row['name'],
                 ];
             }
         }
 
         $unmatchedCategories[] = [
-            'name'      => htmlspecialchars($cat, ENT_QUOTES, 'UTF-8'),
+            'name'      => $cat,
             'count'     => $count,
             'suggested' => $suggested,
         ];
@@ -1496,19 +1501,7 @@ function syncProgramArtists(PDO $db, int $programId, string $categories): void {
  * @return mixed
  */
 function escapeOutputData($data, $fields = []) {
-    if (is_array($data)) {
-        foreach ($data as $key => &$value) {
-            if (is_array($value)) {
-                // Recursive สำหรับ nested arrays
-                $value = escapeOutputData($value, $fields);
-            } elseif (is_string($value) && (empty($fields) || in_array($key, $fields))) {
-                $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-            }
-        }
-        unset($value);
-    } elseif (is_string($data)) {
-        $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-    }
+    // JSON responses should carry raw data; JS code uses escapeHtml() when inserting into innerHTML
     return $data;
 }
 
@@ -3074,7 +3067,7 @@ function autocompleteArtists() {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $data = array_map(fn($r) => [
             'id'       => (int)$r['id'],
-            'name'     => htmlspecialchars($r['name'], ENT_QUOTES, 'UTF-8'),
+            'name'     => $r['name'],
             'is_group' => (bool)$r['is_group'],
         ], $rows);
         jsonResponse(true, $data);
@@ -3412,7 +3405,7 @@ function createArtistVariant() {
         }
 
         invalidate_artist_query_cache();
-        jsonResponse(true, ['id' => (int)$newId, 'variant' => htmlspecialchars($variant, ENT_QUOTES, 'UTF-8')], 'Variant added');
+        jsonResponse(true, ['id' => (int)$newId, 'variant' => $variant], 'Variant added');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to create variant', $e->getMessage()));
     }
@@ -3449,6 +3442,176 @@ function deleteArtistVariant() {
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete variant', $e->getMessage()));
     }
+}
+
+/**
+ * Clone an artist (duplicate with all variants)
+ */
+/**
+ * Bulk set group_id for multiple artists
+ */
+function artistsBulkSetGroup() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input    = json_decode(file_get_contents('php://input'), true);
+    $ids      = $input['ids'] ?? [];
+    $groupId  = isset($input['group_id']) && $input['group_id'] !== '' ? intval($input['group_id']) : null;
+
+    if (empty($ids) || !is_array($ids)) {
+        jsonResponse(false, null, 'No artist IDs provided');
+        return;
+    }
+    if (count($ids) > 200) {
+        jsonResponse(false, null, 'Too many artists (max 200)');
+        return;
+    }
+
+    $ids = array_map('intval', $ids);
+    $ids = array_filter($ids, fn($i) => $i > 0);
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'No valid artist IDs');
+        return;
+    }
+
+    // Validate group exists (if set)
+    if ($groupId !== null) {
+        $stmt = $db->prepare("SELECT id, is_group FROM artists WHERE id = ?");
+        $stmt->execute([$groupId]);
+        $group = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        $stmt = null;
+
+        if (!$group) {
+            jsonResponse(false, null, 'Group not found');
+            return;
+        }
+        if (!$group['is_group']) {
+            jsonResponse(false, null, 'Selected artist is not a group');
+            return;
+        }
+        // Remove group itself from the ids to prevent self-reference
+        $ids = array_values(array_diff($ids, [$groupId]));
+    }
+
+    if (empty($ids)) {
+        jsonResponse(false, null, 'No valid artist IDs after filtering');
+        return;
+    }
+
+    try {
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $db->prepare("
+            UPDATE artists
+            SET group_id = ?, updated_at = ?
+            WHERE id IN ($placeholders) AND is_group = 0
+        ");
+        $params = array_merge([$groupId, date('Y-m-d H:i:s')], $ids);
+        $stmt->execute($params);
+        $affected = $stmt->rowCount();
+        $stmt->closeCursor();
+        $stmt = null;
+
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+        jsonResponse(true, ['affected' => $affected], "Updated $affected artist(s)");
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to update artists', $e->getMessage()));
+    }
+}
+
+/**
+ * Bulk import artists from a list of names
+ */
+function artistsBulkImport() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input   = json_decode(file_get_contents('php://input'), true);
+    $names   = $input['names'] ?? [];
+    $isGroup = empty($input['is_group']) ? 0 : 1;
+    $groupId = isset($input['group_id']) && $input['group_id'] !== '' ? intval($input['group_id']) : null;
+
+    if (empty($names) || !is_array($names)) {
+        jsonResponse(false, null, 'No names provided');
+        return;
+    }
+    if (count($names) > 500) {
+        jsonResponse(false, null, 'Too many names (max 500 per import)');
+        return;
+    }
+
+    // Groups cannot have a parent group
+    if ($isGroup) {
+        $groupId = null;
+    }
+
+    // Validate group if specified
+    if ($groupId !== null) {
+        $stmt = $db->prepare("SELECT id, is_group FROM artists WHERE id = ?");
+        $stmt->execute([$groupId]);
+        $group = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->closeCursor();
+        $stmt = null;
+        if (!$group || !$group['is_group']) {
+            jsonResponse(false, null, 'Invalid group ID');
+            return;
+        }
+    }
+
+    $results = [];
+    $now     = date('Y-m-d H:i:s');
+    $created = 0;
+
+    foreach ($names as $rawName) {
+        $name = trim((string)$rawName);
+        if ($name === '') continue;
+        if (strlen($name) > 200) {
+            $results[] = ['name' => $name, 'status' => 'error', 'message' => 'ชื่อยาวเกิน 200 ตัวอักษร'];
+            continue;
+        }
+
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO artists (name, is_group, group_id, created_at, updated_at)
+                VALUES (:name, :is_group, :group_id, :created_at, :updated_at)
+            ");
+            $stmt->execute([
+                ':name'       => $name,
+                ':is_group'   => $isGroup,
+                ':group_id'   => $groupId,
+                ':created_at' => $now,
+                ':updated_at' => $now,
+            ]);
+            $newId = $db->lastInsertId();
+            $stmt->closeCursor();
+            $stmt = null;
+            $results[] = ['name' => $name, 'status' => 'created', 'id' => $newId];
+            $created++;
+        } catch (PDOException $e) {
+            if (strpos($e->getMessage(), 'UNIQUE') !== false) {
+                $results[] = ['name' => $name, 'status' => 'duplicate'];
+            } else {
+                $results[] = ['name' => $name, 'status' => 'error', 'message' => 'Database error'];
+            }
+        }
+    }
+
+    if ($created > 0) {
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+    }
+
+    jsonResponse(true, ['results' => $results, 'created' => $created], "Import เสร็จสิ้น: สร้าง {$created} คน");
 }
 
 /**

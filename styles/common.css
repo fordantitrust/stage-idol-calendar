@@ -1444,6 +1444,29 @@ footer {
     align-self: center;
 }
 
+/* ── Shared utility button (pages without index.css / artist.css) ─────────── */
+.btn {
+    display: inline-block;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    font-weight: 600;
+    text-decoration: none;
+    line-height: 1.4;
+    background: #f0f0f0;
+    color: #333;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary {
+    background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%));
+    color: #fff;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(233,30,99,0.3); }
+
+
 /* Responsive: mobile dot view */
 @media (max-width: 600px) {
     /* Make month-calendar the scroll container, not clipping the grid */

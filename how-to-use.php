@@ -243,6 +243,49 @@ $eventMeta = get_event_by_slug($eventSlug);
             </div>
 
             <div class="section">
+                <h2 data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</h2>
+                <p data-i18n="section17.desc">ติดตามศิลปินที่ชื่นชอบเพื่อดู upcoming programs ของพวกเขาได้สะดวก โดยไม่ต้องสร้างบัญชี</p>
+
+                <h3 data-i18n="section17.follow.title">1. ติดตามศิลปิน</h3>
+                <ul>
+                    <li data-i18n="section17.follow.step1">เปิดหน้าโปรไฟล์ศิลปินที่ต้องการ (กดปุ่ม ↗ ข้างชื่อศิลปิน)</li>
+                    <li data-i18n="section17.follow.step2">กดปุ่ม <strong>☆ ติดตาม</strong> — ครั้งแรกจะสร้าง Favorites ใหม่และพาไปหน้า My Favorites</li>
+                    <li data-i18n="section17.follow.step3">กดซ้ำที่ปุ่ม <strong>★ ติดตามแล้ว</strong> เพื่อเลิกติดตาม</li>
+                </ul>
+
+                <h3 data-i18n="section17.myfav.title">2. หน้า My Favorites (⭐)</h3>
+                <p data-i18n="section17.myfav.desc">แสดงรายชื่อศิลปินที่ติดตามแยกเป็น 2 ส่วน — 🎤 ศิลปิน และ 🎵 วง/กลุ่ม พร้อม link ไปหน้าโปรไฟล์และปุ่มเลิกติดตาม</p>
+                <ul>
+                    <li data-i18n="section17.myfav.sort">แต่ละส่วนมีปุ่มเรียงลำดับ <strong>A→Z</strong> / <strong>Z→A</strong> — ระบบจำการตั้งค่าไว้อัตโนมัติ</li>
+                </ul>
+
+                <h3 data-i18n="section17.myupcoming.title">3. หน้า My Upcoming Programs (📅)</h3>
+                <p data-i18n="section17.myupcoming.desc">แสดง programs ที่กำลังจะมาถึงจากศิลปินที่ติดตาม จัดกลุ่มตามวันที่ อัปเดตอัตโนมัติเมื่อ Admin เพิ่มข้อมูล</p>
+
+                <h3 data-i18n="section17.cal.title">📅 Mini Calendar View</h3>
+                <ul>
+                    <li data-i18n="section17.cal.feature1">ปฏิทินขนาดย่อแสดงระหว่างส่วน "ศิลปินที่ติดตาม" และรายการ Upcoming Programs</li>
+                    <li data-i18n="section17.cal.feature2">วันที่มี program จะแสดง dot สีชมพู — กด ◀ ▶ เพื่อเลื่อนเดือน (จำกัดเฉพาะเดือนที่มีข้อมูล)</li>
+                    <li data-i18n="section17.cal.feature3">กดวันที่มี dot เพื่อเปิด modal แสดงรายการ programs ของวันนั้น</li>
+                </ul>
+
+                <h3 data-i18n="section17.feed.title">4. Subscribe ปฏิทินส่วนตัว (🔔)</h3>
+                <p data-i18n="section17.feed.desc">Subscribe ครั้งเดียว — ปฏิทินจะ sync อัตโนมัติเมื่อมีการเพิ่ม/แก้ไข program ใหม่ ไม่ต้อง export ซ้ำ</p>
+                <ul>
+                    <li data-i18n="section17.feed.step1">กดปุ่ม <strong>🔔 Subscribe</strong> ใน Save URL banner ของหน้า My Upcoming Programs</li>
+                    <li data-i18n="section17.feed.step2">เลือก "🔗 เปิดใน Calendar App" (webcal://) สำหรับ Apple Calendar / iOS / Thunderbird หรือ Copy URL สำหรับ Google Calendar / Outlook</li>
+                    <li data-i18n="section17.feed.note">Feed แสดงเฉพาะ upcoming programs ของศิลปินที่ติดตาม — ชื่อ program จะมี [ชื่องาน] นำหน้าเพื่อแยกแยะแต่ละงาน</li>
+                </ul>
+
+                <h3 data-i18n="section17.saveurl.title">5. บันทึก URL ไว้ (สำคัญ!)</h3>
+                <p data-i18n="section17.saveurl.desc">ทั้งสองหน้าแสดง Save URL banner — <strong>ควรบันทึก URL ไว้</strong> เช่น Bookmark หรือ Copy ไปเก็บ เพราะ URL เป็น key เดียวที่เข้าถึงข้อมูลของคุณได้ หากหายไม่สามารถกู้คืนได้</p>
+                <div class="feature-box">
+                    <strong data-i18n="section17.nav.tip">💡 ทางลัด:</strong>
+                    <span data-i18n="section17.nav.tipText">เมื่อติดตามศิลปินแล้ว ปุ่ม ⭐ และ 📅 จะปรากฏที่มุมซ้ายบนทุกหน้า เพื่อกลับไปหน้า Favorites ได้ตลอดเวลา</span>
+                </div>
+            </div>
+
+            <div class="section">
                 <h2 data-i18n="section13.title">🗂️ งานที่จบแล้ว</h2>
                 <p data-i18n="section13.desc">กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว</p>
                 <ul>
@@ -327,5 +370,9 @@ $eventMeta = get_event_by_slug($eventSlug);
     <script>window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;</script>
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
+    <script>
+    const DEFAULT_EVENT_SLUG = '<?php echo DEFAULT_EVENT_SLUG; ?>';
+    const BASE_PATH = <?php echo json_encode(rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\")); ?>;
+    </script>      
 </body>
 </html>

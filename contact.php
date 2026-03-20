@@ -164,5 +164,9 @@ $disclaimer = get_site_disclaimer();
     </script>
     <?php endif; ?>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
+    <script>
+    const DEFAULT_EVENT_SLUG = '<?php echo DEFAULT_EVENT_SLUG; ?>';
+    const BASE_PATH = <?php echo json_encode(rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\")); ?>;
+    </script>    
 </body>
 </html>
