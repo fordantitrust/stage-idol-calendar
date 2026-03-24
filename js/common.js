@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', populateDomCache);
 // Change language
 function changeLanguage(lang) {
     currentLang = lang;
+    window.currentLang = lang;
     localStorage.setItem('language', lang);
 
     // Update active state of buttons (use cache when available)
@@ -39,6 +40,9 @@ function changeLanguage(lang) {
     if (typeof VENUE_MODE !== 'undefined' && VENUE_MODE === 'calendar' && calendarYear !== null) {
         renderAndMountCalendar();
     }
+
+    // Notify inline page scripts that language changed (e.g. to re-render dynamic modal content)
+    document.dispatchEvent(new CustomEvent('appLangChange', { detail: { lang: lang } }));
 }
 
 // Update all language text

@@ -128,6 +128,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v3.6.5–3.6.6** | 2026-03-20 | Homepage listing query cache (`cache/query_listing.json`, TTL 1 hr, auto-invalidated on event/program writes) · How-to-use page: 18-item 2-column TOC + section reorder by importance |
 | **v3.6.7** | 2026-03-20 | `fav_slug` recovery UX on error screens (Clear from Browser + Create New Favorites buttons) · Silent self-healing in `injectFavNavButton()` (background fetch removes stale slug automatically) |
 | **v3.6.8** | 2026-03-21 | Bug fix: `credits.php` was missing `BASE_PATH`, causing `injectFavNavButton()` to fetch `/api/favorites` at root instead of correct subdirectory path → 404 → `fav_slug` silently cleared from localStorage |
+| **v3.6.9** | 2026-03-22 | Now-playing highlight on My Upcoming Programs — programs currently in progress are highlighted on page load |
+| **v3.6.10** | 2026-03-23 | Event listing card and homepage calendar modal: dates displayed below event name (column layout) so long names get full width |
+| **v3.6.11** | 2026-03-24 | i18n fixes: 404 page multilingual · filter empty-state text translated · `my/fav.copyUrl` translated in TH/JA · JA grammar fixes · stale `"your event"` placeholders removed · `window.currentLang` sync fix · homepage calendar day modal re-renders on language switch · `appLangChange` custom event · `eventPicker.viewing` key added |
 
 ---
 
@@ -797,7 +800,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 3.6.8
+**Current Version**: 3.6.11
 
 ---
 

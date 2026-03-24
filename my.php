@@ -185,6 +185,21 @@ foreach ($byDate as $date => $progs) {
             background:#ffebee; color:#c62828;
         }
         .fav-no-programs { color:#999; font-size:.88rem; text-align:center; padding:24px; }
+        /* ── Now Playing ───────────────────────────────────────────────── */
+        .fav-program-row.fav-now-playing {
+            border-color:var(--sakura-dark,#e91e63);
+            border-left:3px solid var(--sakura-dark,#e91e63);
+            background:linear-gradient(135deg,#fff0f5 0%,#fff 100%);
+        }
+        .fav-now-badge {
+            display:inline-block; padding:1px 7px; border-radius:10px;
+            font-size:.72rem; font-weight:700; background:var(--sakura-dark,#e91e63);
+            color:#fff; margin-left:6px; vertical-align:middle;
+            animation:fav-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes fav-pulse {
+            0%,100% { opacity:1; } 50% { opacity:.6; }
+        }
         /* ── Errors / access denied ────────────────────────────────────── */
         .fav-error-box {
             background:#fff3e0; border:1px solid #ffe0b2; border-radius:8px;
@@ -387,7 +402,9 @@ foreach ($byDate as $date => $progs) {
                     $tEnd    = substr($p['end_date'],   11, 5);
                     $timeStr = ($tStart === $tEnd || !$tEnd || $tEnd === '00:00') ? $tStart : $tStart . '–' . $tEnd;
                 ?>
-                <div class="fav-program-row">
+                <div class="fav-program-row"
+                     data-start="<?= htmlspecialchars($p['start_date']) ?>"
+                     data-end="<?= htmlspecialchars($p['end_date']) ?>">
                     <div class="fav-time"><?= htmlspecialchars($timeStr) ?></div>
                     <div class="fav-prog-body">
                         <div class="fav-prog-title">
@@ -670,6 +687,38 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// ── Now Playing Highlight ─────────────────────────────────────────────────────
+function highlightNowPlaying() {
+    const now = new Date();
+    document.querySelectorAll('.fav-program-row[data-start]').forEach(function(row) {
+        // Parse "YYYY-MM-DD HH:MM:SS" → Date (local time)
+        const start = new Date(row.dataset.start.replace(' ', 'T'));
+        const endRaw = row.dataset.end || '';
+        const end   = endRaw ? new Date(endRaw.replace(' ', 'T')) : null;
+
+        // "now playing" = started AND (no end, or end is in the future)
+        const started  = !isNaN(start) && start <= now;
+        const notEnded = !end || isNaN(end) || end > now;
+        const isNow    = started && notEnded;
+
+        row.classList.toggle('fav-now-playing', isNow);
+
+        // Add/remove pulsing badge next to time
+        const timeEl = row.querySelector('.fav-time');
+        if (timeEl) {
+            const existing = timeEl.querySelector('.fav-now-badge');
+            if (isNow && !existing) {
+                const badge = document.createElement('span');
+                badge.className = 'fav-now-badge';
+                badge.textContent = 'NOW';
+                timeEl.appendChild(badge);
+            } else if (!isNow && existing) {
+                existing.remove();
+            }
+        }
+    });
+}
+
 // ── Language / init ───────────────────────────────────────────────────────────
 (function() {
     const _origCL = window.changeLanguage;
@@ -685,6 +734,7 @@ document.addEventListener('DOMContentLoaded', function() {
     formatFavDates(currentLang);
     updateFavTitles(currentLang);
     if (CAL_MONTHS.length) renderFavCal(currentLang);
+    highlightNowPlaying();
 });
 
 // ── Error recovery ────────────────────────────────────────────────────────────

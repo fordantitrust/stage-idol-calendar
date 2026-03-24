@@ -5,6 +5,49 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.11] - 2026-03-24
+
+### Fixed
+- 🌐 **i18n: 404 page now multilingual** — the 404 error page previously had all text hardcoded in Thai; replaced the PHP echo block with a proper HTML template using `data-i18n` attributes, loading `translations.js`, and an inline script that reads `localStorage.lang` and applies translations; now renders correctly in TH/EN/JA like every other page in the app
+- 🌐 **i18n: Filter empty-state text** — "no artist data" and "no venue data" messages inside the filter panel were hardcoded in Thai with no i18n; added `data-i18n` attributes (`filter.noArtist`, `filter.noVenue`) and added translation keys for all three languages
+- 🌐 **i18n: `my.copyUrl` / `fav.copyUrl` keys were English in all locales** — Thai locale now uses `'📋 คัดลอก URL'` and Japanese locale now uses `'📋 URLをコピー'`
+- 🌐 **i18n: `fav.noArtists` (JA) grammar** — `'フォロー中がいません'` (incomplete) → `'フォロー中のアーティストがいません'` (grammatically complete)
+- 🌐 **i18n: `fav.statsPrograms` (JA) text truncated** — `'アップカミング'` → `'アップカミングプログラム'` to match the TH/EN meaning
+- 🌐 **i18n: `howToUse.subtitle` stale `"your event"` placeholder** — Thai and Japanese locales contained the literal string `"your event"` instead of the site name; replaced with `'Idol Stage Timetable'` so the existing IIFE at the bottom of `translations.js` can substitute the custom title when one is configured
+- 🌐 **i18n: `section1.desc` stale `"your event"` placeholder** — same fix applied to TH and JA
+- 🌐 **i18n: `contact.disclaimer.text` stale `"your event organizers"` placeholder** — removed the unresolved placeholder from all three locales; text now reads as a complete, self-contained sentence
+- 🐛 **`openLcalDayModal` status badge not translating** — `const translations` in `translations.js` is a block-scoped global and is not a property of `window`, so `window.translations` was always `undefined`; the event status badge in the homepage calendar day modal always showed the raw JS value `'ongoing'` / `'upcoming'` / `'past'` regardless of selected language; fixed by using `translations[lang]` directly instead of `window.translations[lang]`; same fix applied to the "▼ Read more" button initialisation
+- 🐛 **Event Picker "currently viewing" badge not translating** — `✓ ดูอยู่` badge on the active event card had no `data-i18n` attribute and no translation key; added `data-i18n="eventPicker.viewing"` and translation keys for TH/EN/JA
+- 🐛 **`window.currentLang` always undefined in inline scripts** — `currentLang` in `common.js` is declared as `let`, which is not a property of `window`; all inline scripts in `index.php` that read `window.currentLang` always got `undefined` and fell back to Thai regardless of the selected language; fixed by adding `window.currentLang = lang` inside `changeLanguage()` so it is always kept in sync
+- 🐛 **Homepage calendar day modal not re-rendering on language switch** — the modal's innerHTML was built once on open and had no `data-i18n` attributes, so `updateLanguage()` could not update it; fixed by storing the active date in `window._lcalActiveDate` and listening for the new `appLangChange` custom event dispatched by `changeLanguage()`; the listing calendar grid and open day modal are both re-rendered immediately when language changes
+
+### Added
+- 🌐 **New translation keys** — `filter.noArtist`, `filter.noVenue`, `notFound.heading`, `notFound.desc`, `notFound.back`, `eventPicker.viewing` added in TH/EN/JA
+- 🔧 **`appLangChange` custom DOM event** — `changeLanguage()` in `common.js` now dispatches `document.dispatchEvent(new CustomEvent('appLangChange', { detail: { lang } }))` after updating the page; page-specific inline scripts can listen to this event to re-render dynamic content without monkey-patching `window.changeLanguage`
+
+**📁 Files changed:**
+- `index.php`
+- `js/translations.js`
+- `js/common.js`
+- `config/app.php`
+
+## [3.6.10] - 2026-03-23
+
+### Changed
+- 🎨 **Event listing card header — dates displayed below the event name** — changed `.program-card-header` from row layout (name left / date right) to column layout so long event names have full width without being squeezed by the date
+- 🎨 **Homepage calendar modal event cards — same layout change** — `.lcal-event-card-header` updated to match
+
+**📁 Files changed:**
+- `styles/index.css`
+
+## [3.6.9] - 2026-03-22
+
+### Added
+- ✨ **Now-playing highlight on My Upcoming Programs** — when the page loads, programs that are currently in progress are highlighted with a distinct style so users can instantly see what is on right now; highlight is applied once on page load (no auto-refresh — users reload the page manually to update)
+
+**📁 Files changed:**
+- `my.php`
+
 ## [3.6.8] - 2026-03-21
 
 ### Fixed

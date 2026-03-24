@@ -41,16 +41,15 @@
     box-shadow: 0 6px 24px var(--sakura-dark-20);
 }
 
-/* Top gradient header: name left, dates right */
+/* Top gradient header: name top, dates below */
 .program-card-header {
     background: var(--sakura-gradient);
     padding: 14px 20px;
     color: white;
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
 }
 
 .program-card-name {
@@ -58,15 +57,11 @@
     font-weight: 700;
     margin: 0;
     line-height: 1.3;
-    flex: 1;
 }
 
 .program-card-dates {
     font-size: 0.85em;
     opacity: 0.9;
-    white-space: nowrap;
-    flex-shrink: 0;
-    text-align: right;
 }
 
 /* Bottom body: content left, button right */
@@ -425,11 +420,8 @@
         gap: 10px;
     }
 
-    /* Header: allow dates to wrap below name on very narrow screens */
     .program-card-header {
         padding: 12px 14px;
-        flex-wrap: wrap;
-        gap: 4px 10px;
     }
 
     .program-card-name {
@@ -438,7 +430,6 @@
 
     .program-card-dates {
         font-size: 0.8em;
-        white-space: normal;
     }
 
     /* Body: stack content + button vertically */
@@ -2263,9 +2254,9 @@ tr.program-live {
 /* Mini event cards inside day modal */
 .lcal-event-card{border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;transition:transform .15s,box-shadow .15s}
 .lcal-event-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(233,30,99,.15)}
-.lcal-event-card-header{background:var(--sakura-gradient);padding:10px 14px;display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:8px}
-.lcal-event-card-name{font-size:.95rem;font-weight:700;color:#fff;flex:1;line-height:1.3}
-.lcal-event-card-dates{font-size:.78rem;color:rgba(255,255,255,.9);white-space:nowrap;flex-shrink:0}
+.lcal-event-card-header{background:var(--sakura-gradient);padding:10px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.lcal-event-card-name{font-size:.95rem;font-weight:700;color:#fff;line-height:1.3}
+.lcal-event-card-dates{font-size:.78rem;color:rgba(255,255,255,.9)}
 .lcal-event-card-body{background:#fff;padding:10px 14px;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
 .lcal-event-link{display:inline-flex;align-items:center;padding:7px 14px;background:var(--sakura-gradient);color:#fff;text-decoration:none;border-radius:7px;font-weight:600;font-size:.82rem;white-space:nowrap;flex-shrink:0;transition:all .2s}
 .lcal-event-link:hover{box-shadow:0 3px 10px var(--sakura-dark-40,rgba(233,30,99,.4))}

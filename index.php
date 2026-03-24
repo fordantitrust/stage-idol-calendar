@@ -15,14 +15,38 @@ if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
     http_response_code(404);
     $siteTitle = get_site_title();
     $theme = get_site_theme();
-    echo '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>ไม่พบ Event - ' . htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8') . '</title>'
-        . '<link rel="stylesheet" href="styles/common.css?v=' . APP_VERSION . '">'
-        . '</head><body class="theme-' . htmlspecialchars($theme, ENT_QUOTES, 'UTF-8') . '">'
-        . '<div style="text-align:center;padding:80px 20px">'
-        . '<h1>🌸 404 – ไม่พบ Event</h1>'
-        . '<p>Event นี้ไม่มีอยู่ หรือถูกปิดใช้งานแล้ว</p>'
-        . '<a href="/" style="color:var(--sakura-dark)">← กลับหน้าหลัก</a>'
-        . '</div></body></html>';
+    $basePath = get_base_path();
+    ?>
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Not Found - <?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+<link rel="stylesheet" href="<?php echo htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8'); ?>/styles/common.css?v=<?php echo APP_VERSION; ?>">
+</head>
+<body class="theme-<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>">
+<div style="text-align:center;padding:80px 20px">
+    <h1 data-i18n="notFound.heading">🌸 404 – ไม่พบ Event</h1>
+    <p data-i18n="notFound.desc">Event นี้ไม่มีอยู่ หรือถูกปิดใช้งานแล้ว</p>
+    <a href="<?php echo htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8'); ?>/" style="color:var(--sakura-dark)" data-i18n="notFound.back">← กลับหน้าหลัก</a>
+</div>
+<script>const BASE_PATH = <?php echo json_encode($basePath); ?>;</script>
+<script src="<?php echo htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8'); ?>/js/translations.js?v=<?php echo APP_VERSION; ?>"></script>
+<script>
+(function () {
+    var lang = 'th';
+    try { lang = localStorage.getItem('lang') || 'th'; } catch (e) {}
+    var t = translations[lang] || translations['th'];
+    document.documentElement.lang = t.langCode || lang;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var k = el.getAttribute('data-i18n');
+        if (t[k]) el.textContent = t[k];
+    });
+}());
+</script>
+</body>
+</html>
+<?php
     exit;
 }
 
@@ -656,7 +680,7 @@ if ($_listingCalDataFromCache !== null) {
                                 </label>
                             <?php endforeach; ?>
                             <?php if (empty($artists)): ?>
-                                <p class="no-options">ไม่มีข้อมูลศิลปิน</p>
+                                <p class="no-options" data-i18n="filter.noArtist">ไม่มีข้อมูลศิลปิน</p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -713,7 +737,7 @@ if ($_listingCalDataFromCache !== null) {
                                 </label>
                             <?php endforeach; ?>
                             <?php if (empty($venues)): ?>
-                                <p class="no-options">ไม่มีข้อมูลเวที</p>
+                                <p class="no-options" data-i18n="filter.noVenue">ไม่มีข้อมูลเวที</p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1406,8 +1430,8 @@ if ($_listingCalDataFromCache !== null) {
                 btn.type      = 'button';
                 btn.className = 'program-card-readmore';
                 btn.setAttribute('data-i18n', 'listing.readMore');
-                btn.textContent = (window.translations && window.translations[window.currentLang || 'th'])
-                    ? (window.translations[window.currentLang || 'th']['listing.readMore'] || '▼ อ่านเพิ่มเติม')
+                btn.textContent = (typeof translations !== 'undefined' && translations[window.currentLang || 'th'])
+                    ? (translations[window.currentLang || 'th']['listing.readMore'] || '▼ อ่านเพิ่มเติม')
                     : '▼ อ่านเพิ่มเติม';
                 btn.addEventListener('click', function (e) {
                     e.stopPropagation();
@@ -1538,6 +1562,7 @@ if ($_listingCalDataFromCache !== null) {
     function openLcalDayModal(dateStr) {
         var events = LISTING_CAL_DATA[dateStr];
         if (!events || !events.length) return;
+        window._lcalActiveDate = dateStr;
 
         var d = new Date(dateStr + 'T00:00:00');
         var months = LCAL_MONTHS[window.currentLang] || LCAL_MONTHS.th;
@@ -1549,7 +1574,7 @@ if ($_listingCalDataFromCache !== null) {
         if (titleEl) titleEl.textContent = label;
         if (bodyEl) {
             var lang = window.currentLang || 'th';
-            var tr = (window.translations && window.translations[lang]) || {};
+            var tr = (typeof translations !== 'undefined' && translations[lang]) || {};
             var todayStr = new Date().toISOString().slice(0,10);
             var html = '';
             events.forEach(function(ev) {
@@ -1591,6 +1616,7 @@ if ($_listingCalDataFromCache !== null) {
         var overlay = document.getElementById('lcalDayOverlay');
         if (overlay) overlay.classList.remove('open');
         document.body.style.overflow = '';
+        window._lcalActiveDate = null;
     }
 
     function _lcEsc(str) {
@@ -1604,14 +1630,14 @@ if ($_listingCalDataFromCache !== null) {
         }
     });
 
-    // Hook into language switcher
-    (function() {
-        var _origCL = window.changeLanguage;
-        window.changeLanguage = function(lang) {
-            _origCL(lang);
+    // Re-render listing calendar and day modal when language changes
+    document.addEventListener('appLangChange', function(e) {
+        var lang = e.detail && e.detail.lang;
+        if (lang) {
             renderLcal(lang);
-        };
-    })();
+            if (window._lcalActiveDate) openLcalDayModal(window._lcalActiveDate);
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         renderLcal(window.currentLang || 'th');
@@ -1686,7 +1712,7 @@ if ($_listingCalDataFromCache !== null) {
                data-name="<?php echo htmlspecialchars(mb_strtolower($ev['name'], 'UTF-8')); ?>"
                data-status="<?php echo $evStatus; ?>">
                 <?php if ($isCurrent): ?>
-                <span class="event-picker-current-badge">✓ ดูอยู่</span>
+                <span class="event-picker-current-badge" data-i18n="eventPicker.viewing">✓ ดูอยู่</span>
                 <?php endif; ?>
                 <div class="event-picker-card-name"><?php echo htmlspecialchars($ev['name']); ?></div>
                 <?php if ($displayStart): ?>

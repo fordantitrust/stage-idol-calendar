@@ -31,6 +31,7 @@ const translations = {
         'eventPicker.searchPlaceholder': 'ค้นหา event...',
         'eventPicker.all': 'ทั้งหมด',
         'eventPicker.noResults': 'ไม่พบ event ที่ตรงกัน',
+        'eventPicker.viewing': '✓ ดูอยู่',
         'subscribe.title': '🔔 Subscribe to Calendar',
         'subscribe.desc': 'Subscribe ครั้งเดียว ปฏิทินของคุณจะอัปเดตอัตโนมัติเมื่อมีการเพิ่ม/แก้ไข program',
         'subscribe.openApp': '🔗 เปิดใน Calendar App (webcal://)',
@@ -81,10 +82,10 @@ const translations = {
 
         // How to use page
         'howToUse.title': '📖 วิธีการใช้งาน',
-        'howToUse.subtitle': 'คู่มือการใช้งานปฏิทินกิจกรรม your event',
+        'howToUse.subtitle': 'คู่มือการใช้งาน Idol Stage Timetable',
         'toc.title': '📋 สารบัญ',
         'section1.title': '🎯 ภาพรวม',
-        'section1.desc': 'ปฏิทินกิจกรรมนี้ช่วยให้คุณดูตารางการแสดงของศิลปิน Idol ทั้งหมดในงาน your event ได้อย่างง่ายดาย พร้อมฟีเจอร์การกรองและส่งออกข้อมูล',
+        'section1.desc': 'ปฏิทินกิจกรรมนี้ช่วยให้คุณดูตารางการแสดงของศิลปิน Idol ทั้งหมดใน Idol Stage Timetable ได้อย่างง่ายดาย พร้อมฟีเจอร์การกรองและส่งออกข้อมูล',
         'section2.title': '🔍 การกรองข้อมูล',
         'section2.filter1.title': '1. กรองตามศิลปิน',
         'section2.filter1.desc': 'เลือกศิลปินที่คุณสนใจโดยคลิกที่ checkbox หรือใช้ช่องค้นหาเพื่อหาชื่อศิลปินที่ต้องการ',
@@ -281,7 +282,7 @@ const translations = {
         'contact.section2.item4': 'ขั้นตอนการทำซ้ำปัญหา (ถ้ามี)',
         'contact.section2.item5': 'Screenshot (ถ้าเป็นไปได้)',
         'contact.disclaimer.title': '⚠️ ข้อจำกัดความรับผิดชอบ',
-        'contact.disclaimer.text': 'ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของงาน your event organizers อีกครั้ง',
+        'contact.disclaimer.text': 'ปฏิทินนี้เป็น Unofficial Calendar ที่จัดทำขึ้นเพื่อความสะดวกของผู้เข้าชมงาน ข้อมูลอาจมีความคลาดเคลื่อนจากตารางจริงของผู้จัดงาน กรุณาตรวจสอบข้อมูลล่าสุดจากเว็บไซต์ทางการของผู้จัดงานอีกครั้ง',
         // Event listing page
         'listing.calTitle': '📅 ปฏิทินกิจกรรม',
         'listing.title': '🎪 รายการกิจกรรม',
@@ -358,7 +359,7 @@ const translations = {
         'my.empty.hint': 'ไปที่หน้าโปรไฟล์ศิลปินแล้วกด ☆ ติดตาม เพื่อเริ่มต้น',
         'my.expired': 'Favorites หมดอายุหรือ URL ไม่ถูกต้อง — ข้อมูลถูกล้างออกแล้ว',
         'my.saveBanner': '⚠️ บันทึก URL นี้ไว้ หากหายไม่สามารถกู้คืนได้',
-        'my.copyUrl': '📋 Copy URL',
+        'my.copyUrl': '📋 คัดลอก URL',
         'my.copied': '✅ Copied!',
         'my.following': '⭐ ศิลปินที่ติดตาม',
         'my.noFollowing': 'ยังไม่มีศิลปินที่ติดตาม',
@@ -370,7 +371,7 @@ const translations = {
         // Favorites dashboard page (/favorites/{slug})
         'fav.h1': '📅 My Upcoming Programs',
         'fav.saveBanner': '⚠️ บันทึก URL นี้ไว้ หากหายไม่สามารถกู้คืนได้',
-        'fav.copyUrl': '📋 Copy URL',
+        'fav.copyUrl': '📋 คัดลอก URL',
         'fav.copied': '✅ Copied!',
         'fav.artists': '⭐ ศิลปินที่ติดตาม',
         'fav.noArtists': 'ยังไม่มีศิลปินที่ติดตาม — ไปที่หน้าโปรไฟล์ศิลปินแล้วกด ☆ ติดตาม',
@@ -395,7 +396,16 @@ const translations = {
         'fav.noAccess': 'ไม่มีสิทธิ์เข้าใช้งาน',
         'fav.noAccessDesc': 'หน้านี้ต้องการ URL เฉพาะตัว กรุณาใช้ลิงก์ที่บันทึกไว้',
         'fav.clearStorage': '🗑️ ล้างออกจาก Browser',
-        'fav.createError': 'ไม่สามารถสร้าง Favorites ได้ กรุณาลองใหม่'
+        'fav.createError': 'ไม่สามารถสร้าง Favorites ได้ กรุณาลองใหม่',
+
+        // Filter empty states
+        'filter.noArtist': 'ไม่มีข้อมูลศิลปิน',
+        'filter.noVenue': 'ไม่มีข้อมูลเวที',
+
+        // 404 Not Found page
+        'notFound.heading': '🌸 404 – ไม่พบ Event',
+        'notFound.desc': 'Event นี้ไม่มีอยู่ หรือถูกปิดใช้งานแล้ว',
+        'notFound.back': '← กลับหน้าหลัก'
     },
     en: {
         // Common
@@ -428,6 +438,7 @@ const translations = {
         'eventPicker.searchPlaceholder': 'Search events...',
         'eventPicker.all': 'All',
         'eventPicker.noResults': 'No events found',
+        'eventPicker.viewing': '✓ Viewing',
         'subscribe.title': '🔔 Subscribe to Calendar',
         'subscribe.desc': 'Subscribe once and your calendar will auto-update whenever programs are added or changed.',
         'subscribe.openApp': '🔗 Open in Calendar App (webcal://)',
@@ -678,7 +689,7 @@ const translations = {
         'contact.section2.item4': 'Steps to reproduce the issue (if any)',
         'contact.section2.item5': 'Screenshot (if possible)',
         'contact.disclaimer.title': '⚠️ Disclaimer',
-        'contact.disclaimer.text': 'This is an Unofficial Calendar created for the convenience of event visitors. Information may differ from the actual schedule of the organizers. Please check the latest information from the official your event organizers website again.',
+        'contact.disclaimer.text': 'This is an Unofficial Calendar created for the convenience of event visitors. Information may differ from the actual schedule of the organizers. Please check the latest information from the official event organizers website.',
         // Event listing page
         'listing.calTitle': '📅 Event Calendar',
         'listing.title': '🎪 Events',
@@ -792,7 +803,16 @@ const translations = {
         'fav.noAccess': 'Access Denied',
         'fav.noAccessDesc': 'This page requires a personal URL. Please use your saved link.',
         'fav.clearStorage': '🗑️ Clear from Browser',
-        'fav.createError': 'Failed to create Favorites. Please try again.'
+        'fav.createError': 'Failed to create Favorites. Please try again.',
+
+        // Filter empty states
+        'filter.noArtist': 'No artist data available',
+        'filter.noVenue': 'No venue data available',
+
+        // 404 Not Found page
+        'notFound.heading': '🌸 404 – Event Not Found',
+        'notFound.desc': 'This event does not exist or has been disabled.',
+        'notFound.back': '← Back to Home'
     },
     ja: {
         // Common
@@ -825,6 +845,7 @@ const translations = {
         'eventPicker.searchPlaceholder': 'イベントを検索...',
         'eventPicker.all': 'すべて',
         'eventPicker.noResults': '該当するイベントが見つかりません',
+        'eventPicker.viewing': '✓ 表示中',
         'subscribe.title': '🔔 カレンダーを購読',
         'subscribe.desc': '一度購読するだけで、プログラムが追加・変更されると自動的に更新されます。',
         'subscribe.openApp': '🔗 カレンダーアプリで開く (webcal://)',
@@ -875,10 +896,10 @@ const translations = {
 
         // How to use page
         'howToUse.title': '📖 使い方',
-        'howToUse.subtitle': 'your event カレンダーユーザーガイド',
+        'howToUse.subtitle': 'Idol Stage Timetable カレンダーユーザーガイド',
         'toc.title': '📋 目次',
         'section1.title': '🎯 概要',
-        'section1.desc': 'このカレンダーは、your eventのすべてのアイドルアーティストのパフォーマンススケジュールを簡単に表示でき、フィルタリングとエクスポート機能を備えています。',
+        'section1.desc': 'このカレンダーは、Idol Stage Timetableのすべてのアイドルアーティストのパフォーマンススケジュールを簡単に表示でき、フィルタリングとエクスポート機能を備えています。',
         'section2.title': '🔍 データのフィルタリング',
         'section2.filter1.title': '1. アーティストでフィルタ',
         'section2.filter1.desc': 'チェックボックスをクリックして興味のあるアーティストを選択するか、検索ボックスを使用して特定のアーティスト名を検索します。',
@@ -1075,7 +1096,7 @@ const translations = {
         'contact.section2.item4': '問題を再現する手順（ある場合）',
         'contact.section2.item5': 'スクリーンショット（可能な場合）',
         'contact.disclaimer.title': '⚠️ 免責事項',
-        'contact.disclaimer.text': 'これはイベント来場者の便宜のために作成された非公式カレンダーです。情報は主催者の実際のスケジュールと異なる場合があります。your event organizers公式ウェブサイトから最新情報を再度確認してください。',
+        'contact.disclaimer.text': 'これはイベント来場者の便宜のために作成された非公式カレンダーです。情報は主催者の実際のスケジュールと異なる場合があります。主催者の公式ウェブサイトから最新情報を再度確認してください。',
         // Event listing page
         'listing.calTitle': '📅 イベントカレンダー',
         'listing.title': '🎪 イベント一覧',
@@ -1152,7 +1173,7 @@ const translations = {
         'my.empty.hint': 'アーティストプロフィールで ☆ フォロー を押してください',
         'my.expired': 'お気に入りの期限が切れました — データを削除しました',
         'my.saveBanner': '⚠️ このURLを保存してください — 紛失した場合は回復できません',
-        'my.copyUrl': '📋 Copy URL',
+        'my.copyUrl': '📋 URLをコピー',
         'my.copied': '✅ コピー完了!',
         'my.following': '⭐ フォロー中',
         'my.noFollowing': 'フォロー中のアーティストがいません',
@@ -1164,10 +1185,10 @@ const translations = {
         // Favorites dashboard page (/favorites/{slug})
         'fav.h1': '📅 My Upcoming Programs',
         'fav.saveBanner': '⚠️ このURLを保存してください — 紛失した場合は回復できません',
-        'fav.copyUrl': '📋 Copy URL',
+        'fav.copyUrl': '📋 URLをコピー',
         'fav.copied': '✅ コピー完了!',
         'fav.artists': '⭐ フォロー中',
-        'fav.noArtists': 'フォロー中がいません — アーティストプロフィールで ☆ フォロー を押してください',
+        'fav.noArtists': 'フォロー中のアーティストがいません — アーティストプロフィールで ☆ フォロー を押してください',
         'fav.soloArtists': '🎤 アーティスト',
         'fav.groups': '🎵 グループ',
         'fav.sort': '並び替え:',
@@ -1178,7 +1199,7 @@ const translations = {
         'fav.upcoming': '📅 アップカミングプログラム',
         'fav.noPrograms': 'フォロー中のアーティストのアップカミングプログラムはありません',
         'fav.statsArtists': 'アーティスト',
-        'fav.statsPrograms': 'アップカミング',
+        'fav.statsPrograms': 'アップカミングプログラム',
         'fav.expired.title': '⏱️ お気に入りの期限切れまたは見つかりません',
         'fav.expired.text': 'このお気に入りは365日間未使用のため削除されました',
         'fav.badUrl.title': '❌ 無効なURL',
@@ -1189,7 +1210,16 @@ const translations = {
         'fav.noAccess': 'アクセス権限がありません',
         'fav.noAccessDesc': 'このページは専用URLが必要です。保存したリンクをお使いください。',
         'fav.clearStorage': '🗑️ ブラウザから削除',
-        'fav.createError': 'お気に入りを作成できませんでした。再試行してください。'
+        'fav.createError': 'お気に入りを作成できませんでした。再試行してください。',
+
+        // Filter empty states
+        'filter.noArtist': 'アーティストデータがありません',
+        'filter.noVenue': '会場データがありません',
+
+        // 404 Not Found page
+        'notFound.heading': '🌸 404 – イベントが見つかりません',
+        'notFound.desc': 'このイベントは存在しないか、無効になっています。',
+        'notFound.back': '← ホームに戻る'
     }
 };
 
