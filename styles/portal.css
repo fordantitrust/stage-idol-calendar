@@ -1,0 +1,292 @@
+/**
+ * Artist & Group Portal Styles
+ * Idol Stage Timetable
+ */
+
+/* ── Page subtitle ───────────────────────────────────────────────────────── */
+.portal-subtitle {
+    text-align: center;
+    color: var(--sakura-deep, #C2185B);
+    font-size: 0.95em;
+    margin: 0 0 20px;
+    opacity: .8;
+}
+
+/* ── Search + stats row ──────────────────────────────────────────────────── */
+.portal-search-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.portal-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+}
+
+.portal-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.portal-search-input {
+    width: 100%;
+    padding: 9px 34px 9px 32px;
+    border: 1.5px solid var(--sakura-light, #FFB7C5);
+    border-radius: 20px;
+    font-size: 0.95rem;
+    outline: none;
+    background: #fff;
+    box-sizing: border-box;
+    transition: border-color .15s;
+}
+.portal-search-input:focus { border-color: var(--sakura-dark, #E91E63); }
+
+.portal-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 1em;
+    padding: 2px 4px;
+    display: none;
+    align-items: center;
+    line-height: 1;
+}
+.portal-search-clear:hover { color: #374151; }
+
+.portal-stats {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.portal-stat-chip {
+    background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5,#E91E63));
+    color: #fff;
+    border-radius: 14px;
+    padding: 5px 13px;
+    font-size: 0.85em;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.portal-stat-chip strong { font-size: 1.1em; }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.portal-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid var(--sakura-light, #FFB7C5);
+    padding-bottom: 0;
+}
+
+.portal-tab {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    padding: 7px 16px;
+    font-size: 0.92em;
+    font-weight: 600;
+    cursor: pointer;
+    color: #6b7280;
+    border-radius: 6px 6px 0 0;
+    transition: color .15s, border-color .15s;
+}
+.portal-tab:hover { color: var(--sakura-dark, #E91E63); }
+.portal-tab.active {
+    color: var(--sakura-dark, #E91E63);
+    border-bottom-color: var(--sakura-dark, #E91E63);
+    background: #fff5f8;
+}
+
+/* ── Section headings ────────────────────────────────────────────────────── */
+.portal-section { margin-bottom: 40px; }
+
+.portal-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.05em;
+    font-weight: 700;
+    color: var(--sakura-deep, #C2185B);
+    border-bottom: 2px solid var(--sakura-light, #FFB7C5);
+    padding-bottom: 6px;
+    margin: 0 0 16px;
+}
+
+.portal-section-count {
+    background: var(--sakura-light, #FFB7C5);
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+
+/* ── Groups grid ─────────────────────────────────────────────────────────── */
+.portal-groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.portal-group-card {
+    background: #fff;
+    border: 1px solid #f9d0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(233,30,99,.06);
+    transition: box-shadow .15s, transform .15s;
+}
+.portal-group-card:hover {
+    box-shadow: 0 4px 16px rgba(233,30,99,.12);
+    transform: translateY(-1px);
+}
+
+.portal-group-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%));
+    padding: 12px 14px;
+    text-decoration: none;
+    color: #fff;
+}
+.portal-group-header:hover { opacity: .92; }
+
+.portal-group-name {
+    font-weight: 800;
+    font-size: 1em;
+    line-height: 1.3;
+}
+
+.portal-group-badges {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.portal-badge {
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 0.75em;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.portal-badge-prog   { background: rgba(255,255,255,.3); }
+.portal-badge-member { background: rgba(255,255,255,.2); }
+
+/* ── Member chips inside group card ──────────────────────────────────────── */
+.portal-member-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 14px;
+}
+
+.portal-member-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 14px;
+    padding: 3px 10px;
+    font-size: 0.82em;
+    font-weight: 600;
+    color: #1d4ed8;
+    text-decoration: none;
+    transition: background .12s;
+}
+.portal-member-chip:hover { background: #dbeafe; }
+.portal-member-chip.portal-chip-match {
+    background: #fef9c3;
+    border-color: #fde047;
+    color: #713f12;
+}
+
+.portal-chip-count {
+    background: #bfdbfe;
+    border-radius: 8px;
+    padding: 0 5px;
+    font-size: 0.8em;
+    font-weight: 700;
+    color: #1e40af;
+}
+
+.portal-no-members {
+    padding: 10px 14px;
+    color: #9ca3af;
+    font-size: 0.85em;
+    font-style: italic;
+    margin: 0;
+}
+
+/* ── Solo artists grid ───────────────────────────────────────────────────── */
+.portal-solo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.portal-solo-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #fff;
+    border: 1.5px solid #f9d0e0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-decoration: none;
+    color: #1f2937;
+    transition: background .12s, border-color .12s, box-shadow .12s;
+}
+.portal-solo-card:hover {
+    background: #fff5f8;
+    border-color: var(--sakura-medium, #F48FB1);
+    box-shadow: 0 2px 8px rgba(233,30,99,.09);
+}
+
+.portal-solo-name {
+    font-weight: 700;
+    font-size: 0.92em;
+    line-height: 1.3;
+}
+
+.portal-solo-prog {
+    font-size: 0.78em;
+    color: #9ca3af;
+}
+
+/* ── Empty / no-results ──────────────────────────────────────────────────── */
+.portal-empty {
+    color: #9ca3af;
+    font-style: italic;
+    padding: 24px 0;
+    text-align: center;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .portal-search-row { gap: 8px; }
+    .portal-groups-grid { grid-template-columns: 1fr; }
+    .portal-solo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .portal-tab { padding: 6px 10px; font-size: 0.85em; }
+}

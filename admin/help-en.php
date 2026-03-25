@@ -810,6 +810,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Bulk Add to Group automatically skips artists with <code>is_group = 1</code> — the SQL filters <code>WHERE is_group = 0</code> so only Solo artists are affected.</div>
                 </div>
 
+                <h3>Artist Portal (Public Artist Listing)</h3>
+                <p>The <code>/artists</code> page is a public page listing every group and solo artist in the system — accessible to users via the "🎤 Artists" link in the homepage navigation.</p>
+                <ul>
+                    <li>Groups are shown as cards with member chips, program count, and a link to the group profile</li>
+                    <li>Solo artists are shown in a responsive grid with program count</li>
+                    <li>Real-time search — searches group names, member names inside cards, and solo artist names simultaneously</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The Artist Portal page is served from cache (<code>cache/query_portal.json</code>, TTL 1 hour) — the cache is invalidated automatically whenever an artist or variant is added, edited, or deleted in this Admin panel.</div>
+                </div>
+
                 <h3>Artist Profile Page</h3>
                 <p>The artist name in the Artists table links to the public profile page <code>/artist/{id}</code> — showing that artist's programs grouped by event, for events that have not yet ended.</p>
 

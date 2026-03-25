@@ -80,6 +80,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li><a href="#s-gantt" data-i18n="section7.title">📊 มุมมองไทม์ไลน์ (Gantt Chart)</a></li>
                     <li><a href="#s-calendar-view" data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</a></li>
                     <li><a href="#s-export" data-i18n="section3.title">💾 การบันทึกและส่งออก</a></li>
+                    <li><a href="#s-artist-portal" data-i18n="section19.title">🎤 รายการศิลปินทั้งหมด</a></li>
                     <li><a href="#s-artist-profile" data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</a></li>
                     <li><a href="#s-artist-feed" data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</a></li>
                     <li><a href="#s-favorites" data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</a></li>
@@ -266,6 +267,28 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <strong data-i18n="section3.subscribe.note">💡 หมายเหตุ:</strong>
                     <span data-i18n="section3.subscribe.noteText">URL ที่ Subscribe จะรวม filter ปัจจุบัน (ศิลปิน/เวที/ประเภท) เข้าไปด้วย — Subscribe ก่อนจะได้ filter ที่ต้องการ</span>
                 </div>
+            </div>
+
+            <div class="section" id="s-artist-portal">
+                <h2 data-i18n="section19.title">🎤 รายการศิลปินทั้งหมด</h2>
+                <p data-i18n="section19.desc">หน้า <strong>/artists</strong> รวบรวมกลุ่มและศิลปินทุกคนในระบบไว้ในที่เดียว เข้าถึงได้จากเมนู "🎤 ศิลปิน" บนหน้าแรก</p>
+                <h3 data-i18n="section19.groups.title">กลุ่ม/วง (Groups)</h3>
+                <ul>
+                    <li data-i18n="section19.groups.feature1">แสดงเป็น card แต่ละใบ — กดชื่อกลุ่มเพื่อไปหน้าโปรไฟล์กลุ่ม</li>
+                    <li data-i18n="section19.groups.feature2">แสดงจำนวนสมาชิกและจำนวน programs ของกลุ่ม</li>
+                    <li data-i18n="section19.groups.feature3">ชื่อสมาชิกแต่ละคนเป็น chip คลิกได้ — ไปหน้าโปรไฟล์ของสมาชิกคนนั้นทันที</li>
+                </ul>
+                <h3 data-i18n="section19.solo.title">ศิลปินเดี่ยว (Solo Artists)</h3>
+                <ul>
+                    <li data-i18n="section19.solo.feature1">แสดงศิลปินที่ไม่ได้สังกัดกลุ่มใด แบบ grid — กดเพื่อไปหน้าโปรไฟล์ศิลปิน</li>
+                    <li data-i18n="section19.solo.feature2">แสดงจำนวน programs ของศิลปินแต่ละคน</li>
+                </ul>
+                <h3 data-i18n="section19.search.title">ค้นหาและกรอง</h3>
+                <ul>
+                    <li data-i18n="section19.search.feature1">ช่องค้นหาด้านบนกรองทั้งชื่อกลุ่ม, ชื่อสมาชิกในกลุ่ม และชื่อศิลปินเดี่ยวแบบ realtime</li>
+                    <li data-i18n="section19.search.feature2">แท็บ "กลุ่ม/วง" และ "ศิลปินเดี่ยว" ใช้สลับมุมมองได้</li>
+                    <li data-i18n="section19.search.feature3">สมาชิกที่ตรงกับคำค้นหาจะ highlight สีเหลืองใน card ของกลุ่ม</li>
+                </ul>
             </div>
 
             <div class="section" id="s-artist-profile">

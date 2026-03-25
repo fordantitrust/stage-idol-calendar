@@ -438,6 +438,7 @@ if ($_listingCalDataFromCache !== null) {
             <h1 data-i18n="header.title"><?php echo htmlspecialchars(get_site_title()); ?></h1>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <nav class="header-nav">
+                <a href="<?php echo get_base_path(); ?>/artists" class="header-nav-link" data-i18n="nav.artists">🎤 ศิลปิน</a>
                 <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 แหล่งข้อมูลอ้างอิง</a>
             </nav>
         </header>
@@ -640,6 +641,7 @@ if ($_listingCalDataFromCache !== null) {
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
             <nav class="header-nav">
+                <a href="<?php echo get_base_path(); ?>/artists" class="header-nav-link" data-i18n="nav.artists">🎤 ศิลปิน</a>
                 <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 แหล่งข้อมูลอ้างอิง</a>
                 <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventId); ?></a>
             </nav>

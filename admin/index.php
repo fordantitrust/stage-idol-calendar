@@ -5513,8 +5513,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 return;
             }
             tbody.innerHTML = artists.map(a => {
+                const memberCount = a.is_group == 1 && a.member_count > 0
+                    ? ` <span style="background:#fff3cd;color:#856404;padding:1px 7px;border-radius:10px;font-size:0.78em;font-weight:600" title="จำนวนสมาชิก">${a.member_count} คน</span>`
+                    : '';
                 const typeBadge = a.is_group == 1
-                    ? `<span style="background:#e3f0ff;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">กลุ่ม</span>`
+                    ? `<span style="background:#e3f0ff;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">กลุ่ม</span>${memberCount}`
                     : `<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">บุคคล</span>`;
                 const groupName = a.group_name ? escapeHtml(a.group_name) : '-';
                 const variantCount = a.variant_count > 0

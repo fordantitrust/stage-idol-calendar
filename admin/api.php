@@ -3013,7 +3013,8 @@ function listArtists() {
         $sql = "
             SELECT a.id, a.name, a.is_group, a.group_id, a.created_at,
                    g.name AS group_name,
-                   $variantCountExpr AS variant_count
+                   $variantCountExpr AS variant_count,
+                   (SELECT COUNT(*) FROM artists m WHERE m.group_id = a.id AND m.is_group = 0) AS member_count
             FROM artists a
             LEFT JOIN artists g ON a.group_id = g.id
             $whereClause

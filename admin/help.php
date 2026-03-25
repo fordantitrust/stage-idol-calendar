@@ -843,6 +843,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Bulk Add to Group ข้าม artists ที่มี <code>is_group = 1</code> โดยอัตโนมัติ — SQL กรอง <code>WHERE is_group = 0</code> เฉพาะ Solo artists เท่านั้น</div>
                 </div>
 
+                <h3>Artist Portal (หน้ารายการศิลปินสำหรับผู้ใช้)</h3>
+                <p>หน้า <code>/artists</code> เป็นหน้า public ที่รวบรวมกลุ่มและศิลปินทุกคนในระบบ — ผู้ใช้เข้าถึงได้จากเมนู "🎤 ศิลปิน" บนหน้าแรก</p>
+                <ul>
+                    <li>Groups แสดงเป็น card พร้อมสมาชิก (chip), จำนวน programs และลิงก์ไปหน้าโปรไฟล์</li>
+                    <li>Solo artists แสดงเป็น grid card พร้อมจำนวน programs</li>
+                    <li>ค้นหา realtime — ค้นได้ทั้งชื่อกลุ่ม, ชื่อสมาชิก และศิลปินเดี่ยว</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>ข้อมูลบนหน้า Artist Portal มาจาก cache (<code>cache/query_portal.json</code>, TTL 1 ชั่วโมง) — cache ถูก invalidate อัตโนมัติทุกครั้งที่มีการเพิ่ม/แก้ไข/ลบ artist หรือ variant ในหน้า Admin นี้</div>
+                </div>
+
                 <h3>Artist Profile Page</h3>
                 <p>ชื่อ artist ในตาราง Artists เป็น link ไปหน้าโปรไฟล์ <code>/artist/{id}</code> ที่แสดงต่อผู้ใช้ — แสดง programs จัดกลุ่มตาม event เฉพาะงานที่ยังไม่จบ</p>
 

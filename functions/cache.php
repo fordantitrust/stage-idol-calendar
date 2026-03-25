@@ -334,7 +334,10 @@ function invalidate_artist_query_cache(): bool {
     $cacheDir = QUERY_CACHE_DIR;
     if (!is_dir($cacheDir)) return true;
 
-    $files = glob($cacheDir . '/query_artist_*.json') ?: [];
+    $files = array_merge(
+        glob($cacheDir . '/query_artist_*.json') ?: [],
+        file_exists($cacheDir . '/query_portal.json') ? [$cacheDir . '/query_portal.json'] : []
+    );
     $result = true;
     foreach ($files as $file) {
         if (file_exists($file)) {

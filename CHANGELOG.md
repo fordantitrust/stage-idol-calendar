@@ -5,6 +5,39 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2026-03-25
+
+### Added
+- 🎤 **Artist & Group Portal** (`artists.php`) — new public page at `/artists` listing every group and solo artist in the system; groups displayed as gradient cards showing group name, member count, program count, and clickable member chips; solo artists shown in a responsive grid; all items link to their `/artist/{id}` profile page
+- 🔍 **Real-time search** — search bar filters both group cards (including member names inside each card) and solo artist cards simultaneously with no page reload; matching member chip highlighted in yellow
+- 🗂️ **Tab filter** — three tabs (All / Groups / Solo) let users narrow the view instantly client-side
+- 📊 **Stats bar** — shows total group count and total artist count at a glance
+- 🌐 **i18n** — full TH/EN/JA support via `data-i18n` attributes and new `portal.*` + `nav.artists` translation keys in `js/translations.js`
+- ⚡ **Query cache** — portal data (groups + members + solo artists) cached in `cache/query_portal.json` (TTL 1 hr); invalidated automatically by `invalidate_artist_query_cache()` whenever artists or variants change
+- 🔗 **Nav link on homepage** — `🎤 ศิลปิน` link added to `<nav class="header-nav">` on both the event-listing header and the event-detail header in `index.php`; placed before `📋 แหล่งข้อมูลอ้างอิง`
+
+**📁 Files changed:**
+- `artists.php` (new, previously `portal.php`)
+- `styles/portal.css` (new)
+- `js/translations.js`
+- `functions/cache.php`
+- `index.php`
+- `config/app.php`
+
+---
+
+## [3.6.12] - 2026-03-25
+
+### Added
+- 🎤 **Admin Artists — member count badge for groups** — group rows in the Artists table now display a yellow badge showing the number of members (e.g. `3 คน`) immediately after the `กลุ่ม` type badge; badge is hidden when the group has no members yet; count is computed server-side via a subquery (`SELECT COUNT(*) FROM artists WHERE group_id = a.id AND is_group = 0`) added to `listArtists()` in `admin/api.php`
+
+**📁 Files changed:**
+- `admin/api.php`
+- `admin/index.php`
+- `config/app.php`
+
+---
+
 ## [3.6.11] - 2026-03-24
 
 ### Fixed
