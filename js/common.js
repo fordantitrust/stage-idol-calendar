@@ -549,6 +549,28 @@ function getStreamPlatformClass(url) {
     return url ? 'cal-has-stream' : '';
 }
 
+// Returns local-time range string for a calendar event, or '' if not needed
+function calLocalTimeRange(ev) {
+    var eventTz = (typeof window.EVENT_TIMEZONE !== 'undefined') ? window.EVENT_TIMEZONE : null;
+    if (!eventTz || typeof Intl === 'undefined') return '';
+    var userTz;
+    try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return ''; }
+    if (!userTz || userTz === eventTz) return '';
+
+    var utcStart = ev.start_ts || 0;
+    var utcEnd   = ev.end_ts   || 0;
+    if (!utcStart) return '';
+
+    var fmtOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTz };
+    var localStart, localEnd;
+    try {
+        localStart = new Date(utcStart * 1000).toLocaleTimeString([], fmtOpts);
+        localEnd   = utcEnd ? new Date(utcEnd * 1000).toLocaleTimeString([], fmtOpts) : localStart;
+    } catch (e) { return ''; }
+
+    return (localStart === localEnd) ? localStart : localStart + '–' + localEnd;
+}
+
 function initCalendarView() {
     const container = document.getElementById('month-calendar-view');
     if (!container) return;
@@ -721,12 +743,18 @@ function renderMonthCalendar(events, year, month) {
                 const platformCls = getStreamPlatformClass(ev.stream_url);
                 const artist = (ev.categories || ev.organizer || ev.title || '').split(',')[0].trim();
                 const timeStr = ev.start ? ev.start.substring(11, 16) : '';
+                const localRange = calLocalTimeRange(ev);
                 const chipIdx = window._calChipEvents.length;
                 window._calChipEvents.push(ev);
-                html += `<div class="cal-chip ${platformCls}" data-calidx="${chipIdx}" title="${escapeHtmlAttr(ev.title || '')}">`;
+                html += `<div class="cal-chip ${platformCls}${localRange ? ' cal-chip-has-local' : ''}" data-calidx="${chipIdx}" title="${escapeHtmlAttr(ev.title || '')}">`;
                 if (platform) html += `<span class="cal-chip-icon">${platform}</span>`;
                 html += `<span class="cal-chip-artist">${escapeHtml(artist)}</span>`;
                 if (timeStr) html += `<span class="cal-chip-time">${timeStr}</span>`;
+                if (localRange) {
+                    const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
+                    const label = t ? (t['tz.localTime'] || 'local') : 'local';
+                    html += `<span class="cal-chip-time-local">(${escapeHtml(localRange)} ${escapeHtml(label)})</span>`;
+                }
                 html += `</div>`;
             });
             html += `</div>`;
@@ -774,9 +802,13 @@ function openCalendarDetailModal(ev) {
     const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
 
     const duration = formatDuration(ev.start, ev.end);
+    const localRange = calLocalTimeRange(ev);
+    const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
+    const localLabel = t ? (t['tz.localTime'] || 'local') : 'local';
 
     let body = `<div class="cal-detail-modal-inner">`;
     if (timeRange) body += `<h3 class="cal-detail-title">${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</h3>`;
+    if (localRange) body += `<div class="cal-detail-time-local">(${escapeHtml(localRange)} ${escapeHtml(localLabel)})</div>`;
     if (ev.location) body += `<div class="cal-detail-row">📍 ${escapeHtml(ev.location)}</div>`;
     if (ev.categories) body += `<div class="cal-detail-row">🎤 ${escapeHtml(ev.categories)}</div>`;
     if (ev.program_type) body += `<div class="cal-detail-row">🏷️ ${escapeHtml(ev.program_type)}</div>`;
@@ -842,6 +874,7 @@ function openDayPanel(dateKey, dayEvs) {
         const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
         const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
         const duration  = formatDuration(ev.start, ev.end);
+        const localRange = calLocalTimeRange(ev);
         const dpIdx = window._calDpEvents.length;
         window._calDpEvents.push(ev);
 
@@ -854,12 +887,17 @@ function openDayPanel(dateKey, dayEvs) {
         itemsHtml += `<div class="cal-dp-item-info">`;
 
         itemsHtml += `<div class="cal-dp-item-title">${escapeHtml(ev.title || artist || '—')}</div>`;
-        if (artist)          itemsHtml += `<div class="cal-dp-item-artist">${escapeHtml(artist)}</div>`;
-        if (timeRange)       itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
+        if (artist)     itemsHtml += `<div class="cal-dp-item-artist">${escapeHtml(artist)}</div>`;
+        if (timeRange)  itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
+        if (localRange) {
+            const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
+            const label = t ? (t['tz.localTime'] || 'local') : 'local';
+            itemsHtml += `<div class="cal-dp-item-time-local">(${escapeHtml(localRange)} ${escapeHtml(label)})</div>`;
+        }
         if (ev.program_type) itemsHtml += `<span class="cal-dp-item-type">${escapeHtml(ev.program_type)}</span>`;
         if (ev.description)  itemsHtml += `<div class="cal-dp-item-desc">${escapeHtml(ev.description)}</div>`;
         if (ev.stream_url) {
-            itemsHtml += `<a class="cal-dp-join btn btn-danger btn-sm" href="${escapeHtmlAttr(ev.stream_url)}" target="_blank" rel="noopener noreferrer">🔴 Live</a>`;
+            itemsHtml += `<div class="cal-dp-join-wrap"><a class="cal-dp-join btn btn-danger btn-sm" href="${escapeHtmlAttr(ev.stream_url)}" target="_blank" rel="noopener noreferrer">🔴 Live</a></div>`;
         }
 
         itemsHtml += `</div>`; // info
@@ -1330,6 +1368,72 @@ document.addEventListener('DOMContentLoaded', function() {
     changeLanguage(currentLang);
     initializeView();
     injectFavNavButton();
+    initTimezoneDisplay();
+});
+
+// Show local-timezone equivalents when user's browser TZ differs from event TZ
+function initTimezoneDisplay() {
+    var eventTz = (typeof window.EVENT_TIMEZONE !== 'undefined') ? window.EVENT_TIMEZONE : null;
+    if (!eventTz || typeof Intl === 'undefined') return;
+
+    var userTz;
+    try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return; }
+    if (!userTz || userTz === eventTz) return;
+
+    // Update timezone badge: show inline client TZ when it differs from event TZ
+    var badge = document.getElementById('eventTimezoneDisplay');
+    if (badge) {
+        badge.textContent = '🕐 ' + eventTz + ' (' + userTz + ')';
+    }
+
+    // Add local-time labels next to each program time (skip if already added)
+    document.querySelectorAll('.program-time[data-utc]').forEach(function(el) {
+        if (el.nextSibling && el.nextSibling.classList && el.nextSibling.classList.contains('program-time-local')) return;
+
+        var utcStart = parseInt(el.getAttribute('data-utc'), 10);
+        var utcEnd   = parseInt(el.getAttribute('data-utc-end') || '0', 10);
+        if (!utcStart) return;
+
+        var fmtOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTz };
+        var localStart, localEnd;
+        try {
+            localStart = new Date(utcStart * 1000).toLocaleTimeString([], fmtOpts);
+            localEnd   = utcEnd ? new Date(utcEnd * 1000).toLocaleTimeString([], fmtOpts) : localStart;
+        } catch (e) { return; }
+
+        var localRange = (localStart === localEnd) ? localStart : localStart + '–' + localEnd;
+
+        var localSpan = document.createElement('span');
+        localSpan.className = 'program-time-local';
+        localSpan.setAttribute('data-localtime', localRange);
+        var label = (typeof translations !== 'undefined' && translations[currentLang || 'th'])
+            ? (translations[currentLang || 'th']['tz.localTime'] || 'local')
+            : 'local';
+        localSpan.textContent = '(' + localRange + ' ' + label + ')';
+        el.parentNode.insertBefore(localSpan, el.nextSibling);
+    });
+}
+
+function updateTimezoneLabels(lang) {
+    var eventTz = (typeof window.EVENT_TIMEZONE !== 'undefined') ? window.EVENT_TIMEZONE : null;
+    if (!eventTz) return;
+
+    var userTz;
+    try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return; }
+    if (!userTz || userTz === eventTz) return;
+
+    var t = (typeof translations !== 'undefined' && translations[lang]) ? translations[lang] : null;
+
+    // Update label text in existing spans (time stays the same, only label word changes)
+    var label = t ? (t['tz.localTime'] || 'local') : 'local';
+    document.querySelectorAll('.program-time-local[data-localtime]').forEach(function(span) {
+        var localTime = span.getAttribute('data-localtime');
+        span.textContent = '(' + localTime + ' ' + label + ')';
+    });
+}
+
+document.addEventListener('appLangChange', function(e) {
+    updateTimezoneLabels(e.detail.lang);
 });
 
 // Inject ⭐ My Favorites shortcut into header when fav_slug exists in localStorage

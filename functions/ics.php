@@ -86,3 +86,65 @@ function icsEscapeText(string $value): string {
     $value = str_replace("\r", '',     $value);
     return $value;
 }
+
+/**
+ * Generate a VTIMEZONE block for the given TZID.
+ * Uses PHP's DateTimeZone to determine offset and DST transitions.
+ * Returns empty string if TZID is invalid.
+ */
+function icsVtimezone(string $tzid): string {
+    try {
+        $tz    = new DateTimeZone($tzid);
+        $year  = (int)date('Y');
+        $trans = $tz->getTransitions(mktime(0, 0, 0, 1, 1, $year), mktime(23, 59, 59, 12, 31, $year));
+
+        // Collect one STANDARD state and one DAYLIGHT state (if DST observed)
+        $stdState = null;
+        $dstState = null;
+        foreach (($trans ?: []) as $t) {
+            if ($t['isdst']) {
+                if (!$dstState) $dstState = $t;
+            } else {
+                if (!$stdState) $stdState = $t;
+            }
+        }
+        // Fallback: use current offset if no transitions found
+        if (!$stdState) {
+            $dt       = new DateTime('now', $tz);
+            $stdState = ['offset' => $tz->getOffset($dt), 'abbr' => date_format($dt, 'T'), 'isdst' => false];
+        }
+
+        $lines = ["BEGIN:VTIMEZONE", "TZID:" . $tzid];
+
+        $stdFrom = $dstState ? $dstState['offset'] : $stdState['offset'];
+        $lines[] = "BEGIN:STANDARD";
+        $lines[] = "DTSTART:16010101T000000";
+        $lines[] = "TZOFFSETFROM:" . icsOffsetString($stdFrom);
+        $lines[] = "TZOFFSETTO:"   . icsOffsetString($stdState['offset']);
+        $lines[] = "TZNAME:"       . ($stdState['abbr'] ?? 'STD');
+        $lines[] = "END:STANDARD";
+
+        if ($dstState) {
+            $lines[] = "BEGIN:DAYLIGHT";
+            $lines[] = "DTSTART:16010101T000000";
+            $lines[] = "TZOFFSETFROM:" . icsOffsetString($stdState['offset']);
+            $lines[] = "TZOFFSETTO:"   . icsOffsetString($dstState['offset']);
+            $lines[] = "TZNAME:"       . ($dstState['abbr'] ?? 'DST');
+            $lines[] = "END:DAYLIGHT";
+        }
+
+        $lines[] = "END:VTIMEZONE";
+        return implode("\r\n", $lines) . "\r\n";
+    } catch (Exception $e) {
+        return '';
+    }
+}
+
+/**
+ * Format a UTC offset in seconds as ±HHMM string (e.g. +0700, -0500).
+ */
+function icsOffsetString(int $seconds): string {
+    $sign = $seconds >= 0 ? '+' : '-';
+    $abs  = abs($seconds);
+    return sprintf('%s%02d%02d', $sign, intdiv($abs, 3600), ($abs % 3600) / 60);
+}

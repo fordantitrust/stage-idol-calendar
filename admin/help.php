@@ -658,6 +658,102 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         แล้ว import Programs ไปที่ event นั้นแทน
                     </div>
                 </div>
+
+                <h3>🌐 Timezone (เขตเวลา) ต่อ Event <span class="badge-version">v4.0.0</span></h3>
+                <p>
+                    แต่ละ Event กำหนด <strong>Timezone</strong> ได้อิสระ เช่น งานในญี่ปุ่นใช้ <code>Asia/Tokyo</code>
+                    งานในไทยใช้ <code>Asia/Bangkok</code> ค่านี้ส่งผลต่อ 3 จุด:
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>จุดที่ได้รับผล</th><th>พฤติกรรม</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>ICS Export / Feed</td>
+                            <td>
+                                เปลี่ยนจาก UTC (<code>DTSTART:...Z</code>) เป็นรูปแบบ TZID:<br>
+                                <code>DTSTART;TZID=Asia/Tokyo:20260319T100000</code><br>
+                                พร้อม <code>VTIMEZONE</code> block ตาม RFC 5545 — calendar apps ทุกตัว (Apple, Google, Outlook) แสดงเวลาถูกต้อง
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>หน้า Event (ผู้ใช้)</td>
+                            <td>
+                                แสดง badge <strong>🕐 Asia/Tokyo</strong> ใต้ชื่องาน<br>
+                                ถ้า browser ของผู้ใช้อยู่คนละ timezone จะมีข้อความ <em>(HH:MM local)</em> ต่อท้ายเวลาแต่ละ program อัตโนมัติ
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Image Export (PNG)</td>
+                            <td>Footer ของรูปจะแสดง timezone ของงานพร้อม timestamp</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>วิธีตั้งค่า Timezone</h3>
+                <ol>
+                    <li>Admin → Tab <strong>Events</strong> → กด <strong>+ เพิ่ม Event</strong> หรือ ✏️ แก้ไข event ที่มีอยู่</li>
+                    <li>ในฟอร์ม ให้เลือก <strong>Timezone</strong> จาก dropdown (จัดกลุ่มตามภูมิภาค)</li>
+                    <li>กด <strong>Save</strong></li>
+                </ol>
+                <table class="help-table">
+                    <thead><tr><th>ตัวเลือก Timezone ที่มี</th><th>ตัวอย่างการใช้</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>Asia/Bangkok</code> (UTC+7)</td><td>งานในไทย, เวียดนาม, อินโดนีเซีย</td></tr>
+                        <tr><td><code>Asia/Tokyo</code> (UTC+9)</td><td>งานในญี่ปุ่น</td></tr>
+                        <tr><td><code>Asia/Seoul</code> (UTC+9)</td><td>งานในเกาหลี</td></tr>
+                        <tr><td><code>Asia/Singapore</code> (UTC+8)</td><td>งานในสิงคโปร์, มาเลเซีย, ฟิลิปปินส์</td></tr>
+                        <tr><td><code>America/Los_Angeles</code> (UTC-8/-7)</td><td>งานในแคลิฟอร์เนีย</td></tr>
+                        <tr><td><code>America/New_York</code> (UTC-5/-4)</td><td>งานในนิวยอร์ก</td></tr>
+                        <tr><td><code>Europe/London</code> (UTC+0/+1)</td><td>งานในลอนดอน</td></tr>
+                        <tr><td>... และอื่นๆ 9 timezones</td><td>ดูใน dropdown ฟอร์ม</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>วิธีทดสอบว่า Timezone ทำงานถูกต้อง</h3>
+
+                <h4>1. ทดสอบ ICS Export</h4>
+                <ol>
+                    <li>สร้าง Event ใหม่ เลือก Timezone = <code>Asia/Tokyo</code> เพิ่ม Program ที่มีเวลา เช่น <code>10:00 – 11:00</code></li>
+                    <li>เปิด URL <code>/export?event={slug}</code> หรือกดปุ่ม Export บนหน้า event</li>
+                    <li>ดาวน์โหลด ICS แล้วเปิดด้วย Text Editor ตรวจสอบ:
+                        <ul>
+                            <li>ต้องมี <code>BEGIN:VTIMEZONE</code> ... <code>TZID:Asia/Tokyo</code> ก่อน <code>BEGIN:VEVENT</code></li>
+                            <li><code>DTSTART;TZID=Asia/Tokyo:20260319T100000</code> (ไม่ใช่ <code>Z</code> ท้าย)</li>
+                            <li><code>X-WR-TIMEZONE:Asia/Tokyo</code></li>
+                        </ul>
+                    </li>
+                    <li>Import ไฟล์ ICS เข้า Google Calendar หรือ Apple Calendar → event ต้องแสดงเวลา <strong>10:00 JST</strong> (ไม่ใช่ 10:00 Bangkok)</li>
+                </ol>
+
+                <h4>2. ทดสอบ Live Feed</h4>
+                <ol>
+                    <li>เปิด URL <code>/event/{slug}/feed</code> แล้วดู source</li>
+                    <li>ตรวจสอบเหมือนขั้นตอน ICS Export ข้างต้น</li>
+                    <li>Subscribe URL ผ่าน Google Calendar → เวลาต้องถูกต้อง</li>
+                </ol>
+
+                <h4>3. ทดสอบ Badge บนหน้า Event</h4>
+                <ol>
+                    <li>เปิดหน้า Event บน browser</li>
+                    <li>ใต้ชื่องานจะมี badge <strong>🕐 Asia/Tokyo</strong></li>
+                    <li>เปิด DevTools → Application → Sensors → เปลี่ยน Timezone เป็น <code>America/New_York</code> → โหลดหน้าใหม่</li>
+                    <li>เวลาแต่ละ program จะมี <em>(HH:MM local)</em> ต่อท้าย — ตรวจว่าแปลง timezone ถูกต้อง
+                        <br><small>ตัวอย่าง: 10:00 JST = 20:00 วันก่อนหน้า EST (UTC-5)</small></li>
+                </ol>
+
+                <h4>4. ทดสอบ Automated Tests (CLI)</h4>
+                <pre style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:6px;font-size:0.82rem;overflow-x:auto;">php tests/run-tests.php TimezoneTest</pre>
+                <p>ผลที่ถูกต้อง: <strong>67 tests PASSED</strong> ครอบคลุม helper functions, UTC computation, ICS format, DB schema, admin API, translations, JS</p>
+
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>
+                        <strong>ข้อควรระวัง — เวลาที่บันทึกในฐานข้อมูล</strong><br>
+                        เวลาที่กรอกในฟอร์ม Admin (เช่น <code>10:00:00</code>) จะถูกตีความว่าเป็นเวลาท้องถิ่นของ Timezone ที่กำหนดไว้ในงานนั้น
+                        ถ้าเปลี่ยน Timezone ของ event ในภายหลัง เวลาที่แสดงในหน้าเว็บและ ICS จะเปลี่ยนตามไปด้วย
+                        ควรกำหนด Timezone ก่อนกรอกข้อมูล Program
+                    </div>
+                </div>
             </section>
 
             <!-- Requests Tab -->

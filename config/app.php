@@ -19,7 +19,7 @@ date_default_timezone_set('Asia/Bangkok');
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '3.7.0');
+define('APP_VERSION', '4.0.1');
 
 /**
  * Application Name (Site Title)
@@ -52,6 +52,12 @@ define('MULTI_EVENT_MODE', true);
  * Used when no event is specified in URL parameter
  */
 define('DEFAULT_EVENT_SLUG', 'default');
+
+/**
+ * Default Timezone for events
+ * Used when no timezone is set on an event
+ */
+define('DEFAULT_TIMEZONE', 'Asia/Bangkok');
 
 // Google Analytics ID moved to config/analytics.php
 // (kept separate so version updates do not overwrite site-specific settings)

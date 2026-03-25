@@ -1268,6 +1268,17 @@ footer {
     flex-shrink: 0;
     white-space: nowrap;
 }
+.cal-chip-has-local {
+    flex-wrap: wrap;
+}
+.cal-chip-time-local {
+    width: 100%;
+    font-size: 0.55rem;
+    color: #666;
+    font-style: italic;
+    white-space: nowrap;
+    padding-left: 1px;
+}
 
 /* Calendar detail modal inner (displayed inside req-modal which has white bg) */
 .cal-detail-modal-inner {
@@ -1285,6 +1296,12 @@ footer {
     font-weight: 400;
     color: #888;
     margin-left: 0.3em;
+}
+.cal-detail-time-local {
+    font-size: 0.8rem;
+    color: #888;
+    font-style: italic;
+    margin: -0.2rem 0 0.5rem;
 }
 .cal-detail-row {
     font-size: 0.88rem;
@@ -1418,6 +1435,13 @@ footer {
     margin-top: 2px;
     white-space: nowrap;
 }
+.cal-dp-item-time-local {
+    font-size: 0.72rem;
+    color: #888;
+    font-style: italic;
+    white-space: nowrap;
+    margin-top: 1px;
+}
 .cal-dp-item-type {
     display: inline-block;
     font-size: 0.7rem;
@@ -1436,12 +1460,13 @@ footer {
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+.cal-dp-join-wrap {
+    margin-top: 0.4rem;
+}
 .cal-dp-join {
-    flex-shrink: 0;
     font-size: 0.75rem;
     padding: 0.15rem 0.45rem;
     text-decoration: none;
-    align-self: center;
 }
 
 /* ── Shared utility button (pages without index.css / artist.css) ─────────── */

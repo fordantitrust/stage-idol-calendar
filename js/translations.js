@@ -81,6 +81,10 @@ const translations = {
         yearOffset: 543,
         langCode: 'th',
 
+        // Timezone display
+        'tz.badge': '🕐 เวลางาน',
+        'tz.localTime': 'เวลาท้องถิ่น',
+
         // How to use page
         'howToUse.title': '📖 วิธีการใช้งาน',
         'howToUse.subtitle': 'คู่มือการใช้งาน Idol Stage Timetable',
@@ -519,6 +523,10 @@ const translations = {
         yearOffset: 0,
         langCode: 'en',
 
+        // Timezone display
+        'tz.badge': '🕐 Event Time',
+        'tz.localTime': 'local time',
+
         // How to use page
         'howToUse.title': '📖 How to Use',
         'howToUse.subtitle': 'User Guide for Idol Stage Timetable',
@@ -956,6 +964,10 @@ const translations = {
         daysShort: ['日', '月', '火', '水', '木', '金', '土'],
         yearOffset: 0,
         langCode: 'ja',
+
+        // Timezone display
+        'tz.badge': '🕐 イベント時間',
+        'tz.localTime': '現地時刻',
 
         // How to use page
         'howToUse.title': '📖 使い方',

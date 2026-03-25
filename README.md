@@ -41,6 +41,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | ⭐ **Anonymous Favorites** | Follow artists without creating an account — UUID v7 + HMAC-signed personal slug stored in localStorage; data persists 365 days with auto-touch | v3.4.0 |
 | 📅 **My Upcoming Programs** | Personal page (`/my/{slug}`) showing upcoming programs from all followed artists, grouped by event and date — auto-updates when admin adds new programs | v3.4.0 |
 | 🌟 **My Favorites Page** | Personal page (`/my-favorites/{slug}`) listing all followed artists with profile links and one-tap unfollow; ⭐ + 📅 nav shortcuts always shown on both pages (current page highlighted) | v3.4.0 |
+| 🎤 **Artist & Group Portal** | Public portal page (`/artists`) listing every group (gradient card + member chips) and solo artist (grid); real-time search (matches member names too); tab filter (All / Groups / Solo) | v3.7.0 |
+| 🌐 **Per-event Timezone** | Each event can have its own timezone (e.g. Asia/Tokyo, America/LA); event page shows timezone badge; JS auto-appends `(HH:MM local)` for users in a different timezone | v4.0.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -72,6 +74,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📋 **Copy Artist** | Copy any artist (solo or group) — pre-filled modal lets you verify/edit name, type, group, and choose which variant aliases to carry over before saving | v3.5.0 |
 | 📥 **Bulk Import Artists** | Paste a list of artist names (1 per line, up to 500) with optional group assignment; step-2 result screen shows created / duplicate / error per name | v3.5.0 |
 | ☑️ **Bulk Artist Actions** | Select multiple artists with checkboxes; bulk "Add to Group" modal or "Remove from Group" in one click | v3.5.0 |
+| 🌐 **Admin Timezone Picker** | Set per-event timezone via dropdown (16 timezones in 4 region groups); empty = use server default | v4.0.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -82,10 +85,11 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **2036 Unit Tests** | Automated test suite across 13 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **2509 Unit Tests** | Automated test suite across 14 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
-| 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events| v3.0.0 |
+| 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
+| 🌐 **Per-event Timezone** | `timezone` column in `events` table; ICS export uses `DTSTART;TZID=` + RFC 5545 VTIMEZONE block; UTC timestamps computed correctly per event TZ | v4.0.0 |
 
 ---
 
@@ -131,6 +135,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v3.6.9** | 2026-03-22 | Now-playing highlight on My Upcoming Programs — programs currently in progress are highlighted on page load |
 | **v3.6.10** | 2026-03-23 | Event listing card and homepage calendar modal: dates displayed below event name (column layout) so long names get full width |
 | **v3.6.11** | 2026-03-24 | i18n fixes: 404 page multilingual · filter empty-state text translated · `my/fav.copyUrl` translated in TH/JA · JA grammar fixes · stale `"your event"` placeholders removed · `window.currentLang` sync fix · homepage calendar day modal re-renders on language switch · `appLangChange` custom event · `eventPicker.viewing` key added |
+| **v3.6.12** | 2026-03-25 | Admin Artists: group rows now show yellow member-count badge (e.g. `3 คน`) next to the `กลุ่ม` badge — count via server-side subquery |
+| **v3.7.0** | 2026-03-25 | Artist & Group Portal (`/artists`) — gradient group cards with member chips · solo artist grid · real-time search (matches member names) · tab filter (All/Groups/Solo) · `cache/query_portal.json` (1 hr) · 🎤 nav link before Credits on homepage |
+| **v4.0.0** ⚠️ | 2026-03-25 | **Run migration:** Per-event Timezone — `timezone` column in `events` · ICS/Feed use `DTSTART;TZID=` + RFC 5545 VTIMEZONE block · event page timezone badge + JS local-time conversion · image export timezone label · Admin timezone picker (16 options) · `DEFAULT_TIMEZONE` constant · 67 new TimezoneTest (→ 2509 total) |
 
 ---
 
@@ -564,7 +571,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           2036 automated tests (13 suites)
+├── tests/           2509 automated tests (14 suites)
 └── *.md             Documentation
 ```
 
@@ -630,7 +637,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all 2036 automated tests
+# Run all 2509 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -728,7 +735,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **2036 automated unit tests** covering all critical functionality:
+The project includes **2509 automated unit tests** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
@@ -744,6 +751,7 @@ The project includes **2036 automated unit tests** covering all critical functio
 - 🔔 **FeedTest** (291) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache, feed SUMMARY/header escaping
 - 🔴 **StreamUrlTest** (322) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
 - ⭐ **FavoritesTest** (406) - config constants, UUID v7 format/uniqueness, HMAC, slug build/parse/tamper resistance, file I/O (write→read roundtrip, sharded path), api/favorites.php actions, my-favorites.php solo/group split + sort, my.php mini calendar + day modal, translations 3-language coverage, common.js nav injection, artist.php follow/unfollow, .htaccess routing
+- 🌐 **TimezoneTest** (473) - events.timezone schema, migration idempotency, DEFAULT_TIMEZONE constant, get_event_timezone() priority logic, icsOffsetString() ±HHMM format, icsVtimezone() RFC 5545 VTIMEZONE block (STANDARD + DAYLIGHT auto-detection), UTC timestamp computation, DB CRUD, export.php TZID format, feed.php TZID format, index.php timezone injection, admin API timezone picker, translations.js keys, common.js initTimezoneDisplay(), CSS classes, setup.php integration
 
 **Run All Tests:**
 ```bash
@@ -781,14 +789,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 2036 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 2509 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 2036 tests
-Passed: 2036
+Total: 2509 tests
+Passed: 2509
 Pass Rate: 100.0%
 ```
 
@@ -800,7 +808,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 3.7.0
+**Current Version**: 4.0.1
 
 ---
 

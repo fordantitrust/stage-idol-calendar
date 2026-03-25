@@ -62,6 +62,7 @@ if ($_listingCache !== false) {
     $_listingCalDataFromCache = null; // needs computation later
 }
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
+$eventTz   = get_event_timezone($eventMeta);
 
 // Check if we should show event listing (homepage) or calendar view
 // The default slug event is intentionally hidden from the listing (it is a container for un-assigned programs).
@@ -241,12 +242,13 @@ $filterVenues = get_sanitized_array_param('venue', 200, 50);
 $filterTypes = get_sanitized_array_param('type', 200, 50);
 
 // 🚀 Optimization: Pre-normalize categories + Pre-compute timestamps (avoid repeated strtotime calls)
-$normalizedEvents = array_map(function($event) {
+$eventTzObj = new DateTimeZone($eventTz);
+$normalizedEvents = array_map(function($event) use ($eventTzObj) {
     $event['categoriesArray'] = !empty($event['categories'])
         ? array_map('trim', explode(',', $event['categories']))
         : [];
-    $event['start_ts'] = !empty($event['start']) ? strtotime($event['start']) : 0;
-    $event['end_ts']   = !empty($event['end'])   ? strtotime($event['end'])   : 0;
+    $event['start_ts'] = !empty($event['start']) ? (new DateTime($event['start'], $eventTzObj))->getTimestamp() : 0;
+    $event['end_ts']   = !empty($event['end'])   ? (new DateTime($event['end'],   $eventTzObj))->getTimestamp() : 0;
     return $event;
 }, $allEvents);
 
@@ -637,6 +639,7 @@ if ($_listingCalDataFromCache !== null) {
             <?php if ($currentVenueMode === 'single' && !empty($venues)): ?>
             <div class="event-venue">📍 <?php echo htmlspecialchars($venues[0]); ?></div>
             <?php endif; ?>
+            <div class="event-timezone" id="eventTimezoneDisplay">🕐 <?php echo htmlspecialchars($eventTz); ?></div>
             <?php endif; ?>
             <h2 data-i18n="header.subtitle">Idol stage event calendar</h2>
             <p data-i18n="header.disclaimer">* Please check the latest information again. We are not responsible for any errors that may occur during the preparation of this document.</p>
@@ -829,7 +832,9 @@ if ($_listingCalDataFromCache !== null) {
                                             <td class="program-datetime-cell">
                                                 <span class="program-time"
                                                       data-start="<?php echo date('H:i', $event['start_ts']); ?>"
-                                                      data-end="<?php echo date('H:i', $event['end_ts']); ?>"></span>
+                                                      data-end="<?php echo date('H:i', $event['end_ts']); ?>"
+                                                      data-utc="<?php echo $event['start_ts']; ?>"
+                                                      data-utc-end="<?php echo $event['end_ts']; ?>"></span>
                                             </td>
                                             <td class="program-info-cell">
                                                 <div class="program-title-name">
@@ -980,6 +985,7 @@ if ($_listingCalDataFromCache !== null) {
     <script>
     const DEFAULT_EVENT_SLUG = '<?php echo DEFAULT_EVENT_SLUG; ?>';
     const BASE_PATH = <?php echo json_encode(rtrim(dirname($_SERVER["SCRIPT_NAME"]), "/\\")); ?>;
+    window.EVENT_TIMEZONE = <?php echo json_encode($eventTz); ?>;
     </script>
 
     <?php if (!$showEventListing): ?>

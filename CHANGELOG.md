@@ -5,6 +5,49 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-03-25
+
+### Fixed
+- 🌐 **Timezone label language switch** — `program-time-local` spans now re-render label text (`เวลาท้องถิ่น` / `local time` / `現地時刻`) on language change via `appLangChange` event; `updateTimezoneLabels(lang)` reads stored `data-localtime` attribute instead of recomputing
+- 🌐 **Timezone badge inline** — event page timezone badge changed from tooltip (`title`) to inline text: `🕐 Asia/Tokyo (Asia/Bangkok)` when client timezone differs; `🕐 Asia/Bangkok` when same
+- 🕐 **Local time shows full range** — `program-time-local` now shows start–end range `(10:00–11:00 local)` instead of start only; `data-utc-end` attribute added to `.program-time` span in `index.php`
+- 📐 **`program-time-local` block layout** — changed to `display: block; margin-top: 2px` so local time appears on its own line below the event-timezone time
+- 🛡️ **Duplicate span guard** — `initTimezoneDisplay()` checks `nextSibling.classList` before appending to prevent duplicate `.program-time-local` spans on re-call
+- 📅 **Calendar view local time** — `calLocalTimeRange(ev)` helper added; local time now shown in all three calendar surfaces:
+  - **Chip** (desktop grid): `cal-chip-time-local` span on new line via `flex-wrap`; chip gets `cal-chip-has-local` class
+  - **Day panel** (mobile): `cal-dp-item-time-local` div after time row
+  - **Detail modal**: `cal-detail-time-local` div below the time heading
+- 🔴 **Day panel Live button separate line** — `.cal-dp-join` changed to `display: block; width: fit-content; margin-top: 0.4rem` so 🔴 Live button is always on its own line
+
+> **📁 Files changed:** `index.php`, `js/common.js`, `styles/index.css`, `styles/common.css`, `tests/TimezoneTest.php`
+
+## [4.0.0] - 2026-03-25
+
+### Added
+- **Per-event Timezone** — `timezone TEXT DEFAULT 'Asia/Bangkok'` column in `events` table; each event can have its own timezone (e.g. Asia/Tokyo, America/Los_Angeles)
+- **Timezone badge** on event page header — shows the event's timezone; if browser timezone differs, badge shows tooltip with user's local timezone
+- **Local time conversion** — JS `initTimezoneDisplay()` in `common.js`; detects browser timezone vs event timezone mismatch; appends `(HH:MM local time)` after program times for users in a different timezone
+- **`data-utc` attribute** on `.program-time` spans — UTC Unix timestamp for JS timezone conversion via `Intl.DateTimeFormat`
+- **`window.EVENT_TIMEZONE`** injected in `index.php` for client-side timezone handling
+- **ICS export with TZID format** — `export.php` and `feed.php` now use `DTSTART;TZID=Asia/Bangkok:20260319T100000` format + VTIMEZONE block instead of UTC `Z` format; `X-WR-TIMEZONE` reflects per-event timezone
+- **`icsVtimezone(string $tzid): string`** in `functions/ics.php` — generates RFC 5545-compliant VTIMEZONE block with STANDARD + DAYLIGHT components (auto-detected via PHP `DateTimeZone::getTransitions()`)
+- **`icsOffsetString(int $seconds): string`** in `functions/ics.php` — formats UTC offset as ±HHMM
+- **`get_event_timezone($eventMeta): string`** in `functions/helpers.php` — priority: event.timezone → DEFAULT_TIMEZONE → 'Asia/Bangkok'
+- **`define('DEFAULT_TIMEZONE', 'Asia/Bangkok')`** in `config/app.php`
+- **Admin timezone picker** — `<select id="conventionTimezone">` with 16 common timezones in 4 region groups (Asia, Europe, Americas, Pacific)
+- **Image export timezone label** — `image.php` footer shows timezone alongside generated timestamp
+- **Migration** — `tools/migrate-add-timezone-column.php` (idempotent); `setup.php` CREATE TABLE includes timezone column
+- **CSS** — `.event-timezone` (monospace header badge) and `.program-time-local` (small italic local time annotation) in `styles/index.css`
+- **i18n** — `tz.badge` and `tz.localTime` keys in `js/translations.js` (TH/EN/JA)
+- **Admin Help Pages** — `admin/help.php` (Thai) and `admin/help-en.php` (English) each have a new "🌐 Per-event Timezone (v4.0.0)" section covering: effects table (ICS/feed, event page, image export), how-to-set steps, 16-option timezone reference table, and 4 verification methods (ICS export test, live feed test, browser badge test with DevTools Sensors, automated CLI test)
+- **67 new automated tests** in `tests/TimezoneTest.php` — DB schema, migration idempotency, DEFAULT_TIMEZONE constant, `get_event_timezone()` priority logic, `icsOffsetString()`, `icsVtimezone()` RFC 5545 VTIMEZONE block, UTC timestamp computation, DB CRUD, export.php/feed.php TZID format, index.php injection, admin API, translations.js keys, common.js `initTimezoneDisplay()`, CSS classes, setup.php integration — **total: 2509 tests (14 suites)**
+
+### Changed
+- `index.php` `normalizedEvents` timestamp computation changed from `strtotime()` to `new DateTime($t, $eventTzObj)->getTimestamp()` for correct UTC when event timezone ≠ Asia/Bangkok
+- `admin/api.php` `createEvent()` and `updateEvent()` now accept and persist `timezone` field with PHP `DateTimeZone` validation
+
+> **📁 Files changed:** `tools/migrate-add-timezone-column.php` (new), `tests/TimezoneTest.php` (new), `config/app.php`, `functions/helpers.php`, `functions/ics.php`, `admin/api.php`, `admin/index.php`, `admin/help.php`, `admin/help-en.php`, `export.php`, `feed.php`, `index.php`, `image.php`, `js/common.js`, `js/translations.js`, `styles/index.css`, `setup.php`, `tests/run-tests.php`
+
 ## [3.7.0] - 2026-03-25
 
 ### Added

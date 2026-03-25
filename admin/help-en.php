@@ -625,6 +625,102 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         To have an event appear in the listing, create a new Event with a different slug and import Programs into that event instead.
                     </div>
                 </div>
+
+                <h3>🌐 Per-Event Timezone <span class="badge-version">v4.0.0</span></h3>
+                <p>
+                    Each event can have its own <strong>Timezone</strong> — for example, a Japan event uses <code>Asia/Tokyo</code>
+                    while a Thailand event uses <code>Asia/Bangkok</code>. This setting affects three areas:
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>Area</th><th>Behavior</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>ICS Export / Feed</td>
+                            <td>
+                                Switches from UTC format (<code>DTSTART:...Z</code>) to TZID format:<br>
+                                <code>DTSTART;TZID=Asia/Tokyo:20260319T100000</code><br>
+                                A <code>VTIMEZONE</code> block (RFC 5545) is included — Apple Calendar, Google Calendar, and Outlook all display the correct local time.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Event Page (public)</td>
+                            <td>
+                                A badge <strong>🕐 Asia/Tokyo</strong> is shown below the event name.<br>
+                                If the visitor's browser is in a different timezone, a <em>(HH:MM local)</em> annotation is automatically appended after each program's time.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Image Export (PNG)</td>
+                            <td>The image footer shows the event's timezone alongside the generated timestamp.</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>How to Set the Timezone</h3>
+                <ol>
+                    <li>Go to Admin → <strong>Events</strong> tab → click <strong>+ Add Event</strong> or ✏️ to edit an existing event.</li>
+                    <li>Select the <strong>Timezone</strong> from the dropdown (options are grouped by region).</li>
+                    <li>Click <strong>Save</strong>.</li>
+                </ol>
+                <table class="help-table">
+                    <thead><tr><th>Timezone option</th><th>Typical use</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>Asia/Bangkok</code> (UTC+7)</td><td>Events in Thailand, Vietnam, Indonesia (WIB)</td></tr>
+                        <tr><td><code>Asia/Tokyo</code> (UTC+9)</td><td>Events in Japan</td></tr>
+                        <tr><td><code>Asia/Seoul</code> (UTC+9)</td><td>Events in South Korea</td></tr>
+                        <tr><td><code>Asia/Singapore</code> (UTC+8)</td><td>Events in Singapore, Malaysia, Philippines</td></tr>
+                        <tr><td><code>America/Los_Angeles</code> (UTC-8/-7)</td><td>Events in California</td></tr>
+                        <tr><td><code>America/New_York</code> (UTC-5/-4)</td><td>Events in New York</td></tr>
+                        <tr><td><code>Europe/London</code> (UTC+0/+1)</td><td>Events in London</td></tr>
+                        <tr><td>… and 9 more timezones</td><td>See the form dropdown for the full list</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>How to Verify the Timezone Feature</h3>
+
+                <h4>1. Test ICS Export</h4>
+                <ol>
+                    <li>Create a new Event, set Timezone = <code>Asia/Tokyo</code>, add a Program with a time such as <code>10:00 – 11:00</code>.</li>
+                    <li>Open <code>/export?event={slug}</code> or click the Export button on the event page.</li>
+                    <li>Download the ICS file and open it in a text editor. Check for:
+                        <ul>
+                            <li><code>BEGIN:VTIMEZONE</code> … <code>TZID:Asia/Tokyo</code> before the first <code>BEGIN:VEVENT</code></li>
+                            <li><code>DTSTART;TZID=Asia/Tokyo:20260319T100000</code> — no trailing <code>Z</code></li>
+                            <li><code>X-WR-TIMEZONE:Asia/Tokyo</code></li>
+                        </ul>
+                    </li>
+                    <li>Import into Google Calendar or Apple Calendar → the event must show <strong>10:00 JST</strong>, not 10:00 Bangkok time.</li>
+                </ol>
+
+                <h4>2. Test the Live Feed</h4>
+                <ol>
+                    <li>Open <code>/event/{slug}/feed</code> and inspect the source.</li>
+                    <li>Apply the same checks as ICS Export above.</li>
+                    <li>Subscribe via Google Calendar → verify times are correct.</li>
+                </ol>
+
+                <h4>3. Test the Timezone Badge on the Event Page</h4>
+                <ol>
+                    <li>Open the event page in your browser.</li>
+                    <li>Below the event name you should see the badge <strong>🕐 Asia/Tokyo</strong>.</li>
+                    <li>Open DevTools → More Tools → Sensors → set Location/Timezone to <code>America/New_York</code> → reload.</li>
+                    <li>Each program's time should now have a <em>(HH:MM local)</em> annotation.
+                        <br><small>Example: 10:00 JST = 20:00 previous day EST (UTC-5).</small></li>
+                </ol>
+
+                <h4>4. Run Automated Tests (CLI)</h4>
+                <pre style="background:#1e1e1e;color:#d4d4d4;padding:12px;border-radius:6px;font-size:0.82rem;overflow-x:auto;">php tests/run-tests.php TimezoneTest</pre>
+                <p>Expected result: <strong>67 tests PASSED</strong> — covering helper functions, UTC computation, ICS format, DB schema, admin API, translations, and JS.</p>
+
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>
+                        <strong>Important — time values stored in the database</strong><br>
+                        Times entered in the Admin form (e.g. <code>10:00:00</code>) are interpreted as local time in the event's configured timezone.
+                        If you change an event's Timezone after programs have already been entered, the displayed and exported times will shift accordingly.
+                        Always set the Timezone <em>before</em> entering Program data.
+                    </div>
+                </div>
             </section>
 
             <!-- Requests Tab -->

@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'IcsParser.php';
+require_once 'functions/ics.php';
 
 // Security headers (excluding X-Frame-Options for download)
 header('X-Content-Type-Options: nosniff');
@@ -20,6 +21,7 @@ if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
 
 $eventId   = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
+$eventTz   = get_event_timezone($eventMeta);
 
 // สร้าง IcsParser instance
 $parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
@@ -76,15 +78,18 @@ echo "PRODID:-//" . $siteTitle . "//NONSGML v1.0//EN\r\n";
 echo "CALSCALE:GREGORIAN\r\n";
 echo "METHOD:PUBLISH\r\n";
 echo "X-WR-CALNAME:" . ($eventName ? $eventName . " - " : "") . $siteTitle . "\r\n";
-echo "X-WR-TIMEZONE:Asia/Bangkok\r\n";
+echo "X-WR-TIMEZONE:" . $eventTz . "\r\n";
 echo "X-WR-CALDESC:Exported events from " . $siteTitle . " ($exportedEvents of $totalEvents events)\r\n";
+$vtimezoneBlock = icsVtimezone($eventTz);
+if ($vtimezoneBlock) echo $vtimezoneBlock;
 
 // เพิ่ม events
 foreach ($filteredEvents as $event) {
-    // แปลง datetime เป็นรูปแบบ ICS (YYYYMMDDTHHmmssZ)
-    // ใช้ gmdate() เพื่อแปลงเป็น UTC timezone
-    $startTime = gmdate('Ymd\THis\Z', strtotime($event['start']));
-    $endTime = gmdate('Ymd\THis\Z', strtotime($event['end']));
+    // Parse stored local time as event timezone and emit TZID format
+    $dtStart     = new DateTime($event['start'], new DateTimeZone($eventTz));
+    $dtEnd       = new DateTime($event['end'],   new DateTimeZone($eventTz));
+    $startLocal  = $dtStart->format('Ymd\THis');
+    $endLocal    = $dtEnd->format('Ymd\THis');
     $createdTime = gmdate('Ymd\THis\Z');
 
     // สร้าง UID ที่ unique
@@ -93,8 +98,8 @@ foreach ($filteredEvents as $event) {
     echo "BEGIN:VEVENT\r\n";
     echo "UID:" . $uid . "\r\n";
     echo "DTSTAMP:" . $createdTime . "\r\n";
-    echo "DTSTART:" . $startTime . "\r\n";
-    echo "DTEND:" . $endTime . "\r\n";
+    echo "DTSTART;TZID=" . $eventTz . ":" . $startLocal . "\r\n";
+    echo "DTEND;TZID=" . $eventTz . ":" . $endLocal . "\r\n";
     echo "SUMMARY:" . escapeIcsValue($event['title']) . "\r\n";
 
     if (!empty($event['location'])) {

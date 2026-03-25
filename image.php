@@ -286,6 +286,7 @@ if ($eventSlug && !$eventMeta) {
 }
 $eventId     = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName   = $eventMeta ? $eventMeta['name']      : null;
+$eventTz     = get_event_timezone($eventMeta);
 $venueMode   = $eventMeta['venue_mode'] ?? (defined('VENUE_MODE') ? VENUE_MODE : 'multi');
 $isSingleVenue = ($venueMode === 'single');
 
@@ -793,7 +794,7 @@ if ($parts) {
     $sw = gdMeasure($summary, FS_SUB, $fontRegular, $fontFallback);
     gdText($img, FS_SUB, IMG_W - IMG_PAD - $sw, IMG_PAD + $aHdr, $cTxtWht, $fontRegular, $fontFallback, $summary);
 }
-$genStr = date('d/m/Y H:i');
+$genStr = date('d/m/Y H:i') . ' ' . $eventTz;
 $aGen = gdAscent(FS_SUB, $fontRegular);
 $bb = imagettfbbox(FS_SUB, 0, $fontRegular, $genStr);
 $gw = abs($bb[4] - $bb[6]);

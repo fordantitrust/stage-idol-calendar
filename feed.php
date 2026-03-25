@@ -54,6 +54,7 @@ if ($eventSlug !== DEFAULT_EVENT_SLUG && $eventMeta === null) {
 
 $eventId     = $eventMeta ? intval($eventMeta['id']) : null;
 $eventName   = $eventMeta ? $eventMeta['name'] : 'Idol Stage Event';
+$eventTz     = get_event_timezone($eventMeta);
 
 // ── Artist feed mode ───────────────────────────────────────────────────────────
 // When artist_id is provided (/artist/{id}/feed), ignore event scoping and
@@ -212,16 +213,20 @@ icsLine("PRODID:-//" . icsEscapeText($siteTitle) . "//NONSGML v1.0//EN");
 icsLine("CALSCALE:GREGORIAN");
 icsLine("METHOD:PUBLISH");
 icsLine("X-WR-CALNAME:" . icsEscape($calName));
-icsLine("X-WR-TIMEZONE:Asia/Bangkok");
+icsLine("X-WR-TIMEZONE:" . $eventTz);
 icsLine("X-WR-CALDESC:" . icsEscapeText($siteTitle) . " live calendar feed ($eventCount programs)");
+$vtimezoneBlock = icsVtimezone($eventTz);
+if ($vtimezoneBlock) echo $vtimezoneBlock;
 icsLine("X-PUBLISHED-TTL:PT1H");              // Apple Calendar refresh hint
 icsLine("REFRESH-INTERVAL;VALUE=DURATION:PT1H"); // RFC 7986 (Google Calendar)
 
 foreach ($filteredEvents as $event) {
-    $startTime    = gmdate('Ymd\THis\Z', strtotime($event['start']));
-    $endTime      = gmdate('Ymd\THis\Z', strtotime($event['end']));
-    $updatedTs    = !empty($event['updated_at']) ? strtotime($event['updated_at']) : time();
-    $dtstamp      = gmdate('Ymd\THis\Z', $updatedTs);
+    $dtStart    = new DateTime($event['start'], new DateTimeZone($eventTz));
+    $dtEnd      = new DateTime($event['end'],   new DateTimeZone($eventTz));
+    $startLocal = $dtStart->format('Ymd\THis');
+    $endLocal   = $dtEnd->format('Ymd\THis');
+    $updatedTs  = !empty($event['updated_at']) ? strtotime($event['updated_at']) : time();
+    $dtstamp    = gmdate('Ymd\THis\Z', $updatedTs);
     $uid = isset($event['uid'])
         ? $event['uid']
         : md5($event['title'] . $event['start']) . '@stageidol.local';
@@ -230,8 +235,8 @@ foreach ($filteredEvents as $event) {
     icsLine("UID:" . $uid);
     icsLine("DTSTAMP:" . $dtstamp);
     icsLine("LAST-MODIFIED:" . $dtstamp);
-    icsLine("DTSTART:" . $startTime);
-    icsLine("DTEND:" . $endTime);
+    icsLine("DTSTART;TZID=" . $eventTz . ":" . $startLocal);
+    icsLine("DTEND;TZID=" . $eventTz . ":" . $endLocal);
     icsLine("SUMMARY:" . icsEscapeText($event['title']));
 
     if (!empty($event['location'])) {

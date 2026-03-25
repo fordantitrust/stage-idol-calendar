@@ -185,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 is_active BOOLEAN DEFAULT 1,
                 theme TEXT DEFAULT NULL,
                 email TEXT DEFAULT NULL,
+                timezone TEXT DEFAULT 'Asia/Bangkok',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -669,6 +670,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // เพิ่ม timezone column ใน events (migration สำหรับ existing install — v4.0.0)
+    if ($action === 'add_timezone_column') {
+        try {
+            $db = new PDO('sqlite:' . $dbPath);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('timezone', $ecols)) {
+                $db->exec("ALTER TABLE events ADD COLUMN timezone TEXT DEFAULT 'Asia/Bangkok'");
+                $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>events.timezone column</strong> เรียบร้อย (default: Asia/Bangkok)"];
+            } else {
+                $messages[] = ['type' => 'info', 'text' => "events.timezone column มีอยู่แล้ว"];
+            }
+        } catch (PDOException $e) {
+            $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
+        }
+    }
+
     // รัน migrations ที่ค้างทั้งหมดในครั้งเดียว
     if ($action === 'run_all_migrations') {
         if (!file_exists($dbPath)) {
@@ -705,6 +723,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (in_array('events', $existingTables) && !in_array('email', $existingCols['events'] ?? [])) {
                     $db->exec("ALTER TABLE events ADD COLUMN email TEXT DEFAULT NULL");
                     $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม <strong>events.email</strong> column"];
+                    $ran++;
+                }
+
+                // events.timezone column
+                if (in_array('events', $existingTables) && !in_array('timezone', $existingCols['events'] ?? [])) {
+                    $db->exec("ALTER TABLE events ADD COLUMN timezone TEXT DEFAULT 'Asia/Bangkok'");
+                    $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม <strong>events.timezone</strong> column"];
                     $ran++;
                 }
 
@@ -967,6 +992,7 @@ $adminCount = 0;
 $hasRoleColumn = false;
 $hasThemeColumn = false;
 $hasEventEmailColumn = false;
+$hasTimezoneColumn = false;
 $hasTitleColumn = false;
 $hasProgramTypeColumn = false;
 $hasStreamUrlColumn = false;
@@ -1006,6 +1032,7 @@ if ($dbExists) {
             $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasThemeColumn = in_array('theme', $ecols);
             $hasEventEmailColumn = in_array('email', $ecols);
+            $hasTimezoneColumn = in_array('timezone', $ecols);
         }
         $hasTitleColumn = false;
         $hasProgramTypeColumn = false;
@@ -1027,7 +1054,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables;
 
 // Migration checklist — ใช้ตรวจว่าค้าง migration ตัวไหน
 // แต่ละรายการมี: label, version, applied (bool), action (string action name สำหรับรัน)
@@ -1042,6 +1069,7 @@ $migrationChecks = $dbExists ? [
     ['label' => 'Performance indexes (7 indexes)',                               'version' => 'v1.2.10','applied' => $hasIndexes,                                               'action' => 'add_indexes'],
     ['label' => 'contact_channels table',                                        'version' => 'v2.10.0','applied' => $hasContactChannelsTable,                                  'action' => 'add_contact_channels_table'],
     ['label' => 'artists + program_artists + artist_variants tables (v3.0.0)',   'version' => 'v3.0.0', 'applied' => $hasArtistTables,                                         'action' => 'add_artist_tables'],
+    ['label' => 'events.timezone column',                                        'version' => 'v4.0.0', 'applied' => $hasTimezoneColumn,                                         'action' => 'add_timezone_column'],
 ] : [];
 $pendingMigrations = array_filter($migrationChecks, fn($m) => !$m['applied'] && $m['action'] !== null);
 $allMigrationsApplied = $dbExists && empty($pendingMigrations);
@@ -1929,6 +1957,14 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                     <?php echo $hasEventEmailColumn ? 'exists' : 'missing'; ?>
                 </span>
             </div>
+            <!-- Event Timezone Column -->
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasTimezoneColumn ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>events.timezone</code> <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Per-event timezone for ICS export & display (v4.0.0)' : 'Timezone ต่อ event สำหรับ ICS export และแสดงผล (v4.0.0)' ?></span></span>
+                <span class="check-value <?php echo $hasTimezoneColumn ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasTimezoneColumn ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
             <?php endif; ?>
 
             <!-- Program Type Column -->
@@ -2035,6 +2071,13 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                     <form method="POST">
                         <button type="submit" name="action" value="add_artist_tables" class="btn btn-warning">
                             + artist tables (v3.0.0)
+                        </button>
+                    </form>
+                    <?php endif; ?>
+                    <?php if (($tableStatus['events'] ?? false) && !$hasTimezoneColumn): ?>
+                    <form method="POST">
+                        <button type="submit" name="action" value="add_timezone_column" class="btn btn-warning">
+                            + events.timezone column (v4.0.0)
                         </button>
                     </form>
                     <?php endif; ?>

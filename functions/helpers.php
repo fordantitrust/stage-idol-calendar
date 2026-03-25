@@ -217,6 +217,29 @@ function get_event_venue_mode($eventMeta) {
 }
 
 /**
+ * Get the timezone for an event
+ *
+ * Priority:
+ *   1. Event-specific timezone ($eventMeta['timezone']) — if set and valid
+ *   2. DEFAULT_TIMEZONE constant
+ *   3. Hard fallback: 'Asia/Bangkok'
+ *
+ * @param array|null $eventMeta Event meta data, or null
+ * @return string Valid PHP timezone identifier
+ */
+function get_event_timezone($eventMeta = null): string {
+    if ($eventMeta && !empty($eventMeta['timezone'])) {
+        try {
+            new DateTimeZone($eventMeta['timezone']);
+            return $eventMeta['timezone'];
+        } catch (Exception $e) {
+            // invalid timezone string, fall through
+        }
+    }
+    return defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
+}
+
+/**
  * Get the application base path (for subdirectory deployments)
  *
  * @return string Base path (e.g., '' for root, '/subdir' for subdirectory)

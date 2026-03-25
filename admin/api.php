@@ -1966,6 +1966,11 @@ function createEvent() {
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $emailRaw = trim($input['email'] ?? '');
     $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
+    $timezoneRaw = trim($input['timezone'] ?? '');
+    $timezone = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
+    if ($timezoneRaw !== '') {
+        try { new DateTimeZone($timezoneRaw); $timezone = $timezoneRaw; } catch (Exception $e) {}
+    }
 
     try {
         // Check unique slug
@@ -1978,8 +1983,8 @@ function createEvent() {
 
         $now = date('Y-m-d H:i:s');
         $stmt = $db->prepare("
-            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, email, created_at, updated_at)
-            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :email, :now, :now2)
+            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, email, timezone, created_at, updated_at)
+            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :email, :timezone, :now, :now2)
         ");
         $stmt->execute([
             ':slug' => $slug,
@@ -1991,6 +1996,7 @@ function createEvent() {
             ':is_active' => $isActive,
             ':theme' => $theme,
             ':email' => $email,
+            ':timezone' => $timezone,
             ':now' => $now,
             ':now2' => $now
         ]);
@@ -2037,6 +2043,11 @@ function updateEvent() {
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $emailRaw = trim($input['email'] ?? '');
     $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
+    $timezoneRaw = trim($input['timezone'] ?? '');
+    $timezone = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
+    if ($timezoneRaw !== '') {
+        try { new DateTimeZone($timezoneRaw); $timezone = $timezoneRaw; } catch (Exception $e) {}
+    }
 
     try {
         // Check slug uniqueness (exclude self)
@@ -2052,7 +2063,8 @@ function updateEvent() {
             SET slug = :slug, name = :name, description = :description,
                 start_date = :start_date, end_date = :end_date,
                 venue_mode = :venue_mode, is_active = :is_active,
-                theme = :theme, email = :email, updated_at = :updated_at
+                theme = :theme, email = :email, timezone = :timezone,
+                updated_at = :updated_at
             WHERE id = :id
         ");
         $stmt->execute([
@@ -2065,6 +2077,7 @@ function updateEvent() {
             ':is_active' => $isActive,
             ':theme' => $theme,
             ':email' => $email,
+            ':timezone' => $timezone,
             ':updated_at' => date('Y-m-d H:i:s'),
             ':id' => $id
         ]);

@@ -2341,6 +2341,39 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         </select>
                         <small class="form-hint">ธีมเฉพาะ event นี้ — ถ้าไม่เลือก จะใช้ Global Theme จาก Settings (fallback: Dark)</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="conventionTimezone">Timezone</label>
+                        <select id="conventionTimezone">
+                            <optgroup label="🌏 Asia">
+                                <option value="Asia/Bangkok">Asia/Bangkok (UTC+7) — Thailand, Vietnam, Indonesia</option>
+                                <option value="Asia/Tokyo">Asia/Tokyo (UTC+9) — Japan</option>
+                                <option value="Asia/Seoul">Asia/Seoul (UTC+9) — Korea</option>
+                                <option value="Asia/Singapore">Asia/Singapore (UTC+8) — Singapore, Malaysia, Philippines</option>
+                                <option value="Asia/Shanghai">Asia/Shanghai (UTC+8) — China</option>
+                                <option value="Asia/Taipei">Asia/Taipei (UTC+8) — Taiwan</option>
+                                <option value="Asia/Kolkata">Asia/Kolkata (UTC+5:30) — India</option>
+                                <option value="Asia/Dubai">Asia/Dubai (UTC+4) — UAE</option>
+                            </optgroup>
+                            <optgroup label="🌍 Europe / Africa">
+                                <option value="UTC">UTC (UTC+0)</option>
+                                <option value="Europe/London">Europe/London (UTC+0/+1)</option>
+                                <option value="Europe/Paris">Europe/Paris (UTC+1/+2)</option>
+                                <option value="Europe/Berlin">Europe/Berlin (UTC+1/+2)</option>
+                            </optgroup>
+                            <optgroup label="🌎 Americas">
+                                <option value="America/Los_Angeles">America/Los_Angeles (UTC-8/-7)</option>
+                                <option value="America/Chicago">America/Chicago (UTC-6/-5)</option>
+                                <option value="America/New_York">America/New_York (UTC-5/-4)</option>
+                                <option value="America/Sao_Paulo">America/Sao_Paulo (UTC-3/-2)</option>
+                            </optgroup>
+                            <optgroup label="🌊 Pacific">
+                                <option value="Pacific/Honolulu">Pacific/Honolulu (UTC-10)</option>
+                                <option value="Pacific/Auckland">Pacific/Auckland (UTC+12/+13)</option>
+                            </optgroup>
+                        </select>
+                        <small class="form-hint">เขตเวลาที่ใช้ในงาน — ใช้สำหรับ ICS export และแสดงผลบนหน้า event</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -4484,6 +4517,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionIsActive').checked = true;
             document.getElementById('conventionVenueMode').value = 'multi';
             document.getElementById('conventionTheme').value = '';
+            document.getElementById('conventionTimezone').value = 'Asia/Bangkok';
             conventionsFormChanged = false;
             document.getElementById('conventionModal').classList.add('active');
         }
@@ -4513,6 +4547,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('conventionVenueMode').value = conv.venue_mode || 'multi';
                 document.getElementById('conventionIsActive').checked = !!conv.is_active;
                 document.getElementById('conventionTheme').value = conv.theme || '';
+                document.getElementById('conventionTimezone').value = conv.timezone || 'Asia/Bangkok';
 
                 conventionsFormChanged = false;
                 document.getElementById('conventionModal').classList.add('active');
@@ -4549,7 +4584,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 end_date: document.getElementById('conventionEndDate').value,
                 venue_mode: document.getElementById('conventionVenueMode').value,
                 is_active: document.getElementById('conventionIsActive').checked ? 1 : 0,
-                theme: themeVal || null
+                theme: themeVal || null,
+                timezone: document.getElementById('conventionTimezone').value || 'Asia/Bangkok'
             };
 
             const isEdit = !!id;
