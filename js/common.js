@@ -315,7 +315,7 @@ function exportToIcs() {
     const params = new URLSearchParams();
 
     for (let [key, value] of formData.entries()) {
-        if (key === 'artist[]' || key === 'venue[]') {
+        if (key === 'artist[]' || key === 'venue[]' || key === 'type[]') {
             params.append(key, value);
         }
     }

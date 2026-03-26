@@ -34,24 +34,59 @@ $filterArtists = get_sanitized_array_param('artist', 200, 50);
 $filterVenues = get_sanitized_array_param('venue', 200, 50);
 $filterTypes = get_sanitized_array_param('type', 200, 50);
 
-// กรองข้อมูล (ใช้ CATEGORIES - รองรับหลายค่าแยกด้วย comma)
-$filteredEvents = array_filter($allEvents, function($event) use ($filterArtists, $filterVenues, $filterTypes) {
-    // ตรวจสอบ artist/categories (รองรับหลายค่าแยกด้วย comma)
-    $artistMatch = empty($filterArtists);
-    if (!$artistMatch && isset($event['categories'])) {
-        // แยก categories ด้วย comma
-        $eventCategories = array_map('trim', explode(',', $event['categories']));
-        // ตรวจสอบว่ามี category ใดที่ตรงกับ filter หรือไม่
-        foreach ($filterArtists as $filterArtist) {
-            if (in_array($filterArtist, $eventCategories)) {
-                $artistMatch = true;
-                break;
+// Build program_artists map (mirrors index.php logic for v3.0.0+ artist reuse system)
+$programArtistsMap = []; // program_id => [name, ...]
+$useArtistsTable = false;
+if (!empty($filterArtists)) {
+    try {
+        $dbPA = new PDO('sqlite:' . DB_PATH);
+        $dbPA->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $hasPATable = $dbPA->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='program_artists'"
+        )->fetch();
+        if ($hasPATable) {
+            $useArtistsTable = true;
+            $stmtPA = $dbPA->prepare(
+                "SELECT pa.program_id, a.name
+                 FROM program_artists pa
+                 JOIN artists a ON a.id = pa.artist_id"
+            );
+            $stmtPA->execute();
+            while ($row = $stmtPA->fetch(PDO::FETCH_ASSOC)) {
+                $programArtistsMap[(int)$row['program_id']][] = $row['name'];
+            }
+            $stmtPA->closeCursor();
+            $stmtPA = null;
+        }
+        $dbPA = null;
+    } catch (Exception $e) {
+        // fall through to categories text fallback
+    }
+}
+
+// กรองข้อมูล (ใช้ program_artists junction table เมื่อมี, fallback เป็น categories text)
+$filterArtistsSet = array_flip($filterArtists);
+$filterVenuesSet  = array_flip($filterVenues);
+$filteredEvents = array_filter($allEvents, function($event) use ($filterArtistsSet, $filterVenuesSet, $filterTypes, $programArtistsMap, $useArtistsTable) {
+    // ตรวจสอบ artist filter
+    $artistMatch = empty($filterArtistsSet);
+    if (!$artistMatch) {
+        if ($useArtistsTable) {
+            $names = $programArtistsMap[(int)($event['id'] ?? 0)] ?? [];
+            foreach ($names as $name) {
+                if (isset($filterArtistsSet[$name])) { $artistMatch = true; break; }
+            }
+        } else {
+            // fallback: ใช้ categories text field
+            $cats = array_map('trim', explode(',', $event['categories'] ?? ''));
+            foreach ($cats as $cat) {
+                if (isset($filterArtistsSet[$cat])) { $artistMatch = true; break; }
             }
         }
     }
 
-    $venueMatch = empty($filterVenues) || (isset($event['location']) && in_array($event['location'], $filterVenues));
-    $typeMatch = empty($filterTypes) || in_array($event['program_type'] ?? '', $filterTypes);
+    $venueMatch = empty($filterVenuesSet) || (isset($event['location']) && isset($filterVenuesSet[$event['location']]));
+    $typeMatch  = empty($filterTypes) || in_array($event['program_type'] ?? '', $filterTypes);
     return $artistMatch && $venueMatch && $typeMatch;
 });
 

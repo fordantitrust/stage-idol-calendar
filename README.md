@@ -808,7 +808,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 4.0.1
+**Current Version**: 4.0.2
 
 ---
 
