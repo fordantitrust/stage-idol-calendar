@@ -98,6 +98,22 @@ if (!empty($artistIds)) {
     } catch (PDOException $e) { /* continue with empty */ }
 }
 
+// Build event → color index map (for visual grouping by event)
+$eventColorMap     = []; // event_id (int) → 0-5
+$eventSlugColorMap = []; // event_slug     → 0-5
+$_ci = 0;
+foreach ($byDate as $_progs) {
+    foreach ($_progs as $_p) {
+        $eid = (int)$_p['event_id'];
+        if (!isset($eventColorMap[$eid])) {
+            $eventColorMap[$eid] = $_ci % 6;
+            $eventSlugColorMap[$_p['event_slug']] = $_ci % 6;
+            $_ci++;
+        }
+    }
+}
+unset($_ci, $_progs, $_p, $eid);
+
 // Prepare calendar-safe program data for JS
 $calPrograms = [];
 foreach ($byDate as $date => $progs) {
@@ -191,6 +207,17 @@ foreach ($byDate as $date => $progs) {
             border-left:3px solid var(--sakura-dark,#e91e63);
             background:linear-gradient(135deg,#fff0f5 0%,#fff 100%);
         }
+        /* ── Event color coding (0–5 cycling) ─────────────────────── */
+        .fav-ec-0 { background:#fff0f5; border-left:3px solid #f48fb1; }
+        .fav-ec-1 { background:#f0f5ff; border-left:3px solid #90caf9; }
+        .fav-ec-2 { background:#f0fff4; border-left:3px solid #a5d6a7; }
+        .fav-ec-3 { background:#fffbf0; border-left:3px solid #ffcc80; }
+        .fav-ec-4 { background:#f8f0ff; border-left:3px solid #ce93d8; }
+        .fav-ec-5 { background:#f0fbff; border-left:3px solid #80cbc4; }
+        .fav-ec-0:hover,.fav-ec-1:hover,.fav-ec-2:hover,
+        .fav-ec-3:hover,.fav-ec-4:hover,.fav-ec-5:hover { filter:brightness(.96); background-color:inherit; }
+        /* now-playing overrides event color */
+        .fav-program-row.fav-now-playing { background:linear-gradient(135deg,#fff0f5 0%,#fff 100%) !important; }
         .fav-now-badge {
             display:inline-block; padding:1px 7px; border-radius:10px;
             font-size:.72rem; font-weight:700; background:var(--sakura-dark,#e91e63);
@@ -402,7 +429,7 @@ foreach ($byDate as $date => $progs) {
                     $tEnd    = substr($p['end_date'],   11, 5);
                     $timeStr = ($tStart === $tEnd || !$tEnd || $tEnd === '00:00') ? $tStart : $tStart . '–' . $tEnd;
                 ?>
-                <div class="fav-program-row"
+                <div class="fav-program-row fav-ec-<?= $eventColorMap[(int)$p['event_id']] ?? 0 ?>"
                      data-start="<?= htmlspecialchars($p['start_date']) ?>"
                      data-end="<?= htmlspecialchars($p['end_date']) ?>">
                     <div class="fav-time"><?= htmlspecialchars($timeStr) ?></div>
@@ -505,7 +532,8 @@ const BASE_PATH    = <?= json_encode(get_base_path()) ?>;
 window.SITE_TITLE  = <?= json_encode($siteTitle) ?>;
 window.FAV_SLUG    = <?= json_encode($slug) ?>;
 const FAV_FEED_URL = <?= json_encode($feedUrl) ?>;
-const MY_PROGRAMS  = <?= json_encode($calPrograms, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+const MY_PROGRAMS       = <?= json_encode($calPrograms, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+const EVENT_COLOR_MAP   = <?= json_encode($eventSlugColorMap) ?>;
 </script>
 <script src="<?= asset_url('js/translations.js') ?>"></script>
 <script src="<?= asset_url('js/common.js') ?>"></script>
@@ -650,7 +678,8 @@ function openDayModal(dateStr) {
     if (bodyEl) {
         let html = '';
         progs.forEach(function(p) {
-            html += '<div class="fav-program-row">';
+            var ec = (EVENT_COLOR_MAP && EVENT_COLOR_MAP[p.event_slug] !== undefined) ? ' fav-ec-' + EVENT_COLOR_MAP[p.event_slug] : '';
+            html += '<div class="fav-program-row' + ec + '">';
             html += '<div class="fav-time">' + _esc(p.time) + '</div>';
             html += '<div class="fav-prog-body">';
             html += '<div class="fav-prog-title">' + _esc(p.title);

@@ -42,7 +42,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📅 **My Upcoming Programs** | Personal page (`/my/{slug}`) showing upcoming programs from all followed artists, grouped by event and date — auto-updates when admin adds new programs | v3.4.0 |
 | 🌟 **My Favorites Page** | Personal page (`/my-favorites/{slug}`) listing all followed artists with profile links and one-tap unfollow; ⭐ + 📅 nav shortcuts always shown on both pages (current page highlighted) | v3.4.0 |
 | 🎤 **Artist & Group Portal** | Public portal page (`/artists`) listing every group (gradient card + member chips) and solo artist (grid); real-time search (matches member names too); tab filter (All / Groups / Solo) | v3.7.0 |
-| 🌐 **Per-event Timezone** | Each event can have its own timezone (e.g. Asia/Tokyo, America/LA); event page shows timezone badge; JS auto-appends `(HH:MM local)` for users in a different timezone | v4.0.0 |
+| 🌐 **Per-event Timezone** | Each event can have its own timezone (e.g. Asia/Tokyo, America/LA); event page shows inline timezone badge `🕐 Asia/Tokyo (Asia/Bangkok)` when client TZ differs; JS auto-appends `(HH:MM–HH:MM local)` range after program times | v4.0.0 |
+| 🎨 **Event Color Coding** | My Upcoming Programs page colors each event's program rows in a distinct pastel shade (6 colors cycling) with a matching left-border accent, making it easy to identify which event each program belongs to at a glance | v4.0.3 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -138,6 +139,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v3.6.12** | 2026-03-25 | Admin Artists: group rows now show yellow member-count badge (e.g. `3 คน`) next to the `กลุ่ม` badge — count via server-side subquery |
 | **v3.7.0** | 2026-03-25 | Artist & Group Portal (`/artists`) — gradient group cards with member chips · solo artist grid · real-time search (matches member names) · tab filter (All/Groups/Solo) · `cache/query_portal.json` (1 hr) · 🎤 nav link before Credits on homepage |
 | **v4.0.0** ⚠️ | 2026-03-25 | **Run migration:** Per-event Timezone — `timezone` column in `events` · ICS/Feed use `DTSTART;TZID=` + RFC 5545 VTIMEZONE block · event page timezone badge + JS local-time conversion · image export timezone label · Admin timezone picker (16 options) · `DEFAULT_TIMEZONE` constant · 67 new TimezoneTest (→ 2509 total) |
+| **v4.0.1** | 2026-03-25 | Timezone badge changed to inline text `🕐 Asia/Tokyo (Asia/Bangkok)` · local time shows full range `(HH:MM–HH:MM local)` · language-switch re-renders local time labels · calendar view (chip, day panel, detail modal) all show local time range · `data-utc-end` attribute added to program time spans |
+| **v4.0.2** | 2026-03-26 | Bug fixes: ICS export was silently dropping `type[]` filter · ICS export artist filter used raw `categories` text instead of `program_artists` junction table, causing artist-filtered exports to miss programs; both now mirror `index.php` logic |
+| **v4.0.3** | 2026-03-26 | My Upcoming Programs: program rows are color-coded by event (6 pastel colors cycling with left-border accent); applies to both the main list and mini-calendar day modal |
 
 ---
 
@@ -808,7 +812,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 4.0.2
+**Current Version**: 4.0.3
 
 ---
 

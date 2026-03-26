@@ -5,6 +5,13 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 2026-03-26
+
+### Added
+- **My Upcoming Programs — event color coding** — each event gets a distinct pastel background + left-border accent (6 colors cycling: pink, blue, green, amber, purple, teal); applies to both the main program list and the mini calendar day modal; `now-playing` highlight still overrides event color
+
+> **📁 Files changed:** `my.php`
+
 ## [4.0.2] - 2026-03-26
 
 ### Fixed
