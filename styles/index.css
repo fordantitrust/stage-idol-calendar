@@ -508,6 +508,20 @@ header p {
     margin-top: 2px;
 }
 
+.program-time-nextday,
+.cal-chip-nextday {
+    display: inline-block;
+    font-size: 0.7em;
+    font-weight: 700;
+    color: #fff;
+    background: var(--sakura-dark, #E91E63);
+    border-radius: 3px;
+    padding: 0 3px;
+    margin-left: 3px;
+    vertical-align: super;
+    cursor: default;
+}
+
 .filters {
     padding: 30px;
     background: var(--sakura-bg-soft);

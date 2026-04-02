@@ -1999,15 +1999,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         </datalist>
                     </div>
 
-                    <div class="form-group">
-                        <label for="eventDate">วันที่ *</label>
-                        <input type="date" id="eventDate" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eventDate">วันที่เริ่ม *</label>
+                            <input type="date" id="eventDate" required onchange="onStartDateChange(this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label for="startTime">เวลาเริ่ม *</label>
+                            <input type="time" id="startTime" required>
+                        </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="startTime">เวลาเริ่ม *</label>
-                            <input type="time" id="startTime" required>
+                            <label for="endDate">วันที่สิ้นสุด *</label>
+                            <input type="date" id="endDate" required>
                         </div>
                         <div class="form-group">
                             <label for="endTime">เวลาสิ้นสุด *</label>
@@ -3271,6 +3277,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }, 300);
         }
 
+        function onStartDateChange(val) {
+            const endDateEl = document.getElementById('endDate');
+            if (!endDateEl.value || endDateEl.value < val) {
+                endDateEl.value = val;
+            }
+        }
+
         // Open add modal
         function openAddModal() {
             document.getElementById('modalTitle').textContent = 'เพิ่ม Program';
@@ -3278,7 +3291,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('eventId').value = '';
 
             // Set default date to today
-            document.getElementById('eventDate').value = new Date().toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('eventDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
 
             // Pre-select convention from filter dropdown
             const filterVal = document.getElementById('eventMetaFilter')?.value || '';
@@ -3313,6 +3328,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('location').value = event.location || '';
                 document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
                 if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
@@ -3353,6 +3369,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('location').value = event.location || '';
                 document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = event.description || '';
                 if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
@@ -3388,6 +3405,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const id = document.getElementById('eventId').value;
             const date = document.getElementById('eventDate').value;
             const startTime = document.getElementById('startTime').value;
+            const endDate = document.getElementById('endDate').value || date;
             const endTime = document.getElementById('endTime').value;
 
             const conventionVal = document.getElementById('eventConvention').value;
@@ -3396,7 +3414,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 organizer: document.getElementById('organizer').value,
                 location: document.getElementById('location').value,
                 start: `${date}T${startTime}:00`,
-                end: `${date}T${endTime}:00`,
+                end: `${endDate}T${endTime}:00`,
                 description: document.getElementById('description').value,
                 categories: document.getElementById('categories').value,
                 program_type: document.getElementById('programType').value,
@@ -3689,6 +3707,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('startTime').value = startDate.toTimeString().slice(0, 5);
 
             const endDate = new Date(event.end);
+            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
             document.getElementById('endTime').value = endDate.toTimeString().slice(0, 5);
 
             document.getElementById('description').value = event.description || '';

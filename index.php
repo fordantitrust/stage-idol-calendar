@@ -830,11 +830,17 @@ if ($_listingCalDataFromCache !== null) {
                                         ?>
                                         <tr<?php echo !empty($streamUrl) ? ' class="program-live"' : ''; ?>>
                                             <td class="program-datetime-cell">
+                                                <?php
+                                                    $startDay = date('Y-m-d', $event['start_ts']);
+                                                    $endDay   = date('Y-m-d', $event['end_ts']);
+                                                    $crossDay = ($endDay !== $startDay);
+                                                ?>
                                                 <span class="program-time"
                                                       data-start="<?php echo date('H:i', $event['start_ts']); ?>"
                                                       data-end="<?php echo date('H:i', $event['end_ts']); ?>"
                                                       data-utc="<?php echo $event['start_ts']; ?>"
-                                                      data-utc-end="<?php echo $event['end_ts']; ?>"></span>
+                                                      data-utc-end="<?php echo $event['end_ts']; ?>"
+                                                      <?php if ($crossDay): ?>data-end-date="<?php echo htmlspecialchars($endDay); ?>"<?php endif; ?>></span><?php if ($crossDay): ?><span class="program-time-nextday" title="<?php echo htmlspecialchars($endDay); ?>">+<?php echo (int)((strtotime($endDay) - strtotime($startDay)) / 86400); ?></span><?php endif; ?>
                                             </td>
                                             <td class="program-info-cell">
                                                 <div class="program-title-name">

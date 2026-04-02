@@ -5,6 +5,20 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-04-01
+
+### Added
+- **Cross-day programs** — Admin form now has separate "วันที่สิ้นสุด" (end date) field alongside the existing end time; programs spanning midnight (e.g. 23:00–02:00 next day) can now be saved correctly
+- **+N badge on public schedule (list view)** — When a program's end date differs from its start date, a pink superscript badge (`+1`, `+2`, …) appears next to the end time in the list view
+- **+N badge in calendar view** — Calendar chips, day-panel time rows, and the detail modal all show the same `+N` superscript badge when a program ends on a later date; `calCrossDay(ev)` helper function added to `common.js`
+- **Auto-sync end date** — Changing the start date in the admin form automatically advances the end date if it would otherwise precede the new start date
+
+### Changed
+- Admin program form layout: date + time fields reorganised into two rows (start date/time row, end date/time row) for clarity
+- `.program-time-nextday` and `.cal-chip-nextday` share a single CSS rule block for consistent styling
+
+> **📁 Files changed:** `admin/index.php`, `index.php`, `js/common.js`, `styles/index.css`
+
 ## [4.0.3] - 2026-03-26
 
 ### Added

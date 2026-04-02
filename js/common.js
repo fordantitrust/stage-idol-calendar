@@ -750,6 +750,8 @@ function renderMonthCalendar(events, year, month) {
                 if (platform) html += `<span class="cal-chip-icon">${platform}</span>`;
                 html += `<span class="cal-chip-artist">${escapeHtml(artist)}</span>`;
                 if (timeStr) html += `<span class="cal-chip-time">${timeStr}</span>`;
+                const crossDayN = calCrossDay(ev);
+                if (crossDayN > 0) html += `<span class="cal-chip-nextday">+${crossDayN}</span>`;
                 if (localRange) {
                     const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
                     const label = t ? (t['tz.localTime'] || 'local') : 'local';
@@ -786,6 +788,14 @@ function renderMonthCalendar(events, year, month) {
     return html;
 }
 
+function calCrossDay(ev) {
+    if (!ev.start || !ev.end) return 0;
+    const startDay = ev.start.substring(0, 10);
+    const endDay   = ev.end.substring(0, 10);
+    if (startDay === endDay) return 0;
+    return Math.round((new Date(endDay) - new Date(startDay)) / 86400000);
+}
+
 function escapeHtmlAttr(str) {
     return String(str)
         .replace(/&/g, '&amp;')
@@ -801,13 +811,14 @@ function openCalendarDetailModal(ev) {
     const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
     const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
 
+    const crossDayN = calCrossDay(ev);
     const duration = formatDuration(ev.start, ev.end);
     const localRange = calLocalTimeRange(ev);
     const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
     const localLabel = t ? (t['tz.localTime'] || 'local') : 'local';
 
     let body = `<div class="cal-detail-modal-inner">`;
-    if (timeRange) body += `<h3 class="cal-detail-title">${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</h3>`;
+    if (timeRange) body += `<h3 class="cal-detail-title">${escapeHtml(timeRange)}${crossDayN > 0 ? ` <span class="cal-chip-nextday">+${crossDayN}</span>` : ''}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</h3>`;
     if (localRange) body += `<div class="cal-detail-time-local">(${escapeHtml(localRange)} ${escapeHtml(localLabel)})</div>`;
     if (ev.location) body += `<div class="cal-detail-row">📍 ${escapeHtml(ev.location)}</div>`;
     if (ev.categories) body += `<div class="cal-detail-row">🎤 ${escapeHtml(ev.categories)}</div>`;
@@ -873,6 +884,7 @@ function openDayPanel(dateKey, dayEvs) {
         const timeStart = ev.start ? ev.start.substring(11, 16) : '';
         const timeEnd   = ev.end   ? ev.end.substring(11, 16)   : '';
         const timeRange = (timeStart && timeEnd && timeStart !== timeEnd) ? `${timeStart} – ${timeEnd}` : timeStart;
+        const crossDayN = calCrossDay(ev);
         const duration  = formatDuration(ev.start, ev.end);
         const localRange = calLocalTimeRange(ev);
         const dpIdx = window._calDpEvents.length;
@@ -888,7 +900,7 @@ function openDayPanel(dateKey, dayEvs) {
 
         itemsHtml += `<div class="cal-dp-item-title">${escapeHtml(ev.title || artist || '—')}</div>`;
         if (artist)     itemsHtml += `<div class="cal-dp-item-artist">${escapeHtml(artist)}</div>`;
-        if (timeRange)  itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
+        if (timeRange)  itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${crossDayN > 0 ? ` <span class="cal-chip-nextday">+${crossDayN}</span>` : ''}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
         if (localRange) {
             const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
             const label = t ? (t['tz.localTime'] || 'local') : 'local';
