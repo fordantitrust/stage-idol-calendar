@@ -855,6 +855,27 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guid
 - **Issues**: [GitHub Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
 
+### 🏢 White-label & Premium Support
+
+Need a custom deployment for your event? We offer:
+
+- **Managed Installation** — Full setup on your own domain or hosting, configured for your event(s)
+- **Custom Branding** — Logo, color theme, site title, and contact channels tailored to your organization
+- **Ongoing Support** — Admin training, program data import assistance, and priority issue resolution
+- **Telegram Bot Setup** — Complete Telegram notification bot configuration for your attendees
+
+Contact us via Twitter [@FordAntiTrust](https://x.com/FordAntiTrust) to discuss your requirements.
+
+### ❤️ Donation & Sponsorship
+
+If this project has been useful to you or your event, consider supporting its continued development:
+
+- **Ko-fi**: Support with a one-time or recurring contribution
+- **GitHub Sponsors**: Sponsor the project directly on GitHub
+- **Sponsor Badge**: Organizations that sponsor the project can have their name/logo featured in the Credits section
+
+Your support helps keep the project actively maintained and free for the community.
+
 ---
 
 ## 📝 License
