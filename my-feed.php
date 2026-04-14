@@ -163,8 +163,8 @@ foreach ($programs as $p) {
         ? $p['uid']
         : md5($p['title'] . $p['start']) . '@stageidol.local';
 
-    // Prefix event name so calendar apps can distinguish events at a glance
-    $summary = (!empty($p['event_name']) ? '[' . $p['event_name'] . '] ' : '') . $p['title'];
+    // Suffix event name so calendar apps can distinguish events at a glance
+    $summary = $p['title'] . (!empty($p['event_name']) ? ' [' . $p['event_name'] . ']' : '');
 
     icsLine("BEGIN:VEVENT");
     icsLine("UID:" . $uid);

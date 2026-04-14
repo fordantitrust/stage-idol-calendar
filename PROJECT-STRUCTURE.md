@@ -168,7 +168,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 1630 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 2523 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Unique Tests | Cumulative | Coverage |
 |------|-------------|-----------|---------|
@@ -186,11 +186,13 @@ Automated test suite — 1630 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 | `ProgramTypeTest.php` | 35 | 211 | program_type schema, CRUD, API filter, UI badges, translations |
 | `FeedTest.php` | 80 | 291 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
 | `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
+| `FavoritesTest.php` | 84 | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
+| `TimezoneTest.php` | 117 | 487 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
 
-> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 1630.
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 2523.
 
 ```bash
-# Run all 1630 tests
+# Run all 2523 tests
 php tests/run-tests.php
 
 # Run specific suite

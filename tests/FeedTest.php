@@ -224,8 +224,12 @@ function testFeedPhpDefinesIcsEscapeTextFunction($test) {
 
 function testFeedPhpUseIcsEscapeTextForSummary($test) {
     $src = file_get_contents(dirname(__DIR__) . '/feed.php');
-    $test->assertContains('icsEscapeText($event[\'title\'])', $src,
-        'feed.php must use icsEscapeText() (not icsEscape()) for SUMMARY to avoid comma truncation');
+    // Check that SUMMARY uses icsEscapeText with event name (either $eventName or $summaryEventName)
+    $test->assertTrue(
+        (strpos($src, "icsEscapeText(\$event['title'] . ' [' . \$eventName . ']')") !== false ||
+         strpos($src, "icsEscapeText(\$event['title'] . ' [' . \$summaryEventName . ']')") !== false),
+        'feed.php must use icsEscapeText() for SUMMARY (including event name) to avoid comma truncation'
+    );
 }
 
 // ── 3. icsFold() — RFC 5545 Line Folding ─────────────────────────────────────

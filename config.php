@@ -34,6 +34,7 @@ require_once __DIR__ . '/config/security.php';    // Security settings
 require_once __DIR__ . '/config/database.php';    // Database configuration
 require_once __DIR__ . '/config/cache.php';       // Cache settings
 require_once __DIR__ . '/config/favorites.php';   // Favorites system
+require_once __DIR__ . '/config/telegram.php';    // Telegram bot settings
 
 // =============================================================================
 // LOAD HELPER FUNCTIONS
@@ -43,3 +44,5 @@ require_once __DIR__ . '/functions/helpers.php';   // General helpers
 require_once __DIR__ . '/functions/cache.php';     // Cache functions
 require_once __DIR__ . '/functions/security.php';  // Security functions
 require_once __DIR__ . '/functions/admin.php';     // Admin functions
+require_once __DIR__ . '/functions/favorites.php'; // Favorites system
+require_once __DIR__ . '/functions/telegram.php';  // Telegram bot functions

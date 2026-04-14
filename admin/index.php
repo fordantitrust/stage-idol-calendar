@@ -159,6 +159,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
 
+        .admin-toolbar .btn-primary {
+            flex-basis: 100%;
+        }
+
         .btn-secondary {
             background: #e2e8f0;
             color: var(--admin-text);
@@ -199,11 +203,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         /* Table */
         .events-table {
             width: 100%;
+            min-width: 100%;
             border-collapse: collapse;
             background: white;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            table-layout: auto;
+        }
+
+        .table-scroll-wrapper {
+            min-height: 100px;
         }
 
         .events-table th,
@@ -525,7 +535,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         /* Search wrapper with clear button */
         .search-wrapper {
             position: relative;
-            flex: 1;
+            flex-basis: 100%;
+            width: 100%;
             min-width: 200px;
         }
 
@@ -893,7 +904,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 width: 100%;
             }
             .events-table {
-                white-space: nowrap;
+                white-space: normal;
             }
             .events-table th,
             .events-table td {
@@ -1039,21 +1050,55 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 padding: 10px;
             }
         }
+        /* Language toggle */
+        .admin-lang-toggle {
+            display: flex;
+            gap: 4px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+            padding: 3px;
+        }
+        .admin-lang-btn {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: rgba(255,255,255,0.75);
+            background: transparent;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .admin-lang-btn.active {
+            background: rgba(255,255,255,0.9);
+            color: var(--admin-primary-dark);
+        }
+        .admin-lang-btn:hover:not(.active) {
+            color: #fff;
+            background: rgba(255,255,255,0.25);
+        }
     </style>
+    <script src="<?php echo asset_url('js/admin-i18n.js'); ?>"></script>
 </head>
 <body>
     <div class="admin-container">
         <!-- Header -->
         <div class="admin-header">
             <h1>Admin - <?php echo htmlspecialchars(get_site_title()); ?></h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span style="color: rgba(255, 255, 255, 0.95); font-weight: 600;">สวัสดี, <?php echo htmlspecialchars($adminUsername); ?> <small style="opacity:0.7; font-weight:400;">(<?php echo htmlspecialchars($adminRole); ?>)</small></span>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <span style="color: rgba(255, 255, 255, 0.95); font-weight: 600;"><span data-i18n="header.hello">สวัสดี</span>, <?php echo htmlspecialchars($adminUsername); ?> <small style="opacity:0.7; font-weight:400;">(<?php echo htmlspecialchars($adminRole); ?>)</small></span>
+                <div class="admin-lang-toggle">
+                    <button class="admin-lang-btn active" data-lang="th" onclick="changeAdminLang('th')">🇹🇭 TH</button>
+                    <button class="admin-lang-btn" data-lang="en" onclick="changeAdminLang('en')">🇬🇧 EN</button>
+                </div>
+                <span style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem; font-weight: 500; padding: 4px 8px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">v<?php echo APP_VERSION; ?></span>
                 <?php if ($adminUserId !== null): ?>
-                <a href="#" onclick="showChangePasswordModal(); return false;" style="background: rgba(255, 255, 255, 0.15); color: white;">🔑 Change Password</a>
+                <a href="#" onclick="showChangePasswordModal(); return false;" style="background: rgba(255, 255, 255, 0.15); color: white;" data-i18n="header.changePassword">🔑 เปลี่ยนรหัสผ่าน</a>
                 <?php endif; ?>
-                <a href="help.php">📖 Help</a>
-                <a href="../index.php">&larr; กลับหน้าหลัก</a>
-                <a href="login.php?logout=1" style="background: rgba(239, 68, 68, 0.2); color: white;">Logout</a>
+                <a href="help.php" data-i18n="header.help">📖 ช่วยเหลือ</a>
+                <a href="../index.php" data-i18n="header.backToMain">← กลับหน้าหลัก</a>
+                <a href="login.php?logout=1" style="background: rgba(239, 68, 68, 0.2); color: white;" data-i18n="header.logout">ออกจากระบบ</a>
             </div>
         </div>
 
@@ -1070,36 +1115,30 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <span class="tab-mobile-arrow">▼</span>
             </button>
             <div class="tab-mobile-dropdown" id="tabMobileDropdown" role="menu">
-                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem">🎵 Programs</button>
-                <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem">🎪 Events</button>
+                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem" data-i18n="tab.programs">🎵 Programs</button>
+                <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem" data-i18n="tab.events">🎪 Events</button>
                 <button class="tab-mobile-item" onclick="switchTab('requests')" data-tab="requests" role="menuitem">
-                    📝 Requests <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
+                    <span data-i18n="tab.requests">📝 Requests</span> <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
                 </button>
-                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem">✨ Credits</button>
-                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem">📤 Import</button>
+                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem" data-i18n="tab.credits">✨ Credits</button>
+                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem" data-i18n="tab.import">📤 Import</button>
                 <?php if ($adminRole === 'admin'): ?>
-                <button class="tab-mobile-item" onclick="switchTab('artists')" data-tab="artists" role="menuitem">🎤 Artists</button>                    
-                <button class="tab-mobile-item" onclick="switchTab('users')" data-tab="users" role="menuitem">👤 Users</button>
-                <button class="tab-mobile-item" onclick="switchTab('backup')" data-tab="backup" role="menuitem">💾 Backup</button>
-                <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem">⚙️ Settings</button>
-                <button class="tab-mobile-item" onclick="switchTab('contact')" data-tab="contact" role="menuitem">✉️ Contact</button>
+                <button class="tab-mobile-item" onclick="switchTab('artists')" data-tab="artists" role="menuitem" data-i18n="tab.artists">🎤 Artists</button>
+                <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem" data-i18n="tab.settings">⚙️ Settings</button>
                 <?php endif; ?>
             </div>
         </div>
 
         <!-- Tabs (desktop) -->
         <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('programs')">🎵 Programs</button>
-            <button class="tab-btn" onclick="switchTab('events')">🎪 Events</button>
-            <button class="tab-btn" onclick="switchTab('requests')">📝 Requests <span class="badge" id="pendingBadge" style="display:none">0</span></button>
-            <button class="tab-btn" onclick="switchTab('credits')">✨ Credits</button>
-            <button class="tab-btn" onclick="switchTab('import')">📤 Import</button>
+            <button class="tab-btn active" onclick="switchTab('programs')" data-i18n="tab.programs">🎵 Programs</button>
+            <button class="tab-btn" onclick="switchTab('events')" data-i18n="tab.events">🎪 Events</button>
+            <button class="tab-btn" onclick="switchTab('requests')"><span data-i18n="tab.requests">📝 Requests</span> <span class="badge" id="pendingBadge" style="display:none">0</span></button>
+            <button class="tab-btn" onclick="switchTab('credits')" data-i18n="tab.credits">✨ Credits</button>
+            <button class="tab-btn" onclick="switchTab('import')" data-i18n="tab.import">📤 Import</button>
             <?php if ($adminRole === 'admin'): ?>
-            <button class="tab-btn" onclick="switchTab('artists')">🎤 Artists</button>
-            <button class="tab-btn" onclick="switchTab('users')">👤 Users</button>
-            <button class="tab-btn" onclick="switchTab('backup')">💾 Backup</button>
-            <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
-            <button class="tab-btn" onclick="switchTab('contact')">✉️ Contact</button>
+            <button class="tab-btn" onclick="switchTab('artists')" data-i18n="tab.artists">🎤 Artists</button>
+            <button class="tab-btn" onclick="switchTab('settings')" data-i18n="tab.settings">⚙️ Settings</button>
             <?php endif; ?>
         </div>
 
@@ -1108,36 +1147,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <!-- Toolbar -->
         <div class="admin-toolbar">
             <select id="eventMetaFilter" onchange="currentPage=1;loadPrograms()">
-                <option value="">All Events</option>
+                <option value="" data-i18n="programs.allEvents">ทุก Events</option>
             </select>
             <div class="search-wrapper">
-                <input type="text" id="searchInput" placeholder="ค้นหา..." onkeyup="handleSearch(event)">
+                <input type="text" id="searchInput" placeholder="ค้นหา..." data-i18n-placeholder="programs.search" onkeyup="handleSearch(event)">
                 <button type="button" class="clear-search" onclick="clearSearch()" title="Clear">&times;</button>
             </div>
             <select id="venueFilter" onchange="loadPrograms()">
-                <option value="">ทุกเวที</option>
+                <option value="" data-i18n="programs.allVenues">ทุกเวที</option>
             </select>
-            <input type="date" id="dateFrom" onchange="loadPrograms()" title="จากวันที่">
-            <input type="date" id="dateTo" onchange="loadPrograms()" title="ถึงวันที่">
-            <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
-            <select id="perPageSelect" onchange="changePerPage()" title="จำนวนต่อหน้า">
-                <option value="20" selected>20 / หน้า</option>
-                <option value="50">50 / หน้า</option>
-                <option value="100">100 / หน้า</option>
+            <input type="date" id="dateFrom" onchange="loadPrograms()" data-i18n-title="programs.dateFrom" title="จากวันที่">
+            <input type="date" id="dateTo" onchange="loadPrograms()" data-i18n-title="programs.dateTo" title="ถึงวันที่">
+            <button class="btn btn-secondary" onclick="clearFilters()" data-i18n="programs.clearFilters">ล้างตัวกรอง</button>
+            <select id="perPageSelect" onchange="changePerPage()">
+                <option value="20" selected>20 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                <option value="50">50 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                <option value="100">100 <span data-i18n="programs.perPage">/ หน้า</span></option>
             </select>
-            <button class="btn btn-primary" onclick="openAddModal()">+ เพิ่ม Program</button>
+            <button class="btn btn-primary" onclick="openAddModal()" data-i18n="programs.addProgram">+ เพิ่ม Program</button>
         </div>
 
         <!-- Bulk Actions Toolbar (initially hidden) -->
         <div class="bulk-actions-bar" id="bulkActionsBar" style="display:none">
             <div class="bulk-selection-info">
-                <span id="bulkSelectionCount">0</span> รายการที่เลือก
+                <span id="bulkSelectionCount">0</span> <span data-i18n="bulk.selected">รายการที่เลือก</span>
             </div>
             <div class="bulk-actions-buttons">
-                <button class="btn btn-secondary btn-sm" onclick="bulkSelectAll()">เลือกทั้งหมด</button>
-                <button class="btn btn-secondary btn-sm" onclick="bulkClearSelection()">ยกเลิกทั้งหมด</button>
-                <button class="btn btn-warning btn-sm" onclick="openBulkEditModal()">✏️ แก้ไขหลายรายการ</button>
-                <button class="btn btn-danger btn-sm" onclick="openBulkDeleteModal()">🗑️ ลบหลายรายการ</button>
+                <button class="btn btn-secondary btn-sm" onclick="bulkSelectAll()" data-i18n="bulk.selectAll">เลือกทั้งหมด</button>
+                <button class="btn btn-secondary btn-sm" onclick="bulkClearSelection()" data-i18n="bulk.clearAll">ยกเลิกทั้งหมด</button>
+                <button class="btn btn-warning btn-sm" onclick="openBulkEditModal()" data-i18n="bulk.editSelected">✏️ แก้ไขหลายรายการ</button>
+                <button class="btn btn-danger btn-sm" onclick="openBulkDeleteModal()" data-i18n="bulk.deleteSelected">🗑️ ลบหลายรายการ</button>
             </div>
         </div>
 
@@ -1147,20 +1186,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <thead>
                 <tr>
                     <th style="width:40px"><input type="checkbox" id="eventSelectAllCheckbox" onchange="toggleAllEventCheckboxes()"></th>
-                    <th class="sortable" onclick="sortBy('id')"># <span class="sort-icon" data-col="id"></span></th>
-                    <th class="sortable" onclick="sortBy('title')">Title <span class="sort-icon" data-col="title"></span></th>
-                    <th class="sortable" onclick="sortBy('start')">Date/Time <span class="sort-icon" data-col="start"></span></th>
+                    <th class="sortable" onclick="sortBy('id')">#</th>
+                    <th class="sortable" onclick="sortBy('title')"><span data-i18n="th.title">ชื่อ</span> <span class="sort-icon" data-col="title"></span></th>
+                    <th class="sortable" onclick="sortBy('start')"><span data-i18n="th.dateTime">วันที่/เวลา</span> <span class="sort-icon" data-col="start"></span></th>
                     <?php if (VENUE_MODE === 'multi'): ?>
-                    <th class="sortable" onclick="sortBy('location')">Venue <span class="sort-icon" data-col="location"></span></th>
+                    <th class="sortable" onclick="sortBy('location')"><span data-i18n="th.venue">เวที</span> <span class="sort-icon" data-col="location"></span></th>
                     <?php endif; ?>
-                    <th class="sortable" onclick="sortBy('categories')">Artist / Group <span class="sort-icon" data-col="categories"></span></th>
-                    <th>Type</th>
-                    <th>Actions</th>
+                    <th class="sortable" onclick="sortBy('categories')"><span data-i18n="th.artistGroup">ศิลปิน / กลุ่ม</span> <span class="sort-icon" data-col="categories"></span></th>
+                    <th data-i18n="th.type">ประเภท</th>
+                    <th data-i18n="th.actions">จัดการ</th>
                 </tr>
             </thead>
             <tbody id="eventsTableBody">
                 <tr>
-                    <td colspan="6" class="loading">Loading...</td>
+                    <td colspan="6" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
                 </tr>
             </tbody>
         </table>
@@ -1174,21 +1213,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div id="requestsSection" style="display:none">
             <div class="admin-toolbar">
                 <select id="reqEventMetaFilter" onchange="reqPage=1;loadRequests()">
-                    <option value="">All Events</option>
+                    <option value="" data-i18n="req.allEvents">ทุก Events</option>
                 </select>
                 <select id="reqStatusFilter" onchange="loadRequests()">
-                    <option value="">ทุกสถานะ</option>
-                    <option value="pending" selected>รอดำเนินการ</option>
-                    <option value="approved">อนุมัติแล้ว</option>
-                    <option value="rejected">ปฏิเสธแล้ว</option>
+                    <option value="" data-i18n="req.allStatuses">ทุกสถานะ</option>
+                    <option value="pending" selected data-i18n="req.pending">รอดำเนินการ</option>
+                    <option value="approved" data-i18n="req.approved">อนุมัติแล้ว</option>
+                    <option value="rejected" data-i18n="req.rejected">ปฏิเสธแล้ว</option>
                 </select>
             </div>
             <div class="table-scroll-wrapper">
             <table class="events-table">
                 <thead>
-                    <tr><th>#</th><th>ประเภท</th><th>ชื่อ Program</th><th>ผู้แจ้ง</th><th>วันที่</th><th>สถานะ</th><th>Actions</th></tr>
+                    <tr>
+                        <th>#</th>
+                        <th data-i18n="req.thType">ประเภท</th>
+                        <th data-i18n="req.thProgram">ชื่อ Program</th>
+                        <th data-i18n="req.thReporter">ผู้แจ้ง</th>
+                        <th data-i18n="req.thDate">วันที่</th>
+                        <th data-i18n="req.thStatus">สถานะ</th>
+                        <th data-i18n="th.actions">จัดการ</th>
+                    </tr>
                 </thead>
-                <tbody id="requestsBody"><tr><td colspan="7">Loading...</td></tr></tbody>
+                <tbody id="requestsBody"><tr><td colspan="7" data-i18n="common.loading">กำลังโหลด...</td></tr></tbody>
             </table>
             </div>
             <div class="pagination" id="reqPagination"></div>
@@ -1200,61 +1247,59 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <div class="upload-area" id="uploadArea">
                 <div style="max-width: 400px; margin: 0 auto 20px; display: flex; flex-direction: column; gap: 14px;">
                     <div class="form-group">
-                        <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;">📦 Import ไปยัง Event:</label>
+                        <label for="icsImportEventMeta" style="font-weight: 600; margin-bottom: 6px; display: block;" data-i18n="import.toEvent">📦 Import ไปยัง Event:</label>
                         <select id="icsImportEventMeta" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;">
-                            <option value="">-- เลือก Event --</option>
+                            <option value="" data-i18n="import.selectEvent">-- เลือก Event --</option>
                         </select>
-                        <small class="form-hint" style="color: #888; font-size: 0.85em;">เลือก event ที่ต้องการ import programs เข้าไป</small>
                     </div>
                     <div class="form-group">
-                        <label for="icsDefaultType" style="font-weight: 600; margin-bottom: 6px; display: block;">🏷️ Program Type (default):</label>
+                        <label for="icsDefaultType" style="font-weight: 600; margin-bottom: 6px; display: block;" data-i18n="import.defaultType">🏷️ Program Type (default):</label>
                         <input type="text" id="icsDefaultType" list="icsDefaultTypeList"
                                style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em;"
-                               placeholder="stage, booth, meet &amp; greet, ... (ไม่บังคับ)">
+                               placeholder="stage, booth, meet &amp; greet, ...">
                         <datalist id="icsDefaultTypeList"></datalist>
-                        <small class="form-hint" style="color: #888; font-size: 0.85em;">ใช้สำหรับ programs ที่ไม่มี <code>X-PROGRAM-TYPE</code> ในไฟล์ ICS</small>
                     </div>
                 </div>
                 <div class="upload-box" id="uploadBox" onclick="document.getElementById('icsFileInput').click()">
                     <input type="file" id="icsFileInput" accept=".ics" style="display:none" onchange="handleFileSelect(event)">
                     <div class="upload-placeholder">
                         <div class="upload-icon">📁</div>
-                        <p><strong>คลิกเพื่ออัปโหลด</strong> หรือ ลากไฟล์มาวาง</p>
-                        <p class="upload-hint">รองรับเฉพาะไฟล์ .ics (สูงสุด 5MB)</p>
+                        <p><strong data-i18n="import.clickToUpload">คลิกเพื่ออัปโหลด</strong> <span data-i18n="import.dragDrop">หรือ ลากไฟล์มาวาง</span></p>
+                        <p class="upload-hint" data-i18n="import.icsOnly">รองรับเฉพาะไฟล์ .ics (สูงสุด 5MB)</p>
                     </div>
                 </div>
                 <div id="uploadProgress" style="display:none">
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill"></div>
                     </div>
-                    <p id="progressText">กำลังอัปโหลด...</p>
+                    <p id="progressText" data-i18n="import.uploading">กำลังอัปโหลด...</p>
                 </div>
             </div>
 
             <!-- Preview Section (shown after upload) -->
             <div id="previewSection" style="display:none">
                 <div class="preview-header">
-                    <h3>📋 ตัวอย่าง Programs (<span id="previewCount">0</span>)</h3>
+                    <h3><span data-i18n="import.previewTitle">📋 ตัวอย่าง Programs</span> (<span id="previewCount">0</span>)</h3>
                     <div class="preview-stats">
                         <span class="stat-badge" style="background:#e3f2fd;color:#1565c0;">📦 <span id="previewConventionName">-</span></span>
-                        <span class="stat-badge stat-new">➕ <span id="statNew">0</span> ใหม่</span>
-                        <span class="stat-badge stat-duplicate">⚠️ <span id="statDup">0</span> ซ้ำ</span>
-                        <span class="stat-badge stat-error">❌ <span id="statError">0</span> ผิดพลาด</span>
+                        <span class="stat-badge stat-new">➕ <span id="statNew">0</span> <span data-i18n="import.statNew">ใหม่</span></span>
+                        <span class="stat-badge stat-duplicate">⚠️ <span id="statDup">0</span> <span data-i18n="import.statDup">ซ้ำ</span></span>
+                        <span class="stat-badge stat-error">❌ <span id="statError">0</span> <span data-i18n="import.statError">ผิดพลาด</span></span>
                     </div>
                 </div>
 
                 <div class="preview-toolbar">
-                    <button class="btn btn-sm btn-secondary" onclick="selectAllEvents()">เลือกทั้งหมด</button>
-                    <button class="btn btn-sm btn-secondary" onclick="deselectAllEvents()">ยกเลิกทั้งหมด</button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteSelectedEvents()">ลบที่เลือก</button>
-                    <button class="btn btn-sm btn-secondary" onclick="resetUpload()">ยกเลิก</button>
+                    <button class="btn btn-sm btn-secondary" onclick="selectAllEvents()" data-i18n="import.selectAll">เลือกทั้งหมด</button>
+                    <button class="btn btn-sm btn-secondary" onclick="deselectAllEvents()" data-i18n="import.deselectAll">ยกเลิกทั้งหมด</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSelectedEvents()" data-i18n="import.deleteSelected">ลบที่เลือก</button>
+                    <button class="btn btn-sm btn-secondary" onclick="resetUpload()" data-i18n="import.cancel">ยกเลิก</button>
                 </div>
 
                 <!-- Artist Mapping Section -->
                 <div id="artistMappingSection" style="display:none; margin-bottom:20px; border:2px solid #fbbf24; border-radius:10px; overflow:hidden;">
                     <div style="background:#fef3c7; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                         <strong>🎤 Artist Mapping — พบชื่อศิลปินที่ยังไม่มีใน database (<span id="unmatchedCount">0</span> รายการ)</strong>
-                        <small style="color:#92400e;">กำหนด mapping ก่อน confirm import เพื่อให้ระบบสร้าง artist links อัตโนมัติ</small>
+                        <small style="color:#92400e;" data-i18n="import.artistMappingHint">กำหนด mapping ก่อน confirm import เพื่อให้ระบบสร้าง artist links อัตโนมัติ</small>
                     </div>
                     <div style="overflow-x:auto; background:white;">
                         <table class="events-table" style="margin:0; border-radius:0;">
@@ -1276,13 +1321,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <thead>
                             <tr>
                                 <th style="width:40px"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()"></th>
-                                <th style="width:100px">สถานะ</th>
-                                <th>ชื่อ Program</th>
-                                <th>วันที่/เวลา</th>
-                                <th>สถานที่</th>
-                                <th>ศิลปินที่เกี่ยวข้อง</th>
-                                <th style="width:140px">การจัดการซ้ำ</th>
-                                <th style="width:100px">Actions</th>
+                                <th style="width:100px" data-i18n="import.thStatus">สถานะ</th>
+                                <th data-i18n="import.thName">ชื่อ Program</th>
+                                <th data-i18n="import.thDateTime">วันที่/เวลา</th>
+                                <th data-i18n="import.thLocation">สถานที่</th>
+                                <th data-i18n="import.thArtist">ศิลปินที่เกี่ยวข้อง</th>
+                                <th style="width:140px" data-i18n="import.thDuplicate">การจัดการซ้ำ</th>
+                                <th style="width:100px" data-i18n="th.actions">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="previewTableBody">
@@ -1293,7 +1338,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <div class="preview-footer">
                     <button class="btn btn-primary btn-lg" onclick="confirmImport()">
-                        ✅ ยืนยันการ Import (<span id="importCount">0</span> programs)
+                        <span data-i18n="import.confirmBtn">✅ ยืนยันการ Import</span> (<span id="importCount">0</span> programs)
                     </button>
                 </div>
             </div>
@@ -1301,38 +1346,43 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Import Summary (shown after import) -->
             <div id="summarySection" style="display:none">
                 <div class="summary-box">
-                    <h3>📊 สรุปผลการ Import</h3>
+                    <h3 data-i18n="summary.title">📊 สรุปผลการ Import</h3>
                     <div class="summary-stats">
                         <div class="summary-item">
                             <span class="summary-icon">✅</span>
-                            <span class="summary-label">เพิ่มใหม่:</span>
+                            <span class="summary-label" data-i18n="summary.inserted">เพิ่มใหม่:</span>
                             <span class="summary-value" id="summaryInserted">0</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">🔄</span>
-                            <span class="summary-label">อัปเดต:</span>
+                            <span class="summary-label" data-i18n="summary.updated">อัปเดต:</span>
                             <span class="summary-value" id="summaryUpdated">0</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">⏭️</span>
-                            <span class="summary-label">ข้าม:</span>
+                            <span class="summary-label" data-i18n="summary.skipped">ข้าม:</span>
                             <span class="summary-value" id="summarySkipped">0</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">❌</span>
-                            <span class="summary-label">ผิดพลาด:</span>
+                            <span class="summary-label" data-i18n="summary.errors">ผิดพลาด:</span>
                             <span class="summary-value" id="summaryErrors">0</span>
                         </div>
                         <div class="summary-item">
                             <span class="summary-icon">🎤</span>
-                            <span class="summary-label">Artist links:</span>
+                            <span class="summary-label" data-i18n="summary.artistLinks">Artist links:</span>
                             <span class="summary-value" id="summaryArtistLinks">0</span>
                         </div>
                     </div>
                     <div id="errorsList"></div>
-                    <button class="btn btn-primary" onclick="resetUpload(); switchTab('programs')">
-                        ดู Programs ที่ Import แล้ว
-                    </button>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="resetUpload()" style="flex: 1; min-width: 200px;" data-i18n="summary.importNext">
+                            📥 Import ไฟล์ถัดไป
+                        </button>
+                        <button class="btn btn-primary" onclick="resetUpload(); switchTab('programs')" data-i18n="summary.viewPrograms" style="flex: 1; min-width: 200px;">
+                            ดู Programs ที่ Import แล้ว
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1341,29 +1391,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div id="creditsSection" style="display:none">
             <div class="admin-toolbar">
                 <select id="creditsEventMetaFilter" onchange="creditsCurrentPage=1;loadCredits()">
-                    <option value="">All Events</option>
+                    <option value="" data-i18n="credits.allEvents">ทุก Events</option>
                 </select>
                 <div class="search-wrapper">
-                    <input type="text" id="creditsSearchInput" placeholder="ค้นหา credits..." onkeyup="handleCreditsSearch(event)">
+                    <input type="text" id="creditsSearchInput" placeholder="ค้นหา credits..." data-i18n-placeholder="credits.search" onkeyup="handleCreditsSearch(event)">
                     <button type="button" class="clear-search" onclick="clearCreditsSearch()" title="Clear">&times;</button>
                 </div>
                 <select id="creditsPerPageSelect" onchange="changeCreditsPerPage()">
-                    <option value="20" selected>20 / หน้า</option>
-                    <option value="50">50 / หน้า</option>
-                    <option value="100">100 / หน้า</option>
+                    <option value="20" selected>20 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                    <option value="50">50 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                    <option value="100">100 <span data-i18n="programs.perPage">/ หน้า</span></option>
                 </select>
-                <button class="btn btn-primary" onclick="openAddCreditModal()">+ เพิ่ม Credit</button>
+                <button class="btn btn-primary" onclick="openAddCreditModal()" data-i18n="credits.addCredit">+ เพิ่ม Credit</button>
             </div>
 
             <!-- Bulk Actions Bar -->
             <div class="bulk-actions-bar" id="creditsBulkActionsBar" style="display:none">
                 <div class="bulk-selection-info">
-                    <span id="creditsBulkSelectionCount">0</span> รายการที่เลือก
+                    <span id="creditsBulkSelectionCount">0</span> <span data-i18n="bulk.selected">รายการที่เลือก</span>
                 </div>
                 <div class="bulk-actions-buttons">
-                    <button class="btn btn-secondary btn-sm" onclick="creditsBulkSelectAll()">เลือกทั้งหมด</button>
-                    <button class="btn btn-secondary btn-sm" onclick="creditsBulkClearSelection()">ยกเลิกทั้งหมด</button>
-                    <button class="btn btn-danger btn-sm" onclick="openCreditsBulkDeleteModal()">🗑️ ลบหลายรายการ</button>
+                    <button class="btn btn-secondary btn-sm" onclick="creditsBulkSelectAll()" data-i18n="bulk.selectAll">เลือกทั้งหมด</button>
+                    <button class="btn btn-secondary btn-sm" onclick="creditsBulkClearSelection()" data-i18n="bulk.clearAll">ยกเลิกทั้งหมด</button>
+                    <button class="btn btn-danger btn-sm" onclick="openCreditsBulkDeleteModal()" data-i18n="bulk.deleteSelected">🗑️ ลบหลายรายการ</button>
                 </div>
             </div>
 
@@ -1373,17 +1423,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <thead>
                     <tr>
                         <th style="width:40px"><input type="checkbox" id="creditsSelectAllCheckbox" onchange="toggleAllCreditsCheckboxes()"></th>
-                        <th class="sortable" onclick="sortCreditsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
-                        <th class="sortable" onclick="sortCreditsBy('title')">Title <span class="sort-icon" data-col="title"></span></th>
-                        <th>Link</th>
-                        <th>Description</th>
-                        <th class="sortable" onclick="sortCreditsBy('display_order')">Order <span class="sort-icon" data-col="display_order"></span></th>
-                        <th>Actions</th>
+                        <th class="sortable" onclick="sortCreditsBy('id')">#</th>
+                        <th class="sortable" onclick="sortCreditsBy('title')"><span data-i18n="credits.thTitle">ชื่อ</span> <span class="sort-icon" data-col="title"></span></th>
+                        <th data-i18n="credits.thLink">ลิงก์</th>
+                        <th data-i18n="credits.thDesc">รายละเอียด</th>
+                        <th class="sortable" onclick="sortCreditsBy('display_order')"><span data-i18n="credits.thOrder">ลำดับ</span> <span class="sort-icon" data-col="display_order"></span></th>
+                        <th data-i18n="th.actions">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody id="creditsTableBody">
                     <tr>
-                        <td colspan="7" class="loading">Loading...</td>
+                        <td colspan="7" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
                     </tr>
                 </tbody>
             </table>
@@ -1397,10 +1447,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div id="eventsSection" style="display:none">
             <div class="admin-toolbar">
                 <div class="search-wrapper">
-                    <input type="text" id="conventionsSearchInput" placeholder="ค้นหา events..." onkeyup="handleEventsSearch(event)">
+                    <input type="text" id="eventsSearchInput" placeholder="ค้นหา events..." data-i18n-placeholder="events.search" onkeyup="handleEventsSearch(event)">
                     <button type="button" class="clear-search" onclick="clearEventsSearch()" title="Clear">&times;</button>
                 </div>
-                <button class="btn btn-primary" onclick="openAddEventModal()">+ เพิ่ม Event</button>
+                <select id="eventActiveFilter" onchange="eventsCurrentPage=1;loadEventsTab()">
+                    <option value="" data-i18n="events.allStatuses">ทุกสถานะ</option>
+                    <option value="1" data-i18n="events.active">Active</option>
+                    <option value="0" data-i18n="events.inactive">Inactive</option>
+                </select>
+                <select id="eventVenueFilter" onchange="eventsCurrentPage=1;loadEventsTab()">
+                    <option value="" data-i18n="events.allVenueModes">ทุก Venue Mode</option>
+                    <option value="multi">Multi</option>
+                    <option value="single">Single</option>
+                    <option value="calendar">Calendar</option>
+                </select>
+                <input type="date" id="eventDateFrom" data-i18n-title="events.dateFrom" onchange="eventsCurrentPage=1;loadEventsTab()">
+                <input type="date" id="eventDateTo" data-i18n-title="events.dateTo" onchange="eventsCurrentPage=1;loadEventsTab()">
+                <button class="btn btn-secondary" onclick="clearEventsFilters()" data-i18n="events.clearFilters">ล้างตัวกรอง</button>
+                <select id="eventsPerPageSelect" onchange="changeEventsPerPage()">
+                    <option value="20">20 / หน้า</option>
+                    <option value="50">50 / หน้า</option>
+                    <option value="100">100 / หน้า</option>
+                </select>
+                <button class="btn btn-primary" onclick="openAddEventModal()" data-i18n="events.addEvent">+ เพิ่ม Event</button>
             </div>
 
             <!-- Events Table -->
@@ -1408,137 +1477,54 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <table class="events-table">
                 <thead>
                     <tr>
-                        <th class="sortable" onclick="sortEventsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
-                        <th class="sortable" onclick="sortEventsBy('name')">Name <span class="sort-icon" data-col="name"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('id')">#</th>
+                        <th class="sortable" onclick="sortEventsBy('name')"><span data-i18n="events.thName">ชื่องาน</span> <span class="sort-icon" data-col="name"></span></th>
                         <th>Slug</th>
-                        <th class="sortable" onclick="sortEventsBy('start_date')">Start Date <span class="sort-icon" data-col="start_date"></span></th>
-                        <th class="sortable" onclick="sortEventsBy('end_date')">End Date <span class="sort-icon" data-col="end_date"></span></th>
-                        <th>Venue Mode</th>
-                        <th class="sortable" onclick="sortEventsBy('is_active')">Active <span class="sort-icon" data-col="is_active"></span></th>
-                        <th class="sortable" onclick="sortEventsBy('event_count')">Programs <span class="sort-icon" data-col="event_count"></span></th>
-                        <th>Actions</th>
+                        <th class="sortable" onclick="sortEventsBy('start_date')"><span data-i18n="events.thStartDate">วันเริ่ม</span> <span class="sort-icon" data-col="start_date"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('end_date')"><span data-i18n="events.thEndDate">วันสิ้นสุด</span> <span class="sort-icon" data-col="end_date"></span></th>
+                        <th data-i18n="events.thVenueMode">Venue Mode</th>
+                        <th class="sortable" onclick="sortEventsBy('is_active')"><span data-i18n="events.thActive">Active</span> <span class="sort-icon" data-col="is_active"></span></th>
+                        <th class="sortable" onclick="sortEventsBy('event_count')"><span data-i18n="events.thPrograms">Programs</span> <span class="sort-icon" data-col="event_count"></span></th>
+                        <th data-i18n="th.actions">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody id="conventionsTableBody">
+                <tbody id="eventsConventionsTableBody">
                     <tr>
-                        <td colspan="9" class="loading">Loading...</td>
+                        <td colspan="9" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
                     </tr>
                 </tbody>
             </table>
             </div>
+            <div id="eventsPagination" class="pagination-container"></div>
         </div>
 
-        <!-- Users Section (admin only) -->
-        <?php if ($adminRole === 'admin'): ?>
-        <div id="usersSection" style="display:none">
-            <div class="admin-toolbar">
-                <button class="btn btn-primary" onclick="openAddUserModal()">+ Add User</button>
-            </div>
-
-            <div class="table-scroll-wrapper">
-            <table class="events-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Username</th>
-                        <th>Display Name</th>
-                        <th>Role</th>
-                        <th>Active</th>
-                        <th>Last Login</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTableBody">
-                    <tr>
-                        <td colspan="7" class="loading">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Backup Section -->
-        <?php if ($adminRole === 'admin'): ?>
-        <div id="backupSection" style="display:none">
-            <div class="admin-toolbar">
-                <button class="btn btn-primary" onclick="createBackup()">💾 สร้าง Backup</button>
-                <button class="btn btn-secondary" onclick="openUploadRestoreModal()">📤 Upload & Restore</button>
-            </div>
-
-            <div class="table-scroll-wrapper">
-            <table class="events-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Filename</th>
-                        <th>Size</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="backupTableBody">
-                    <tr>
-                        <td colspan="5" class="loading">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Contact Channels Section -->
-        <?php if ($adminRole === 'admin'): ?>
-        <div id="contactSection" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-                <h3 style="margin:0">✉️ ช่องทางติดต่อ</h3>
-                <button class="btn btn-primary" onclick="openChannelModal(null)">➕ เพิ่มช่องทาง</button>
-            </div>
-            <div style="overflow-x:auto">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width:50px">Icon</th>
-                        <th>ชื่อ / รายละเอียด</th>
-                        <th>URL</th>
-                        <th style="width:60px;text-align:center">Active</th>
-                        <th style="width:130px">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="contactChannelsTbody">
-                    <tr><td colspan="5" class="loading">Loading...</td></tr>
-                </tbody>
-            </table>
-            </div>
-        </div>
-        <?php endif; ?>
 
         <!-- Artists Section -->
         <div id="artistsSection" style="display:none">
             <div class="admin-toolbar">
                 <div class="search-wrapper">
-                    <input type="text" id="artistsSearchInput" placeholder="ค้นหาศิลปิน..." onkeyup="handleArtistsSearch(event)">
+                    <input type="text" id="artistsSearchInput" placeholder="ค้นหาศิลปิน..." data-i18n-placeholder="artists.search" onkeyup="handleArtistsSearch(event)">
                     <button type="button" class="clear-search" onclick="clearArtistsSearch()" title="Clear">&times;</button>
                 </div>
                 <select id="artistsTypeFilter" onchange="artistsCurrentPage=1;loadArtists()">
-                    <option value="">ทั้งหมด</option>
-                    <option value="1">กลุ่ม (Group)</option>
-                    <option value="0">บุคคล (Solo/Member)</option>
+                    <option value="" data-i18n="artists.filterAll">ทั้งหมด</option>
+                    <option value="1" data-i18n="artists.filterGroup">กลุ่ม (Group)</option>
+                    <option value="0" data-i18n="artists.filterSolo">บุคคล (Solo/Member)</option>
                 </select>
                 <select id="artistsPerPageSelect" onchange="changeArtistsPerPage()">
-                    <option value="50" selected>50 / หน้า</option>
-                    <option value="100">100 / หน้า</option>
+                    <option value="50" selected>50 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                    <option value="100">100 <span data-i18n="programs.perPage">/ หน้า</span></option>
                 </select>
-                <button class="btn btn-primary" onclick="openAddArtistModal()">+ เพิ่มศิลปิน</button>
-                <button class="btn btn-secondary" onclick="openImportArtistsModal()">📥 Import หลายคน</button>
+                <button class="btn btn-primary" onclick="openAddArtistModal()" data-i18n="artists.addArtist">+ เพิ่มศิลปิน</button>
+                <button class="btn btn-secondary" onclick="openImportArtistsModal()" data-i18n="artists.importMany">📥 Import หลายคน</button>
             </div>
 
             <!-- Bulk Actions Toolbar -->
             <div id="artistsBulkToolbar" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;margin-bottom:8px;flex-wrap:wrap">
                 <span id="artistsBulkCount" style="font-weight:600;color:#856404"></span>
-                <button class="btn btn-secondary btn-sm" onclick="openBulkAddToGroupModal()">👥 เพิ่มเข้ากลุ่ม</button>
-                <button class="btn btn-secondary btn-sm" onclick="artistsBulkClearGroup()">🚫 ถอดออกจากกลุ่ม</button>
-                <button class="btn btn-secondary btn-sm" onclick="clearArtistSelection()">✕ ยกเลิก</button>
+                <button class="btn btn-secondary btn-sm" onclick="openBulkAddToGroupModal()" data-i18n="artists.bulkAddGroup">👥 เพิ่มเข้ากลุ่ม</button>
+                <button class="btn btn-secondary btn-sm" onclick="artistsBulkClearGroup()" data-i18n="artists.bulkRemoveGroup">🚫 ถอดออกจากกลุ่ม</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearArtistSelection()" data-i18n="artists.bulkCancel">✕ ยกเลิก</button>
             </div>
 
             <div class="table-scroll-wrapper">
@@ -1547,69 +1533,306 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tr>
                         <th style="width:36px;text-align:center"><input type="checkbox" id="artistsSelectAll" onchange="selectAllArtists(this.checked)" style="width:16px;height:16px;cursor:pointer" title="เลือกทั้งหมด"></th>
                         <th class="sortable" onclick="sortArtistsBy('id')"># <span class="sort-icon" data-col="id"></span></th>
-                        <th class="sortable" onclick="sortArtistsBy('name')">ชื่อ <span class="sort-icon" data-col="name"></span></th>
-                        <th class="sortable" onclick="sortArtistsBy('is_group')">ประเภท <span class="sort-icon" data-col="is_group"></span></th>
-                        <th>กลุ่มที่สังกัด</th>
-                        <th title="จำนวน variant names">Variants</th>
-                        <th>Actions</th>
+                        <th class="sortable" onclick="sortArtistsBy('name')"><span data-i18n="artists.thName">ชื่อ</span> <span class="sort-icon" data-col="name"></span></th>
+                        <th class="sortable" onclick="sortArtistsBy('is_group')"><span data-i18n="artists.thType">ประเภท</span> <span class="sort-icon" data-col="is_group"></span></th>
+                        <th data-i18n="artists.thGroup">กลุ่มที่สังกัด</th>
+                        <th data-i18n="artists.thVariants">Variants</th>
+                        <th data-i18n="th.actions">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody id="artistsTableBody">
-                    <tr><td colspan="7" class="loading">Loading...</td></tr>
+                    <tr><td colspan="7" class="loading" data-i18n="common.loading">กำลังโหลด...</td></tr>
                 </tbody>
             </table>
             </div>
             <div class="pagination" id="artistsPagination"></div>
         </div>
 
-        <!-- Settings Section -->
+        <!-- Settings Section with Sub-tabs -->
         <?php if ($adminRole === 'admin'): ?>
         <div id="settingsSection" style="display:none">
-            <div style="max-width:600px;margin:0 auto;padding:20px 0">
-                <h3 style="margin-bottom:8px">📝 Site Title</h3>
-                <p style="color:#6c757d;margin-bottom:12px">ชื่อเว็บไซต์ที่แสดงใน browser tab, header และ ICS export</p>
+            <!-- Settings Sub-tabs Navigation -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;border-bottom:2px solid #e9ecef;padding-bottom:12px">
+                <button class="admin-subtab-btn" data-subtab="site" onclick="switchSettingsSubtab('site')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.site">📝 Site</button>
+                <button class="admin-subtab-btn" data-subtab="contact" onclick="switchSettingsSubtab('contact')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.contact">✉️ Contact</button>
+                <button class="admin-subtab-btn" data-subtab="users" onclick="switchSettingsSubtab('users')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.users">👤 Users</button>
+                <button class="admin-subtab-btn" data-subtab="backup" onclick="switchSettingsSubtab('backup')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.backup">💾 Backup</button>
+                <button class="admin-subtab-btn" data-subtab="telegram" onclick="switchSettingsSubtab('telegram')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.telegram">🤖 Telegram</button>
+                <button class="admin-subtab-btn" data-subtab="disclaimer" onclick="switchSettingsSubtab('disclaimer')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.disclaimer">⚠️ Disclaimer</button>
+            </div>
+
+            <!-- Site Sub-tab -->
+            <div id="settingsSubtab-site" class="settings-subtab-content" style="max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.siteTitle">📝 Site Title</h3>
+                <p style="color:#6c757d;margin-bottom:12px" data-i18n="settings.siteTitleDesc">ชื่อเว็บไซต์ที่แสดงใน browser tab, header และ ICS export</p>
                 <div style="display:flex;gap:8px;align-items:center;margin-bottom:32px;flex-wrap:wrap">
                     <input type="text" id="siteTitleInput" maxlength="100"
                            style="padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:1rem;flex:1;min-width:200px"
                            placeholder="Idol Stage Timetable">
-                    <button class="btn btn-primary" onclick="saveTitleSetting()" id="titleSaveBtn">💾 บันทึก Title</button>
-                    <span id="titleSaveMsg" style="display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
+                    <button class="btn btn-primary" onclick="saveTitleSetting()" id="titleSaveBtn" data-i18n="settings.saveTitle">💾 บันทึก Title</button>
+                    <span id="titleSaveMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
                 </div>
 
-                <h3 style="margin-bottom:8px">🎨 Site Theme</h3>
-                <p style="color:#6c757d;margin-bottom:24px">เลือก theme สำหรับหน้าเว็บ public ทั้งหมด</p>
+                <h3 style="margin-bottom:8px" data-i18n="settings.siteTheme">🎨 Site Theme</h3>
+                <p style="color:#6c757d;margin-bottom:24px" data-i18n="settings.siteThemeDesc">เลือก theme สำหรับหน้าเว็บ public ทั้งหมด</p>
 
                 <div id="themePicker" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px">
                     <!-- populated by loadThemeSettings() -->
                 </div>
 
-                <button class="btn btn-primary" onclick="saveThemeSetting()" id="themeSaveBtn">💾 บันทึก Theme</button>
-                <span id="themeSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
+                <button class="btn btn-primary" onclick="saveThemeSetting()" id="themeSaveBtn" data-i18n="settings.saveTheme">💾 บันทึก Theme</button>
+                <span id="themeSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
+            </div>
 
-                <hr style="margin:32px 0;border:none;border-top:1px solid #e9ecef">
-                <h3 style="margin-bottom:8px">⚠️ Disclaimer (ข้อจำกัดความรับผิดชอบ)</h3>
-                <p style="color:#6c757d;margin-bottom:16px">ข้อความ disclaimer ที่แสดงในหน้า "ติดต่อเรา" รองรับ 3 ภาษา หากเว้นว่างจะใช้ค่า default จาก translations.js</p>
+            <!-- Contact Channels Sub-tab -->
+            <div id="settingsSubtab-contact" class="settings-subtab-content" style="display:none">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+                    <h3 style="margin:0" data-i18n="contact.title">✉️ ช่องทางติดต่อ</h3>
+                    <button class="btn btn-primary" onclick="openChannelModal(null)" data-i18n="contact.addChannel">➕ เพิ่มช่องทาง</button>
+                </div>
+                <div style="overflow-x:auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px" data-i18n="contact.thIcon">Icon</th>
+                            <th data-i18n="contact.thName">ชื่อ / รายละเอียด</th>
+                            <th>URL</th>
+                            <th style="width:60px;text-align:center" data-i18n="contact.thActive">Active</th>
+                            <th style="width:130px" data-i18n="th.actions">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactChannelsTbody">
+                        <tr><td colspan="5" class="loading" data-i18n="common.loading">กำลังโหลด...</td></tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- Users Sub-tab (admin only) -->
+            <div id="settingsSubtab-users" class="settings-subtab-content" style="display:none">
+                <div class="admin-toolbar">
+                    <button class="btn btn-primary" onclick="openAddUserModal()" data-i18n="users.addUser">+ เพิ่มผู้ใช้</button>
+                </div>
+
+                <div class="table-scroll-wrapper">
+                <table class="events-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th data-i18n="users.thUsername">Username</th>
+                            <th data-i18n="users.thDisplayName">ชื่อที่แสดง</th>
+                            <th data-i18n="users.thRole">Role</th>
+                            <th data-i18n="users.thActive">Active</th>
+                            <th data-i18n="users.thLastLogin">เข้าสู่ระบบล่าสุด</th>
+                            <th data-i18n="th.actions">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="7" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- Backup Sub-tab (admin only) -->
+            <div id="settingsSubtab-backup" class="settings-subtab-content" style="display:none">
+                <div class="admin-toolbar">
+                    <button class="btn btn-primary" onclick="createBackup()" data-i18n="backup.createBackup">💾 สร้าง Backup</button>
+                    <button class="btn btn-secondary" onclick="openUploadRestoreModal()" data-i18n="backup.uploadRestore">📤 Upload & Restore</button>
+                </div>
+
+                <div class="table-scroll-wrapper">
+                <table class="events-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th data-i18n="backup.thFilename">Filename</th>
+                            <th data-i18n="backup.thSize">ขนาด</th>
+                            <th data-i18n="backup.thCreated">วันที่สร้าง</th>
+                            <th data-i18n="th.actions">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="backupTableBody">
+                        <tr>
+                            <td colspan="5" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- Telegram Sub-tab -->
+            <div id="settingsSubtab-telegram" class="settings-subtab-content" style="display:none;max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.telegram">🤖 Telegram Notifications</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="settings.telegramDesc">ตั้งค่า Telegram Bot สำหรับส่งการแจ้งเตือนผ่าน Telegram ก่อนเวลาเริ่มต้นของโปรแกรม</p>
+
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:16px;margin-bottom:20px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramBotToken">Bot Token</label>
+                            <input type="password" id="telegramBotToken" maxlength="200"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace"
+                                   placeholder="123456:ABC-DEF...">
+                            <small class="form-hint" data-i18n="settings.telegramBotTokenHint">Token จาก @BotFather (เก็บเป็นความลับ)</small>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramBotUsername">Bot Username</label>
+                            <input type="text" id="telegramBotUsername" maxlength="100"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box"
+                                   placeholder="IdolStageBot">
+                            <small class="form-hint" data-i18n="settings.telegramBotUsernameHint">ชื่อ bot ไม่มี @ (เช่น IdolStageBot)</small>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramWebhookSecret">Webhook Secret</label>
+                            <div style="display:flex;gap:8px">
+                                <input type="text" id="telegramWebhookSecret" maxlength="100" readonly
+                                       style="flex:1;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                                       placeholder="(auto-generated)">
+                                <button type="button" class="btn btn-secondary" onclick="generateTelegramSecret()" data-i18n="settings.telegramGenerate">🔄 สร้าง</button>
+                            </div>
+                            <small class="form-hint" data-i18n="settings.telegramWebhookSecretHint">Token สำหรับ webhook validation (auto-generate)</small>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramNotifyMinutes">แจ้งเตือนก่อน (นาที)</label>
+                            <input type="number" id="telegramNotifyMinutes" min="5" max="1440" value="60"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                            <small class="form-hint" data-i18n="settings.telegramNotifyMinutesHint">นาทีก่อนโปรแกรมจะส่งการแจ้งเตือน (5-1440)</small>
+                        </div>
+                    </div>
+
+                    <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
+
+                    <!-- Daily Summary Time Settings -->
+                    <div style="margin-bottom:20px">
+                        <h4 style="margin:0 0 16px 0;color:#333" data-i18n="settings.dailySummaryTime">⏰ เวลาส่งสรุปรายวัน</h4>
+                        <p style="color:#6c757d;margin:0 0 16px 0;font-size:0.9rem" data-i18n="settings.dailySummaryTimeHint">ตั้งช่วงเวลาที่ส่งสรุปโปรแกรมทั้งวัน (เช่น 09:00-09:30 น.)</p>
+
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                            <div>
+                                <label style="font-weight:600;display:block;margin-bottom:6px">
+                                    <span data-i18n="settings.summaryStartTime">เวลาเริ่มต้น</span>
+                                </label>
+                                <div style="display:flex;gap:8px">
+                                    <div style="flex:1">
+                                        <input type="number" id="summaryStartHour" min="0" max="23" value="9"
+                                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                        <small style="display:block;margin-top:4px;color:#666" data-i18n="settings.hour">ชั่วโมง (0-23)</small>
+                                    </div>
+                                    <div style="flex:1">
+                                        <input type="number" id="summaryStartMinute" min="0" max="59" value="0"
+                                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                        <small style="display:block;margin-top:4px;color:#666" data-i18n="settings.minute">นาที (0-59)</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style="font-weight:600;display:block;margin-bottom:6px">
+                                    <span data-i18n="settings.summaryEndTime">เวลาสิ้นสุด</span>
+                                </label>
+                                <div style="display:flex;gap:8px">
+                                    <div style="flex:1">
+                                        <input type="number" id="summaryEndHour" min="0" max="23" value="9"
+                                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                        <small style="display:block;margin-top:4px;color:#666" data-i18n="settings.hour">ชั่วโมง (0-23)</small>
+                                    </div>
+                                    <div style="flex:1">
+                                        <input type="number" id="summaryEndMinute" min="0" max="59" value="30"
+                                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                        <small style="display:block;margin-top:4px;color:#666" data-i18n="settings.minute">นาที (0-59)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="padding:12px;background:#e7f3ff;border-left:4px solid #0066cc;border-radius:4px;font-size:0.9rem" data-i18n="settings.dailySummaryTimeExample">
+                            📌 ตัวอย่าง: 09:00-09:30 = ส่งสรุปรายวันระหว่าง 09:00-09:29 น. ทุกวัน
+                        </div>
+                    </div>
+
+                    <hr style="margin:16px 0;border:none;border-top:1px solid #ddd">
+
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:white;border-radius:6px">
+                        <input type="checkbox" id="telegramEnabled" style="width:18px;height:18px;accent-color:var(--admin-primary);cursor:pointer">
+                        <label for="telegramEnabled" style="margin:0;cursor:pointer;font-weight:600" data-i18n="settings.telegramEnabled">เปิดใช้งาน Telegram Notifications</label>
+                    </div>
+
+                    <div id="telegramStatusBox" style="padding:12px;border-radius:6px;background:#fff3cd;border:1px solid #ffc107;margin-bottom:16px;display:none">
+                        <div style="font-weight:600;margin-bottom:6px" data-i18n="settings.telegramStatus">สถานะ Webhook</div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span id="telegramStatusIcon">⏳</span>
+                            <span id="telegramStatusText">ยังไม่ได้ทดสอบ</span>
+                        </div>
+                        <small id="telegramStatusTime" style="color:#666;margin-top:4px;display:block">-</small>
+                    </div>
+                </div>
+
+                <!-- Webhook Actions Row -->
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+                    <button class="btn btn-secondary" onclick="registerTelegramWebhook()" id="telegramRegisterBtn" data-i18n="settings.telegramRegister">🔗 ลงทะเบียน Webhook</button>
+                    <button class="btn btn-secondary" onclick="testTelegramWebhook()" id="telegramTestBtn" data-i18n="settings.telegramTest">🧪 ทดสอบ Webhook</button>
+                    <span id="telegramRegisterMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.webhookRegistered">✅ ลงทะเบียนแล้ว</span>
+                    <span id="telegramTestMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.tested">✅ ทดสอบสำเร็จ</span>
+                </div>
+
+                <!-- Save Button Row -->
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="btn btn-primary" onclick="saveTelegramSetting()" id="telegramSaveBtn" data-i18n="settings.saveTelegram">💾 บันทึก Telegram</button>
+                    <span id="telegramSaveMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
+                </div>
+
+                <!-- Log Viewer Section -->
+                <div style="margin-top:32px;border-top:1px solid #ddd;padding-top:20px">
+                    <h4 style="margin:0 0 12px;color:#333" data-i18n="settings.telegramLogTitle">📋 Activity Log</h4>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+                        <select id="telegramLogFileSelect" style="flex:1;min-width:200px;padding:6px;border:1px solid #ccc;border-radius:4px" onchange="loadTelegramLog()">
+                            <option value="">-- Loading... --</option>
+                        </select>
+                        <button class="btn btn-sm btn-secondary" onclick="loadTelegramLog()">🔄 <span data-i18n="settings.telegramLogRefresh">Refresh</span></button>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadTelegramLog()">⬇️ <span data-i18n="settings.telegramLogDownload">Download</span></button>
+                    </div>
+                    <div id="telegramLogInfo" style="font-size:0.82rem;color:#666;margin-bottom:8px"></div>
+                    <pre id="telegramLogContent" style="
+                        max-height:400px;overflow-y:auto;
+                        background:#1a1a2e;color:#e0e0e0;
+                        padding:12px;border-radius:6px;
+                        font-size:0.75rem;font-family:'Courier New',monospace;
+                        white-space:pre-wrap;word-break:break-all;
+                        margin:0;border:1px solid #333;
+                    ">Loading...</pre>
+                </div>
+            </div>
+
+            <!-- Disclaimer Sub-tab -->
+            <div id="settingsSubtab-disclaimer" class="settings-subtab-content" style="display:none;max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.disclaimer">⚠️ Disclaimer</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="settings.disclaimerDesc">ข้อความ disclaimer ที่แสดงในหน้า "ติดต่อเรา" รองรับ 3 ภาษา</p>
 
                 <div style="margin-bottom:16px">
-                    <label style="font-weight:600;display:block;margin-bottom:6px">🇹🇭 ภาษาไทย</label>
+                    <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.disclaimerTh">🇹🇭 ภาษาไทย</label>
                     <textarea id="disclaimerTh" rows="3"
                         style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
                         placeholder="ข้อความ disclaimer ภาษาไทย..."></textarea>
                 </div>
                 <div style="margin-bottom:16px">
-                    <label style="font-weight:600;display:block;margin-bottom:6px">🇬🇧 English</label>
+                    <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.disclaimerEn">🇬🇧 English</label>
                     <textarea id="disclaimerEn" rows="3"
                         style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
                         placeholder="Disclaimer text in English..."></textarea>
                 </div>
                 <div style="margin-bottom:16px">
-                    <label style="font-weight:600;display:block;margin-bottom:6px">🇯🇵 日本語</label>
+                    <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.disclaimerJa">🇯🇵 日本語</label>
                     <textarea id="disclaimerJa" rows="3"
                         style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;box-sizing:border-box;font-family:inherit"
                         placeholder="免責事項（日本語）..."></textarea>
                 </div>
-                <button class="btn btn-primary" onclick="saveDisclaimerSetting()" id="disclaimerSaveBtn">💾 บันทึก Disclaimer</button>
-                <span id="disclaimerSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600">✅ บันทึกแล้ว</span>
+                <button class="btn btn-primary" onclick="saveDisclaimerSetting()" id="disclaimerSaveBtn" data-i18n="settings.saveDisclaimer">💾 บันทึก Disclaimer</button>
+                <span id="disclaimerSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
             </div>
         </div>
         <?php endif; ?>
@@ -1619,7 +1842,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="artistModal">
         <div class="modal" style="max-width: 480px;">
             <div class="modal-header">
-                <h2 id="artistModalTitle">เพิ่มศิลปิน</h2>
+                <h2 id="artistModalTitle" data-i18n="artist.addTitle">เพิ่มศิลปิน</h2>
                 <button class="modal-close" onclick="closeArtistModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1628,46 +1851,46 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <input type="hidden" id="artistCopySourceId">
 
                     <div class="form-group">
-                        <label for="artistName">ชื่อศิลปิน / กลุ่ม *</label>
+                        <label for="artistName" data-i18n="artist.nameLabel">ชื่อศิลปิน / กลุ่ม *</label>
                         <input type="text" id="artistName" required maxlength="200" placeholder="ชื่อศิลปินหรือกลุ่ม">
                     </div>
 
                     <div class="form-group">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal">
                             <input type="checkbox" id="artistIsGroup" onchange="onArtistIsGroupChange()" style="width:18px;height:18px;accent-color:var(--admin-primary)">
-                            เป็นกลุ่ม (Group)
+                            <span data-i18n="artist.isGroup">เป็นกลุ่ม (Group)</span>
                         </label>
-                        <small class="form-hint">เปิดเมื่อนี่คือกลุ่ม/วง; ปิดเมื่อนี่คือสมาชิก/ศิลปินเดี่ยว</small>
+                        <small class="form-hint" data-i18n="artist.isGroupHint">เปิดเมื่อนี่คือกลุ่ม/วง; ปิดเมื่อนี่คือสมาชิก/ศิลปินเดี่ยว</small>
                     </div>
 
                     <div class="form-group" id="artistGroupIdRow">
-                        <label for="artistGroupId">กลุ่มที่สังกัด</label>
+                        <label for="artistGroupId" data-i18n="artist.groupOf">กลุ่มที่สังกัด</label>
                         <select id="artistGroupId">
-                            <option value="">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>
+                            <option value="" data-i18n="artist.noGroup">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>
                         </select>
-                        <small class="form-hint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
+                        <small class="form-hint" data-i18n="artist.groupOfHint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
                     </div>
 
                     <!-- Copy Variants Section (shown only in copy mode) -->
                     <div id="artistCopyVariantsSection" style="display:none">
                         <hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                            <label style="font-weight:600;margin:0">Variants ที่จะ copy</label>
+                            <label style="font-weight:600;margin:0" data-i18n="artist.variantsCopyLabel">Variants ที่จะ copy</label>
                             <div style="display:flex;gap:6px">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(true)">เลือกทั้งหมด</button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(false)">ยกเลิกทั้งหมด</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(true)" data-i18n="artist.copySelectAll">เลือกทั้งหมด</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyVariantsSelectAll(false)" data-i18n="artist.copyClearAll">ยกเลิกทั้งหมด</button>
                             </div>
                         </div>
                         <div id="artistCopyVariantsList" style="max-height:180px;overflow-y:auto;border:1px solid #e9ecef;border-radius:6px;padding:8px;background:#fafafa">
-                            <span style="color:#9ca3af;font-size:0.9em">กำลังโหลด...</span>
+                            <span style="color:#9ca3af;font-size:0.9em" data-i18n="common.loading">กำลังโหลด...</span>
                         </div>
-                        <small style="color:#6c757d;font-size:0.85em;display:block;margin-top:6px">เลือก variants ที่ต้องการ copy ไปยังศิลปินใหม่ สามารถเพิ่ม/ลบเพิ่มเติมได้ภายหลัง</small>
+                        <small style="color:#6c757d;font-size:0.85em;display:block;margin-top:6px" data-i18n="artist.copyVariantsHint">เลือก variants ที่ต้องการ copy ไปยังศิลปินใหม่ สามารถเพิ่ม/ลบเพิ่มเติมได้ภายหลัง</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeArtistModal()">ยกเลิก</button>
-                <button type="submit" form="artistForm" class="btn btn-primary">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeArtistModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="submit" form="artistForm" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -1676,7 +1899,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteArtistModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeDeleteArtistModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1684,8 +1907,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <input type="hidden" id="deleteArtistId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteArtistModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteArtist()">ลบ</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteArtistModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteArtist()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -1698,7 +1921,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="modal-close" onclick="closeArtistVariantsModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color:#6c757d;font-size:0.9em;margin-bottom:12px">
+                <p style="color:#6c757d;font-size:0.9em;margin-bottom:12px" data-i18n="variant.desc">
                     Variant names คือชื่อสะกดอื่นๆ ของศิลปินนี้ (เช่น ตัวพิมพ์ใหญ่/เล็กต่างกัน หรือรูปแบบ "ชื่อ - กลุ่ม")
                     ใช้สำหรับ auto-match ตอน ICS import
                 </p>
@@ -1707,14 +1930,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </div>
                 <div style="display:flex;gap:8px;align-items:stretch">
                     <input type="text" id="newVariantInput" maxlength="200"
+                        data-i18n-placeholder="variant.placeholder"
                         placeholder="เพิ่ม variant name..."
                         style="flex:1;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem"
                         onkeydown="if(event.key==='Enter'){event.preventDefault();addArtistVariant();}">
-                    <button class="btn btn-primary" onclick="addArtistVariant()">+ เพิ่ม</button>
+                    <button class="btn btn-primary" onclick="addArtistVariant()" data-i18n="variant.addBtn">+ เพิ่ม</button>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeArtistVariantsModal()">ปิด</button>
+                <button type="button" class="btn btn-secondary" onclick="closeArtistVariantsModal()" data-i18n="common.close">ปิด</button>
             </div>
         </div>
     </div>
@@ -1723,22 +1947,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="bulkAddToGroupModal">
         <div class="modal" style="max-width: 460px;">
             <div class="modal-header">
-                <h2>👥 เพิ่มเข้ากลุ่ม</h2>
+                <h2 data-i18n="bulkGroup.title">👥 เพิ่มเข้ากลุ่ม</h2>
                 <button class="modal-close" onclick="closeBulkAddToGroupModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color:#6c757d;margin-bottom:16px">เลือกกลุ่มที่ต้องการเพิ่มศิลปินที่เลือกทั้งหมดเข้า</p>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="bulkGroup.desc">เลือกกลุ่มที่ต้องการเพิ่มศิลปินที่เลือกทั้งหมดเข้า</p>
                 <div class="form-group">
-                    <label for="bulkGroupSelect">กลุ่มปลายทาง *</label>
+                    <label for="bulkGroupSelect" data-i18n="bulkGroup.targetLabel">กลุ่มปลายทาง *</label>
                     <select id="bulkGroupSelect" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
-                        <option value="">-- เลือกกลุ่ม --</option>
+                        <option value="" data-i18n="bulkGroup.selectOpt">-- เลือกกลุ่ม --</option>
                     </select>
                 </div>
-                <p id="bulkGroupNote" style="font-size:0.85em;color:#6c757d">หมายเหตุ: ศิลปินที่เป็น "กลุ่ม" จะถูกข้ามไป เฉพาะ "บุคคล/Solo" เท่านั้นที่จะถูกอัปเดต</p>
+                <p id="bulkGroupNote" style="font-size:0.85em;color:#6c757d" data-i18n="bulkGroup.note">หมายเหตุ: ศิลปินที่เป็น "กลุ่ม" จะถูกข้ามไป เฉพาะ "บุคคล/Solo" เท่านั้นที่จะถูกอัปเดต</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeBulkAddToGroupModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-primary" onclick="confirmBulkAddToGroup()">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeBulkAddToGroupModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="confirmBulkAddToGroup()" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -1747,7 +1971,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="importArtistsModal">
         <div class="modal" style="max-width: 560px;">
             <div class="modal-header">
-                <h2>📥 Import ศิลปินหลายคน</h2>
+                <h2 data-i18n="importArtists.title">📥 Import ศิลปินหลายคน</h2>
                 <button class="modal-close" onclick="closeImportArtistsModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1755,25 +1979,25 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <!-- Step 1: Input -->
                 <div id="importArtistsStep1">
                     <div class="form-group">
-                        <label for="importArtistsTextarea" style="font-weight:600">รายชื่อศิลปิน <span style="font-weight:normal;color:#6c757d">(1 บรรทัด = 1 ศิลปิน)</span></label>
+                        <label for="importArtistsTextarea" style="font-weight:600"><span data-i18n="importArtists.nameListLabel">รายชื่อศิลปิน</span> <span style="font-weight:normal;color:#6c757d" data-i18n="importArtists.nameListHint">(1 บรรทัด = 1 ศิลปิน)</span></label>
                         <textarea id="importArtistsTextarea" rows="10"
                             style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;resize:vertical"
                             placeholder="ชื่อศิลปิน 1&#10;ชื่อศิลปิน 2&#10;ชื่อศิลปิน 3&#10;..."></textarea>
-                        <small style="color:#6c757d">บรรทัดว่างและชื่อที่ซ้ำกันจะถูกข้ามอัตโนมัติ</small>
+                        <small style="color:#6c757d" data-i18n="importArtists.nameListSkip">บรรทัดว่างและชื่อที่ซ้ำกันจะถูกข้ามอัตโนมัติ</small>
                     </div>
                     <div class="form-group">
                         <label for="importArtistsIsGroup" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal">
                             <input type="checkbox" id="importArtistsIsGroup" onchange="onImportIsGroupChange()" style="width:16px;height:16px;accent-color:var(--admin-primary)">
-                            <span style="font-weight:600">เป็นกลุ่ม (Group)</span>
+                            <span style="font-weight:600" data-i18n="importArtists.isGroup">เป็นกลุ่ม (Group)</span>
                         </label>
-                        <small class="form-hint">เปิดเมื่อรายชื่อทั้งหมดนี้คือกลุ่ม/วง</small>
+                        <small class="form-hint" data-i18n="importArtists.isGroupHint">เปิดเมื่อรายชื่อทั้งหมดนี้คือกลุ่ม/วง</small>
                     </div>
                     <div class="form-group" id="importArtistsGroupRow">
-                        <label for="importArtistsGroupSelect">เพิ่มเข้ากลุ่ม <span style="font-weight:normal;color:#6c757d">(ถ้าต้องการ)</span></label>
+                        <label for="importArtistsGroupSelect"><span data-i18n="importArtists.addToGroup">เพิ่มเข้ากลุ่ม</span> <span style="font-weight:normal;color:#6c757d" data-i18n="importArtists.addToGroupOptional">(ถ้าต้องการ)</span></label>
                         <select id="importArtistsGroupSelect" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
-                            <option value="">-- ไม่สังกัดกลุ่ม --</option>
+                            <option value="" data-i18n="importArtists.noGroup">-- ไม่สังกัดกลุ่ม --</option>
                         </select>
-                        <small class="form-hint">เลือกกลุ่มที่ศิลปินที่ import จะสังกัด (ไม่บังคับ)</small>
+                        <small class="form-hint" data-i18n="importArtists.groupSelectHint">เลือกกลุ่มที่ศิลปินที่ import จะสังกัด (ไม่บังคับ)</small>
                     </div>
                 </div>
 
@@ -1785,9 +2009,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeImportArtistsModal()">ปิด</button>
-                <button type="button" class="btn btn-secondary" id="importArtistsBackBtn" style="display:none" onclick="importArtistsGoBack()">← กลับ</button>
-                <button type="button" class="btn btn-primary" id="importArtistsSubmitBtn" onclick="submitImportArtists()">นำเข้า</button>
+                <button type="button" class="btn btn-secondary" onclick="closeImportArtistsModal()" data-i18n="common.close">ปิด</button>
+                <button type="button" class="btn btn-secondary" id="importArtistsBackBtn" style="display:none" onclick="importArtistsGoBack()" data-i18n="common.back">← กลับ</button>
+                <button type="button" class="btn btn-primary" id="importArtistsSubmitBtn" onclick="submitImportArtists()" data-i18n="common.import">นำเข้า</button>
             </div>
         </div>
     </div>
@@ -1797,7 +2021,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="userModal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h2 id="userModalTitle">Add User</h2>
+                <h2 id="userModalTitle" data-i18n="user.addTitle">เพิ่มผู้ใช้</h2>
                 <button class="modal-close" onclick="closeUserModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1805,32 +2029,32 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <form id="userForm" onsubmit="submitUserForm(event)">
                     <input type="hidden" id="userId" value="">
                     <div class="form-group">
-                        <label>Username</label>
+                        <label data-i18n="users.thUsername">Username</label>
                         <input type="text" id="userUsername" required maxlength="50" pattern="[a-zA-Z0-9_\-\.]+">
                     </div>
                     <div class="form-group">
-                        <label>Display Name</label>
+                        <label data-i18n="users.thDisplayName">ชื่อที่แสดง</label>
                         <input type="text" id="userDisplayName" maxlength="100">
                     </div>
                     <div class="form-group">
-                        <label id="userPasswordLabel">Password (min 8 characters)</label>
+                        <label id="userPasswordLabel" data-i18n="user.passwordLabel">รหัสผ่าน (อย่างน้อย 8 ตัวอักษร)</label>
                         <input type="password" id="userPassword" minlength="8">
                     </div>
                     <div class="form-group">
-                        <label>Role</label>
+                        <label data-i18n="users.thRole">Role</label>
                         <select id="userRole">
-                            <option value="admin">Admin - Full access</option>
-                            <option value="agent">Agent - Programs management only</option>
+                            <option value="admin" data-i18n="user.roleAdmin">Admin - เข้าถึงทุกอย่าง</option>
+                            <option value="agent" data-i18n="user.roleAgent">Agent - จัดการ Programs เท่านั้น</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                            <input type="checkbox" id="userIsActive" checked> Active
+                            <input type="checkbox" id="userIsActive" checked> <span data-i18n="user.active">เปิดใช้งาน</span>
                         </label>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary" id="userSubmitBtn">Create</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeUserModal()" data-i18n="common.cancel">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary" id="userSubmitBtn" data-i18n="user.createBtn">สร้าง</button>
                     </div>
                 </form>
             </div>
@@ -1841,16 +2065,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteUserModal">
         <div class="modal">
             <div class="modal-header">
-                <h2>Delete User</h2>
+                <h2 data-i18n="user.deleteTitle">ลบผู้ใช้</h2>
                 <button class="modal-close" onclick="closeDeleteUserModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete this user?</p>
+                <p data-i18n="user.deleteConfirm">คุณต้องการลบผู้ใช้นี้หรือไม่?</p>
                 <p><strong id="deleteUserName"></strong></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDeleteUserModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="confirmDeleteUser()">Delete</button>
+                <button class="btn btn-secondary" onclick="closeDeleteUserModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmDeleteUser()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -1861,39 +2085,39 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="channelModal" style="display:none">
         <div class="modal" style="max-width:480px">
             <div class="modal-header">
-                <h2 id="channelModalTitle">เพิ่มช่องทางติดต่อ</h2>
+                <h2 id="channelModalTitle" data-i18n="ch.addTitle">เพิ่มช่องทางติดต่อ</h2>
                 <button class="modal-close" onclick="closeChannelModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="channelForm" onsubmit="submitChannelForm(event)">
                     <div class="form-group">
-                        <label>Icon (emoji)</label>
+                        <label data-i18n="ch.icon">Icon (emoji)</label>
                         <input type="text" id="chIcon" maxlength="10" placeholder="💬" style="font-size:1.3em;width:80px">
                     </div>
                     <div class="form-group">
-                        <label>ชื่อช่องทาง <span style="color:red">*</span></label>
+                        <label><span data-i18n="ch.title">ชื่อช่องทาง</span> <span style="color:red">*</span></label>
                         <input type="text" id="chTitle" required maxlength="100" placeholder="เช่น Twitter (X), Line, Email">
                     </div>
                     <div class="form-group">
-                        <label>รายละเอียด</label>
+                        <label data-i18n="ch.description">รายละเอียด</label>
                         <input type="text" id="chDescription" maxlength="200" placeholder="เช่น ติดตามข่าวสารและอัปเดต">
                     </div>
                     <div class="form-group">
-                        <label>URL / Contact</label>
+                        <label data-i18n="ch.url">URL / Contact</label>
                         <input type="text" id="chUrl" maxlength="500" placeholder="https://...">
                     </div>
                     <div class="form-group">
-                        <label>ลำดับการแสดง</label>
+                        <label data-i18n="ch.order">ลำดับการแสดง</label>
                         <input type="number" id="chOrder" value="0" min="0" max="999" style="width:100px">
                     </div>
                     <div class="form-group">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                            <input type="checkbox" id="chActive" checked> แสดงในหน้าติดต่อเรา (Active)
+                            <input type="checkbox" id="chActive" checked> <span data-i18n="ch.active">แสดงในหน้าติดต่อเรา (Active)</span>
                         </label>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeChannelModal()">ยกเลิก</button>
-                        <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeChannelModal()" data-i18n="common.cancel">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary" data-i18n="common.save">💾 บันทึก</button>
                     </div>
                 </form>
             </div>
@@ -1910,12 +2134,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="modal-close" onclick="closeRestoreModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;">คำเตือน: การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
-                <p>ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
-                <p style="margin-top: 10px;">Restore จากไฟล์: <strong id="restoreFilename"></strong></p>
+                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;" data-i18n="backup.restoreWarning">⚠️ การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
+                <p data-i18n="backup.autoBackup">ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
+                <p style="margin-top: 10px;"><span data-i18n="backup.restoreFrom">Restore จากไฟล์:</span> <strong id="restoreFilename"></strong></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeRestoreModal()">ยกเลิก</button>
+                <button class="btn btn-secondary" onclick="closeRestoreModal()" data-i18n="common.cancel">ยกเลิก</button>
                 <button class="btn btn-danger" onclick="confirmRestore()">Restore</button>
             </div>
         </div>
@@ -1925,20 +2149,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="uploadRestoreModal">
         <div class="modal">
             <div class="modal-header" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
-                <h2>📤 Upload & Restore</h2>
+                <h2 data-i18n="backup.uploadRestore">📤 Upload & Restore</h2>
                 <button class="modal-close" onclick="closeUploadRestoreModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;">คำเตือน: การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
-                <p>ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
+                <p style="color: #dc2626; font-weight: bold; margin-bottom: 10px;" data-i18n="backup.restoreWarning">⚠️ การ Restore จะแทนที่ข้อมูลปัจจุบันทั้งหมด!</p>
+                <p data-i18n="backup.autoBackup">ระบบจะสร้าง auto-backup ก่อน restore อัตโนมัติ</p>
                 <div class="form-group" style="margin-top: 15px;">
-                    <label for="backupFileInput">เลือกไฟล์ .db</label>
+                    <label for="backupFileInput" data-i18n="backup.selectDb">เลือกไฟล์ .db</label>
                     <input type="file" id="backupFileInput" accept=".db">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeUploadRestoreModal()">ยกเลิก</button>
-                <button class="btn btn-danger" onclick="confirmUploadRestore()">Upload & Restore</button>
+                <button class="btn btn-secondary" onclick="closeUploadRestoreModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmUploadRestore()" data-i18n="backup.uploadRestore">📤 Upload & Restore</button>
             </div>
         </div>
     </div>
@@ -1947,16 +2171,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteBackupModal">
         <div class="modal">
             <div class="modal-header">
-                <h2>ลบ Backup</h2>
+                <h2 data-i18n="backup.deleteTitle">ลบ Backup</h2>
                 <button class="modal-close" onclick="closeDeleteBackupModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>ต้องการลบไฟล์ backup นี้?</p>
+                <p data-i18n="backup.deleteConfirm">ต้องการลบไฟล์ backup นี้?</p>
                 <p><strong id="deleteBackupFilename"></strong></p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeDeleteBackupModal()">ยกเลิก</button>
-                <button class="btn btn-danger" onclick="confirmDeleteBackup()">ลบ</button>
+                <button class="btn btn-secondary" onclick="closeDeleteBackupModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button class="btn btn-danger" onclick="confirmDeleteBackup()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -1966,7 +2190,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="eventModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="modalTitle">เพิ่ม Program</h2>
+                <h2 id="modalTitle" data-i18n="modal.addProgram">เพิ่ม Program</h2>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -1974,25 +2198,25 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <input type="hidden" id="eventId">
 
                     <div class="form-group">
-                        <label for="eventConvention">Event</label>
+                        <label for="eventConvention" data-i18n="modal.event">Event</label>
                         <select id="eventConvention">
-                            <option value="">-- ไม่ระบุ --</option>
+                            <option value="" data-i18n="modal.noEvent">-- ไม่ระบุ --</option>
                             <!-- populated from event_meta_list -->
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="title">ชื่อ Program *</label>
+                        <label for="title" data-i18n="modal.programName">ชื่อ Program *</label>
                         <input type="text" id="title" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="organizer">Organizer</label>
+                        <label for="organizer" data-i18n="modal.organizer">Organizer</label>
                         <input type="text" id="organizer">
                     </div>
 
                     <div class="form-group">
-                        <label for="location">เวที</label>
+                        <label for="location" data-i18n="modal.venue">เวที</label>
                         <input type="text" id="location" list="venuesListMain">
                         <datalist id="venuesListMain">
                             <!-- Venues loaded dynamically -->
@@ -2001,61 +2225,61 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="eventDate">วันที่เริ่ม *</label>
+                            <label for="eventDate" data-i18n="modal.startDate">วันที่เริ่ม *</label>
                             <input type="date" id="eventDate" required onchange="onStartDateChange(this.value)">
                         </div>
                         <div class="form-group">
-                            <label for="startTime">เวลาเริ่ม *</label>
+                            <label for="startTime" data-i18n="modal.startTime">เวลาเริ่ม *</label>
                             <input type="time" id="startTime" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="endDate">วันที่สิ้นสุด *</label>
+                            <label for="endDate" data-i18n="modal.endDate">วันที่สิ้นสุด *</label>
                             <input type="date" id="endDate" required>
                         </div>
                         <div class="form-group">
-                            <label for="endTime">เวลาสิ้นสุด *</label>
+                            <label for="endTime" data-i18n="modal.endTime">เวลาสิ้นสุด *</label>
                             <input type="time" id="endTime" required>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="description">Description</label>
+                        <label for="description" data-i18n="modal.description">รายละเอียด</label>
                         <textarea id="description"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label>Artist / Group</label>
+                        <label data-i18n="modal.artistGroup">Artist / Group</label>
                         <div class="tag-input-wrapper" id="artistTagWrapper">
                             <input type="text" id="categoriesInput" class="tag-input-field"
                                    placeholder="พิมพ์ชื่อ artist…" autocomplete="off">
                             <div class="artist-suggestions" id="artistSuggestions"></div>
                         </div>
                         <input type="hidden" id="categories">
-                        <small class="form-hint">พิมพ์แล้วเลือกจาก dropdown หรือกด <kbd>Enter</kbd> / <kbd>,</kbd> เพื่อเพิ่ม · ศิลปินใหม่จะถูกสร้างอัตโนมัติ</small>
+                        <small class="form-hint" data-i18n="modal.artistGroupHint">พิมพ์แล้วเลือกจาก dropdown หรือกด <kbd>Enter</kbd> / <kbd>,</kbd> เพื่อเพิ่ม · ศิลปินใหม่จะถูกสร้างอัตโนมัติ</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="programType">ประเภท (Program Type)</label>
+                        <label for="programType" data-i18n="modal.programType">ประเภท (Program Type)</label>
                         <input type="text" id="programType" list="programTypesListMain" placeholder="stage, booth, meet &amp; greet, ...">
                         <datalist id="programTypesListMain">
                             <!-- Program types loaded dynamically -->
                         </datalist>
-                        <small class="form-hint">เลือกจาก dropdown หรือพิมพ์ประเภทใหม่ได้</small>
+                        <small class="form-hint" data-i18n="modal.programTypeHint">เลือกจาก dropdown หรือพิมพ์ประเภทใหม่ได้</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="streamUrl">🔴 Live Stream URL</label>
+                        <label for="streamUrl" data-i18n="modal.streamUrl">🔴 Live Stream URL</label>
                         <input type="url" id="streamUrl" placeholder="https://www.instagram.com/... หรือ https://x.com/...">
-                        <small class="form-hint">ลิงก์ IG Live, X Spaces, YouTube Live ฯลฯ (เว้นว่างได้ถ้าไม่มี)</small>
+                        <small class="form-hint" data-i18n="modal.streamUrlHint">ลิงก์ IG Live, X Spaces, YouTube Live ฯลฯ (เว้นว่างได้ถ้าไม่มี)</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">ยกเลิก</button>
-                <button type="submit" form="eventForm" class="btn btn-primary">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="submit" form="eventForm" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -2064,16 +2288,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <p>คุณต้องการลบ program "<span id="deleteEventTitle"></span>" หรือไม่?</p>
+                <p><span data-i18n="delete.programConfirm">คุณต้องการลบ program</span> "<span id="deleteEventTitle"></span>"?</p>
                 <input type="hidden" id="deleteEventId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDelete()">ลบ</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDelete()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -2082,62 +2306,62 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="bulkEditModal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>✏️ แก้ไขหลายรายการ</h2>
+                <h2 data-i18n="bulkEdit.title">✏️ แก้ไขหลายรายการ</h2>
                 <button class="modal-close" onclick="closeBulkEditModal()">&times;</button>
             </div>
             <form id="bulkEditForm" onsubmit="submitBulkEdit(event)">
                 <div class="modal-body">
                     <div class="bulk-edit-info">
-                        กำลังแก้ไข <strong><span id="bulkEditCount">0</span></strong> programs
+                        <span data-i18n="bulkEdit.editing">กำลังแก้ไข</span> <strong><span id="bulkEditCount">0</span></strong> <span data-i18n="bulkEdit.programs">programs</span>
                     </div>
 
                     <div class="form-group">
-                        <label for="bulkEditVenue">Venue (สถานที่)</label>
+                        <label for="bulkEditVenue" data-i18n="bulkEdit.venue">Venue (สถานที่)</label>
                         <input type="text" id="bulkEditVenue" class="form-control"
                                list="venuesList"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
                         <datalist id="venuesList">
                             <!-- Venues loaded dynamically -->
                         </datalist>
-                        <small class="form-hint">เลือกจาก dropdown หรือพิมพ์ชื่อเวทีใหม่</small>
+                        <small class="form-hint" data-i18n="bulkEdit.venueHint">เลือกจาก dropdown หรือพิมพ์ชื่อเวทีใหม่</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="bulkEditOrganizer">Organizer (ผู้จัด)</label>
+                        <label for="bulkEditOrganizer" data-i18n="bulkEdit.organizer">Organizer (ผู้จัด)</label>
                         <input type="text" id="bulkEditOrganizer" class="form-control"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
-                        <small class="form-hint">กรอกเพื่ออัปเดต organizer ของ programs ทั้งหมดที่เลือก</small>
+                        <small class="form-hint" data-i18n="bulkEdit.organizerHint">กรอกเพื่ออัปเดต organizer ของ programs ทั้งหมดที่เลือก</small>
                     </div>
 
                     <div class="form-group">
-                        <label>Artist / Group</label>
+                        <label data-i18n="bulkEdit.artistGroup">Artist / Group</label>
                         <div class="tag-input-wrapper" id="bulkArtistTagWrapper">
                             <input type="text" id="bulkCategoriesInput" class="tag-input-field"
                                    placeholder="-- ไม่เปลี่ยนแปลง --" autocomplete="off">
                             <div class="artist-suggestions" id="bulkArtistSuggestions"></div>
                         </div>
                         <input type="hidden" id="bulkEditCategories">
-                        <small class="form-hint">เพิ่ม tag เพื่ออัปเดต artist/group ของ programs ทั้งหมดที่เลือก · ว่าง = ไม่เปลี่ยนแปลง</small>
+                        <small class="form-hint" data-i18n="bulkEdit.artistGroupHint">เพิ่ม tag เพื่ออัปเดต artist/group ของ programs ทั้งหมดที่เลือก · ว่าง = ไม่เปลี่ยนแปลง</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="bulkEditProgramType">Program Type (ประเภท)</label>
+                        <label for="bulkEditProgramType" data-i18n="bulkEdit.programType">Program Type (ประเภท)</label>
                         <input type="text" id="bulkEditProgramType" class="form-control"
                                list="bulkProgramTypesList"
                                placeholder="-- ไม่เปลี่ยนแปลง --">
                         <datalist id="bulkProgramTypesList">
                             <!-- Program types loaded dynamically -->
                         </datalist>
-                        <small class="form-hint">กรอกเพื่ออัปเดต program type ของ programs ทั้งหมดที่เลือก</small>
+                        <small class="form-hint" data-i18n="bulkEdit.programTypeHint">กรอกเพื่ออัปเดต program type ของ programs ทั้งหมดที่เลือก</small>
                     </div>
 
-                    <div class="form-warning">
+                    <div class="form-warning" data-i18n="bulkEdit.warning">
                         ⚠️ การแก้ไขจะเปลี่ยนค่าของ programs ทั้งหมดที่เลือกทันที
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeBulkEditModal()">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary">บันทึก</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeBulkEditModal()" data-i18n="common.cancel">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
                 </div>
             </form>
         </div>
@@ -2147,20 +2371,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="bulkDeleteModal">
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
-                <h2>⚠️ ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">⚠️ ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeBulkDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <p class="bulk-delete-warning">
-                    คุณกำลังจะลบ <strong><span id="bulkDeleteCount">0</span></strong> programs
+                    <span data-i18n="delete.programConfirm">คุณกำลังจะลบ</span> <strong><span id="bulkDeleteCount">0</span></strong> programs
                 </p>
-                <p class="bulk-delete-message">
-                    การกระทำนี้ไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่?
+                <p class="bulk-delete-message" data-i18n="delete.cannotUndo">
+                    การกระทำนี้ไม่สามารถย้อนกลับได้
                 </p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeBulkDeleteModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()">ลบทั้งหมด</button>
+                <button type="button" class="btn btn-secondary" onclick="closeBulkDeleteModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmBulkDelete()" data-i18n="delete.deleteAll">ลบทั้งหมด</button>
             </div>
         </div>
     </div>
@@ -2169,7 +2393,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="creditModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="creditModalTitle">เพิ่ม Credit</h2>
+                <h2 id="creditModalTitle" data-i18n="credit.addTitle">เพิ่ม Credit</h2>
                 <button class="modal-close" onclick="closeCreditModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2177,40 +2401,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <input type="hidden" id="creditId">
 
                     <div class="form-group">
-                        <label for="creditTitle">Title *</label>
+                        <label for="creditTitle" data-i18n="credit.titleLabel">Title *</label>
                         <input type="text" id="creditTitle" required maxlength="200" placeholder="ชื่อ/หัวข้อ">
                     </div>
 
                     <div class="form-group">
-                        <label for="creditLink">Link (URL)</label>
+                        <label for="creditLink" data-i18n="credit.linkLabel">Link (URL)</label>
                         <input type="url" id="creditLink" maxlength="500" placeholder="https://example.com">
-                        <small class="form-hint">ลิงก์ไปยังเว็บไซต์/โปรไฟล์</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="creditDescription">Description</label>
-                        <textarea id="creditDescription" rows="3" maxlength="1000" placeholder="คำอธิบายหรือข้อมูลเพิ่มเติม"></textarea>
-                        <small class="form-hint">รายละเอียด ขอบคุณสำหรับอะไร</small>
+                        <label for="creditDescription" data-i18n="credit.descLabel">รายละเอียด</label>
+                        <textarea id="creditDescription" rows="3" maxlength="1000"></textarea>
                     </div>
 
                     <div class="form-group">
-                        <label for="creditDisplayOrder">Display Order</label>
+                        <label for="creditDisplayOrder" data-i18n="credit.orderLabel">ลำดับการแสดง</label>
                         <input type="number" id="creditDisplayOrder" min="0" value="0" placeholder="0">
-                        <small class="form-hint">ลำดับการแสดงผล (เลขน้อยขึ้นก่อน)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="creditEventMetaId">Event</label>
+                        <label for="creditEventMetaId" data-i18n="credit.eventLabel">Event</label>
                         <select id="creditEventMetaId">
-                            <option value="">-- ทุก Event (Global) --</option>
+                            <option value="" data-i18n="credit.eventScope">-- ทุก Event (Global) --</option>
                         </select>
-                        <small class="form-hint">เลือก event ที่ credit นี้สังกัด (ว่าง = แสดงทุก event)</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeCreditModal()">ยกเลิก</button>
-                <button type="submit" form="creditForm" class="btn btn-primary">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCreditModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="submit" form="creditForm" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -2219,7 +2439,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteCreditModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeDeleteCreditModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2227,8 +2447,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <input type="hidden" id="deleteCreditId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteCreditModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteCredit()">ลบ</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteCreditModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteCredit()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -2237,20 +2457,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="creditsBulkDeleteModal">
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
-                <h2>⚠️ ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">⚠️ ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeCreditsBulkDeleteModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <p class="bulk-delete-warning">
-                    คุณกำลังจะลบ <strong><span id="creditsBulkDeleteCount">0</span></strong> credits
+                    <span data-i18n="delete.programConfirm">คุณกำลังจะลบ</span> <strong><span id="creditsBulkDeleteCount">0</span></strong> credits
                 </p>
-                <p class="bulk-delete-message">
-                    การกระทำนี้ไม่สามารถย้อนกลับได้ คุณแน่ใจหรือไม่?
+                <p class="bulk-delete-message" data-i18n="delete.cannotUndo">
+                    การกระทำนี้ไม่สามารถย้อนกลับได้
                 </p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeCreditsBulkDeleteModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmCreditsBulkDelete()">ลบทั้งหมด</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCreditsBulkDeleteModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmCreditsBulkDelete()" data-i18n="delete.deleteAll">ลบทั้งหมด</button>
             </div>
         </div>
     </div>
@@ -2259,14 +2479,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="requestDetailModal">
         <div class="modal" style="max-width: 650px;">
             <div class="modal-header">
-                <h2>📋 รายละเอียดคำขอ</h2>
+                <h2 data-i18n="req.detailTitle">📋 รายละเอียดคำขอ</h2>
                 <button class="modal-close" onclick="closeRequestDetailModal()">&times;</button>
             </div>
             <div class="modal-body" id="requestDetailBody" style="max-height: 70vh; overflow-y: auto;">
                 <!-- Content loaded dynamically -->
             </div>
             <div class="modal-footer" id="requestDetailFooter">
-                <button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">ปิด</button>
+                <button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()" data-i18n="common.close">ปิด</button>
             </div>
         </div>
     </div>
@@ -2275,7 +2495,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="conventionModal">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="conventionModalTitle">เพิ่ม Event</h2>
+                <h2 id="conventionModalTitle" data-i18n="event.addTitle">เพิ่ม Event</h2>
                 <button class="modal-close" onclick="closeEventMetaModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2283,41 +2503,41 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <input type="hidden" id="conventionId">
 
                     <div class="form-group">
-                        <label for="conventionName">Name *</label>
+                        <label for="conventionName" data-i18n="event.nameLabel">Name *</label>
                         <input type="text" id="conventionName" required maxlength="200" placeholder="ชื่อ Event">
                     </div>
 
                     <div class="form-group">
-                        <label for="conventionSlug">Slug *</label>
+                        <label for="conventionSlug" data-i18n="event.slugLabel">Slug *</label>
                         <input type="text" id="conventionSlug" required maxlength="100" placeholder="event-slug" pattern="[a-z0-9\-]+">
-                        <small class="form-hint">ตัวอักษรพิมพ์เล็ก ตัวเลข และ - เท่านั้น</small>
+                        <small class="form-hint" data-i18n="event.slugHint">ตัวอักษรพิมพ์เล็ก ตัวเลข และ - เท่านั้น</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="conventionEmail">Contact Email</label>
+                        <label for="conventionEmail" data-i18n="event.emailLabel">Contact Email</label>
                         <input type="email" id="conventionEmail" maxlength="200" placeholder="contact@event.com">
-                        <small class="form-hint">ใช้ใน ICS export — <code>ORGANIZER;CN="ชื่องาน":mailto:email</code></small>
+                        <small class="form-hint" data-i18n="event.emailHint">ใช้ใน ICS export — <code>ORGANIZER;CN="ชื่องาน":mailto:email</code></small>
                     </div>
 
                     <div class="form-group">
-                        <label for="conventionDescription">Description</label>
+                        <label for="conventionDescription" data-i18n="event.descLabel">รายละเอียด</label>
                         <textarea id="conventionDescription" rows="3" maxlength="1000" placeholder="รายละเอียด"></textarea>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="conventionStartDate">Start Date *</label>
+                            <label for="conventionStartDate" data-i18n="event.startDateLabel">Start Date *</label>
                             <input type="date" id="conventionStartDate" required>
                         </div>
                         <div class="form-group">
-                            <label for="conventionEndDate">End Date *</label>
+                            <label for="conventionEndDate" data-i18n="event.endDateLabel">End Date *</label>
                             <input type="date" id="conventionEndDate" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="conventionVenueMode">Venue Mode</label>
+                            <label for="conventionVenueMode" data-i18n="event.venueModeLabel">Venue Mode</label>
                             <select id="conventionVenueMode">
                                 <option value="multi">Multi</option>
                                 <option value="single">Single</option>
@@ -2325,18 +2545,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="conventionIsActive">Active</label>
+                            <label for="conventionIsActive" data-i18n="event.activeLabel">Active</label>
                             <div style="padding-top: 8px;">
                                 <input type="checkbox" id="conventionIsActive" checked style="width: auto; margin-right: 8px;">
-                                <label for="conventionIsActive" style="display: inline; font-weight: normal;">เปิดใช้งาน</label>
+                                <label for="conventionIsActive" style="display: inline; font-weight: normal;" data-i18n="event.enabled">เปิดใช้งาน</label>
                             </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="conventionTheme">Theme</label>
+                        <label for="conventionTheme" data-i18n="event.themeLabel">Theme</label>
                         <select id="conventionTheme">
-                            <option value="">-- ใช้ Global Theme (จาก Settings) --</option>
+                            <option value="" data-i18n="event.useGlobalTheme">-- ใช้ Global Theme (จาก Settings) --</option>
                             <option value="sakura">🌸 Sakura</option>
                             <option value="ocean">🌊 Ocean</option>
                             <option value="forest">🌿 Forest</option>
@@ -2345,11 +2565,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <option value="dark">🖤 Dark</option>
                             <option value="gray">🩶 Gray</option>
                         </select>
-                        <small class="form-hint">ธีมเฉพาะ event นี้ — ถ้าไม่เลือก จะใช้ Global Theme จาก Settings (fallback: Dark)</small>
+                        <small class="form-hint" data-i18n="event.themeHint">ธีมเฉพาะ event นี้ — ถ้าไม่เลือก จะใช้ Global Theme จาก Settings (fallback: Dark)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="conventionTimezone">Timezone</label>
+                        <label for="conventionTimezone" data-i18n="event.timezoneLabel">Timezone</label>
                         <select id="conventionTimezone">
                             <optgroup label="🌏 Asia">
                                 <option value="Asia/Bangkok">Asia/Bangkok (UTC+7) — Thailand, Vietnam, Indonesia</option>
@@ -2378,13 +2598,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                                 <option value="Pacific/Auckland">Pacific/Auckland (UTC+12/+13)</option>
                             </optgroup>
                         </select>
-                        <small class="form-hint">เขตเวลาที่ใช้ในงาน — ใช้สำหรับ ICS export และแสดงผลบนหน้า event</small>
+                        <small class="form-hint" data-i18n="event.timezoneHint">เขตเวลาที่ใช้ในงาน — ใช้สำหรับ ICS export และแสดงผลบนหน้า event</small>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEventMetaModal()">ยกเลิก</button>
-                <button type="submit" form="conventionForm" class="btn btn-primary">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEventMetaModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="submit" form="conventionForm" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -2393,7 +2613,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
     <div class="modal-overlay" id="deleteConventionModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h2>ยืนยันการลบ</h2>
+                <h2 data-i18n="delete.confirmTitle">ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeDeleteEventModal()">&times;</button>
             </div>
             <div class="modal-body">
@@ -2402,8 +2622,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <input type="hidden" id="deleteConventionId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeDeleteEventModal()">ยกเลิก</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteEventMeta()">ลบ</button>
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteEventModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteEventMeta()" data-i18n="common.delete">ลบ</button>
             </div>
         </div>
     </div>
@@ -2421,20 +2641,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div id="changePasswordSuccess" style="display:none; background:#f0fdf4; color:#16a34a; padding:10px; border-radius:6px; margin-bottom:15px; border:1px solid #bbf7d0;"></div>
                 <form id="changePasswordForm" onsubmit="submitChangePassword(event)">
                     <div class="form-group">
-                        <label>Current Password</label>
+                        <label data-i18n="cp.currentPassword">รหัสผ่านปัจจุบัน</label>
                         <input type="password" id="cpCurrentPassword" required>
                     </div>
                     <div class="form-group">
-                        <label>New Password (min 8 characters)</label>
+                        <label data-i18n="cp.newPassword">รหัสผ่านใหม่ (อย่างน้อย 8 ตัวอักษร)</label>
                         <input type="password" id="cpNewPassword" required minlength="8">
                     </div>
                     <div class="form-group">
-                        <label>Confirm New Password</label>
+                        <label data-i18n="cp.confirmPassword">ยืนยันรหัสผ่านใหม่</label>
                         <input type="password" id="cpConfirmPassword" required minlength="8">
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Change Password</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()" data-i18n="common.cancel">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary" data-i18n="cp.changeBtn">เปลี่ยนรหัสผ่าน</button>
                     </div>
                 </form>
             </div>
@@ -2480,9 +2700,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             loadVenues();
             loadTypesForDatalist();
             loadPrograms();
+            loadEventsTab();
             loadPendingCount();
             setupFormChangeTracking();
             setupKeyboardShortcuts();
+            if (typeof applyAdminTranslations === 'function') applyAdminTranslations();
+        });
+
+        // Re-render current tab on language change
+        document.addEventListener('adminLangChange', () => {
+            const activeTab = (document.querySelector('.tab-mobile-item.active') || {}).dataset?.tab || 'programs';
+            if (activeTab === 'programs') loadPrograms();
+            else if (activeTab === 'requests') loadRequests();
+            else if (activeTab === 'credits') loadCredits();
+            else if (activeTab === 'events') loadEventsTab();
+            else if (activeTab === 'artists') loadArtists();
+            else if (activeTab === 'settings' && ADMIN_ROLE === 'admin') {
+                loadUsers();
+                loadBackups();
+                loadContactChannels();
+            }
         });
 
         // Tab switching
@@ -2498,8 +2735,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 mobileItem.classList.add('active');
                 const labelMap = {
                     programs: '🎵 Programs', events: '🎪 Events', requests: '📝 Requests',
-                    credits: '✨ Credits', import: '📤 Import', users: '👤 Users',
-                    backup: '💾 Backup', settings: '⚙️ Settings', contact: '✉️ Contact',
+                    credits: '✨ Credits', import: '📤 Import', settings: '⚙️ Settings',
                     artists: '🎤 Artists'
                 };
                 const labelEl = document.getElementById('tabMobileLabel');
@@ -2512,23 +2748,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('requestsSection').style.display = tab === 'requests' ? 'block' : 'none';
             document.getElementById('importSection').style.display = tab === 'import' ? 'block' : 'none';
             document.getElementById('creditsSection').style.display = tab === 'credits' ? 'block' : 'none';
-            document.getElementById('eventsSection').style.display = tab === 'events' ? 'block' : 'none';
-            const usersEl = document.getElementById('usersSection');
-            if (usersEl) usersEl.style.display = tab === 'users' ? 'block' : 'none';
-            const backupEl = document.getElementById('backupSection');
-            if (backupEl) backupEl.style.display = tab === 'backup' ? 'block' : 'none';
+            const eventsSection = document.getElementById('eventsSection');
+            eventsSection.style.display = tab === 'events' ? 'block' : 'none';
+            eventsSection.style.visibility = 'visible';
+            eventsSection.style.opacity = '1';
+            eventsSection.style.height = 'auto';
+            eventsSection.style.width = '100%';
             const settingsEl = document.getElementById('settingsSection');
             if (settingsEl) settingsEl.style.display = tab === 'settings' ? 'block' : 'none';
-            const contactEl = document.getElementById('contactSection');
-            if (contactEl) contactEl.style.display = tab === 'contact' ? 'block' : 'none';
             document.getElementById('artistsSection').style.display = tab === 'artists' ? 'block' : 'none';
+
             if (tab === 'requests') loadRequests();
             if (tab === 'credits') loadCredits();
             if (tab === 'events') loadEventsTab();
-            if (tab === 'users' && ADMIN_ROLE === 'admin') loadUsers();
-            if (tab === 'backup' && ADMIN_ROLE === 'admin') loadBackups();
-            if (tab === 'settings' && ADMIN_ROLE === 'admin') { loadThemeSettings(); loadTitleSetting(); loadDisclaimerSetting(); }
-            if (tab === 'contact' && ADMIN_ROLE === 'admin') loadContactChannels();
+            if (tab === 'settings' && ADMIN_ROLE === 'admin') {
+                switchSettingsSubtab('site');
+                loadThemeSettings();
+                loadTitleSetting();
+                loadDisclaimerSetting();
+                loadTelegramSetting();
+                loadUsers();
+                loadBackups();
+                loadContactChannels();
+            }
             if (tab === 'artists') loadArtists();
         }
 
@@ -2600,14 +2842,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         function renderRequests(reqs) {
             const tbody = document.getElementById('requestsBody');
-            if (!reqs.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999">ไม่มี requests</td></tr>'; return; }
+            if (!reqs.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#999">${adminT('req.noRequests')}</td></tr>`; return; }
             tbody.innerHTML = reqs.map(r => {
                 const d = new Date(r.created_at).toLocaleDateString('th-TH');
-                const type = r.type === 'add' ? '<span class="type-add">➕ เพิ่ม</span>' : '<span class="type-modify">✏️ แก้ไข</span>';
-                const status = r.status === 'pending' ? '<span class="status-pending">รอ</span>' : r.status === 'approved' ? '<span class="status-approved">อนุมัติ</span>' : '<span class="status-rejected">ปฏิเสธ</span>';
-                const viewBtn = `<button class="btn btn-sm btn-info" onclick="viewRequestDetail(${r.id})">👁️ ดู</button>`;
-                const actions = r.status === 'pending' ? `${viewBtn} <button class="btn btn-sm btn-primary" onclick="approveReq(${r.id})">อนุมัติ</button> <button class="btn btn-sm btn-danger" onclick="rejectReq(${r.id})">ปฏิเสธ</button>` : viewBtn;
-                return `<tr><td>${r.id}</td><td>${type}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(r.requester_name)}</td><td>${d}</td><td>${status}</td><td class="actions">${actions}</td></tr>`;
+                const type = r.type === 'add' ? `<span class="type-add">${adminT('req.typeAdd')}</span>` : `<span class="type-modify">${adminT('req.typeModify')}</span>`;
+                const status = r.status === 'pending' ? `<span class="status-pending">${adminT('req.statusPending')}</span>` : r.status === 'approved' ? `<span class="status-approved">${adminT('req.statusApproved')}</span>` : `<span class="status-rejected">${adminT('req.statusRejected')}</span>`;
+                const viewBtn = `<button class="btn btn-sm btn-info" onclick="viewRequestDetail(${r.id})">${adminT('req.view')}</button>`;
+                const actions = r.status === 'pending' ? `${viewBtn} <button class="btn btn-sm btn-primary" onclick="approveReq(${r.id})">${adminT('req.approve')}</button> <button class="btn btn-sm btn-danger" onclick="rejectReq(${r.id})">${adminT('req.reject')}</button>` : viewBtn;
+                return `<tr><td>${r.id}</td><td>${type}</td><td>${r.title}</td><td>${r.requester_name}</td><td>${d}</td><td>${status}</td><td class="actions">${actions}</td></tr>`;
             }).join('');
         }
 
@@ -2616,8 +2858,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (!r) { console.error('Request not found:', id, requestsData); return; }
 
             const formatDate = (d) => d ? new Date(d).toLocaleString('th-TH') : '-';
-            const typeText = r.type === 'add' ? '➕ เพิ่ม Program ใหม่' : '✏️ แก้ไข Program ที่มีอยู่';
-            const statusText = r.status === 'pending' ? '🟡 รอดำเนินการ' : r.status === 'approved' ? '✅ อนุมัติแล้ว' : '❌ ปฏิเสธแล้ว';
+            const typeText = r.type === 'add' ? adminT('req.typeAddFull') : adminT('req.typeModifyFull');
+            const statusText = r.status === 'pending' ? adminT('req.statusPendingFull') : r.status === 'approved' ? adminT('req.statusApprovedFull') : adminT('req.statusRejectedFull');
 
             // ฟังก์ชันเปรียบเทียบค่า
             const isChanged = (oldVal, newVal) => {
@@ -2628,8 +2870,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             let html = `
                 <div class="req-detail-highlight">
-                    <strong>ประเภท:</strong> ${typeText}<br>
-                    <strong>สถานะ:</strong> ${statusText}
+                    <strong>${adminT('req.detailTypeLabel')}</strong> ${typeText}<br>
+                    <strong>${adminT('req.detailStatusLabel')}</strong> ${statusText}
                     ${r.program_id ? `<br><strong>Event ID อ้างอิง:</strong> ${r.program_id}` : ''}
                 </div>
             `;
@@ -2647,7 +2889,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     { label: 'รายละเอียด', key: 'description', format: 'text' }
                 ];
 
-                const formatVal = (val, format) => format === 'date' ? formatDate(val) : escapeHtml(val || '-');
+                const formatVal = (val, format) => format === 'date' ? formatDate(val) : (val || '-');
 
                 html += `
                     <div class="compare-legend">
@@ -2688,13 +2930,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div class="req-detail-section">
                         <h4>📅 ข้อมูล Program ที่ขอ</h4>
                         <div class="req-detail-grid">
-                            <div class="req-detail-row"><div class="req-detail-label">ชื่อ Program</div><div class="req-detail-value">${escapeHtml(r.title || '-')}</div></div>
-                            <div class="req-detail-row"><div class="req-detail-label">Organizer</div><div class="req-detail-value">${escapeHtml(r.organizer || '-')}</div></div>
-                            <div class="req-detail-row"><div class="req-detail-label">เวที</div><div class="req-detail-value">${escapeHtml(r.location || '-')}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">ชื่อ Program</div><div class="req-detail-value">${r.title || '-'}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">Organizer</div><div class="req-detail-value">${r.organizer || '-'}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">เวที</div><div class="req-detail-value">${r.location || '-'}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">วัน-เวลาเริ่ม</div><div class="req-detail-value">${formatDate(r.start)}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">วัน-เวลาสิ้นสุด</div><div class="req-detail-value">${formatDate(r.end)}</div></div>
-                            <div class="req-detail-row"><div class="req-detail-label">Categories</div><div class="req-detail-value">${escapeHtml(r.categories || '-')}</div></div>
-                            <div class="req-detail-row"><div class="req-detail-label">รายละเอียด</div><div class="req-detail-value">${escapeHtml(r.description || '-')}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">Categories</div><div class="req-detail-value">${r.categories || '-'}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">รายละเอียด</div><div class="req-detail-value">${r.description || '-'}</div></div>
                         </div>
                     </div>
                 `;
@@ -2704,9 +2946,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <div class="req-detail-section">
                     <h4>👤 ข้อมูลผู้แจ้ง</h4>
                     <div class="req-detail-grid">
-                        <div class="req-detail-row"><div class="req-detail-label">ชื่อผู้แจ้ง</div><div class="req-detail-value">${escapeHtml(r.requester_name || '-')}</div></div>
-                        <div class="req-detail-row"><div class="req-detail-label">Email</div><div class="req-detail-value">${escapeHtml(r.requester_email || '-')}</div></div>
-                        <div class="req-detail-row"><div class="req-detail-label">หมายเหตุ</div><div class="req-detail-value">${escapeHtml(r.requester_note || '-')}</div></div>
+                        <div class="req-detail-row"><div class="req-detail-label">ชื่อผู้แจ้ง</div><div class="req-detail-value">${r.requester_name || '-'}</div></div>
+                        <div class="req-detail-row"><div class="req-detail-label">Email</div><div class="req-detail-value">${r.requester_email || '-'}</div></div>
+                        <div class="req-detail-row"><div class="req-detail-label">หมายเหตุ</div><div class="req-detail-value">${r.requester_note || '-'}</div></div>
                     </div>
                 </div>
                 <div class="req-detail-section" style="background:#f0f0f0;">
@@ -2714,8 +2956,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div class="req-detail-grid">
                         <div class="req-detail-row"><div class="req-detail-label">วันที่ส่งคำขอ</div><div class="req-detail-value">${formatDate(r.created_at)}</div></div>
                         ${r.reviewed_at ? `<div class="req-detail-row"><div class="req-detail-label">วันที่ตรวจสอบ</div><div class="req-detail-value">${formatDate(r.reviewed_at)}</div></div>` : ''}
-                        ${r.reviewed_by ? `<div class="req-detail-row"><div class="req-detail-label">ตรวจสอบโดย</div><div class="req-detail-value">${escapeHtml(r.reviewed_by)}</div></div>` : ''}
-                        ${r.admin_note ? `<div class="req-detail-row"><div class="req-detail-label">หมายเหตุ Admin</div><div class="req-detail-value">${escapeHtml(r.admin_note)}</div></div>` : ''}
+                        ${r.reviewed_by ? `<div class="req-detail-row"><div class="req-detail-label">ตรวจสอบโดย</div><div class="req-detail-value">${r.reviewed_by}</div></div>` : ''}
+                        ${r.admin_note ? `<div class="req-detail-row"><div class="req-detail-label">หมายเหตุ Admin</div><div class="req-detail-value">${r.admin_note}</div></div>` : ''}
                     </div>
                 </div>
             `;
@@ -2723,12 +2965,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('requestDetailBody').innerHTML = html;
 
             // Update footer with action buttons if pending
-            let footerHtml = '<button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">ปิด</button>';
+            let footerHtml = `<button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">${adminT('common.close')}</button>`;
             if (r.status === 'pending') {
                 footerHtml = `
-                    <button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">ปิด</button>
-                    <button type="button" class="btn btn-danger" onclick="closeRequestDetailModal();rejectReq(${r.id})">❌ ปฏิเสธ</button>
-                    <button type="button" class="btn btn-primary" onclick="closeRequestDetailModal();approveReq(${r.id})">✅ อนุมัติ</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">${adminT('common.close')}</button>
+                    <button type="button" class="btn btn-danger" onclick="closeRequestDetailModal();rejectReq(${r.id})">${adminT('req.reject')}</button>
+                    <button type="button" class="btn btn-primary" onclick="closeRequestDetailModal();approveReq(${r.id})">${adminT('req.approve')}</button>
                 `;
             }
             document.getElementById('requestDetailFooter').innerHTML = footerHtml;
@@ -2949,15 +3191,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tr class="event-row" data-event-id="${event.id}">
                         <td><input type="checkbox" class="event-checkbox" data-event-id="${event.id}"></td>
                         <td>${event.id}</td>
-                        <td>${event.stream_url ? `<a href="${escapeHtml(event.stream_url)}" target="_blank" class="stream-link-badge" title="${escapeHtml(event.stream_url)}">🔴</a> ` : ''}${escapeHtml(event.title)}</td>
+                        <td>${event.stream_url ? `<a href="${event.stream_url}" target="_blank" class="stream-link-badge" title="${event.stream_url}">🔴</a> ` : ''}${event.title}</td>
                         <td>${dateStr}<br>${startTime === endTime ? startTime : startTime + ' - ' + endTime}</td>
-                        ${VENUE_MODE === 'multi' ? `<td>${escapeHtml(event.location || '-')}</td>` : ''}
-                        <td>${escapeHtml(event.categories || '-')}</td>
-                        <td>${event.program_type ? `<span class="program-type-badge">${escapeHtml(event.program_type)}</span>` : '<span style="color:#adb5bd">-</span>'}</td>
+                        ${VENUE_MODE === 'multi' ? `<td>${event.location || '-'}</td>` : ''}
+                        <td>${event.categories || '-'}</td>
+                        <td>${event.program_type ? `<span class="program-type-badge">${event.program_type}</span>` : '<span style="color:#adb5bd">-</span>'}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditModal(${event.id})">แก้ไข</button>
-                            <button class="btn btn-info btn-sm" onclick="duplicateEvent(${event.id})" title="Duplicate">Copy</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${event.id}, '${escapeHtml(event.title)}')">ลบ</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditModal(${event.id})">${adminT('common.edit')}</button>
+                            <button class="btn btn-info btn-sm" onclick="duplicateEvent(${event.id})" title="Duplicate">${adminT('common.copy')}</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteModal(${event.id}, this.dataset.title)" data-title="${event.title}">${adminT('common.delete')}</button>
                         </td>
                     </tr>
                 `;
@@ -3286,7 +3528,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Open add modal
         function openAddModal() {
-            document.getElementById('modalTitle').textContent = 'เพิ่ม Program';
+            document.getElementById('modalTitle').textContent = adminT('modal.addProgram');
             document.getElementById('eventForm').reset();
             document.getElementById('eventId').value = '';
 
@@ -3320,20 +3562,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const startDate = new Date(event.start);
                 const endDate = new Date(event.end);
 
-                document.getElementById('modalTitle').textContent = 'แก้ไข Program';
+                document.getElementById('modalTitle').textContent = adminT('modal.editProgram');
                 document.getElementById('eventId').value = event.id;
                 document.getElementById('eventConvention').value = event.event_id || '';
-                document.getElementById('title').value = event.title;
-                document.getElementById('organizer').value = event.organizer || '';
-                document.getElementById('location').value = event.location || '';
+                document.getElementById('title').value = decodeHtml(event.title);
+                document.getElementById('organizer').value = decodeHtml(event.organizer || '');
+                document.getElementById('location').value = decodeHtml(event.location || '');
                 document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
                 document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
-                document.getElementById('description').value = event.description || '';
-                if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
-                document.getElementById('programType').value = event.program_type || '';
-                document.getElementById('streamUrl').value = event.stream_url || '';
+                document.getElementById('description').value = decodeHtml(event.description || '');
+                if (window.artistTagInput) window.artistTagInput.setValue(decodeHtml(event.categories || ''));
+                document.getElementById('programType').value = decodeHtml(event.program_type || '');
+                document.getElementById('streamUrl').value = decodeHtml(event.stream_url || '');
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -3364,17 +3606,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('modalTitle').textContent = 'Duplicate Program';
                 document.getElementById('eventId').value = ''; // No ID = create new
                 document.getElementById('eventConvention').value = event.event_id || '';
-                document.getElementById('title').value = event.title + ' (Copy)';
-                document.getElementById('organizer').value = event.organizer || '';
-                document.getElementById('location').value = event.location || '';
+                document.getElementById('title').value = decodeHtml(event.title) + ' (Copy)';
+                document.getElementById('organizer').value = decodeHtml(event.organizer || '');
+                document.getElementById('location').value = decodeHtml(event.location || '');
                 document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
                 document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
-                document.getElementById('description').value = event.description || '';
-                if (window.artistTagInput) window.artistTagInput.setValue(event.categories || '');
-                document.getElementById('programType').value = event.program_type || '';
-                document.getElementById('streamUrl').value = event.stream_url || '';
+                document.getElementById('description').value = decodeHtml(event.description || '');
+                if (window.artistTagInput) window.artistTagInput.setValue(decodeHtml(event.categories || ''));
+                document.getElementById('programType').value = decodeHtml(event.program_type || '');
+                document.getElementById('streamUrl').value = decodeHtml(event.stream_url || '');
 
                 formChanged = false;
                 document.getElementById('eventModal').classList.add('active');
@@ -3523,12 +3765,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }, 3000);
         }
 
-        // Escape HTML
+        // Escape HTML (safe for both text content and HTML attribute contexts)
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
-            return div.innerHTML;
+            return div.innerHTML.replace(/"/g, '&quot;');
+        }
+
+        // Decode HTML entities back to raw text for form .value assignments.
+        // Server returns htmlspecialchars()-escaped data; inputs need the raw string.
+        function decodeHtml(str) {
+            if (!str) return '';
+            const txt = document.createElement('textarea');
+            txt.innerHTML = str;
+            return txt.value;
         }
 
         // ========================================
@@ -3645,10 +3896,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tr data-index="${index}" ${errorTooltip}>
                         <td><input type="checkbox" ${hasErrors ? 'disabled' : 'checked'} data-index="${index}" onchange="updateImportCount()"></td>
                         <td><span class="status-indicator ${statusClass}">${statusText}</span></td>
-                        <td>${escapeHtml(event.title || '')}</td>
+                        <td>${event.title || ''}</td>
                         <td>${formatDateTimeRange(event.start, event.end)}</td>
-                        <td>${escapeHtml(event.location || '')}</td>
-                        <td>${escapeHtml(event.categories || '')}</td>
+                        <td>${event.location || ''}</td>
+                        <td>${event.categories || ''}</td>
                         <td>${dupAction}</td>
                         <td>
                             <button class="btn btn-sm btn-secondary" onclick="editPreviewEvent(${index})" ${hasErrors ? 'disabled' : ''}>✏️</button>
@@ -3698,9 +3949,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             // Open event modal with preview data
             document.getElementById('modalTitle').textContent = 'แก้ไข Program (Preview)';
             document.getElementById('eventId').value = ''; // No ID yet
-            document.getElementById('title').value = event.title || '';
-            document.getElementById('organizer').value = event.organizer || '';
-            document.getElementById('location').value = event.location || '';
+            document.getElementById('title').value = decodeHtml(event.title || '');
+            document.getElementById('organizer').value = decodeHtml(event.organizer || '');
+            document.getElementById('location').value = decodeHtml(event.location || '');
 
             const startDate = new Date(event.start);
             document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
@@ -3710,10 +3961,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
             document.getElementById('endTime').value = endDate.toTimeString().slice(0, 5);
 
-            document.getElementById('description').value = event.description || '';
-            document.getElementById('categories').value = event.categories || '';
-            document.getElementById('programType').value = event.program_type || '';
-            document.getElementById('streamUrl').value = event.stream_url || '';
+            document.getElementById('description').value = decodeHtml(event.description || '');
+            document.getElementById('categories').value = decodeHtml(event.categories || '');
+            document.getElementById('programType').value = decodeHtml(event.program_type || '');
+            document.getElementById('streamUrl').value = decodeHtml(event.stream_url || '');
 
             document.getElementById('eventModal').classList.add('active');
 
@@ -3980,7 +4231,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
             tbody.innerHTML = credits.map(credit => {
                 const linkDisplay = credit.link ?
-                    `<a href="${escapeHtml(credit.link)}" target="_blank" rel="noopener" style="color: var(--admin-primary); text-decoration: none;">
+                    `<a href="${credit.link}" target="_blank" rel="noopener" style="color: var(--admin-primary); text-decoration: none;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                             <polyline points="15 3 21 3 21 9"></polyline>
@@ -3993,13 +4244,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tr class="event-row" data-credit-id="${credit.id}">
                         <td><input type="checkbox" class="credit-checkbox" data-credit-id="${credit.id}"></td>
                         <td>${credit.id}</td>
-                        <td>${escapeHtml(credit.title)}</td>
+                        <td>${credit.title}</td>
                         <td>${linkDisplay}</td>
-                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(credit.description || '-')}</td>
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${credit.description || '-'}</td>
                         <td style="text-align: center;">${credit.display_order}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditCreditModal(${credit.id})">แก้ไข</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteCreditModal(${credit.id}, '${escapeHtml(credit.title).replace(/'/g, "\\'")}')">ลบ</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditCreditModal(${credit.id})">${adminT('common.edit')}</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteCreditModal(${credit.id}, this.dataset.title)" data-title="${credit.title}">${adminT('common.delete')}</button>
                         </td>
                     </tr>
                 `;
@@ -4109,9 +4360,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 document.getElementById('creditModalTitle').textContent = 'แก้ไข Credit';
                 document.getElementById('creditId').value = credit.id;
-                document.getElementById('creditTitle').value = credit.title;
-                document.getElementById('creditLink').value = credit.link || '';
-                document.getElementById('creditDescription').value = credit.description || '';
+                document.getElementById('creditTitle').value = decodeHtml(credit.title);
+                document.getElementById('creditLink').value = decodeHtml(credit.link || '');
+                document.getElementById('creditDescription').value = decodeHtml(credit.description || '');
                 document.getElementById('creditDisplayOrder').value = credit.display_order || 0;
                 document.getElementById('creditEventMetaId').value = credit.event_id || '';
 
@@ -4362,16 +4613,133 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         });
 
         // ========================================================================
-        // EVENT META (EVENTS) - Populate filter dropdowns
+        // EVENT META (EVENTS) - Populate filter dropdowns with grouping
         // ========================================================================
+
+        // Helper: Load recent events from localStorage
+        function getRecentEvents() {
+            try {
+                const recent = JSON.parse(localStorage.getItem('admin_recent_events') || '[]');
+                return Array.isArray(recent) ? recent : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        // Helper: Save event to recent list (keep top 3)
+        function saveRecentEvent(eventId, eventName) {
+            try {
+                let recent = getRecentEvents();
+                // Remove if already exists
+                recent = recent.filter(e => e.id !== eventId);
+                // Add to front
+                recent.unshift({ id: eventId, name: eventName });
+                // Keep only 3
+                recent = recent.slice(0, 3);
+                localStorage.setItem('admin_recent_events', JSON.stringify(recent));
+            } catch (e) {
+                // Silently fail if localStorage not available
+            }
+        }
+
+        // Helper: Group and sort events
+        function groupAndSortEvents(metas) {
+            const now = new Date();
+            const active = [];
+            const past = [];
+
+            metas.forEach(meta => {
+                const endDate = new Date(meta.end_date);
+                if (endDate >= now) {
+                    active.push(meta);
+                } else {
+                    past.push(meta);
+                }
+            });
+
+            // Sort by start_date DESC (newest first)
+            const sortFn = (a, b) => new Date(b.start_date) - new Date(a.start_date);
+            active.sort(sortFn);
+            past.sort(sortFn);
+
+            return { active, past };
+        }
+
+        // Helper: Populate select with optgroups
+        function populateEventSelect(selectId, allMetas, recentIds) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Save current selected value to restore after rebuild
+            const currentValue = select.value;
+
+            // Clear all children (optgroup + option) except first "All Events" option
+            while (select.children.length > 1) {
+                select.removeChild(select.children[1]);
+            }
+
+            const { active, past } = groupAndSortEvents(allMetas);
+
+            // Group "Recent" if any (shown first) - ordered by selection time (newest first)
+            if (recentIds.length > 0 && selectId === 'eventMetaFilter') {
+                const recentEvents = recentIds
+                    .map(id => allMetas.find(m => m.id == id))
+                    .filter(m => m); // Remove unfound events
+                if (recentEvents.length > 0) {
+                    const recentGroup = document.createElement('optgroup');
+                    recentGroup.label = '📌 Recent';
+                    recentEvents.forEach(meta => {
+                        const option = document.createElement('option');
+                        option.value = meta.id;
+                        option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                        recentGroup.appendChild(option);
+                    });
+                    select.appendChild(recentGroup);
+                }
+            }
+
+            // Group "Active Events"
+            if (active.length > 0) {
+                const activeGroup = document.createElement('optgroup');
+                activeGroup.label = '🎪 Active Events';
+                active.forEach(meta => {
+                    const option = document.createElement('option');
+                    option.value = meta.id;
+                    option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                    activeGroup.appendChild(option);
+                });
+                select.appendChild(activeGroup);
+            }
+
+            // Group "Past Events"
+            if (past.length > 0) {
+                const pastGroup = document.createElement('optgroup');
+                pastGroup.label = '📋 Past Events';
+                past.forEach(meta => {
+                    const option = document.createElement('option');
+                    option.value = meta.id;
+                    option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                    pastGroup.appendChild(option);
+                });
+                select.appendChild(pastGroup);
+            }
+
+            // Restore selected value after rebuild
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
 
         async function loadEventMetaOptions() {
             try {
-                const response = await fetch('api.php?action=events_list');
+                // Fetch ALL events (use max limit of 100)
+                const response = await fetch('api.php?action=events_list&limit=100');
                 const result = await response.json();
 
                 if (result.success) {
-                    const metas = result.data;
+                    const metas = result.data.events || result.data;
+                    const recentIds = getRecentEvents().map(e => e.id);
+
                     const selectors = [
                         'eventMetaFilter',
                         'reqEventMetaFilter',
@@ -4382,22 +4750,38 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     ];
 
                     selectors.forEach(selectorId => {
-                        const select = document.getElementById(selectorId);
-                        if (!select) return;
-                        // Keep the first "All Events" option
-                        while (select.options.length > 1) {
-                            select.remove(1);
-                        }
-                        metas.forEach(meta => {
-                            const option = document.createElement('option');
-                            option.value = meta.id;
-                            option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
-                            select.appendChild(option);
-                        });
+                        populateEventSelect(selectorId, metas, recentIds);
                     });
+
+                    // Setup change listener to eventMetaFilter to save recent (only on first load)
+                    const eventMetaFilter = document.getElementById('eventMetaFilter');
+                    if (eventMetaFilter && !eventMetaFilter.dataset.listenerAttached) {
+                        const changeHandler = function() {
+                            if (this.value) {
+                                const selected = metas.find(m => m.id == this.value);
+                                if (selected) {
+                                    saveRecentEvent(selected.id, selected.name);
+                                    // Reload dropdown to update recent section (without re-attaching listener)
+                                    loadEventMetaOptionsUpdateOnly(metas);
+                                }
+                            }
+                        };
+                        eventMetaFilter.addEventListener('change', changeHandler);
+                        eventMetaFilter.dataset.listenerAttached = 'true';
+                    }
                 }
             } catch (error) {
                 console.error('Failed to load event meta options:', error);
+            }
+        }
+
+        // Helper: Update only eventMetaFilter dropdown when recent events change (without re-loading all metas)
+        function loadEventMetaOptionsUpdateOnly(metas) {
+            try {
+                const recentIds = getRecentEvents().map(e => e.id);
+                populateEventSelect('eventMetaFilter', metas, recentIds);
+            } catch (error) {
+                console.error('Failed to update event meta filter:', error);
             }
         }
 
@@ -4410,25 +4794,39 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Events Tab Sort State
         let eventsSortColumn    = 'start_date';
         let eventsSortDirection = 'desc';
+        let eventsCurrentPage   = 1;
+        let eventsPerPage       = 20;
         let _eventsData         = [];
 
         // Load Events Tab
         async function loadEventsTab() {
             showLoading();
 
-            const search = document.getElementById('conventionsSearchInput')?.value || '';
-            let url = `api.php?action=events_list`;
+            const search = document.getElementById('eventsSearchInput')?.value || '';
+            const isActive = document.getElementById('eventActiveFilter')?.value ?? '';
+            const venueMode = document.getElementById('eventVenueFilter')?.value || '';
+            const dateFrom = document.getElementById('eventDateFrom')?.value || '';
+            const dateTo = document.getElementById('eventDateTo')?.value || '';
+
+            let url = `api.php?action=events_list&page=${eventsCurrentPage}&limit=${eventsPerPage}`;
+            url += `&sort=${eventsSortColumn}&order=${eventsSortDirection}`;
             if (search) url += `&search=${encodeURIComponent(search)}`;
+            if (isActive !== '') url += `&is_active=${encodeURIComponent(isActive)}`;
+            if (venueMode) url += `&venue_mode=${encodeURIComponent(venueMode)}`;
+            if (dateFrom) url += `&date_from=${encodeURIComponent(dateFrom)}`;
+            if (dateTo) url += `&date_to=${encodeURIComponent(dateTo)}`;
 
             try {
                 const response = await fetch(url);
                 const result = await response.json();
 
                 if (result.success) {
-                    _eventsData = result.data;
+                    _eventsData = result.data.events || [];
                     renderEventsTab(_eventsData);
+                    renderEventsPagination(result.data.pagination);
                     updateEventsSortIcons();
                 } else {
+                    console.error('API error:', result.message);
                     showToast(result.message, 'error');
                 }
             } catch (error) {
@@ -4441,51 +4839,44 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Render Events Table
         function renderEventsTab(conventions) {
-            const tbody = document.getElementById('conventionsTableBody');
+            const tbody = document.getElementById('eventsConventionsTableBody');
 
-            if (!conventions || conventions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">ไม่พบ events</td></tr>';
-                return;
-            }
-
-            // Client-side sort
-            const sorted = [...conventions].sort((a, b) => {
-                let va = a[eventsSortColumn] ?? '';
-                let vb = b[eventsSortColumn] ?? '';
-                if (eventsSortColumn === 'id' || eventsSortColumn === 'event_count' || eventsSortColumn === 'is_active') {
-                    va = Number(va) || 0;
-                    vb = Number(vb) || 0;
+            try {
+                if (!conventions || conventions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="9" class="empty-state" data-i18n="events.noData">ไม่พบ events</td></tr>';
+                    return;
                 }
-                if (va < vb) return eventsSortDirection === 'asc' ? -1 : 1;
-                if (va > vb) return eventsSortDirection === 'asc' ? 1 : -1;
-                return 0;
-            });
+                // Data comes pre-sorted from server, no client-side sort needed
+                const html = conventions.map(conv => {
+                    const activeLabel = conv.is_active
+                        ? '<span class="status-approved">Active</span>'
+                        : '<span class="status-rejected">Inactive</span>';
 
-            tbody.innerHTML = sorted.map(conv => {
-                const activeLabel = conv.is_active
-                    ? '<span class="status-approved">Active</span>'
-                    : '<span class="status-rejected">Inactive</span>';
+                    const startDate = conv.start_date || '-';
+                    const endDate = conv.end_date || '-';
 
-                const startDate = conv.start_date || '-';
-                const endDate = conv.end_date || '-';
+                    return `
+                        <tr>
+                            <td>${conv.id}</td>
+                            <td>${conv.name}</td>
+                            <td><code>${conv.slug}</code></td>
+                            <td>${startDate}</td>
+                            <td>${endDate}</td>
+                            <td>${conv.venue_mode || 'multi'}</td>
+                            <td>${activeLabel}</td>
+                            <td>${conv.event_count !== undefined ? conv.event_count : '-'}</td>
+                            <td class="actions">
+                                <button class="btn btn-secondary btn-sm" onclick="openEditEventModal(${conv.id})">${adminT('common.edit')}</button>
+                                <button class="btn btn-danger btn-sm" onclick="openDeleteEventModal(${conv.id}, this.dataset.name)" data-name="${conv.name}">${adminT('common.delete')}</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
 
-                return `
-                    <tr>
-                        <td>${conv.id}</td>
-                        <td>${escapeHtml(conv.name)}</td>
-                        <td><code>${escapeHtml(conv.slug)}</code></td>
-                        <td>${escapeHtml(startDate)}</td>
-                        <td>${escapeHtml(endDate)}</td>
-                        <td>${escapeHtml(conv.venue_mode || 'multi')}</td>
-                        <td>${activeLabel}</td>
-                        <td>${conv.event_count !== undefined ? conv.event_count : '-'}</td>
-                        <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditEventModal(${conv.id})">แก้ไข</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteEventModal(${conv.id}, '${escapeHtml(conv.name).replace(/'/g, "\\'")}')">ลบ</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                tbody.innerHTML = html;
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="9" style="color:red;">Error rendering events: ' + escapeHtml(error.message) + '</td></tr>';
+            }
         }
 
         // Search Events
@@ -4503,11 +4894,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         function clearEventsSearch() {
-            document.getElementById('conventionsSearchInput').value = '';
+            document.getElementById('eventsSearchInput').value = '';
             loadEventsTab();
         }
 
-        // Events Tab Sorting
+        // Events Tab Sorting (server-side)
         function sortEventsBy(column) {
             if (eventsSortColumn === column) {
                 eventsSortDirection = eventsSortDirection === 'asc' ? 'desc' : 'asc';
@@ -4515,8 +4906,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 eventsSortColumn = column;
                 eventsSortDirection = (column === 'start_date' || column === 'end_date') ? 'desc' : 'asc';
             }
-            updateEventsSortIcons();
-            renderEventsTab(_eventsData);
+            eventsCurrentPage = 1;
+            loadEventsTab();
         }
 
         function updateEventsSortIcons() {
@@ -4528,9 +4919,64 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             });
         }
 
+        // Clear All Events Filters
+        function clearEventsFilters() {
+            document.getElementById('eventsSearchInput').value = '';
+            document.getElementById('eventActiveFilter').value = '';
+            document.getElementById('eventVenueFilter').value = '';
+            document.getElementById('eventDateFrom').value = '';
+            document.getElementById('eventDateTo').value = '';
+            eventsCurrentPage = 1;
+            loadEventsTab();
+        }
+
+        // Change Events Per Page
+        function changeEventsPerPage() {
+            eventsPerPage = parseInt(document.getElementById('eventsPerPageSelect').value);
+            eventsCurrentPage = 1;
+            loadEventsTab();
+        }
+
+        // Go to Events Page
+        function goToEventsPage(page) {
+            eventsCurrentPage = page;
+            loadEventsTab();
+        }
+
+        // Render Events Pagination
+        function renderEventsPagination(pagination) {
+            const container = document.getElementById('eventsPagination');
+            if (!pagination || pagination.totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="pagination">';
+
+            // Previous button
+            if (pagination.page > 1) {
+                html += `<button class="btn btn-sm" onclick="goToEventsPage(${pagination.page - 1})">◀ ${adminT('pagination.prev')}</button>`;
+            } else {
+                html += '<button class="btn btn-sm" disabled>◀ Prev</button>';
+            }
+
+            // Page info
+            html += `<span class="page-info">${adminT('pagination.page')} ${pagination.page}/${pagination.totalPages} (${adminT('pagination.total')} ${pagination.total})</span>`;
+
+            // Next button
+            if (pagination.page < pagination.totalPages) {
+                html += `<button class="btn btn-sm" onclick="goToEventsPage(${pagination.page + 1})">${adminT('pagination.next')} ▶</button>`;
+            } else {
+                html += '<button class="btn btn-sm" disabled>Next ▶</button>';
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
         // Open Add Event Modal
         function openAddEventModal() {
-            document.getElementById('conventionModalTitle').textContent = 'เพิ่ม Event';
+            document.getElementById('conventionModalTitle').textContent = adminT('event.addTitle');
             document.getElementById('conventionForm').reset();
             document.getElementById('conventionId').value = '';
             document.getElementById('conventionIsActive').checked = true;
@@ -4555,12 +5001,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 const conv = result.data;
 
-                document.getElementById('conventionModalTitle').textContent = 'แก้ไข Event';
+                document.getElementById('conventionModalTitle').textContent = adminT('event.editTitle');
                 document.getElementById('conventionId').value = conv.id;
-                document.getElementById('conventionName').value = conv.name || '';
-                document.getElementById('conventionSlug').value = conv.slug || '';
+                document.getElementById('conventionName').value = decodeHtml(conv.name || '');
+                document.getElementById('conventionSlug').value = decodeHtml(conv.slug || '');
                 document.getElementById('conventionEmail').value = conv.email || '';
-                document.getElementById('conventionDescription').value = conv.description || '';
+                document.getElementById('conventionDescription').value = decodeHtml(conv.description || '');
                 document.getElementById('conventionStartDate').value = conv.start_date || '';
                 document.getElementById('conventionEndDate').value = conv.end_date || '';
                 document.getElementById('conventionVenueMode').value = conv.venue_mode || 'multi';
@@ -4750,7 +5196,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <td>
                             <button class="btn btn-primary btn-sm" onclick="downloadBackup('${escapeHtml(b.filename)}')">⬇️ Download</button>
                             <button class="btn btn-warning btn-sm" onclick="openRestoreModal('${escapeHtml(b.filename)}')">🔄 Restore</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteBackupModal('${escapeHtml(b.filename)}')">🗑️ ลบ</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteBackupModal('${escapeHtml(b.filename)}')">🗑️ ${adminT('common.delete')}</button>
                         </td>
                     </tr>
                 `).join('');
@@ -4919,7 +5365,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 });
                 const result = await res.json();
                 if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="7">Error: ' + (result.message || 'Failed') + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7">Error: ' + escapeHtml(result.message || 'Failed') + '</td></tr>';
                     return;
                 }
 
@@ -4946,8 +5392,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         '<td>' + activeBadge + '</td>' +
                         '<td>' + lastLogin + '</td>' +
                         '<td>' +
-                            '<button class="btn btn-secondary" onclick="openEditUserModal(' + user.id + ')" style="padding:4px 10px;font-size:12px;">Edit</button> ' +
-                            '<button class="btn btn-danger" onclick="openDeleteUserModal(' + user.id + ', \'' + user.username.replace(/'/g, "\\'") + '\')" style="padding:4px 10px;font-size:12px;">Delete</button>' +
+                            '<button class="btn btn-secondary" onclick="openEditUserModal(' + user.id + ')" style="padding:4px 10px;font-size:12px;">' + adminT('common.edit') + '</button> ' +
+                            '<button class="btn btn-danger" onclick="openDeleteUserModal(' + user.id + ', \'' + user.username.replace(/'/g, "\\'") + '\')" style="padding:4px 10px;font-size:12px;">' + adminT('common.delete') + '</button>' +
                         '</td>' +
                     '</tr>';
                 }).join('');
@@ -4957,8 +5403,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         function openAddUserModal() {
-            document.getElementById('userModalTitle').textContent = 'Add User';
-            document.getElementById('userSubmitBtn').textContent = 'Create';
+            document.getElementById('userModalTitle').textContent = adminT('user.addTitle');
+            document.getElementById('userSubmitBtn').textContent = adminT('user.createBtn');
             document.getElementById('userId').value = '';
             document.getElementById('userUsername').value = '';
             document.getElementById('userUsername').readOnly = false;
@@ -4984,15 +5430,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
 
                 const user = result.data;
-                document.getElementById('userModalTitle').textContent = 'Edit User';
-                document.getElementById('userSubmitBtn').textContent = 'Save';
+                document.getElementById('userModalTitle').textContent = adminT('user.editTitle');
+                document.getElementById('userSubmitBtn').textContent = adminT('user.updateBtn');
                 document.getElementById('userId').value = user.id;
-                document.getElementById('userUsername').value = user.username;
+                document.getElementById('userUsername').value = decodeHtml(user.username);
                 document.getElementById('userUsername').readOnly = true;
-                document.getElementById('userDisplayName').value = user.display_name || '';
+                document.getElementById('userDisplayName').value = decodeHtml(user.display_name || '');
                 document.getElementById('userPassword').value = '';
                 document.getElementById('userPassword').required = false;
-                document.getElementById('userPasswordLabel').textContent = 'Password (leave blank to keep current)';
+                document.getElementById('userPasswordLabel').textContent = adminT('user.passwordEditHint');
                 document.getElementById('userRole').value = user.role || 'agent';
                 document.getElementById('userIsActive').checked = user.is_active == 1;
                 document.getElementById('userModalError').style.display = 'none';
@@ -5176,6 +5622,51 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         ];
         let currentTheme = 'sakura';
 
+        // Settings Sub-tabs Switch
+        function switchSettingsSubtab(subtab) {
+            // Hide all settings sub-tabs
+            document.querySelectorAll('.settings-subtab-content').forEach(el => {
+                el.style.display = 'none';
+            });
+
+            // Show selected settings sub-tab
+            const selectedTab = document.getElementById('settingsSubtab-' + subtab);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            }
+
+            // Update button styles for settings sub-tabs
+            document.querySelectorAll('.admin-subtab-btn').forEach(btn => {
+                if (btn.getAttribute('data-subtab') === subtab) {
+                    btn.style.color = 'var(--admin-primary)';
+                    btn.style.borderBottomColor = 'var(--admin-primary)';
+                } else {
+                    btn.style.color = '#666';
+                    btn.style.borderBottomColor = 'transparent';
+                }
+            });
+
+            // Load sub-tab specific data
+            if (subtab === 'telegram') {
+                loadTelegramLog();
+            }
+
+            // Show first sub-tab (Site) on default
+            if (!subtab) {
+                switchSettingsSubtab('site');
+            }
+        }
+
+        // Initialize default sub-tab
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set Site tab as active initially
+            const siteBtn = document.querySelector('[data-subtab="site"]');
+            if (siteBtn) {
+                siteBtn.style.color = 'var(--admin-primary)';
+                siteBtn.style.borderBottomColor = 'var(--admin-primary)';
+            }
+        });
+
         function loadThemeSettings() {
             fetch('api.php?action=theme_get')
                 .then(r => r.json())
@@ -5236,7 +5727,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        document.getElementById('siteTitleInput').value = data.data.site_title || '';
+                        document.getElementById('siteTitleInput').value = decodeHtml(data.data.site_title || '');
                     }
                 });
         }
@@ -5271,9 +5762,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
-                        document.getElementById('disclaimerTh').value = data.data.disclaimer_th || '';
-                        document.getElementById('disclaimerEn').value = data.data.disclaimer_en || '';
-                        document.getElementById('disclaimerJa').value = data.data.disclaimer_ja || '';
+                        document.getElementById('disclaimerTh').value = decodeHtml(data.data.disclaimer_th || '');
+                        document.getElementById('disclaimerEn').value = decodeHtml(data.data.disclaimer_en || '');
+                        document.getElementById('disclaimerJa').value = decodeHtml(data.data.disclaimer_ja || '');
                     }
                 });
         }
@@ -5304,6 +5795,257 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             .catch(() => { btn.disabled = false; alert('Network error'); });
         }
 
+        // Telegram Settings
+        function loadTelegramSetting() {
+            fetch('api.php?action=telegram_config_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const cfg = data.data;
+                        document.getElementById('telegramBotToken').value = decodeHtml(cfg.bot_token || '');
+                        document.getElementById('telegramBotUsername').value = decodeHtml(cfg.bot_username || '');
+                        document.getElementById('telegramWebhookSecret').value = decodeHtml(cfg.webhook_secret || '');
+                        document.getElementById('telegramNotifyMinutes').value = cfg.notify_before_minutes || 60;
+                        document.getElementById('summaryStartHour').value = cfg.daily_summary_start_hour || 9;
+                        document.getElementById('summaryStartMinute').value = cfg.daily_summary_start_minute || 0;
+                        document.getElementById('summaryEndHour').value = cfg.daily_summary_end_hour || 9;
+                        document.getElementById('summaryEndMinute').value = cfg.daily_summary_end_minute || 30;
+                        document.getElementById('telegramEnabled').checked = cfg.enabled || false;
+
+                        // Show status if available
+                        if (cfg.webhook_status) {
+                            const statusBox = document.getElementById('telegramStatusBox');
+                            const statusIcon = document.getElementById('telegramStatusIcon');
+                            const statusText = document.getElementById('telegramStatusText');
+                            const statusTime = document.getElementById('telegramStatusTime');
+
+                            statusBox.style.display = 'block';
+                            if (cfg.webhook_status === 'ok') {
+                                statusIcon.textContent = '✅';
+                                statusText.textContent = 'Webhook ลงทะเบียนสำเร็จ';
+                                statusBox.style.background = '#d4edda';
+                                statusBox.style.borderColor = '#28a745';
+                            } else if (cfg.webhook_status === 'error') {
+                                statusIcon.textContent = '❌';
+                                statusText.textContent = 'Webhook Error';
+                                statusBox.style.background = '#f8d7da';
+                                statusBox.style.borderColor = '#f5c6cb';
+                            } else {
+                                statusIcon.textContent = '⏳';
+                                statusText.textContent = 'ยังไม่ได้ทดสอบ';
+                                statusBox.style.background = '#fff3cd';
+                                statusBox.style.borderColor = '#ffc107';
+                            }
+
+                            if (cfg.last_webhook_test) {
+                                const date = new Date(cfg.last_webhook_test);
+                                statusTime.textContent = 'ทดสอบครั้งล่าสุด: ' + date.toLocaleString('th-TH');
+                            }
+                        }
+                    }
+                });
+        }
+
+        function generateTelegramSecret() {
+            const secret = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+                .map(b => b.toString(16).padStart(2, '0')).join('');
+            document.getElementById('telegramWebhookSecret').value = secret;
+        }
+
+        function saveTelegramSetting() {
+            const btn = document.getElementById('telegramSaveBtn');
+            btn.disabled = true;
+
+            // Validate Daily Summary Time
+            const startHour = parseInt(document.getElementById('summaryStartHour').value) || 9;
+            const startMinute = parseInt(document.getElementById('summaryStartMinute').value) || 0;
+            const endHour = parseInt(document.getElementById('summaryEndHour').value) || 9;
+            const endMinute = parseInt(document.getElementById('summaryEndMinute').value) || 30;
+
+            if (startHour < 0 || startHour > 23 || startMinute < 0 || startMinute > 59 ||
+                endHour < 0 || endHour > 23 || endMinute < 0 || endMinute > 59) {
+                alert('เวลาไม่ถูกต้อง กรุณาตรวจสอบช่วงเวลา (0-23 สำหรับชั่วโมง, 0-59 สำหรับนาที)');
+                btn.disabled = false;
+                return;
+            }
+
+            const payload = {
+                bot_token: document.getElementById('telegramBotToken').value.trim(),
+                bot_username: document.getElementById('telegramBotUsername').value.trim(),
+                webhook_secret: document.getElementById('telegramWebhookSecret').value.trim(),
+                notify_before_minutes: parseInt(document.getElementById('telegramNotifyMinutes').value) || 60,
+                daily_summary_start_hour: startHour,
+                daily_summary_start_minute: startMinute,
+                daily_summary_end_hour: endHour,
+                daily_summary_end_minute: endMinute,
+                enabled: document.getElementById('telegramEnabled').checked
+            };
+
+            if (payload.enabled && !payload.bot_token) {
+                alert('กรุณากรอก Bot Token ก่อนเปิดใช้งาน');
+                btn.disabled = false;
+                return;
+            }
+
+            fetch('api.php?action=telegram_config_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('telegramSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                    loadTelegramSetting(); // Reload to show updated status
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function registerTelegramWebhook() {
+            const botToken = document.getElementById('telegramBotToken').value.trim();
+            const botUsername = document.getElementById('telegramBotUsername').value.trim();
+            const webhookSecret = document.getElementById('telegramWebhookSecret').value.trim();
+
+            if (!botToken) {
+                alert('กรุณากรอก Bot Token ก่อน');
+                return;
+            }
+            if (!botUsername) {
+                alert('กรุณากรอก Bot Username ก่อน');
+                return;
+            }
+            if (!webhookSecret) {
+                alert('กรุณาสร้าง Webhook Secret ก่อน');
+                return;
+            }
+
+            if (!confirm('ลงทะเบียน Webhook กับ Telegram Bot API?')) {
+                return;
+            }
+
+            const btn = document.getElementById('telegramRegisterBtn');
+            btn.disabled = true;
+
+            fetch('api.php?action=telegram_webhook_register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({
+                    bot_token: botToken,
+                    bot_username: botUsername,
+                    webhook_secret: webhookSecret
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('telegramRegisterMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                    alert('✅ Webhook ลงทะเบียนสำเร็จ!');
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function testTelegramWebhook() {
+            const botToken = document.getElementById('telegramBotToken').value.trim();
+            if (!botToken) {
+                alert('กรุณากรอก Bot Token ก่อน');
+                return;
+            }
+
+            const btn = document.getElementById('telegramTestBtn');
+            btn.disabled = true;
+
+            fetch('api.php?action=telegram_webhook_test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({ bot_token: botToken })
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('telegramTestMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                    loadTelegramSetting();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        // Telegram Log Viewer
+        async function loadTelegramLog() {
+            const select = document.getElementById('telegramLogFileSelect');
+            const pre = document.getElementById('telegramLogContent');
+            const info = document.getElementById('telegramLogInfo');
+            if (!pre) return;
+
+            const selectedFile = select ? select.value : '';
+            pre.textContent = adminT('common.loading');
+
+            try {
+                const url = 'api.php?action=telegram_log_get' + (selectedFile ? '&file=' + encodeURIComponent(selectedFile) : '');
+                const r = await fetch(url);
+                const data = await r.json();
+
+                if (!data.success) {
+                    pre.textContent = 'Error: ' + (data.message || 'Unknown error');
+                    return;
+                }
+
+                // Populate file select if needed
+                if (select && data.files) {
+                    const current = select.value;
+                    select.innerHTML = data.files && data.files.length > 0
+                        ? data.files.map(f => `<option value="${escapeHtml(f.key)}" ${f.key === data.selected ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join('')
+                        : '<option value="">No log files found</option>';
+                    if (!select.value && data.files && data.files.length > 0) {
+                        select.value = data.files[0].key;
+                    }
+                }
+
+                // Show content with color coding
+                pre.innerHTML = colorizeLogOutput(data.content || '(empty)');
+                pre.scrollTop = pre.scrollHeight; // scroll to bottom
+
+                // Info line
+                if (info && data.total_lines > 0) {
+                    info.textContent = `Showing ${data.showing_lines} / ${data.total_lines} lines`;
+                }
+            } catch(e) {
+                pre.textContent = 'Network error: ' + e.message;
+            }
+        }
+
+        function colorizeLogOutput(rawText) {
+            const escaped = escapeHtml(rawText);
+            return escaped
+                .replace(/\[INFO\]/g, '<span style="color:#4caf50">[INFO]</span>')
+                .replace(/\[DEBUG\]/g, '<span style="color:#9e9e9e">[DEBUG]</span>')
+                .replace(/\[WARN\]/g, '<span style="color:#ff9800">[WARN]</span>')
+                .replace(/\[ERROR\]/g, '<span style="color:#f44336">[ERROR]</span>');
+        }
+
+        function downloadTelegramLog() {
+            const select = document.getElementById('telegramLogFileSelect');
+            const file = select ? select.value : '';
+            const filename = file || 'telegram-cron.log';
+            window.location.href = 'api.php?action=telegram_log_download&file=' + encodeURIComponent(filename);
+        }
+
         // Contact Channels
         let contactChannels = [];
         let editingChannelId = null;
@@ -5328,20 +6070,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
             tbody.innerHTML = contactChannels.map(ch => `
                 <tr>
-                    <td style="font-size:1.4em;text-align:center">${escHtml(ch.icon)}</td>
-                    <td><strong>${escHtml(ch.title)}</strong>${ch.description ? '<br><small style="color:#666">' + escHtml(ch.description) + '</small>' : ''}</td>
-                    <td>${ch.url ? '<a href="' + escHtml(ch.url) + '" target="_blank" rel="noopener noreferrer" style="color:#0d6efd">' + escHtml(ch.url) + '</a>' : '-'}</td>
+                    <td style="font-size:1.4em;text-align:center">${escapeHtml(ch.icon)}</td>
+                    <td><strong>${escapeHtml(ch.title)}</strong>${ch.description ? '<br><small style="color:#666">' + escapeHtml(ch.description) + '</small>' : ''}</td>
+                    <td>${ch.url ? '<a href="' + escapeHtml(ch.url) + '" target="_blank" rel="noopener noreferrer" style="color:#0d6efd">' + escapeHtml(ch.url) + '</a>' : '-'}</td>
                     <td style="text-align:center">${ch.is_active ? '<span style="color:green">✓</span>' : '<span style="color:#999">✗</span>'}</td>
                     <td style="white-space:nowrap">
-                        <button class="btn btn-sm btn-secondary" onclick="openChannelModal(${ch.id})">✏️ แก้ไข</button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteChannel(${ch.id}, '${escHtml(ch.title).replace(/'/g, "\\'")}')">🗑️</button>
+                        <button class="btn btn-sm btn-secondary" onclick="openChannelModal(${ch.id})">✏️ ${adminT('common.edit')}</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteChannel(${ch.id}, '${escapeHtml(ch.title).replace(/'/g, "\\'")}')">🗑️</button>
                     </td>
                 </tr>
             `).join('');
-        }
-
-        function escHtml(str) {
-            return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
         function openChannelModal(id) {
@@ -5351,15 +6089,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (id) {
                 const ch = contactChannels.find(c => c.id == id);
                 if (!ch) return;
-                title.textContent = '✏️ แก้ไขช่องทางติดต่อ';
-                document.getElementById('chIcon').value = ch.icon || '';
-                document.getElementById('chTitle').value = ch.title || '';
-                document.getElementById('chDescription').value = ch.description || '';
-                document.getElementById('chUrl').value = ch.url || '';
+                title.textContent = '✏️ ' + adminT('ch.editTitle');
+                document.getElementById('chIcon').value = decodeHtml(ch.icon || '');
+                document.getElementById('chTitle').value = decodeHtml(ch.title || '');
+                document.getElementById('chDescription').value = decodeHtml(ch.description || '');
+                document.getElementById('chUrl').value = decodeHtml(ch.url || '');
                 document.getElementById('chOrder').value = ch.display_order || 0;
                 document.getElementById('chActive').checked = ch.is_active == 1;
             } else {
-                title.textContent = '➕ เพิ่มช่องทางติดต่อ';
+                title.textContent = '➕ ' + adminT('ch.addTitle');
                 document.getElementById('chIcon').value = '';
                 document.getElementById('chTitle').value = '';
                 document.getElementById('chDescription').value = '';
@@ -5574,24 +6312,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const typeBadge = a.is_group == 1
                     ? `<span style="background:#e3f0ff;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">กลุ่ม</span>${memberCount}`
                     : `<span style="background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">บุคคล</span>`;
-                const groupName = a.group_name ? escapeHtml(a.group_name) : '-';
+                const groupName = a.group_name ? a.group_name : '-';
                 const variantCount = a.variant_count > 0
                     ? `<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">${a.variant_count}</span>`
                     : `<span style="color:#9ca3af;font-size:0.85em">-</span>`;
-                const safeName = escapeHtml(a.name).replace(/'/g, "\\'");
                 return `
                     <tr>
                         <td style="text-align:center"><input type="checkbox" class="artist-checkbox" data-id="${a.id}" data-is-group="${a.is_group}" onchange="updateArtistBulkToolbar()" style="width:16px;height:16px;cursor:pointer"></td>
                         <td>${a.id}</td>
-                        <td><strong><a href="${APP_ROOT}/artist/${a.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิด profile">${escapeHtml(a.name)}</a></strong></td>
+                        <td><strong><a href="${APP_ROOT}/artist/${a.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิด profile">${a.name}</a></strong></td>
                         <td>${typeBadge}</td>
                         <td>${groupName}</td>
                         <td>${variantCount}</td>
                         <td class="actions">
-                            <button class="btn btn-secondary btn-sm" onclick="openArtistVariantsModal(${a.id}, '${safeName}')">Variants</button>
-                            <button class="btn btn-secondary btn-sm" onclick="openEditArtistModal(${a.id})">แก้ไข</button>
-                            <button class="btn btn-secondary btn-sm" onclick="openCopyArtistModal(${a.id})" title="Copy artist">Copy</button>
-                            <button class="btn btn-danger btn-sm" onclick="openDeleteArtistModal(${a.id}, '${safeName}')">ลบ</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openArtistVariantsModal(${a.id}, this.dataset.name)" data-name="${a.name}">${adminT('variant.variantsBtn')}</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditArtistModal(${a.id})">${adminT('common.edit')}</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openCopyArtistModal(${a.id})" title="Copy artist">${adminT('common.copy')}</button>
+                            <button class="btn btn-danger btn-sm" onclick="openDeleteArtistModal(${a.id}, this.dataset.name)" data-name="${a.name}">${adminT('common.delete')}</button>
                         </td>
                     </tr>
                 `;
@@ -5682,11 +6419,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function resetArtistCopyState() {
             document.getElementById('artistCopySourceId').value = '';
             document.getElementById('artistCopyVariantsSection').style.display = 'none';
-            document.getElementById('artistCopyVariantsList').innerHTML = '<span style="color:#9ca3af;font-size:0.9em">กำลังโหลด...</span>';
+            document.getElementById('artistCopyVariantsList').innerHTML = `<span style="color:#9ca3af;font-size:0.9em">${adminT('common.loading')}</span>`;
         }
 
         async function openAddArtistModal() {
-            document.getElementById('artistModalTitle').textContent = 'เพิ่มศิลปิน';
+            document.getElementById('artistModalTitle').textContent = adminT('artist.addTitle');
             document.getElementById('artistForm').reset();
             document.getElementById('artistId').value = '';
             document.getElementById('artistGroupIdRow').style.display = 'block';
@@ -5706,9 +6443,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
                 const artist = result.data;
 
-                document.getElementById('artistModalTitle').textContent = 'แก้ไขศิลปิน';
+                document.getElementById('artistModalTitle').textContent = adminT('artist.editTitle');
                 document.getElementById('artistId').value = artist.id;
-                document.getElementById('artistName').value = artist.name;
+                document.getElementById('artistName').value = decodeHtml(artist.name);
                 document.getElementById('artistIsGroup').checked = artist.is_group == 1;
                 document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
                 resetArtistCopyState();
@@ -5741,10 +6478,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const variants = variantsResult.success ? variantsResult.data.variants : [];
 
                 // Pre-fill modal
-                document.getElementById('artistModalTitle').textContent = `Copy ศิลปิน: ${artist.name}`;
+                document.getElementById('artistModalTitle').textContent = `Copy ศิลปิน: ${decodeHtml(artist.name)}`;
                 document.getElementById('artistId').value     = '';          // create new
                 document.getElementById('artistCopySourceId').value = id;
-                document.getElementById('artistName').value   = artist.name + ' (copy)';
+                document.getElementById('artistName').value   = decodeHtml(artist.name) + ' (copy)';
                 document.getElementById('artistIsGroup').checked = artist.is_group == 1;
                 document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
 
@@ -5759,8 +6496,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 } else {
                     listEl.innerHTML = variants.map(v => `
                         <label style="display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:4px;cursor:pointer;user-select:none">
-                            <input type="checkbox" class="copy-variant-cb" data-variant="${escapeHtml(v.variant)}" checked style="width:15px;height:15px;cursor:pointer">
-                            <span style="font-size:0.9em">${escapeHtml(v.variant)}</span>
+                            <input type="checkbox" class="copy-variant-cb" data-variant="${v.variant}" checked style="width:15px;height:15px;cursor:pointer">
+                            <span style="font-size:0.9em">${v.variant}</span>
                         </label>
                     `).join('');
                 }
@@ -5915,7 +6652,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
             listEl.innerHTML = variants.map(v => `
                 <span style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:16px;padding:4px 10px;margin:3px;font-size:0.9em">
-                    ${escapeHtml(v.variant)}
+                    ${v.variant}
                     <button onclick="deleteArtistVariant(${v.id})"
                         style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.1em;line-height:1;padding:0 0 0 2px;margin:0"
                         title="ลบ variant นี้">&times;</button>

@@ -84,6 +84,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li><a href="#s-artist-profile" data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</a></li>
                     <li><a href="#s-artist-feed" data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</a></li>
                     <li><a href="#s-favorites" data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</a></li>
+                    <li><a href="#s-telegram" data-i18n="section20.title">🔔 Telegram Notifications</a></li>
                     <li><a href="#s-past-events" data-i18n="section13.title">🗂️ งานที่จบแล้ว</a></li>
                     <li><a href="#s-request" data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</a></li>
                     <li><a href="#s-language" data-i18n="section4.title">🌍 การเปลี่ยนภาษา</a></li>
@@ -360,6 +361,58 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <div class="feature-box">
                     <strong data-i18n="section17.nav.tip">💡 ทางลัด:</strong>
                     <span data-i18n="section17.nav.tipText">เมื่อติดตามศิลปินแล้ว ปุ่ม ⭐ และ 📅 จะปรากฏที่มุมซ้ายบนทุกหน้า เพื่อกลับไปหน้า Favorites ได้ตลอดเวลา</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-telegram">
+                <h2 data-i18n="section20.title">🔔 Telegram Notifications</h2>
+                <p data-i18n="section20.desc">รับแจ้งเตือน push แบบเรียลไทม์บน Telegram ก่อนเริ่มโปรแกรมของศิลปินที่ติดตาม ไม่ต้องเข้ามาเว็บไซต์บ่อยๆ</p>
+
+                <h3 data-i18n="section20.link.title">1. เชื่อมต่อ Telegram</h3>
+                <p data-i18n="section20.link.desc">ในหน้า "My Upcoming Programs" (📅) จะมีส่วน "เชื่อมต่อ Telegram" พร้อม 2 วิธี:</p>
+                <ul>
+                    <li data-i18n="section20.link.method1"><strong>วิธีที่ 1 (แนะนำ)</strong> — กดปุ่ม "🔗 เปิด Telegram" จะเปิด Telegram Bot ไป ทีนี้ส่ง <code>/start {slug}</code> (slug อยู่ในปุ่มแล้ว)</li>
+                    <li data-i18n="section20.link.method2"><strong>วิธีที่ 2 (Fallback)</strong> — ค้นหาบอท ID ด้วยมือ แล้วส่ง <code>/start {slug}</code> ด้วยมือ</li>
+                </ul>
+
+                <h3 data-i18n="section20.language.title">2. เลือกภาษา</h3>
+                <p data-i18n="section20.language.desc">หลังส่ง <code>/start</code> บอทจะถาม คุณเลือกภาษา:</p>
+                <ul>
+                    <li data-i18n="section20.language.thai">🇹🇭 <strong>ไทย</strong> — แจ้งเตือนและรายความเป็นไทย</li>
+                    <li data-i18n="section20.language.english">🇬🇧 <strong>English</strong> — สำหรับผู้ใช้ภาษาอังกฤษ</li>
+                    <li data-i18n="section20.language.japanese">🇯🇵 <strong>日本語</strong> — สำหรับผู้ใช้ภาษาญี่ปุ่น</li>
+                </ul>
+                <p data-i18n="section20.language.note">ระบบจะจำภาษาที่เลือก — ทุกแจ้งเตือนจะเป็นภาษานั้น</p>
+
+                <h3 data-i18n="section20.notifications.title">3. ประเภทการแจ้งเตือน</h3>
+                <ul>
+                    <li data-i18n="section20.notifications.perprogram"><strong>📢 ต่อ Program</strong> — ส่งแจ้งเตือน 60 นาทีก่อนเริ่ม program (ปรับได้ผ่าน Admin)</li>
+                    <li data-i18n="section20.notifications.daily"><strong>📅 Daily Summary</strong> — ส่งสรุม programs ของวันทั้งหมด เวลา 9:00-9:30 น.</li>
+                </ul>
+
+                <h3 data-i18n="section20.commands.title">4. คำสั่งดูตาราง</h3>
+                <ul>
+                    <li data-i18n="section20.commands.today"><code>/today</code> — events วันนี้ + จำนวน program ต่อ event</li>
+                    <li data-i18n="section20.commands.tomorrow"><code>/tomorrow</code> — events พรุ่งนี้</li>
+                    <li data-i18n="section20.commands.week"><code>/week</code> — 7 วันข้างหน้า จัดกลุ่มตามวัน</li>
+                    <li data-i18n="section20.commands.upcoming"><code>/upcoming [N]</code> — N programs ถัดไป (1–10, ค่าเริ่มต้น 3)</li>
+                    <li data-i18n="section20.commands.next"><code>/next</code> — program ถัดไป 1 รายการ</li>
+                    <li data-i18n="section20.commands.artists"><code>/artists</code> — รายชื่อศิลปินที่ติดตาม</li>
+                    <li data-i18n="section20.commands.start"><code>/start {slug}</code> — เชื่อมต่อบัญชี (ดูส่วน 1)</li>
+                    <li data-i18n="section20.commands.stop"><code>/stop</code> — ยกเลิกการเชื่อมต่อ</li>
+                </ul>
+
+                <h3 data-i18n="section20.controls.title">5. ควบคุมการแจ้งเตือน</h3>
+                <ul>
+                    <li data-i18n="section20.controls.lang"><code>/lang th|en|ja</code> — เปลี่ยนภาษาแจ้งเตือนใน bot โดยตรง</li>
+                    <li data-i18n="section20.controls.mute"><code>/mute N</code> — หยุดรับแจ้งเตือน N ชั่วโมง (1–72)</li>
+                    <li data-i18n="section20.controls.notify"><code>/notify on|off</code> — เปิด/ปิดการแจ้งเตือน</li>
+                    <li data-i18n="section20.controls.status"><code>/status</code> — ดูสถานะ (ศิลปิน, ภาษา, on/off, mute)</li>
+                </ul>
+
+                <div class="feature-box">
+                    <strong data-i18n="section20.tip.title">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section20.tip.text">ถ้าไม่ได้รับแจ้งเตือน ลอง /status เพื่อตรวจสอบสถานะ และ /notify on เพื่อเปิด</span>
                 </div>
             </div>
 

@@ -142,5 +142,19 @@ if (in_array($action, ['add', 'remove'], true) && $_SERVER['REQUEST_METHOD'] ===
     exit;
 }
 
+// ─── Unlink Telegram ─────────────────────────────────────────────────────────
+if ($action === 'unlink_telegram' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $result = telegram_unlink_account($slugParam);
+
+    if ($result['success']) {
+        http_response_code(200);
+        echo json_encode(['success' => true, 'message' => $result['message']]);
+    } else {
+        http_response_code(400);
+        echo json_encode(['error' => $result['message']]);
+    }
+    exit;
+}
+
 http_response_code(404);
 echo json_encode(['error' => 'Unknown action.']);

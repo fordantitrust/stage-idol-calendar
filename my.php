@@ -33,11 +33,19 @@ if ($favData) {
 $slug = $parsed ? fav_build_slug($parsed['token']) : '';
 
 $scheme       = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host         = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$host         = get_safe_host();
 $basePath     = get_base_path();
 $myFavUrl     = $slug ? $scheme . '://' . $host . $basePath . '/my-favorites/' . $slug : '';
 $dashboardUrl = $slug ? $scheme . '://' . $host . $basePath . '/my/' . $slug : '';
 $feedUrl      = $slug ? $scheme . '://' . $host . $basePath . '/my/' . $slug . '/feed' : '';
+
+// Telegram linking status
+$telegramChatId = null;
+$telegramLinked = false;
+if ($favData && telegram_is_enabled()) {
+    $telegramChatId = $favData['telegram_chat_id'] ?? null;
+    $telegramLinked = !empty($telegramChatId);
+}
 
 $artistIds     = $favData ? ($favData['artists'] ?? []) : [];
 $artistsMap    = [];
@@ -238,6 +246,24 @@ foreach ($byDate as $date => $progs) {
         .fav-no-slug .empty-icon { font-size:3rem; margin-bottom:12px; }
         .fav-no-slug p { margin:0 0 8px; font-size:.9rem; }
 
+        /* ── Telegram Link ─────────────────────────────────────────────── */
+        .fav-tg-banner {
+            background: linear-gradient(135deg,#e0f2f1,#b2dfdb);
+            border: 1px solid #80cbc4; border-left: 4px solid #00897b;
+            border-radius: 8px; padding: 14px 16px; margin-bottom: 20px;
+        }
+        .fav-tg-banner .tg-label { font-size:.85rem; font-weight:600; color:#00695c; margin-bottom:8px; }
+        .fav-tg-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .fav-tg-status {
+            flex:1; display:flex; align-items:center; gap:8px;
+            padding:8px 12px; background:#f0f9f8; border-radius:6px;
+            border:1px solid #b2dfdb; font-size:.85rem; color:#00695c;
+        }
+        .fav-tg-status.linked { background:#e8f5e9; border-color:#81c784; color:#2e7d32; }
+        .fav-tg-dot { width:8px; height:8px; border-radius:50%; background:#ff9800; animation:pulse-orange 2s ease-in-out infinite; }
+        .fav-tg-status.linked .fav-tg-dot { background:#4caf50; animation:none; }
+        @keyframes pulse-orange { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+
         /* ── Mini Calendar ─────────────────────────────────────────────── */
         .fav-cal-wrap {
             background:#fff; border:1px solid #f0f0f0;
@@ -381,6 +407,90 @@ foreach ($byDate as $date => $progs) {
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Telegram Link Banner (if enabled) -->
+        <?php if (telegram_is_enabled() && $slug): ?>
+        <div class="fav-tg-banner">
+            <div class="tg-label" data-i18n="tg.linkTitle">🔔 เชื่อมต่อ Telegram</div>
+            <div class="fav-tg-row">
+                <div class="fav-tg-status <?= $telegramLinked ? 'linked' : '' ?>">
+                    <span class="fav-tg-dot"></span>
+                    <span data-i18n="<?= $telegramLinked ? 'tg.linked' : 'tg.notLinked' ?>">
+                        <?= $telegramLinked ? '✅ เชื่อมต่อแล้ว' : '⚫ ยังไม่เชื่อมต่อ' ?>
+                    </span>
+                </div>
+                <?php if (!$telegramLinked): ?>
+                <button class="btn" onclick="openTelegramLinkModal()" data-i18n="tg.linkButton">🔗 Link Telegram</button>
+                <?php else: ?>
+                <button class="btn btn-danger" onclick="unlinkTelegram()" data-i18n="tg.unlink" style="background:#ffebee;color:#c62828;border:1px solid #ef5350;">❌ ยกเลิก</button>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Telegram Link Modal -->
+        <?php if (telegram_is_enabled() && $slug): ?>
+        <div id="telegramLinkModal" class="req-modal-overlay" style="display:none;">
+            <div class="req-modal" style="max-width:480px;">
+                <div class="req-modal-header">
+                    <h2 data-i18n="tg.linkTitle">🔔 เชื่อมต่อ Telegram</h2>
+                    <button onclick="closeTelegramLinkModal()" class="req-close">&times;</button>
+                </div>
+                <div class="req-modal-body">
+                    <p style="margin:0 0 16px;color:#555;font-size:0.95em;" data-i18n="tg.desc">เชื่อมต่อ Telegram เพื่อรับการแจ้งเตือนก่อนเริ่มโปรแกรมของศิลปินที่ติดตาม</p>
+
+                    <!-- OPTION 1: Open Telegram Button (Primary) -->
+                    <div style="margin-bottom:16px;">
+                        <p style="font-size:0.85em;color:#666;margin:0 0 8px;font-weight:500;">✅ <span data-i18n="tg.option1">วิธีที่ 1: เปิด Telegram</span></p>
+                        <a id="telegramBotLink" href="https://t.me/<?= htmlspecialchars(TELEGRAM_BOT_USERNAME) ?>?start=<?= urlencode($slug) ?>" class="btn btn-primary"
+                           style="width:100%;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:1em;"
+                           target="_blank" rel="noopener">
+                           🔗 <span data-i18n="tg.openTelegram">เปิด Telegram</span>
+                        </a>
+                        <div style="padding:8px 10px;background:#e8f5e9;border-radius:6px;border-left:3px solid #4caf50;margin-top:8px;">
+                            <p style="margin:0;font-size:0.78em;color:#2e7d32;line-height:1.5;">
+                                ℹ️ <span data-i18n="tg.info1">หลังจากเปิด Telegram ให้เลือกภาษาแล้วส่งคำสั่ง ระบบจะยืนยันการเชื่อมต่ออัตโนมัติ</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- DIVIDER -->
+                    <div style="display:flex;align-items:center;margin:20px 0;gap:10px;">
+                        <div style="flex:1;height:1px;background:#ddd;"></div>
+                        <span style="color:#999;font-size:0.85em;font-weight:500;" data-i18n="tg.or">หรือ</span>
+                        <div style="flex:1;height:1px;background:#ddd;"></div>
+                    </div>
+
+                    <!-- OPTION 2: Manual Fallback -->
+                    <div>
+                        <p style="font-size:0.85em;color:#666;margin:0 0 10px;font-weight:500;">📋 <span data-i18n="tg.option2">วิธีที่ 2: ค้นหาและส่งคำสั่งด้วยมือ</span></p>
+                        <ol style="margin:0 0 12px;padding-left:20px;color:#666;font-size:0.85em;line-height:1.7;">
+                            <li><span data-i18n="tg.step1">เปิด Telegram</span></li>
+                            <li><span data-i18n="tg.step2">ค้นหาบอท</span> <strong>@<?= htmlspecialchars(TELEGRAM_BOT_USERNAME) ?></strong></li>
+                            <li style="margin-bottom:6px;"><span data-i18n="tg.step3">คัดลอกและส่งคำสั่ง:</span>
+                                <div style="display:flex;gap:8px;margin-top:6px;align-items:stretch;">
+                                    <input type="text" readonly id="telegramStartCmd" class="fav-url-input"
+                                           value="/start <?= htmlspecialchars($slug) ?>" onclick="this.select();"
+                                           style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-family:monospace;font-size:0.85em;background:#fff;">
+                                    <button class="btn" onclick="copyTelegramCommand()" style="white-space:nowrap;" data-i18n="tg.copyCommand">📋 Copy</button>
+                                </div>
+                            </li>
+                            <li><span data-i18n="tg.step4">เลือกภาษา แล้วรับการแจ้งเตือนอัตโนมัติ</span></li>
+                        </ol>
+                        <div style="padding:8px 10px;background:#fff3e0;border-radius:6px;border-left:3px solid #ff9800;">
+                            <p style="margin:0;font-size:0.78em;color:#e65100;line-height:1.5;">
+                                ⏱️ <span data-i18n="tg.info2">ให้ระบบประมวลผล 30 วินาที หลังจากส่งคำสั่ง</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="req-modal-footer">
+                    <button onclick="closeTelegramLinkModal()" class="btn btn-secondary" data-i18n="modal.cancel">ปิด</button>
+                    <button onclick="verifyTelegramLink()" class="btn btn-primary" data-i18n="tg.verifyButton">✅ ยืนยันแล้ว</button>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Followed Artists -->
         <div class="fav-section">
@@ -821,6 +931,74 @@ async function unfollowArtist(artistId) {
     if (res.ok) {
         const chip = document.getElementById('chip-' + artistId);
         if (chip) chip.remove();
+    }
+}
+
+// ── Telegram Link Modal ───────────────────────────────────────────────────────
+function openTelegramLinkModal() {
+    const modal = document.getElementById('telegramLinkModal');
+    if (modal) modal.style.display = 'flex';
+}
+
+function copyTelegramCommand() {
+    const cmd = document.getElementById('telegramStartCmd');
+    if (cmd) {
+        cmd.select();
+        document.execCommand('copy');
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => {
+            btn.textContent = originalText;
+        }, 2000);
+    }
+}
+
+function closeTelegramLinkModal() {
+    const modal = document.getElementById('telegramLinkModal');
+    if (modal) modal.style.display = 'none';
+}
+
+
+async function verifyTelegramLink() {
+    const slug = window.FAV_SLUG;
+    if (!slug) {
+        alert('No slug');
+        return;
+    }
+
+    const res = await fetch(BASE_PATH + '/api/favorites?action=get&slug=' + encodeURIComponent(slug));
+    if (!res.ok) {
+        alert((translations[currentLang] && translations[currentLang]['tg.verifyFailed']) || 'Verification failed');
+        return;
+    }
+
+    const data = await res.json();
+    const hasChat = data.telegram_chat_id || false;
+
+    if (hasChat) {
+        closeTelegramLinkModal();
+        location.reload();
+    } else {
+        alert((translations[currentLang] && translations[currentLang]['tg.notLinkedYet']) || 'Please complete the /start command in Telegram first');
+    }
+}
+
+async function unlinkTelegram() {
+    const slug = window.FAV_SLUG;
+    if (!slug) return;
+
+    const msg = (translations[currentLang] && translations[currentLang]['tg.unlinkConfirm']) || 'ยกเลิกการเชื่อมต่อ Telegram?';
+    if (!confirm(msg)) return;
+
+    const res = await fetch(BASE_PATH + '/api/favorites?action=unlink_telegram&slug=' + encodeURIComponent(slug), {
+        method: 'POST'
+    });
+
+    if (res.ok) {
+        location.reload();
+    } else {
+        alert((translations[currentLang] && translations[currentLang]['tg.unlinkFailed']) || 'Unlink failed');
     }
 }
 </script>

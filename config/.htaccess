@@ -1,13 +1,11 @@
-# Tools Directory - Restricted Access
-# อนุญาตเฉพาะ localhost และ local network
+# Configuration Directory - Deny HTTP Access to All Files
+# Prevent access to config files and sensitive data from web
 
-Order Deny,Allow
-Deny from all
+# Block all HTTP access to config files
+<FilesMatch "\.(php|json)$">
+    Deny from all
+</FilesMatch>
+
+# Allow access from localhost only (for development/debugging)
 Allow from 127.0.0.1
 Allow from ::1
-Allow from 192.168.0.0/16
-Allow from 10.0.0.0/8
-
-# หรือใช้ deny all ถ้าต้องการปิดการเข้าถึงจาก web ทั้งหมด
-# ให้รัน scripts ผ่าน CLI เท่านั้น
-# Deny from all

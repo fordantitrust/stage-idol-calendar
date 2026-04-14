@@ -44,6 +44,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🎤 **Artist & Group Portal** | Public portal page (`/artists`) listing every group (gradient card + member chips) and solo artist (grid); real-time search (matches member names too); tab filter (All / Groups / Solo) | v3.7.0 |
 | 🌐 **Per-event Timezone** | Each event can have its own timezone (e.g. Asia/Tokyo, America/LA); event page shows inline timezone badge `🕐 Asia/Tokyo (Asia/Bangkok)` when client TZ differs; JS auto-appends `(HH:MM–HH:MM local)` range after program times | v4.0.0 |
 | 🎨 **Event Color Coding** | My Upcoming Programs page colors each event's program rows in a distinct pastel shade (6 colors cycling) with a matching left-border accent, making it easy to identify which event each program belongs to at a glance | v4.0.3 |
+| 🔔 **Telegram Notifications** | Link Telegram account via deep-link (`/start {slug}`); receive per-program push notifications N minutes before each followed artist's program starts + daily summary at 9:00 AM; notifications grouped by event; configurable timing; admin UI settings | v5.0.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -76,6 +77,19 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📥 **Bulk Import Artists** | Paste a list of artist names (1 per line, up to 500) with optional group assignment; step-2 result screen shows created / duplicate / error per name | v3.5.0 |
 | ☑️ **Bulk Artist Actions** | Select multiple artists with checkboxes; bulk "Add to Group" modal or "Remove from Group" in one click | v3.5.0 |
 | 🌐 **Admin Timezone Picker** | Set per-event timezone via dropdown (16 timezones in 4 region groups); empty = use server default | v4.0.0 |
+| 🌏 **Bilingual Admin UI** | TH/EN language toggle in Admin panel header and login page — all labels, form hints, table headers, and JS-rendered buttons adapt instantly; preference saved to `localStorage` | v4.2.0 |
+| 🎪 **Smart Event Dropdown** | Event filter dropdowns in Admin (Programs, Requests, Credits) grouped by status (Active/Past) with recent 3 events pinned to top; auto-saved on selection | v4.3.0 |
+| 🎪 **Events Tab Parity** | Admin Events tab now has full filtering, pagination (20/50/100), and server-side sorting with visual indicators — matching Programs tab; search by name/slug/description; filter by active status, venue mode, date range | v4.4.0 |
+| 📥 **Import Next File** | Import workflow improved — summary screen now has "📥 Import ไฟล์ถัดไป" button to clear and import another file without leaving Import tab | v4.4.0 |
+| 🎨 **Admin Layout Improvements** | Search box spans full width on its own line; filter dropdowns and buttons wrap to subsequent lines; Add Program/Event buttons on separate full-width lines for better usability | v4.4.0 |
+| 🎨 **Admin Settings Sub-tabs** | Reorganized Settings tab with 6 organized sub-tabs: 📝 Site (Title + Theme) • ✉️ Contact (Channels) • 👤 Users • 💾 Backup • 🤖 Telegram • ⚠️ Disclaimer; removed redundant Users/Contact/Backup top-level tabs; added app version badge in header | v5.1.0 |
+| 🔔 **Telegram Settings** | Admin › Settings › Telegram Notifications — configure bot token, username, webhook secret, and notification timing; register webhook with Telegram; test webhook connectivity; all settings stored in JSON config | v5.1.0 |
+| 📖 **Admin Help Documentation** | Updated admin/help.php (Thai) and admin/help-en.php (English) with comprehensive documentation of Settings Sub-tabs, version badge, and all admin features | v5.1.1 |
+| 📚 **How-to-Use Guide Internationalization** | Verified how-to-use.php provides full 3-language support (Thai/English/日本語) through i18n system; version updates automatically from APP_VERSION constant | v5.1.1 |
+| 🔄 **Telegram Log Rotation** | Dedicated cron script (`cron/rotate-telegram-logs.php`) — daily rotation of telegram-cron.log to dated archives + automatic cleanup of logs older than 7 days; Apache-level directory protection (`cron/.htaccess`) | v5.2.0 |
+| 📋 **Telegram Log Viewer** | Admin › Settings › 🤖 Telegram now includes Activity Log section — dropdown file selector, refresh button, download button, and color-coded log display (green/gray/orange/red for INFO/DEBUG/WARN/ERROR); auto-loads on tab open; shows last 500 lines + total count | v5.3.0 |
+| 🔒 **Server-Side HTML Escaping** | `escapeOutputData()` in admin API restored to actually escape with `htmlspecialchars()`; `decodeHtml()` JS helper for form inputs; removed double-escaping from display paths; 2 XSS fixes in error message `innerHTML`; unified `escHtml()` → `escapeHtml()` | v5.3.1 |
+| 🤖 **Telegram Bot Commands (Extended)** | 8 new commands: `/tomorrow`, `/week`, `/artists`, `/next`, `/lang`, `/mute`, `/notify`, `/status` · Modified `/today` (event list + count) and `/upcoming` (default 3, supports `/upcoming N` 1–10) · Mute/notify controls with favorites JSON state · All program commands include group member resolution | v5.4.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -86,7 +100,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **2509 Unit Tests** | Automated test suite across 14 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **2523 Unit Tests** | Automated test suite across 14 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
@@ -138,10 +152,23 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v3.6.11** | 2026-03-24 | i18n fixes: 404 page multilingual · filter empty-state text translated · `my/fav.copyUrl` translated in TH/JA · JA grammar fixes · stale `"your event"` placeholders removed · `window.currentLang` sync fix · homepage calendar day modal re-renders on language switch · `appLangChange` custom event · `eventPicker.viewing` key added |
 | **v3.6.12** | 2026-03-25 | Admin Artists: group rows now show yellow member-count badge (e.g. `3 คน`) next to the `กลุ่ม` badge — count via server-side subquery |
 | **v3.7.0** | 2026-03-25 | Artist & Group Portal (`/artists`) — gradient group cards with member chips · solo artist grid · real-time search (matches member names) · tab filter (All/Groups/Solo) · `cache/query_portal.json` (1 hr) · 🎤 nav link before Credits on homepage |
-| **v4.0.0** ⚠️ | 2026-03-25 | **Run migration:** Per-event Timezone — `timezone` column in `events` · ICS/Feed use `DTSTART;TZID=` + RFC 5545 VTIMEZONE block · event page timezone badge + JS local-time conversion · image export timezone label · Admin timezone picker (16 options) · `DEFAULT_TIMEZONE` constant · 67 new TimezoneTest (→ 2509 total) |
+| **v4.0.0** ⚠️ | 2026-03-25 | **Run migration:** Per-event Timezone — `timezone` column in `events` · ICS/Feed use `DTSTART;TZID=` + RFC 5545 VTIMEZONE block · event page timezone badge + JS local-time conversion · image export timezone label · Admin timezone picker (16 options) · `DEFAULT_TIMEZONE` constant · 67 new TimezoneTest (→ 2523 total) |
 | **v4.0.1** | 2026-03-25 | Timezone badge changed to inline text `🕐 Asia/Tokyo (Asia/Bangkok)` · local time shows full range `(HH:MM–HH:MM local)` · language-switch re-renders local time labels · calendar view (chip, day panel, detail modal) all show local time range · `data-utc-end` attribute added to program time spans |
 | **v4.0.2** | 2026-03-26 | Bug fixes: ICS export was silently dropping `type[]` filter · ICS export artist filter used raw `categories` text instead of `program_artists` junction table, causing artist-filtered exports to miss programs; both now mirror `index.php` logic |
 | **v4.0.3** | 2026-03-26 | My Upcoming Programs: program rows are color-coded by event (6 pastel colors cycling with left-border accent); applies to both the main list and mini-calendar day modal |
+| **v4.1.0** | 2026-04-01 | Cross-day programs — separate end-date field in admin form; `+N` superscript badge shown after end time in list view, calendar chips, day panel, and detail modal when a program ends on a later date |
+| **v4.2.0** | 2026-04-04 | Bilingual Admin UI — TH/EN toggle in Admin panel header and login page; `admin/js/admin-i18n.js` with 200+ keys per language; all static labels (`data-i18n`), form hints, placeholders, and JS-rendered buttons fully translated |
+| **v4.3.0** | 2026-04-06 | Smart Event Dropdown Filtering — event selectors grouped by status (Active/Past), recent 3 events pinned to top with localStorage persistence, auto-invalidate on selection; Event search support in Admin Events tab (LIKE search on name/slug/description) |
+| **v4.4.0** | 2026-04-06 | Events Tab Feature Parity — Admin Events tab gets filtering (active status, venue mode, date range), pagination (20/50/100), and server-side sorting with visual indicators; "Import ไฟล์ถัดไป" button on import summary; Admin UI layout: search spans full width, filters/buttons wrap to next lines, Add buttons on separate lines; N+1 query fix with event_count subquery |
+| **v4.5.0** | 2026-04-11 | Standardized SUMMARY format in ICS feeds (export, feed, my-feed) — `Program Title [Event Name]` · Fixed artist feed showing wrong event name for multi-event artists via `$eventNameMap` |
+| **v4.5.1** | 2026-04-12 | Bug fix: Admin filter state persistence — event filter dropdown now preserves selected value when reloading data after program edit/save (save/restore logic in `populateEventSelect()`) |
+| **v5.0.0** | 2026-04-14 | **Telegram Bot Notifications** — users link Telegram via `/start {slug}` deep-link or manual entry (2 methods in modal); per-program push notifications N min before start + daily summary at 9:00 AM; in-bot language selection; `cron/send-telegram-notifications.php` every 15 min; secure HMAC-signed slug; no DB schema changes · **Refinements**: fixed shard directory discovery in webhook handler + cron script · simplified modal UI (removed slug field, 2-option layout) · cleaned up debug code (removed verbose logging) · **2523 tests pass** |
+| **v5.1.0** | 2026-04-14 | **Admin UI Settings Sub-tabs** — reorganized Settings tab with 6 nested sub-tabs (📝 Site • ✉️ Contact • 👤 Users • 💾 Backup • 🤖 Telegram • ⚠️ Disclaimer); removed redundant Users/Contact/Backup top-level tabs · **App Version Badge** — header displays current version (e.g. `v5.1.0`) for quick reference without opening config |
+| **v5.1.1** | 2026-04-14 | **Admin Help Documentation** — comprehensive bilingual help in `admin/help.php` (Thai) + `admin/help-en.php` (English); documented Settings Sub-tabs structure and all admin features · **How-to-Use Verification** — confirmed full 3-language i18n support (Thai/English/日本語) in how-to-use.php; footer version auto-updates from APP_VERSION constant |
+| **v5.2.0** | 2026-04-14 | **Telegram Log Rotation Cron Script** — `cron/rotate-telegram-logs.php` daily rotation + 7-day cleanup; renames `cache/logs/telegram-cron.log` to `telegram-cron-YYYY-MM-DD.log` · automatic deletion of archives >7 days old · `cron/.htaccess` Apache-level protection |
+| **v5.3.0** | 2026-04-14 | **Telegram Log Viewer in Admin UI** — new Activity Log section in Admin › Settings › 🤖 Telegram; file dropdown (active + dated archives), refresh/download buttons, color-coded output (INFO/DEBUG/WARN/ERROR); API endpoints `telegram_log_get` + `telegram_log_download`; displays last 500 lines + total count |
+| **v5.3.1** | 2026-04-14 | **Full Server-Side HTML Escaping** — restored `escapeOutputData()` to escape with `htmlspecialchars()`; added `decodeHtml()` JS helper for form inputs; removed double-escaping from 40+ display paths; fixed 2 XSS bugs in error `innerHTML`; unified `escHtml()` → `escapeHtml()` · **2523 tests pass** |
+| **v5.4.0** | 2026-04-15 | **Extended Telegram Bot Commands** — `/tomorrow`, `/week`, `/artists`, `/next` (new); `/lang`, `/mute N`, `/notify on\|off`, `/status` (notification controls); modified `/today` (event list + count) and `/upcoming [N]` (default 3, max 10); group member resolution for all program commands · **3064 tests pass** |
 
 ---
 
@@ -575,7 +602,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           2509 automated tests (14 suites)
+├── tests/           2523 automated tests (14 suites)
 └── *.md             Documentation
 ```
 
@@ -641,7 +668,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all 2509 automated tests
+# Run all 2523 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -739,7 +766,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **2509 automated unit tests** covering all critical functionality:
+The project includes **2523 automated unit tests** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
@@ -793,14 +820,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 2509 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 2523 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 2509 tests
-Passed: 2509
+Total: 2523 tests
+Passed: 2523
 Pass Rate: 100.0%
 ```
 

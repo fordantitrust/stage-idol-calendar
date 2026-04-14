@@ -57,3 +57,5 @@ config.local.php
 /.claude
 *.code-workspace
 CLAUDE.md
+SKILLS.md
+WORKFLOW.md

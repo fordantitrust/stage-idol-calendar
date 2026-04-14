@@ -240,6 +240,23 @@ function get_event_timezone($eventMeta = null): string {
 }
 
 /**
+ * Get a validated HTTP Host header value to prevent Host Header Injection.
+ * Accepts only valid hostname[:port] or IPv4/IPv6 formats.
+ * Falls back to SERVER_NAME (set by web server config, not by the client).
+ *
+ * @return string Safe host string
+ */
+function get_safe_host(): string {
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    // Allow: hostname, hostname:port, IPv4, IPv4:port, [IPv6], [IPv6]:port
+    if ($host !== '' && preg_match('/^(\[[\da-fA-F:]+\]|[\w.\-]+)(:\d{1,5})?$/', $host)) {
+        return $host;
+    }
+    // Fallback to SERVER_NAME which is configured by the web server
+    return $_SERVER['SERVER_NAME'] ?? 'localhost';
+}
+
+/**
  * Get the application base path (for subdirectory deployments)
  *
  * @return string Base path (e.g., '' for root, '/subdir' for subdirectory)

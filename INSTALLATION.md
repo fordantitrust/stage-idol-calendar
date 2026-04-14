@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '3.1.0'); // Change to force cache refresh
+define('APP_VERSION', '4.5.1'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -798,7 +798,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **1630 automated unit tests** for quality assurance:
+The project includes **2523 automated unit tests** across 14 test suites for quality assurance:
 
 ```bash
 # Run all tests
@@ -810,9 +810,15 @@ php tests/run-tests.php CacheTest
 php tests/run-tests.php AdminAuthTest
 php tests/run-tests.php CreditsApiTest
 php tests/run-tests.php IntegrationTest
+php tests/run-tests.php UserManagementTest
+php tests/run-tests.php ThemeTest
+php tests/run-tests.php SiteSettingsTest
+php tests/run-tests.php EventEmailTest
 php tests/run-tests.php ProgramTypeTest
 php tests/run-tests.php FeedTest
 php tests/run-tests.php StreamUrlTest
+php tests/run-tests.php FavoritesTest
+php tests/run-tests.php TimezoneTest
 ```
 
 ### Quick Pre-Commit Tests
@@ -828,22 +834,26 @@ chmod +x quick-test.sh
 
 ### Test Coverage
 
-- **SecurityTest** (7 tests) - XSS protection, input sanitization, SQL injection prevention
-- **CacheTest** (17 tests) - Cache creation, invalidation, TTL behavior
-- **AdminAuthTest** (38 tests) - Authentication, session management, password security
-- **CreditsApiTest** (49 tests) - Database CRUD, bulk operations, validation
-- **IntegrationTest** (100 tests) - Configuration validation, file structure, workflows, API endpoints, multi-event support
-- **UserManagementTest** (119 tests) - Role column schema, role helpers, user CRUD, permission checks
-- **ThemeTest** (143 tests) - Theme system, get_site_theme(), per-event theme, CSS files, admin API
-- **SiteSettingsTest** (157 tests) - Site title: get_site_title(), cache, fallbacks, admin API, page injection
-- **EventEmailTest** (176 tests) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
-- **ProgramTypeTest** (211 tests) - program_type column, CRUD, API filter, admin UI, translations, clickable badges
-- **FeedTest** (291 tests) - icsEscape(), icsFold(), CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986
-- **StreamUrlTest** (322 tests) - stream_url column, CRUD, admin badge, public UI platform icons, ICS URL property
+| Suite | Tests | Focus Areas |
+|-------|-------|------------|
+| **SecurityTest** | 7 | XSS protection, input sanitization, SQL injection prevention |
+| **CacheTest** | 17 | Cache creation, invalidation, TTL behavior, concurrency |
+| **AdminAuthTest** | 38 | Authentication, session management, password security, timing attacks |
+| **CreditsApiTest** | 49 | Database CRUD, bulk operations, validation |
+| **IntegrationTest** | 100 | Configuration validation, file structure, workflows, API endpoints, multi-event support |
+| **UserManagementTest** | 119 | Role column schema, role helpers, user CRUD, permission checks |
+| **ThemeTest** | 143 | Theme system, get_site_theme(), per-event theme, CSS files, admin API |
+| **SiteSettingsTest** | 157 | Site title, get_site_title(), cache, fallbacks, admin API, page injection |
+| **EventEmailTest** | 176 | Event email field, CRUD, validation logic, ICS ORGANIZER design |
+| **ProgramTypeTest** | 211 | Program type column, CRUD, API filter, admin UI, translations, clickable badges |
+| **FeedTest** | 291 | ICS escaping, line folding, CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986 compliance |
+| **StreamUrlTest** | 322 | Stream URL column, CRUD, admin badge, platform icons, ICS URL property |
+| **FavoritesTest** | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, localStorage persistence, artist profiles |
+| **TimezoneTest** | 487 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 1630 total test executions from 322 unique test functions.
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 2523 total test executions.
 
-✅ **All 1630 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 2523 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 

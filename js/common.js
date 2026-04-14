@@ -1,6 +1,7 @@
 // Common JavaScript for Idol Stage Event Calendar
 
 let currentLang = localStorage.getItem('language') || 'th';
+window.currentLang = currentLang;  // Set immediately so it's available in onclick handlers
 
 // DOM cache to reduce repeated querySelectorAll calls
 const domCache = {};

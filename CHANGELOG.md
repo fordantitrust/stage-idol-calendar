@@ -5,6 +5,366 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.0] - 2026-04-15
+
+### Added
+- **New Telegram Bot Commands** — 8 new commands + 2 modified; full schedule browsing and notification control without leaving Telegram
+
+  **Schedule Commands:**
+  - `/tomorrow` — events + program count for tomorrow (same format as `/today`)
+  - `/week` — next 7 days grouped by day, each day shows events + program count
+  - `/artists` — list all followed artists (fetched from DB by followed IDs, sorted A–Z)
+  - `/next` — alias for `/upcoming 1`; shows the single soonest upcoming program
+
+  **Modified Commands:**
+  - `/today` — changed format from full per-program detail to condensed event list + count per event
+  - `/upcoming [N]` — default changed 5 → 3; now accepts optional numeric argument 1–10; invalid input shows error then proceeds with default 3
+
+  **Notification Control Commands:**
+  - `/lang th|en|ja` — change notification language directly in bot (previously required re-linking)
+  - `/mute {N}` — mute push notifications for N hours (1–72); shows mute-until time in Asia/Bangkok timezone
+  - `/notify on|off` — toggle push notifications on/off without unlinking; opt-out model (absent = on)
+  - `/status` — account summary: followed artist count, current language, notification on/off, mute status
+
+- **New favorites JSON fields** (no migration — absent = default):
+  - `telegram_mute_until` — Unix timestamp; absent/0 = not muted
+  - `telegram_notify_enabled` — bool; absent/null = true (opt-out)
+
+- **Cron notification guards** — `send-telegram-notifications.php` now skips users with `telegram_notify_enabled = false` or active mute before processing any DB queries
+
+- **Helper functions** (`functions/telegram.php`):
+  - `find_favorites_by_chat_id(int $chat_id)` — shared shard-scan helper eliminating duplicate code across handlers
+  - `telegram_is_muted(array $favData)` — checks `telegram_mute_until` vs `time()`
+  - `telegram_notify_is_enabled(array $favData)` — opt-out model check
+  - `telegram_format_events_list(array $programs, string $dateStr, string $language, string $context)` — condensed event+count format for `/today`, `/tomorrow`, `/week`
+  - `_telegram_resolve_artists(array $ids)` — resolves group members; now used by all program-fetching commands including `/upcoming` and `/next`
+
+- **54 new tests** in `tests/TelegramTest.php` (function existence, unit tests for muted/notify helpers, format tests, message keys for all 16 new keys × 3 languages, handler existence, router routes, cron guards) — **3064 total tests**
+
+**Files changed:** `functions/telegram.php`, `api/telegram.php`, `cron/send-telegram-notifications.php`, `tests/TelegramTest.php`, `tests/run-tests.php`, `js/translations.js`, `how-to-use.php`
+
+> **Test Coverage**: All 3064 automated tests pass (100% pass rate)
+
+---
+
+## [5.3.1] - 2026-04-14
+
+### Security
+- **Full Server-Side HTML Escaping for Admin API** — restored `escapeOutputData()` in `admin/api.php` to actually escape with `htmlspecialchars(ENT_QUOTES|ENT_SUBSTITUTE)` as defense-in-depth; previously was a no-op since v3.5.3
+  - ✅ **escapeOutputData() restored** — covers all existing call sites: programs, requests, credits, events, users, artists, artist_variants (~14 endpoints)
+  - ✅ **5 additional endpoints escaped** — `title_get`, `disclaimer_get`, `telegram_config_get`, `contact_channels_list`, `contact_channel_get` now escape string fields before returning JSON
+  - ✅ **Fixed 2 XSS vulnerabilities** — `error.message` (line 4869) and `result.message` (line 5368) were directly concatenated into `innerHTML` without escaping; wrapped with `escapeHtml()`
+- **`escapeHtml()` updated to attribute-safe** — added `.replace(/"/g, '&quot;')` so the function is safe in both text-node and HTML-attribute contexts
+- **Added `decodeHtml()` JS helper** — decodes `htmlspecialchars()` entities back to raw text for form `.value` assignments; uses `<textarea>.innerHTML` (safe, no script execution); prevents `&#039;` appearing literally in edit form inputs
+- **Removed double-escaping from display paths** — removed `escapeHtml()` wrapping from 40+ `innerHTML` table-display call sites where server-side escaping now handles protection (programs, requests, credits, events, users, artists, contact channels)
+- **Wrapped ~40 form `.value` assignments** with `decodeHtml()` — all edit modals (program, credit, event, user, artist, copy), settings panels (site title, disclaimer, telegram, contact channel) now correctly show raw characters (`'`, `&`) instead of HTML entities
+- **Unified `escHtml()` → `escapeHtml()`** — replaced all 6+ call sites of the duplicate `escHtml()` regex function with the canonical DOM-based `escapeHtml()`; deleted duplicate function definition; `colorizeLogOutput()` (telegram log viewer) retains escaping internally as log content must remain raw before colorization
+
+**Files changed:** `admin/api.php`, `admin/index.php`
+
+> **Security posture**: Admin API now applies HTML escaping at both server (JSON output) and client (innerHTML display) layers — defense-in-depth. Form inputs correctly show raw text via `decodeHtml()`.
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+
+---
+
+## [5.3.0] - 2026-04-14
+
+### Added
+- **Telegram Log Viewer in Admin UI** — View and download Telegram notification cron logs directly from the admin panel
+  - 📋 **Log Viewer Section** — New section in Admin › Settings › 🤖 Telegram with file selector, refresh, and download buttons
+  - 📂 **File Management** — Dropdown lists active log (`telegram-cron.log`) + dated archives (`telegram-cron-YYYY-MM-DD.log`), newest first
+  - 🎨 **Colored Output** — Log entries color-coded by level: `[INFO]` (green), `[DEBUG]` (gray), `[WARN]` (orange), `[ERROR]` (red)
+  - 📊 **Line Tracking** — Shows "Displaying X / Y lines" info; displays last 500 lines to prevent memory issues
+  - ⬇️ **Download Logs** — Download selected log file directly via download button
+
+### New API Endpoints
+- `GET ?action=telegram_log_get[&file=FILENAME]` — Returns file list + last 500 lines of selected log
+- `GET ?action=telegram_log_download[&file=FILENAME]` — Downloads full log file as attachment
+
+### Implementation
+- Auto-loads log viewer when switching to Telegram sub-tab in Admin Settings
+- File selection validated against whitelist — no path traversal possible
+- Admin-role required for downloads; login-only for viewing
+- Responsive layout with color-coded terminal-style display
+
+### Files Changed
+- `admin/api.php` — Added `telegram_log_get` and `telegram_log_download` endpoints
+- `admin/index.php` — Added Log Viewer HTML section + JS functions in Telegram sub-tab; updated `switchSettingsSubtab()` to auto-load logs
+- `admin/js/admin-i18n.js` — Added 3 new i18n keys (TH + EN): `settings.telegramLogTitle`, `settings.telegramLogRefresh`, `settings.telegramLogDownload`
+- `config/app.php` — Version bump to 5.3.0
+
+> **User Experience**: Admins can now monitor Telegram notification cron health without SSH access
+> **Security**: File access validated, admin-role protected for downloads
+
+## [5.2.0] - 2026-04-14
+
+### Added
+- **Telegram Log Rotation & Cleanup** — Dedicated daily cron script for log management
+  - 🔄 **Daily Rotation** — `cron/rotate-telegram-logs.php` renames `cache/logs/telegram-cron.log` to dated archives (`telegram-cron-YYYY-MM-DD.log`) every day
+  - 🗑️ **Automatic Cleanup** — Deletes archived logs older than 7 days via scheduled cron job
+  - 🔒 **Security Hardening** — Added `cron/.htaccess` with `Deny from all` for Apache-level HTTP access blocking
+  - 📋 **Flexible Output** — Script outputs timestamped messages to STDOUT for easy log capture and monitoring
+
+### Added (Files)
+- `cron/rotate-telegram-logs.php` — Daily log rotation and 7-day cleanup script (CLI-only)
+- `cron/.htaccess` — Apache-level HTTP access protection for cron directory
+
+### Implementation
+- Non-destructive addition — existing 10 MB size-based rotation in `send-telegram-notifications.php` remains as safety valve
+- Both rotation mechanisms coexist peacefully; `glob` pattern `telegram-cron-*.log` captures both daily and size-rotated archives
+- Cron scheduling recommendation: `0 0 * * * php /path/to/cron/rotate-telegram-logs.php >> /path/to/cache/logs/rotate-cron.log 2>&1`
+
+### Files Changed
+- `config/app.php` — Version bump to 5.2.0
+
+> **Robustness**: Log rotation now combines daily schedule + automatic retention, eliminating manual log cleanup burden
+> **Security**: Added Apache-level directory protection for all cron scripts
+
+## [5.1.1] - 2026-04-14
+
+### Added
+- **Admin Help Documentation (Thai)** — Updated `admin/help.php` with v5.1.0 features
+  - 📝 **Header & Account Settings** — Added App Version Badge explanation
+  - ⚙️ **Settings Tab Sub-tabs** — Documented new 6 sub-tabs structure (Site • Contact • Users • Backup • Telegram • Disclaimer)
+  - 📋 Comprehensive table explaining each Settings sub-tab function and category
+  - Support for all admin role explanations
+
+- **Admin Help Documentation (English)** — Updated `admin/help-en.php` with v5.1.0 features
+  - 📝 **Header & Account Settings** — Added App Version Badge explanation (English)
+  - ⚙️ **Settings Tab Sub-tabs** — Documented new 6 sub-tabs structure with English descriptions
+  - 📋 Comprehensive table with English function descriptions
+  - Full English documentation parity with Thai version
+
+- **How-to-Use Guide (3 Languages)** — Verified `how-to-use.php` internationalization support
+  - 🌍 Confirmed 3-language support (Thai/English/日本語) via i18n system
+  - 📝 Verified footer version display updates automatically from APP_VERSION constant
+  - 🔍 Confirmed all data-i18n attributes for proper translations
+
+### Files Changed
+- `admin/help.php` — Updated Settings Sub-tabs documentation with v5.1.0 feature explanation (Thai)
+- `admin/help-en.php` — Updated Settings Sub-tabs documentation with v5.1.0 feature explanation (English)
+- `how-to-use.php` — Verified internationalization; no content changes needed (i18n-driven)
+
+> **Documentation Quality**: Admin help files now comprehensively document v5.1.0 Settings sub-tabs changes
+> **i18n Coverage**: how-to-use.php supports full 3-language experience via translations.js
+
+## [5.1.0] - 2026-04-14
+
+### Added
+- **Admin UI Settings Sub-tabs** — Reorganized Admin Settings with cleaner sub-tab navigation
+  - 📝 Site (Title + Theme)
+  - ✉️ Contact (Channel management)
+  - 👤 Users (User management)
+  - 💾 Backup (Backup/restore)
+  - 🤖 Telegram (Notification settings)
+  - ⚠️ Disclaimer (Multilingual disclaimer)
+- **App Version Badge** — Added version display (e.g., `v5.1.0`) in admin header between language toggle and help link
+
+### Changed
+- **Settings Tab Structure** — Removed redundant Users, Backup, and Contact top-level tabs; consolidated into Settings sub-tabs for cleaner navigation
+  - Old: 7 top-level tabs (Programs, Events, Requests, Credits, Import, Artists, Settings + Users + Backup + Contact)
+  - New: 7 top-level tabs (Programs, Events, Requests, Credits, Import, Artists, Settings) with 6 organized sub-tabs inside Settings
+  - Sub-tab order optimized: Site → Contact → Users → Backup → Telegram → Disclaimer
+
+### Files Changed
+- `config/app.php` — Version bump to 5.1.0
+- `admin/index.php` — Reorganized Settings sub-tabs, removed old Users/Backup/Contact sections, updated `switchTab()` and `switchSettingsSubtab()` functions, removed redundant main tab buttons, added version badge in header
+- `admin/js/admin-i18n.js` — No changes needed (sub-tab keys already defined)
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+> **Backward Compatibility**: Full compatibility maintained; Settings functionality unchanged, only UI organization improved
+
+## [5.0.0] - 2026-04-14
+
+### Added
+- **Telegram Bot Notifications** — Users can now link their Telegram account to receive automatic push notifications before upcoming programs
+  - 🔔 **Link Telegram** — New UI section in "My Upcoming Programs" (`/my/{slug}`) page to connect Telegram account via 2 methods:
+    - **Method 1 (Recommended)**: Click "เปิด Telegram" button → Opens deep-link to bot with `start` parameter pre-filled
+    - **Method 2 (Fallback)**: Manual search and `/start {slug}` command entry (for when deep-link unavailable)
+    - Clear visual separation between methods with color-coded info boxes
+    - Slug removal from modal (already embedded in deep-link button and command instructions)
+  - 🌐 **In-bot Language Selection** — Users select language (Thai/English/日本語) via inline keyboard buttons after `/start` command
+  - ⚡ **Per-program Notifications** — Automatic push notification N minutes before each program starts (configurable, default 60 minutes)
+  - 📅 **Daily Summary Notifications** — Automatic summary of all upcoming programs grouped by event, sent at 9:00 AM each day
+  - 🔄 **Cron-based Delivery** — CLI script runs every 15 minutes to scan favorites and send notifications; no DB schema changes needed
+    - Shard directory scanning in both webhook handler (`/upcoming`, `/today` commands) and cron script properly discovers favorites files
+  - 🔐 **Secure Linking** — Uses existing HMAC-signed favorites slug for authentication; Telegram chat_id stored in favorites JSON
+  - 🌐 **Multilingual** — Full support for Thai, English, and 日本語; notifications formatted with program details
+  - ⚙️ **Admin UI Settings** — Configure Bot Token, Bot Username, Webhook Secret, Notify Minutes from Admin › Settings › 🤖 Telegram Notifications
+  - 🧹 **Production-ready code** — All verbose debugging infrastructure removed, kept only standard error logging for reliability
+
+### New Files
+- `config/telegram.php` — Bot configuration loader (JSON → PHP constants)
+- `config/telegram-config.json` — Runtime settings (edited via Admin UI)
+- `functions/telegram.php` — API helpers, account linking, message formatting, notification utilities
+- `api/telegram.php` — Webhook handler for `/start`, `/stop`, `/upcoming` commands
+- `cron/send-telegram-notifications.php` — Cron script for sending notifications every 15 minutes
+- `tools/setup-telegram-webhook.php` — Helper script to register webhook URL with Telegram Bot API
+- `TELEGRAM_SETUP.md` — Setup guide (Thai)
+- `TELEGRAM_SETUP_EN.md` — Setup guide (English)
+
+### Modified Files
+- `config.php` — Load telegram config and functions
+- `my.php` — Add Telegram linking UI section with modal and JavaScript functions
+- `api/favorites.php` — New `unlink_telegram` action to disconnect Telegram
+- `js/translations.js` — 24+ new translation keys (TH/EN/JA) for Telegram UI
+- `admin/index.php` — Telegram notifications settings section in Settings tab
+- `admin/api.php` — Three new API endpoints: `telegram_config_get`, `telegram_config_save`, `telegram_webhook_test`
+- `admin/js/admin-i18n.js` — 18+ new translation keys for Telegram settings UI
+- `admin/help.php` — "🤖 Telegram Notifications" section (Thai)
+- `admin/help-en.php` — "🤖 Telegram Notifications" section (English)
+- `config/.htaccess` — Deny HTTP access to .json files in config directory
+
+### Configuration
+Users need to set up Telegram bot integration via Admin UI:
+1. Go to Admin › Settings › 🤖 Telegram Notifications
+2. Enter Bot Token, Bot Username
+3. Generate or paste Webhook Secret
+4. Set Notify Minutes (default 60)
+5. Click "Test Webhook" to verify
+6. Click "Save Telegram"
+
+Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.php >> /var/log/tg-notify.log 2>&1`
+
+### Architecture
+- **No DB migration** — Telegram metadata stored in existing favorites JSON files (`telegram_chat_id`, `telegram_notified` map)
+- **Idempotent** — Notifications tracked with program ID and timestamp to prevent duplicates (window ±7.5 minutes)
+- **Scalable** — Hybrid design: JSON-based for <1000 users, can migrate to DB table when needed
+- **Flexible** — Notification window, history retention, and duplicate prevention all configurable
+- **Reliable shard discovery** — Webhook handler and cron script properly iterate `cache/favorites/{3-char hex shard}/*.json` structure
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+> **Code Quality**: Production-ready with debug code cleaned up; no warnings or excessive logging
+
+## [4.5.1] - 2026-04-12
+
+### Fixed
+- **Admin filter state not persisting after program edit** — Event filter dropdown (`eventMetaFilter`) in Programs/Requests/Credits tabs now preserves selected value when reloading data after editing and saving a program
+  - **Issue**: `populateEventSelect()` rebuilt dropdown options but didn't restore the previously selected event, causing filter to appear "empty" despite being set
+  - **Root cause**: Dropdown HTML rebuild cleared all optgroups and options without preserving the `selected` state
+  - **Fix**: Save dropdown's current selected value before rebuild, then restore it after new options are appended
+  - **Result**: Filter selection now visually persists across modal close → API receives correct event_id parameter → correct filtered data displayed
+
+### Changed
+- **`populateEventSelect()` function** — Now includes value preservation logic for all event selector dropdowns
+
+### Files Changed
+- `admin/index.php` — Updated `populateEventSelect()` to save/restore selected value
+- `config/app.php` — Version bump to 4.5.1
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+
+## [4.5.0] - 2026-04-11
+
+### Changed
+- **SUMMARY field format in ICS feeds** — Standardized format across all feed types to `Program Title [Event Name]` (event name moved from prefix to suffix in My Upcoming Programs)
+  - **export.php**: Changed from `Program Title` to `Program Title [Event Name]`
+  - **feed.php (single event)**: Changed from `Program Title` to `Program Title [Event Name]`
+  - **feed.php (artist feed)**: Added per-program event name support; now shows correct event name for each program when artist performs at multiple events
+  - **my-feed.php**: Changed from `[Event Name] Program Title` to `Program Title [Event Name]` for consistency
+  - **Benefit**: More readable calendar appointments with program name visible first, then event context in brackets
+
+### Fixed
+- **Artist feed SUMMARY using wrong event name** — Artist feed was showing artist name instead of program's actual event name in SUMMARY field (breaking for artists with multiple events)
+  - Added `$eventNameMap` to fetch per-program event information from database
+  - SUMMARY now correctly shows event name for each program: `"Program Title [Idol Stage Feb 2026]"`, `"Program Title [Japan Expo 2026]"`, etc.
+
+### Files Changed
+- `export.php` — Updated SUMMARY format to include event name
+- `feed.php` — Added per-program event name map for artist feeds; updated SUMMARY format
+- `my-feed.php` — Changed SUMMARY format from prefix to suffix event name
+- `tests/FeedTest.php` — Updated test to match flexible SUMMARY pattern (either `$eventName` or `$summaryEventName`)
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+
+## [4.4.1] - 2026-04-10
+
+### Fixed
+- **Events tab filter dropdowns rendering empty** — `data-i18n` attribute was placed on `<select>` element instead of first `<option>`, causing the i18n system to replace the entire select's textContent and delete all options; moved `data-i18n` to the first option in `eventActiveFilter` and `eventVenueFilter` dropdowns
+- **Events tab date filters not resetting pagination** — Date range inputs (`eventDateFrom`, `eventDateTo`) didn't reset `eventsCurrentPage` to 1 when filters changed; added `eventsCurrentPage=1;` to `onchange` handlers
+- **Events table body ID mismatch** — HTML had `id="conventionsTableBody"` but JavaScript searched for `id="eventsConventionsTableBody"`; renamed HTML table body ID to match
+- **Removed debugging code** — Cleaned up 39 `console.log()` statements and CSS debug borders (red/blue) left from troubleshooting
+
+### Files Changed
+- `admin/index.php` — Fixed filter dropdown i18n, pagination reset, table ID mismatch, removed debugging code
+
+## [4.4.0] - 2026-04-06
+
+### Added
+- **Events Tab Feature Parity with Programs Tab** — Admin Events tab now has complete filtering, pagination, and sorting capabilities matching Programs tab
+  - ✨ **Server-side filtering**: active status (is_active), venue mode, date range (date_from, date_to)
+  - ✨ **Server-side pagination**: configurable page size (20/50/100), page navigation with info display
+  - ✨ **Server-side sorting**: sortable columns (ID, Name, Start Date, End Date, Active, Programs) with visual indicators
+  - 🔧 **N+1 query fix**: Subquery for event_count instead of loop SELECT per event
+  - 📊 **Pagination controls**: Previous/Next buttons with page info and total count display
+  - 🎨 **Search box layout**: Search bar spans full width; filter controls and buttons wrap to next lines
+
+### Changed
+- **Events API endpoint (`admin/api.php` `listEvents()`)** — Updated to support pagination and filtering parameters; now returns `{ events: [...], pagination: {...} }` structure matching Programs API
+  - **New parameters**: `search`, `is_active`, `venue_mode`, `date_from`, `date_to`, `sort`, `order`, `page`, `limit`
+  - **Query optimization**: Uses subquery for `event_count` instead of N+1 loop queries
+  - **Default pagination**: 20 events per page, supports up to 100
+- **Admin UI toolbar layout** — Search box now takes full width on its own line; filter dropdowns and buttons wrap to subsequent lines
+- **Add Program/Event buttons** — Now span full width on their own line in toolbar
+
+### Fixed
+- **Recent events dropdown not showing**: Fixed API call to fetch all events (limit=100) instead of default limit (20), ensuring recent events are found in the filtered list
+- **Recent events sort order**: Recent events now display in selection order (newest first) instead of arbitrary order
+- **Recent section placement**: Recent group now appears at the top of event dropdown (before Active/Past groups) for quick access
+- **Import workflow**: Added "📥 Import ไฟล์ถัดไป" button on summary screen to allow clearing and importing next file without leaving Import tab
+
+### Files Changed
+- `admin/api.php` — Enhanced `listEvents()` with full pagination, filtering, and sorting
+- `admin/index.php` — Updated Events toolbar, added pagination controls, fixed dropdown event ordering, improved import summary
+- `admin/js/admin-i18n.js` — Added 12 new translation keys for Events filters and pagination (TH/EN)
+- `config/app.php` — App constants
+
+> **Test Coverage**: All 2523 automated tests pass (100% pass rate)
+
+## [4.3.0] - 2026-04-06
+
+### Added
+- **Smart Event Dropdown Filtering** — Admin Programs/Requests/Credits tabs now display events grouped by status (Active/Past) instead of flat list
+  - 📌 **Recent Events section** — Top 3 recently selected events pinned at the top of dropdown for quick access; stored in `localStorage`
+  - 🎪 **Active Events group** — Events with end_date ≥ today, sorted by start_date DESC (newest first)
+  - 📋 **Past Events group** — Events with end_date < today, sorted by start_date DESC (newest first)
+- **Automatic Recent Event Tracking** — Selecting an event from `eventMetaFilter` dropdown automatically saves it to recent list; dropdown re-renders to show updated recent section
+- **Helper Functions**:
+  - `getRecentEvents()` — retrieves recent events from localStorage
+  - `saveRecentEvent(eventId, eventName)` — adds/updates event in recent list (top 3)
+  - `groupAndSortEvents(metas)` — separates active/past events and sorts by date
+  - `populateEventSelect(selectId, allMetas, recentIds)` — renders optgroups with proper grouping
+
+### Changed
+- Event dropdown in Admin panel now uses `<optgroup>` for visual separation instead of flat list
+- All 6 event filter selectors (`eventMetaFilter`, `reqEventMetaFilter`, `creditsEventMetaFilter`, `eventConvention`, `creditEventMetaId`, `icsImportEventMeta`) use the same grouping logic for consistency
+
+### Files Changed
+- `admin/index.php` — Added smart event dropdown with Recent/Active/Past grouping
+- `config/app.php` — Constants for recent events feature
+
+## [4.2.0] - 2026-04-04
+
+### Added
+- **Bilingual Admin UI (TH/EN)** — `admin/js/admin-i18n.js` new file with 200+ translation keys per language; TH/EN language toggle button in Admin panel header and login page; preference saved to `localStorage` (`admin_lang`)
+- **`adminT(key)`** — core translation lookup function; returns Thai or English string based on current language
+- **`applyAdminTranslations()`** — scans DOM for `data-i18n`, `data-i18n-placeholder`, and `data-i18n-title` attributes and applies translations; called on page load and language switch
+- **`changeAdminLang(lang)`** — switches language, updates toggle button state, dispatches `adminLangChange` custom event
+- **`adminLangChange` custom event** — listened to by `admin/index.php`; re-calls the active tab's `loadX()` function so JS-rendered table rows (which use `adminT()` inline in template literals) are rebuilt in the new language
+- **`data-i18n` attributes** — added to 280+ static HTML elements across `admin/index.php` and `admin/login.php`: tab labels, toolbar buttons, table headers, form labels, form hints (`<small>`), modal titles and body text, bulk-bar labels, status badges, and confirmation messages
+- **Dynamic content translated** — all JS-generated HTML (program rows, request rows, artist rows, credits rows, user rows) uses `adminT()` for "Edit", "Delete", "Copy", "Variants", "View" buttons and status badge labels so they switch language on toggle
+
+### Changed
+- `admin/login.php` language toggle syncs with `admin/index.php` via same `localStorage` key — switching language on the login page persists to the admin panel and vice versa
+- All form hints (`<small class="form-hint">`) including Artist modal, Variants modal, Import Artists modal, Bulk Edit modal, Event modal, and ICS Import artist-mapping hint are now fully bilingual
+
+### Files Changed
+- `admin/js/admin-i18n.js` (new) — Core i18n lookup function `adminT()` with 200+ keys per language
+- `admin/index.php` — Language toggle button, `data-i18n` attributes on 280+ elements, dynamic content translation
+- `admin/login.php` — Language toggle synced with admin panel via localStorage
+- `config/app.php` — App constants
+
 ## [4.1.0] - 2026-04-01
 
 ### Added
@@ -17,14 +377,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin program form layout: date + time fields reorganised into two rows (start date/time row, end date/time row) for clarity
 - `.program-time-nextday` and `.cal-chip-nextday` share a single CSS rule block for consistent styling
 
-> **📁 Files changed:** `admin/index.php`, `index.php`, `js/common.js`, `styles/index.css`
+### Files Changed
+- `admin/index.php` — End date field in program form with auto-sync logic
+- `index.php` — Cross-day badge (`+N`) display in list view and event detail
+- `js/common.js` — `calCrossDay()` helper for calendar view cross-day detection
+- `styles/index.css` — `.program-time-nextday` styling
 
 ## [4.0.3] - 2026-03-26
 
 ### Added
 - **My Upcoming Programs — event color coding** — each event gets a distinct pastel background + left-border accent (6 colors cycling: pink, blue, green, amber, purple, teal); applies to both the main program list and the mini calendar day modal; `now-playing` highlight still overrides event color
 
-> **📁 Files changed:** `my.php`
+### Files Changed
+- `my.php` — Event color map, pastel background + left-border accent styling
 
 ## [4.0.2] - 2026-03-26
 
@@ -32,7 +397,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ICS Export filter mismatch** — `exportToIcs()` in `common.js` was not forwarding `type[]` filter to export URL; type filter was silently ignored on export
 - **ICS Export artist filter mismatch** — `export.php` was filtering artists against raw `categories` text field, while `index.php` (v3.0.0+) uses the `program_artists` junction table with canonical artist names; artists selected in UI could be missed in exported ICS; `export.php` now mirrors `index.php` logic (junction table first, fallback to categories text)
 
-> **📁 Files changed:** `js/common.js`, `export.php`
+### Files Changed
+- `js/common.js` — Forward `type[]` filter parameter in `exportToIcs()`
+- `export.php` — Mirror `index.php` artist filter logic (junction table + variants)
 
 ## [4.0.1] - 2026-03-25
 
@@ -48,7 +415,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Detail modal**: `cal-detail-time-local` div below the time heading
 - 🔴 **Day panel Live button separate line** — `.cal-dp-join` changed to `display: block; width: fit-content; margin-top: 0.4rem` so 🔴 Live button is always on its own line
 
-> **📁 Files changed:** `index.php`, `js/common.js`, `styles/index.css`, `styles/common.css`, `tests/TimezoneTest.php`
+### Files Changed
+- `index.php` — Timezone badge inline display, `data-utc-end` for local time conversion
+- `js/common.js` — `updateTimezoneLabels()`, local time range re-render on language switch
+- `styles/index.css` — `.program-time-local` block layout, calendar detail modal local time styling
+- `styles/common.css` — `.event-timezone` badge styling
+- `tests/TimezoneTest.php` — Tests for v4.0.1 timezone label and layout fixes
 
 ## [4.0.0] - 2026-03-25
 
@@ -75,7 +447,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `index.php` `normalizedEvents` timestamp computation changed from `strtotime()` to `new DateTime($t, $eventTzObj)->getTimestamp()` for correct UTC when event timezone ≠ Asia/Bangkok
 - `admin/api.php` `createEvent()` and `updateEvent()` now accept and persist `timezone` field with PHP `DateTimeZone` validation
 
-> **📁 Files changed:** `tools/migrate-add-timezone-column.php` (new), `tests/TimezoneTest.php` (new), `config/app.php`, `functions/helpers.php`, `functions/ics.php`, `admin/api.php`, `admin/index.php`, `admin/help.php`, `admin/help-en.php`, `export.php`, `feed.php`, `index.php`, `image.php`, `js/common.js`, `js/translations.js`, `styles/index.css`, `setup.php`, `tests/run-tests.php`
+### Files Changed
+- `tools/migrate-add-timezone-column.php` (new) — Idempotent migration adding `timezone` column to `events` table
+- `tests/TimezoneTest.php` (new) — 67 automated tests for all timezone features
+- `config/app.php` — `DEFAULT_TIMEZONE` constant definition
+- `functions/helpers.php` — `get_event_timezone()` priority logic with validation
+- `functions/ics.php` — `icsVtimezone()` RFC 5545 VTIMEZONE block generation, `icsOffsetString()` UTC offset formatting
+- `admin/api.php` — Timezone field acceptance in event CRUD operations
+- `admin/index.php` — Timezone picker (`<select>`) in event form with 16 timezone options
+- `admin/help.php` — Help page section "🌐 Per-event Timezone" with effects table and verification methods (Thai)
+- `admin/help-en.php` — Same help section in English
+- `export.php` — DTSTART with TZID format, VTIMEZONE block prepended to ICS feed
+- `feed.php` — Per-event timezone in X-WR-TIMEZONE, VTIMEZONE block generation
+- `index.php` — Event timezone badge display, local time conversion via `initTimezoneDisplay()`
+- `image.php` — Timezone label in PNG image footer
+- `js/common.js` — `initTimezoneDisplay()` function for client-side local time conversion
+- `js/translations.js` — `tz.badge` and `tz.localTime` keys (TH/EN/JA)
+- `styles/index.css` — `.event-timezone` badge and `.program-time-local` annotation styling
+- `setup.php` — Timezone column in CREATE TABLE and setup wizard integration
+- `tests/run-tests.php` — Test runner updates for new TimezoneTest suite
 
 ## [3.7.0] - 2026-03-25
 
@@ -88,13 +478,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ⚡ **Query cache** — portal data (groups + members + solo artists) cached in `cache/query_portal.json` (TTL 1 hr); invalidated automatically by `invalidate_artist_query_cache()` whenever artists or variants change
 - 🔗 **Nav link on homepage** — `🎤 ศิลปิน` link added to `<nav class="header-nav">` on both the event-listing header and the event-detail header in `index.php`; placed before `📋 แหล่งข้อมูลอ้างอิง`
 
-**📁 Files changed:**
-- `artists.php` (new, previously `portal.php`)
-- `styles/portal.css` (new)
-- `js/translations.js`
-- `functions/cache.php`
-- `index.php`
-- `config/app.php`
+### Files Changed
+- `artists.php` (new, previously `portal.php`) — Artist & Group Portal page with real-time search and tab filters
+- `styles/portal.css` (new) — Styling for group cards, member chips, and solo artist grid
+- `js/translations.js` — New `portal.*` and `nav.artists` translation keys (TH/EN/JA)
+- `functions/cache.php` — `invalidate_artist_query_cache()` integration
+- `index.php` — Nav link to artists portal on event-listing and event-detail headers
+- `config/app.php` — App constants
 
 ---
 
@@ -103,10 +493,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - 🎤 **Admin Artists — member count badge for groups** — group rows in the Artists table now display a yellow badge showing the number of members (e.g. `3 คน`) immediately after the `กลุ่ม` type badge; badge is hidden when the group has no members yet; count is computed server-side via a subquery (`SELECT COUNT(*) FROM artists WHERE group_id = a.id AND is_group = 0`) added to `listArtists()` in `admin/api.php`
 
-**📁 Files changed:**
-- `admin/api.php`
-- `admin/index.php`
-- `config/app.php`
+### Files Changed
+- `admin/api.php` — Subquery for member count in `listArtists()`
+- `admin/index.php` — Member count badge display in Artists table
+- `config/app.php` — App constants
 
 ---
 

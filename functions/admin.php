@@ -104,21 +104,25 @@ function safe_session_start() {
     if (session_status() === PHP_SESSION_NONE) {
         // Set session cookie parameters for security
         // Use PHP 7.3+ array syntax if available, otherwise use legacy parameters
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                   || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+                   || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+
         if (PHP_VERSION_ID >= 70300) {
             session_set_cookie_params([
                 'lifetime' => 0, // Session cookie (expires when browser closes)
                 'path' => '/',
                 'domain' => '', // Empty for localhost/IP compatibility
-                'secure' => false, // Allow HTTP for local development
+                'secure' => $isHttps, // Send cookie over HTTPS only when available
                 'httponly' => true,
-                'samesite' => 'Lax' // Changed from Strict to Lax for better compatibility
+                'samesite' => 'Lax'
             ]);
         } else {
             // PHP 7.0-7.2 compatibility (no SameSite support)
             $lifetime = 0;
             $path = '/';
             $domain = ''; // Empty for localhost/IP compatibility
-            $secure = false; // Allow HTTP for local development
+            $secure = $isHttps; // Send cookie over HTTPS only when available
             $httponly = true;
 
             session_set_cookie_params($lifetime, $path, $domain, $secure, $httponly);

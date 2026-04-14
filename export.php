@@ -135,7 +135,7 @@ foreach ($filteredEvents as $event) {
     echo "DTSTAMP:" . $createdTime . "\r\n";
     echo "DTSTART;TZID=" . $eventTz . ":" . $startLocal . "\r\n";
     echo "DTEND;TZID=" . $eventTz . ":" . $endLocal . "\r\n";
-    echo "SUMMARY:" . escapeIcsValue($event['title']) . "\r\n";
+    echo "SUMMARY:" . escapeIcsValue($event['title'] . ' [' . $eventName . ']') . "\r\n";
 
     if (!empty($event['location'])) {
         echo "LOCATION:" . escapeIcsValue($event['location']) . "\r\n";

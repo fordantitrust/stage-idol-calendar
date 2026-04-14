@@ -190,6 +190,25 @@ switch ($action) {
     case 'disclaimer_save':
         saveDisclaimerSetting();
         break;
+    // Telegram Config
+    case 'telegram_config_get':
+        getTelegramConfig();
+        break;
+    case 'telegram_config_save':
+        saveTelegramConfig();
+        break;
+    case 'telegram_webhook_test':
+        testTelegramWebhook();
+        break;
+    case 'telegram_webhook_register':
+        registerTelegramWebhook();
+        break;
+    case 'telegram_log_get':
+        getTelegramLog();
+        break;
+    case 'telegram_log_download':
+        downloadTelegramLog();
+        break;
     // Contact Channels
     case 'contact_channels_list':
         listContactChannels();
@@ -1501,7 +1520,17 @@ function syncProgramArtists(PDO $db, int $programId, string $categories): void {
  * @return mixed
  */
 function escapeOutputData($data, $fields = []) {
-    // JSON responses should carry raw data; JS code uses escapeHtml() when inserting into innerHTML
+    if (is_array($data)) {
+        foreach ($fields as $field) {
+            if (isset($data[$field]) && is_string($data[$field])) {
+                $data[$field] = htmlspecialchars($data[$field], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+        }
+        return $data;
+    }
+    if (is_string($data)) {
+        return htmlspecialchars($data, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
     return $data;
 }
 
@@ -1884,25 +1913,111 @@ function listEvents() {
     global $db;
 
     try {
-        $stmt = $db->query("SELECT * FROM events ORDER BY start_date DESC, name ASC");
-        $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get filter parameters
+        $search = get_sanitized_param('search');
+        $isActive = get_sanitized_param('is_active');
+        $venueMode = get_sanitized_param('venue_mode');
+        $dateFrom = get_sanitized_param('date_from');
+        $dateTo = get_sanitized_param('date_to');
+        $sort = get_sanitized_param('sort') ?? 'start_date';
+        $order = get_sanitized_param('order') ?? 'desc';
+        $page = intval($_GET['page'] ?? 1);
+        $limit = intval($_GET['limit'] ?? 20);
 
-        // Add event count for each meta
-        foreach ($metas as &$meta) {
-            $countStmt = $db->prepare("SELECT COUNT(*) as count FROM programs WHERE event_id = :id");
-            $countStmt->execute([':id' => $meta['id']]);
-            $meta['event_count'] = intval($countStmt->fetch(PDO::FETCH_ASSOC)['count']);
+        // Validate sort column (whitelist)
+        $allowedSorts = ['id', 'name', 'start_date', 'end_date', 'is_active', 'event_count'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'start_date';
         }
-        unset($meta);
+        // Validate order
+        $order = strtolower($order) === 'asc' ? 'asc' : 'desc';
+        // Validate pagination
+        if ($limit < 1 || $limit > 100) $limit = 20;
+        if ($page < 1) $page = 1;
 
+        // Build WHERE clause dynamically
+        $whereClauses = [];
+        $params = [];
+
+        if ($search) {
+            $searchTerm = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search) . '%';
+            $whereClauses[] = "(name LIKE :search ESCAPE '\\' OR slug LIKE :search ESCAPE '\\' OR description LIKE :search ESCAPE '\\')";
+            $params[':search'] = $searchTerm;
+        }
+
+        if ($isActive !== '') {
+            $whereClauses[] = "is_active = :is_active";
+            $params[':is_active'] = intval($isActive);
+        }
+
+        if ($venueMode !== '') {
+            $whereClauses[] = "venue_mode = :venue_mode";
+            $params[':venue_mode'] = $venueMode;
+        }
+
+        if ($dateFrom !== '') {
+            $whereClauses[] = "DATE(start_date) >= :date_from";
+            $params[':date_from'] = $dateFrom;
+        }
+
+        if ($dateTo !== '') {
+            $whereClauses[] = "DATE(start_date) <= :date_to";
+            $params[':date_to'] = $dateTo;
+        }
+
+        $whereSQL = !empty($whereClauses) ? ' WHERE ' . implode(' AND ', $whereClauses) : '';
+
+        // COUNT query first for pagination total
+        $countQuery = "SELECT COUNT(*) as total FROM events" . $whereSQL;
+        $countStmt = $db->prepare($countQuery);
+        $countStmt->execute($params);
+        $total = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
+        $countStmt->closeCursor();
+        $countStmt = null;
+
+        $totalPages = max(1, ceil($total / $limit));
+        if ($page > $totalPages) $page = $totalPages;
+
+        // Data query with subquery for event_count (N+1 fix)
+        $offset = ($page - 1) * $limit;
+        $dataQuery = "
+            SELECT e.*,
+                   (SELECT COUNT(*) FROM programs p WHERE p.event_id = e.id) as event_count
+            FROM events e
+            {$whereSQL}
+            ORDER BY e.{$sort} {$order}
+            LIMIT :limit OFFSET :offset
+        ";
+
+        $dataStmt = $db->prepare($dataQuery);
+        $dataStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $dataStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        foreach ($params as $key => $val) {
+            $dataStmt->bindValue($key, $val);
+        }
+        $dataStmt->execute();
+        $events = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
+        $dataStmt->closeCursor();
+        $dataStmt = null;
+
+        // Escape output
         $fieldsToEscape = ['name', 'slug', 'description'];
-        $metas = array_map(function($m) use ($fieldsToEscape) {
+        $events = array_map(function($m) use ($fieldsToEscape) {
             return escapeOutputData($m, $fieldsToEscape);
-        }, $metas);
+        }, $events);
 
-        jsonResponse(true, $metas);
+        // Return paginated structure matching Programs format
+        jsonResponse(true, [
+            'events' => $events,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'totalPages' => $totalPages
+            ]
+        ]);
     } catch (PDOException $e) {
-        jsonResponse(false, null, safe_error_message('Failed to fetch events meta', $e->getMessage()));
+        jsonResponse(false, null, safe_error_message('Failed to fetch events', $e->getMessage()));
     }
 }
 
@@ -2793,7 +2908,7 @@ function getTitleSetting() {
         $data = json_decode(file_get_contents($settingsFile), true);
         if (!empty($data['site_title'])) $title = $data['site_title'];
     }
-    jsonResponse(true, ['site_title' => $title]);
+    jsonResponse(true, ['site_title' => htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')]);
 }
 
 function saveTitleSetting() {
@@ -2826,10 +2941,11 @@ function getDisclaimerSetting() {
     require_api_admin_role();
     $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
     $data = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    $esc = fn($v) => htmlspecialchars($v ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     jsonResponse(true, [
-        'disclaimer_th' => $data['disclaimer_th'] ?? '',
-        'disclaimer_en' => $data['disclaimer_en'] ?? '',
-        'disclaimer_ja' => $data['disclaimer_ja'] ?? '',
+        'disclaimer_th' => $esc($data['disclaimer_th'] ?? ''),
+        'disclaimer_en' => $esc($data['disclaimer_en'] ?? ''),
+        'disclaimer_ja' => $esc($data['disclaimer_ja'] ?? ''),
     ]);
 }
 
@@ -2857,6 +2973,401 @@ function saveDisclaimerSetting() {
 }
 
 // =============================================================================
+// TELEGRAM CONFIG
+// =============================================================================
+
+function getTelegramConfig() {
+    require_api_admin_role();
+    $configFile = __DIR__ . '/../config/telegram-config.json';
+
+    // Default structure
+    $default = [
+        'bot_token' => '',
+        'bot_username' => '',
+        'webhook_secret' => '',
+        'notify_before_minutes' => 60,
+        'enabled' => false,
+        'webhook_status' => 'not_configured',
+        'last_webhook_test' => null,
+        'updated_at' => date('c')
+    ];
+
+    $escStringFields = function(array &$cfg): void {
+        foreach (['bot_token', 'bot_username', 'webhook_secret'] as $f) {
+            if (isset($cfg[$f]) && is_string($cfg[$f])) {
+                $cfg[$f] = htmlspecialchars($cfg[$f], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+        }
+    };
+
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true);
+        if (is_array($config)) {
+            $config = array_merge($default, $config);
+            $escStringFields($config);
+            jsonResponse(true, $config);
+            return;
+        }
+    }
+
+    $escStringFields($default);
+    jsonResponse(true, $default);
+}
+
+function saveTelegramConfig() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $configFile = __DIR__ . '/../config/telegram-config.json';
+    $configDir = dirname($configFile);
+
+    if (!is_dir($configDir)) {
+        mkdir($configDir, 0755, true);
+    }
+
+    // Load existing config
+    $existing = [];
+    if (file_exists($configFile)) {
+        $existing = json_decode(file_get_contents($configFile), true) ?? [];
+    }
+
+    // Update with new values
+    $existing['bot_token'] = trim($input['bot_token'] ?? '');
+    $existing['bot_username'] = trim($input['bot_username'] ?? '');
+    $existing['webhook_secret'] = trim($input['webhook_secret'] ?? '');
+    $existing['notify_before_minutes'] = intval($input['notify_before_minutes'] ?? 60);
+    $existing['daily_summary_start_hour'] = intval($input['daily_summary_start_hour'] ?? 9);
+    $existing['daily_summary_start_minute'] = intval($input['daily_summary_start_minute'] ?? 0);
+    $existing['daily_summary_end_hour'] = intval($input['daily_summary_end_hour'] ?? 9);
+    $existing['daily_summary_end_minute'] = intval($input['daily_summary_end_minute'] ?? 30);
+    $existing['enabled'] = (bool)($input['enabled'] ?? false);
+    $existing['updated_at'] = date('c');
+
+    // Keep existing webhook status if not explicitly set
+    if (!isset($existing['webhook_status'])) {
+        $existing['webhook_status'] = 'not_configured';
+    }
+
+    // Write config file
+    $ok = file_put_contents($configFile, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    if ($ok !== false) {
+        jsonResponse(true, $existing, 'Telegram config saved');
+    } else {
+        jsonResponse(false, null, 'Failed to save telegram config');
+    }
+}
+
+function testTelegramWebhook() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $botToken = trim($input['bot_token'] ?? '');
+
+    if (!$botToken) {
+        jsonResponse(false, null, 'Bot token required');
+        return;
+    }
+
+    // Get webhook secret and URL from config
+    $configFile = __DIR__ . '/../config/telegram-config.json';
+    $config = [];
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true) ?? [];
+    }
+
+    $webhookSecret = trim($config['webhook_secret'] ?? '');
+    if (!$webhookSecret) {
+        jsonResponse(false, null, 'Webhook secret not configured');
+        return;
+    }
+
+    // Determine webhook URL (must include subdirectory if not at root)
+    $protocol = 'https'; // Telegram requires HTTPS
+    $host = get_safe_host();
+
+    // Calculate app root path (remove /admin/api.php from script name)
+    // e.g., /idoltrack/admin/api.php -> /idoltrack
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $appRoot = dirname(dirname($scriptName));  // Go up 2 levels: api.php -> admin -> root
+    if ($appRoot === '.' || $appRoot === '\\' || $appRoot === '/') {
+        $appRoot = '';
+    }
+
+    $baseUrl = $protocol . '://' . $host . $appRoot;
+    $webhookUrl = $baseUrl . '/api/telegram';
+
+    // Call Telegram setWebhook to register the webhook
+    $setWebhookUrl = 'https://api.telegram.org/bot' . $botToken . '/setWebhook';
+    $postData = json_encode([
+        'url' => $webhookUrl,
+        'allowed_updates' => ['message', 'callback_query'],
+        'secret_token' => $webhookSecret,
+        'drop_pending_updates' => true
+    ]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $setWebhookUrl);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    // Update webhook status in config
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true) ?? [];
+
+        if ($httpCode === 200 && !$curlError) {
+            $result = json_decode($response, true);
+            if ($result['ok'] ?? false) {
+                $config['webhook_status'] = 'ok';
+                $config['webhook_url'] = $webhookUrl;
+            } else {
+                $config['webhook_status'] = 'error';
+                $config['webhook_error'] = $result['description'] ?? 'Unknown error';
+            }
+        } else {
+            $config['webhook_status'] = 'error';
+            $config['webhook_error'] = $curlError ?: ('HTTP ' . $httpCode);
+        }
+
+        $config['last_webhook_test'] = date('c');
+        file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+
+    // Return response
+    if ($httpCode === 200 && !$curlError) {
+        $result = json_decode($response, true);
+        if ($result['ok'] ?? false) {
+            jsonResponse(true, null, 'Webhook registered successfully: ' . $webhookUrl);
+            return;
+        }
+    }
+
+    $errorMsg = $curlError ?: ('HTTP ' . $httpCode);
+    jsonResponse(false, null, 'Failed to register webhook: ' . $errorMsg);
+}
+
+function registerTelegramWebhook() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $botToken = trim($input['bot_token'] ?? '');
+    $webhookSecret = trim($input['webhook_secret'] ?? '');
+
+    if (!$botToken) {
+        jsonResponse(false, null, 'Bot token required');
+        return;
+    }
+
+    if (!$webhookSecret) {
+        jsonResponse(false, null, 'Webhook secret required');
+        return;
+    }
+
+    // Determine webhook URL (must include subdirectory if not at root)
+    $protocol = 'https'; // Telegram requires HTTPS
+    $host = get_safe_host();
+
+    // Calculate app root path (remove /admin/api.php from script name)
+    // e.g., /idoltrack/admin/api.php -> /idoltrack
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $appRoot = dirname(dirname($scriptName));  // Go up 2 levels: api.php -> admin -> root
+    if ($appRoot === '.' || $appRoot === '\\' || $appRoot === '/') {
+        $appRoot = '';
+    }
+
+    $baseUrl = $protocol . '://' . $host . $appRoot;
+    $webhookUrl = $baseUrl . '/api/telegram';
+
+    // Call Telegram setWebhook to register the webhook
+    $setWebhookUrl = 'https://api.telegram.org/bot' . $botToken . '/setWebhook';
+    $postData = json_encode([
+        'url' => $webhookUrl,
+        'allowed_updates' => ['message', 'callback_query'],
+        'secret_token' => $webhookSecret,
+        'drop_pending_updates' => true
+    ]);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $setWebhookUrl);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    // Update webhook status in config
+    $configFile = __DIR__ . '/../config/telegram-config.json';
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true) ?? [];
+
+        if ($httpCode === 200 && !$curlError) {
+            $result = json_decode($response, true);
+            if ($result['ok'] ?? false) {
+                $config['webhook_status'] = 'ok';
+                $config['webhook_url'] = $webhookUrl;
+            } else {
+                $config['webhook_status'] = 'error';
+                $config['webhook_error'] = $result['description'] ?? 'Unknown error';
+            }
+        } else {
+            $config['webhook_status'] = 'error';
+            $config['webhook_error'] = $curlError ?: ('HTTP ' . $httpCode);
+        }
+
+        $config['last_webhook_register'] = date('c');
+        file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+
+    // Return response
+    if ($httpCode === 200 && !$curlError) {
+        $result = json_decode($response, true);
+        if ($result['ok'] ?? false) {
+            jsonResponse(true, null, 'Webhook registered successfully at: ' . $webhookUrl);
+            return;
+        }
+    }
+
+    $errorMsg = $curlError ?: ('HTTP ' . $httpCode);
+    jsonResponse(false, null, 'Failed to register webhook: ' . $errorMsg);
+}
+
+function getTelegramLog() {
+    require_login();
+    // GET endpoint - no CSRF token needed
+
+    $logDir = __DIR__ . '/../cache/logs';
+
+    // Build list of available log files
+    $files = [];
+
+    // Current active log
+    if (file_exists($logDir . '/telegram-cron.log')) {
+        $files[] = [
+            'key' => 'current',
+            'label' => 'telegram-cron.log (current)',
+            'path' => $logDir . '/telegram-cron.log'
+        ];
+    }
+
+    // Dated archives: telegram-cron-YYYY-MM-DD.log
+    $archives = glob($logDir . '/telegram-cron-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].log') ?: [];
+    if (!empty($archives)) {
+        rsort($archives); // newest first
+        foreach ($archives as $archive) {
+            $basename = basename($archive);
+            $files[] = [
+                'key' => $basename,
+                'label' => $basename,
+                'path' => $archive
+            ];
+        }
+    }
+
+    // Determine which file to read
+    $requestedKey = get_sanitized_param('file', '');
+    $selectedPath = null;
+
+    foreach ($files as $f) {
+        if ($f['key'] === $requestedKey) {
+            $selectedPath = $f['path'];
+            break;
+        }
+    }
+
+    // Default to first available file if not found
+    if (!$selectedPath && !empty($files)) {
+        $selectedPath = $files[0]['path'];
+        $requestedKey = $files[0]['key'];
+    }
+
+    // Read file content
+    $content = '';
+    $totalLines = 0;
+
+    if ($selectedPath && file_exists($selectedPath)) {
+        $lines = @file($selectedPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $totalLines = count($lines);
+
+        // Show last 500 lines to prevent memory issues
+        $maxLines = 500;
+        $lastLines = array_slice($lines, -$maxLines);
+        $content = implode("\n", $lastLines);
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => true,
+        'files' => array_map(fn($f) => ['key' => $f['key'], 'label' => $f['label']], $files),
+        'selected' => $requestedKey,
+        'content' => $content,
+        'total_lines' => $totalLines,
+        'showing_lines' => min($totalLines, 500)
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function downloadTelegramLog() {
+    require_login();
+    require_api_admin_role();
+    // GET endpoint
+
+    $logDir = __DIR__ . '/../cache/logs';
+    $requestedFile = get_sanitized_param('file', 'telegram-cron.log');
+
+    // Validate filename - only allow telegram-cron.log or telegram-cron-YYYY-MM-DD.log pattern
+    $isValid = $requestedFile === 'telegram-cron.log' ||
+              preg_match('/^telegram-cron-\d{4}-\d{2}-\d{2}(?:-daily)?\.log$/', $requestedFile);
+
+    if (!$isValid) {
+        jsonResponse(false, null, 'Invalid filename');
+        return;
+    }
+
+    $filePath = $logDir . '/' . $requestedFile;
+
+    if (!file_exists($filePath)) {
+        jsonResponse(false, null, 'Log file not found');
+        return;
+    }
+
+    // Send file for download
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $requestedFile . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+
+    readfile($filePath);
+    exit;
+}
+
+// =============================================================================
 // CONTACT CHANNELS
 // =============================================================================
 
@@ -2879,6 +3390,8 @@ function listContactChannels() {
     ensureContactChannelsTable();
     $stmt = $db->query("SELECT * FROM contact_channels ORDER BY display_order ASC, id ASC");
     $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $fields = ['icon', 'title', 'description', 'url'];
+    $channels = array_map(fn($ch) => escapeOutputData($ch, $fields), $channels);
     jsonResponse(true, $channels);
 }
 
@@ -2893,6 +3406,7 @@ function getContactChannel() {
         jsonResponse(false, null, 'Channel not found');
         return;
     }
+    $channel = escapeOutputData($channel, ['icon', 'title', 'description', 'url']);
     jsonResponse(true, $channel);
 }
 

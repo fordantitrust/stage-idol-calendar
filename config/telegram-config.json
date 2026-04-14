@@ -1,0 +1,16 @@
+{
+    "bot_token": "",
+    "bot_username": "",
+    "webhook_secret": "",
+    "notify_before_minutes": 10,
+    "enabled": true,
+    "webhook_status": "",
+    "last_webhook_test": "",
+    "updated_at": "",
+    "webhook_url": "",
+    "last_webhook_register": "",
+    "daily_summary_start_hour": 9,
+    "daily_summary_start_minute": 0,
+    "daily_summary_end_hour": 9,
+    "daily_summary_end_minute": 30
+}

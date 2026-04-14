@@ -979,7 +979,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.1 List Programs
 
-**Test Case 5.1.1**: Load programs list
+**Test Case 5.4.0**: Load programs list
 
 **Steps**:
 1. Login to admin
@@ -992,7 +992,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 5.1.2**: Filter by venue
+**Test Case 5.4.0**: Filter by venue
 
 **Steps**:
 1. Select venue from dropdown
@@ -1065,7 +1065,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.3 Update Program
 
-**Test Case 5.3.1**: Edit program
+**Test Case 5.4.0**: Edit program
 
 **Steps**:
 1. Click "Edit" on program

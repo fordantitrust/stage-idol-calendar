@@ -326,6 +326,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#import">Tab: Import</a>
             <a href="#import-type">↳ Program Type</a>
             <a href="#feed">Feed / Subscribe</a>
+            <a href="#telegram">Telegram Notifications</a>
             <a href="#users">Tab: Users</a>
             <a href="#backup">Tab: Backup</a>
             <a href="#settings">Tab: Settings</a>
@@ -368,6 +369,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#feed-artist">Artist Feed</a></li>
                     </ul>
                 </li>
+                <li><a href="#telegram">Telegram Notifications</a></li>
                 <li><a href="#users">Tab: Users</a></li>
                 <li><a href="#backup">Tab: Backup</a></li>
                 <li><a href="#settings">Tab: Settings</a></li>
@@ -443,6 +445,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <thead><tr><th>Element</th><th>Function</th></tr></thead>
                     <tbody>
                         <tr><td>Username &amp; Role</td><td>Shows the currently logged-in user and their role (admin / agent)</td></tr>
+                        <tr><td>v5.1.1 (Version Badge)</td><td>Displays the current app version (from APP_VERSION constant) — useful for checking the version while using Admin</td></tr>
                         <tr><td>🔑 Change Password</td><td>Change your own password (only shown for database-managed users)</td></tr>
                         <tr><td>📖 Help</td><td>Opens this help page</td></tr>
                         <tr><td>← Home</td><td>Return to the public-facing website</td></tr>
@@ -973,6 +976,80 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </div>
             </section>
 
+            <!-- Telegram Notifications -->
+            <section class="help-section" id="telegram">
+                <h2>🔔 Telegram Notifications</h2>
+                <p>Send push notifications to Telegram when programs from followed artists are about to start. Users link their Telegram account via deep-link and receive automatic reminders N minutes before each program.</p>
+
+                <h3>How It Works</h3>
+                <ol class="steps">
+                    <li><strong>User links Telegram:</strong> On the <code>/my/{slug}</code> page, user clicks "🔔 Link Telegram" → deep-link to bot → sends <code>/start {slug}</code> → notification history saved</li>
+                    <li><strong>Cron job runs every 15 minutes:</strong> Scans all users with Telegram linked and finds programs starting within the notification window</li>
+                    <li><strong>Push notification sent:</strong> Bot sends formatted message (program name, artist, venue, time, event name)</li>
+                    <li><strong>Duplicate prevention:</strong> Idempotent tracking prevents the same program from being notified multiple times</li>
+                </ol>
+
+                <h3>Setup Requirements</h3>
+                <table class="help-table">
+                    <thead><tr><th>Component</th><th>Details</th></tr></thead>
+                    <tbody>
+                        <tr><td>Telegram Bot</td><td>Created via @BotFather with a unique token</td></tr>
+                        <tr><td>Webhook URL</td><td>HTTPS endpoint for Telegram to send user commands (must be HTTPS, not HTTP)</td></tr>
+                        <tr><td>Configuration</td><td><code>config/telegram.php</code> with bot token, secret, notification minutes</td></tr>
+                        <tr><td>Cron Job</td><td>Server cron to run <code>cron/send-telegram-notifications.php</code> every 15 minutes</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Complete setup guide with step-by-step instructions: <strong><a href="../TELEGRAM_SETUP_EN.md" target="_blank">TELEGRAM_SETUP_EN.md</a></strong> (Setup Wizard) or <strong><a href="../TELEGRAM_SETUP.md" target="_blank">TELEGRAM_SETUP.md</a></strong> (Thai version)</div>
+                </div>
+
+                <h3>Configuration</h3>
+                <p>Edit <code>config/telegram.php</code>:</p>
+                <table class="help-table">
+                    <thead><tr><th>Setting</th><th>Example</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>TELEGRAM_BOT_TOKEN</code></td><td><code>123456789:ABC...</code></td><td>Token from @BotFather (keep secret!)</td></tr>
+                        <tr><td><code>TELEGRAM_BOT_USERNAME</code></td><td><code>IdolStageBot</code></td><td>Bot @username without the @ sign</td></tr>
+                        <tr><td><code>TELEGRAM_WEBHOOK_SECRET</code></td><td><code>a1b2c3d4...</code></td><td>32-char random string for webhook validation</td></tr>
+                        <tr><td><code>TELEGRAM_NOTIFY_BEFORE_MINUTES</code></td><td><code>60</code></td><td>Minutes before program to send notification (30, 60, 120, 1440, etc.)</td></tr>
+                        <tr><td><code>TELEGRAM_ENABLED</code></td><td><code>true</code> or <code>false</code></td><td>Master on/off switch for the feature</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>User Commands</h3>
+                <table class="help-table">
+                    <thead><tr><th>Command</th><th>Function</th><th>Who Can Use</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>/start {slug}</code></td><td>Link Telegram account to favorites. User receives confirmation message.</td><td>Anyone messaging the bot</td></tr>
+                        <tr><td><code>/stop</code></td><td>Unlink Telegram account. User will stop receiving notifications.</td><td>Linked users</td></tr>
+                        <tr><td><code>/upcoming</code></td><td>Display next 5 upcoming programs from followed artists.</td><td>Linked users</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Troubleshooting</h3>
+                <table class="help-table">
+                    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+                    <tbody>
+                        <tr><td>Button "🔔 Link Telegram" not showing on /my page</td><td>Check <code>TELEGRAM_ENABLED=true</code> in config and that <code>TELEGRAM_BOT_TOKEN</code> is set. Clear browser cache.</td></tr>
+                        <tr><td>Webhook registration failed</td><td>Verify domain is HTTPS (not HTTP), token is correct, and domain is accessible from the internet.</td></tr>
+                        <tr><td>No notifications being sent</td><td>Check cron job is running: <code>crontab -l</code>. Run <code>php cron/send-telegram-notifications.php</code> manually to test.</td></tr>
+                        <tr><td>Duplicate notifications</td><td>Notifications are idempotent — duplicates should not occur. If they do, check server clock is synchronized.</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div><strong>HTTPS Only:</strong> Telegram does not support HTTP webhooks. Your domain must have a valid SSL certificate and be accessible via HTTPS.</div>
+                </div>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div><strong>Test Mode:</strong> Before adding to production cron, test manually: <code>php cron/send-telegram-notifications.php</code>. Should output notification count and any errors.</div>
+                </div>
+            </section>
+
             <!-- Users Tab -->
             <section class="help-section" id="users">
                 <h2>👤 Tab: Users <span class="badge-admin">admin only</span></h2>
@@ -1050,7 +1127,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>Configure global site settings — <strong>Site Title</strong>, <strong>Site Theme</strong>, and <strong>Disclaimer</strong> — for all public-facing pages. Only users with the <strong>admin</strong> role can access this tab.</p>
+                <p>The Settings tab organizes configuration with 6 sub-tabs for <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, and <strong>Disclaimer</strong>. Only users with the <strong>admin</strong> role can access this tab.</p>
+
+                <h3>📝 Settings Sub-tabs (v5.1.1+)</h3>
+                <p>The Settings tab is organized into 6 sub-tabs for easy navigation:</p>
+                <table class="help-table">
+                    <thead><tr><th>Sub-tab</th><th>Function</th><th>Category</th></tr></thead>
+                    <tbody>
+                        <tr><td>📝 <strong>Site</strong></td><td>Configure Site Title, Site Theme</td><td>Global settings</td></tr>
+                        <tr><td>✉️ <strong>Contact</strong></td><td>Manage Contact Channels for the website</td><td>Contact information</td></tr>
+                        <tr><td>👤 <strong>Users</strong></td><td>Manage Admin Users, permissions (Admin/Agent)</td><td>User management</td></tr>
+                        <tr><td>💾 <strong>Backup</strong></td><td>Backup/Restore database</td><td>Database management</td></tr>
+                        <tr><td>🤖 <strong>Telegram</strong></td><td>Configure Telegram Bot, Notifications</td><td>Telegram integration</td></tr>
+                        <tr><td>⚠️ <strong>Disclaimer</strong></td><td>Configure Disclaimer (TH/EN/JA)</td><td>Legal content</td></tr>
+                    </tbody>
+                </table>
 
                 <h3>📝 What is Site Title?</h3>
                 <p>

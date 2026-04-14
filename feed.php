@@ -179,6 +179,24 @@ if (file_exists($feedCacheFile) && (time() - filemtime($feedCacheFile)) < FEED_C
 $parser    = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 $allEvents = $parser->getAllEvents();
 
+// ── Build event name map for artist feeds (which span multiple events) ─────────
+$eventNameMap = [];  // event_id => event_name
+if ($artistFeedId) {
+    try {
+        $dbEM = new PDO('sqlite:' . DB_PATH);
+        $dbEM->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $stmtEM = $dbEM->query("SELECT id, name FROM events WHERE is_active = 1");
+        foreach ($stmtEM->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $eventNameMap[(int)$row['id']] = $row['name'];
+        }
+        $stmtEM->closeCursor();
+        $stmtEM = null;
+        $dbEM = null;
+    } catch (PDOException $e) {
+        // Fail gracefully — use generic event name if map unavailable
+    }
+}
+
 $filteredEvents = array_filter(
     $allEvents,
     function ($event) use ($filterArtists, $filterVenues, $filterTypes) {
@@ -237,7 +255,11 @@ foreach ($filteredEvents as $event) {
     icsLine("LAST-MODIFIED:" . $dtstamp);
     icsLine("DTSTART;TZID=" . $eventTz . ":" . $startLocal);
     icsLine("DTEND;TZID=" . $eventTz . ":" . $endLocal);
-    icsLine("SUMMARY:" . icsEscapeText($event['title']));
+    // For artist feeds, use per-program event name; for single-event feeds, use constant
+    $summaryEventName = $artistFeedId && isset($eventNameMap[$event['event_id']])
+        ? $eventNameMap[$event['event_id']]
+        : $eventName;
+    icsLine("SUMMARY:" . icsEscapeText($event['title'] . ' [' . $summaryEventName . ']'));
 
     if (!empty($event['location'])) {
         icsLine("LOCATION:" . icsEscapeText($event['location']));
