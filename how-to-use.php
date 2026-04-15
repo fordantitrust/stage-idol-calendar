@@ -392,22 +392,22 @@ $eventMeta = get_event_by_slug($eventSlug);
 
                 <h3 data-i18n="section20.commands.title">4. คำสั่งดูตาราง</h3>
                 <ul>
-                    <li data-i18n="section20.commands.today"><code>/today</code> — events วันนี้ + จำนวน program ต่อ event</li>
-                    <li data-i18n="section20.commands.tomorrow"><code>/tomorrow</code> — events พรุ่งนี้</li>
-                    <li data-i18n="section20.commands.week"><code>/week</code> — 7 วันข้างหน้า จัดกลุ่มตามวัน</li>
-                    <li data-i18n="section20.commands.upcoming"><code>/upcoming [N]</code> — N programs ถัดไป (1–10, ค่าเริ่มต้น 3)</li>
-                    <li data-i18n="section20.commands.next"><code>/next</code> — program ถัดไป 1 รายการ</li>
-                    <li data-i18n="section20.commands.artists"><code>/artists</code> — รายชื่อศิลปินที่ติดตาม</li>
-                    <li data-i18n="section20.commands.start"><code>/start {slug}</code> — เชื่อมต่อบัญชี (ดูส่วน 1)</li>
-                    <li data-i18n="section20.commands.stop"><code>/stop</code> — ยกเลิกการเชื่อมต่อ</li>
+                    <li><code>/today</code> — <span data-i18n="section20.commands.today">events วันนี้ + จำนวน program ต่อ event</span></li>
+                    <li><code>/tomorrow</code> — <span data-i18n="section20.commands.tomorrow">events พรุ่งนี้</span></li>
+                    <li><code>/week</code> — <span data-i18n="section20.commands.week">7 วันข้างหน้า จัดกลุ่มตามวัน</span></li>
+                    <li><code>/upcoming [N]</code> — <span data-i18n="section20.commands.upcoming">N programs ถัดไป (1–10, ค่าเริ่มต้น 3)</span></li>
+                    <li><code>/next</code> — <span data-i18n="section20.commands.next">program ถัดไป 1 รายการ</span></li>
+                    <li><code>/artists</code> — <span data-i18n="section20.commands.artists">รายชื่อศิลปินที่ติดตาม</span></li>
+                    <li><code>/start {slug}</code> — <span data-i18n="section20.commands.start">เชื่อมต่อบัญชี (ดูส่วน 1)</span></li>
+                    <li><code>/stop</code> — <span data-i18n="section20.commands.stop">ยกเลิกการเชื่อมต่อ</span></li>
                 </ul>
 
                 <h3 data-i18n="section20.controls.title">5. ควบคุมการแจ้งเตือน</h3>
                 <ul>
-                    <li data-i18n="section20.controls.lang"><code>/lang th|en|ja</code> — เปลี่ยนภาษาแจ้งเตือนใน bot โดยตรง</li>
-                    <li data-i18n="section20.controls.mute"><code>/mute N</code> — หยุดรับแจ้งเตือน N ชั่วโมง (1–72)</li>
-                    <li data-i18n="section20.controls.notify"><code>/notify on|off</code> — เปิด/ปิดการแจ้งเตือน</li>
-                    <li data-i18n="section20.controls.status"><code>/status</code> — ดูสถานะ (ศิลปิน, ภาษา, on/off, mute)</li>
+                    <li><code>/lang th|en|ja</code> — <span data-i18n="section20.controls.lang">เปลี่ยนภาษาแจ้งเตือนใน bot โดยตรง</span></li>
+                    <li><code>/mute N</code> — <span data-i18n="section20.controls.mute">หยุดรับแจ้งเตือน N ชั่วโมง (1–72)</span></li>
+                    <li><code>/notify on|off</code> — <span data-i18n="section20.controls.notify">เปิด/ปิดการแจ้งเตือน</span></li>
+                    <li><code>/status</code> — <span data-i18n="section20.controls.status">ดูสถานะ (ศิลปิน, ภาษา, on/off, mute)</span></li>
                 </ul>
 
                 <div class="feature-box">

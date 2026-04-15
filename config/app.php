@@ -19,7 +19,7 @@ date_default_timezone_set('Asia/Bangkok');
  * Application Version (Semantic Versioning)
  * Change this to force browser cache refresh after updating CSS/JS
  */
-define('APP_VERSION', '5.4.0');
+define('APP_VERSION', '5.4.1');
 
 /**
  * Application Name (Site Title)
@@ -38,7 +38,7 @@ define('PRODUCTION_MODE', true);
  * 'multi' - Multiple venues (shows venue filter, venue columns, Gantt view)
  * 'single' - Single venue (hides venue filter, venue columns, Gantt view only)
  */
-define('VENUE_MODE', 'multi');
+define('VENUE_MODE', 'single');
 
 /**
  * Multi-Event Mode

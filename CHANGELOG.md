@@ -5,6 +5,16 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.4.1] - 2026-04-15
+
+### Fixed
+- Fixed `<code>` tags disappearing in How-to-Use page Telegram section 4 (Schedule Commands) and section 5 (Notification Controls) when switching languages — moved `data-i18n` from `<li>` to `<span>` wrapping only the description text, keeping command names as static HTML; updated `translations.js` to store description-only values (removed command prefix) for all 3 languages (TH/EN/JA)
+
+### Files Changed
+- `how-to-use.php` — restructured `<li>` elements in sections 4 and 5: `<code>` as static HTML, `data-i18n` on `<span>` for description only
+- `js/translations.js` — updated 12 translation keys (commands.* and controls.*) × 3 languages to description-only values
+- `config/app.php` — version bump to 5.4.1
+
 ## [5.4.0] - 2026-04-15
 
 ### Added
@@ -41,7 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **54 new tests** in `tests/TelegramTest.php` (function existence, unit tests for muted/notify helpers, format tests, message keys for all 16 new keys × 3 languages, handler existence, router routes, cron guards) — **3064 total tests**
 
-**Files changed:** `functions/telegram.php`, `api/telegram.php`, `cron/send-telegram-notifications.php`, `tests/TelegramTest.php`, `tests/run-tests.php`, `js/translations.js`, `how-to-use.php`
+### Files Changed
+- `functions/telegram.php` — new helpers: `find_favorites_by_chat_id()`, `telegram_is_muted()`, `telegram_notify_is_enabled()`, `telegram_format_events_list()`, `_telegram_resolve_artists()`
+- `api/telegram.php` — added handlers for `/tomorrow`, `/week`, `/artists`, `/next`, `/lang`, `/mute`, `/notify`, `/status`; updated `/today` and `/upcoming`
+- `cron/send-telegram-notifications.php` — added mute and notify-enabled guards before processing
+- `tests/TelegramTest.php` — 54 new tests for new commands and helpers
+- `tests/run-tests.php` — registered TelegramTest suite
+- `js/translations.js` — 16 new translation keys × 3 languages for Telegram command responses
+- `how-to-use.php` — updated Telegram section with new commands documentation
 
 > **Test Coverage**: All 3064 automated tests pass (100% pass rate)
 
@@ -60,7 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Wrapped ~40 form `.value` assignments** with `decodeHtml()` — all edit modals (program, credit, event, user, artist, copy), settings panels (site title, disclaimer, telegram, contact channel) now correctly show raw characters (`'`, `&`) instead of HTML entities
 - **Unified `escHtml()` → `escapeHtml()`** — replaced all 6+ call sites of the duplicate `escHtml()` regex function with the canonical DOM-based `escapeHtml()`; deleted duplicate function definition; `colorizeLogOutput()` (telegram log viewer) retains escaping internally as log content must remain raw before colorization
 
-**Files changed:** `admin/api.php`, `admin/index.php`
+### Files Changed
+- `admin/api.php` — restored `escapeOutputData()`, added escaping to 5 endpoints, validated `stream_url` scheme
+- `admin/index.php` — fixed 2 XSS vulnerabilities (`error.message`, `result.message`), added `decodeHtml()` helper, wrapped 40+ `.value` assignments, unified `escHtml()` → `escapeHtml()`
 
 > **Security posture**: Admin API now applies HTML escaping at both server (JSON output) and client (innerHTML display) layers — defense-in-depth. Form inputs correctly show raw text via `decodeHtml()`.
 
@@ -106,17 +125,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 🔒 **Security Hardening** — Added `cron/.htaccess` with `Deny from all` for Apache-level HTTP access blocking
   - 📋 **Flexible Output** — Script outputs timestamped messages to STDOUT for easy log capture and monitoring
 
-### Added (Files)
-- `cron/rotate-telegram-logs.php` — Daily log rotation and 7-day cleanup script (CLI-only)
-- `cron/.htaccess` — Apache-level HTTP access protection for cron directory
-
 ### Implementation
 - Non-destructive addition — existing 10 MB size-based rotation in `send-telegram-notifications.php` remains as safety valve
 - Both rotation mechanisms coexist peacefully; `glob` pattern `telegram-cron-*.log` captures both daily and size-rotated archives
 - Cron scheduling recommendation: `0 0 * * * php /path/to/cron/rotate-telegram-logs.php >> /path/to/cache/logs/rotate-cron.log 2>&1`
 
 ### Files Changed
-- `config/app.php` — Version bump to 5.2.0
+- `cron/rotate-telegram-logs.php` *(new)* — daily log rotation and 7-day cleanup script (CLI-only)
+- `cron/.htaccess` *(new)* — Apache-level HTTP access protection for cron directory
+- `config/app.php` — version bump to 5.2.0
 
 > **Robustness**: Log rotation now combines daily schedule + automatic retention, eliminating manual log cleanup burden
 > **Security**: Added Apache-level directory protection for all cron scripts
@@ -194,27 +211,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ⚙️ **Admin UI Settings** — Configure Bot Token, Bot Username, Webhook Secret, Notify Minutes from Admin › Settings › 🤖 Telegram Notifications
   - 🧹 **Production-ready code** — All verbose debugging infrastructure removed, kept only standard error logging for reliability
 
-### New Files
-- `config/telegram.php` — Bot configuration loader (JSON → PHP constants)
-- `config/telegram-config.json` — Runtime settings (edited via Admin UI)
-- `functions/telegram.php` — API helpers, account linking, message formatting, notification utilities
-- `api/telegram.php` — Webhook handler for `/start`, `/stop`, `/upcoming` commands
-- `cron/send-telegram-notifications.php` — Cron script for sending notifications every 15 minutes
-- `tools/setup-telegram-webhook.php` — Helper script to register webhook URL with Telegram Bot API
-- `TELEGRAM_SETUP.md` — Setup guide (Thai)
-- `TELEGRAM_SETUP_EN.md` — Setup guide (English)
-
-### Modified Files
-- `config.php` — Load telegram config and functions
-- `my.php` — Add Telegram linking UI section with modal and JavaScript functions
-- `api/favorites.php` — New `unlink_telegram` action to disconnect Telegram
+### Files Changed
+- `config/telegram.php` *(new)* — Bot configuration loader (JSON → PHP constants)
+- `config/telegram-config.json` *(new)* — Runtime settings (edited via Admin UI)
+- `functions/telegram.php` *(new)* — API helpers, account linking, message formatting, notification utilities
+- `api/telegram.php` *(new)* — Webhook handler for `/start`, `/stop`, `/upcoming` commands
+- `cron/send-telegram-notifications.php` *(new)* — Cron script for sending notifications every 15 minutes
+- `tools/setup-telegram-webhook.php` *(new)* — Helper script to register webhook URL with Telegram Bot API
+- `TELEGRAM_SETUP.md` *(new)* — Setup guide (Thai)
+- `TELEGRAM_SETUP_EN.md` *(new)* — Setup guide (English)
+- `config.php` — load telegram config and functions
+- `my.php` — Telegram linking UI section with modal and JavaScript functions
+- `api/favorites.php` — new `unlink_telegram` action to disconnect Telegram
 - `js/translations.js` — 24+ new translation keys (TH/EN/JA) for Telegram UI
 - `admin/index.php` — Telegram notifications settings section in Settings tab
-- `admin/api.php` — Three new API endpoints: `telegram_config_get`, `telegram_config_save`, `telegram_webhook_test`
+- `admin/api.php` — three new API endpoints: `telegram_config_get`, `telegram_config_save`, `telegram_webhook_test`
 - `admin/js/admin-i18n.js` — 18+ new translation keys for Telegram settings UI
 - `admin/help.php` — "🤖 Telegram Notifications" section (Thai)
 - `admin/help-en.php` — "🤖 Telegram Notifications" section (English)
-- `config/.htaccess` — Deny HTTP access to .json files in config directory
+- `config/.htaccess` — deny HTTP access to .json files in config directory
 
 ### Configuration
 Users need to set up Telegram bot integration via Admin UI:
@@ -520,7 +535,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🌐 **New translation keys** — `filter.noArtist`, `filter.noVenue`, `notFound.heading`, `notFound.desc`, `notFound.back`, `eventPicker.viewing` added in TH/EN/JA
 - 🔧 **`appLangChange` custom DOM event** — `changeLanguage()` in `common.js` now dispatches `document.dispatchEvent(new CustomEvent('appLangChange', { detail: { lang } }))` after updating the page; page-specific inline scripts can listen to this event to re-render dynamic content without monkey-patching `window.changeLanguage`
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `js/translations.js`
 - `js/common.js`
@@ -532,7 +547,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🎨 **Event listing card header — dates displayed below the event name** — changed `.program-card-header` from row layout (name left / date right) to column layout so long event names have full width without being squeezed by the date
 - 🎨 **Homepage calendar modal event cards — same layout change** — `.lcal-event-card-header` updated to match
 
-**📁 Files changed:**
+### Files Changed
 - `styles/index.css`
 
 ## [3.6.9] - 2026-03-22
@@ -540,7 +555,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Added
 - ✨ **Now-playing highlight on My Upcoming Programs** — when the page loads, programs that are currently in progress are highlighted with a distinct style so users can instantly see what is on right now; highlight is applied once on page load (no auto-refresh — users reload the page manually to update)
 
-**📁 Files changed:**
+### Files Changed
 - `my.php`
 
 ## [3.6.8] - 2026-03-21
@@ -548,7 +563,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Fixed
 - 🐛 **`credits.php` missing `BASE_PATH` → `fav_slug` cleared on visit** — `credits.php` was the only public page that did not define `window.BASE_PATH` / `const BASE_PATH` before loading `common.js`; when `injectFavNavButton()` ran, `base` fell back to `''` and the background validation fetch went to `/api/favorites?...` (root-relative) instead of the correct subdirectory path; sites hosted in a subdirectory (e.g. `/stage-idol-calendar/`) received a 404, which triggered `localStorage.removeItem('fav_slug')` and silently removed the user's favorites shortcut buttons; fixed by adding `const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;` in the inline script before `common.js` loads
 
-**📁 Files changed:**
+### Files Changed
 - `credits.php`
 
 ## [3.6.7] - 2026-03-20
@@ -558,7 +573,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🔧 **Silent self-healing in `injectFavNavButton()`** — after injecting ⭐/📅 nav buttons, a background `fetch` validates the stored slug against the server; on 400/404 response it automatically removes `fav_slug` from localStorage and removes the injected buttons
 - 🌐 **Translation keys** — added `fav.clearStorage` and `fav.createError` in TH/EN/JA
 
-**📁 Files changed:**
+### Files Changed
 - `my-favorites.php`
 - `my.php`
 - `js/common.js`
@@ -573,7 +588,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Changed
 - 🔀 **Section order reorganized by priority** — Overview → Event Picker → Homepage Calendar → Filtering → Date Jump Bar → Program Detail Modal → Live Stream → Gantt Chart → Calendar View → Save/Export → Artist Profile → Artist Feed Subscribe → My Favorites → Past Events → Submit Request → Language → Mobile → FAQ; all sections have `id="s-*"` attributes for anchor navigation
 
-**📁 Files changed:**
+### Files Changed
 - `how-to-use.php`
 - `js/translations.js`
 - `styles/how-to-use.css`
@@ -587,7 +602,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🔄 **`invalidate_query_cache()`** — `query_listing.json` added to the invalidation list for both specific-event and global (null) call patterns
 - 🔄 **Admin `createEvent()` / `updateEvent()` / `deleteEvent()`** — now call `invalidate_query_cache()` to bust `query_listing.json` when event metadata changes; previously event writes did not invalidate the query cache
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `functions/cache.php`
 - `admin/api.php`
@@ -601,7 +616,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🎨 **Calendar section title** — `"📅 ปฏิทินกิจกรรม"` header now has `margin-top: 10px` for better visual separation
 - 🎨 **Events listing title** — renamed from `"Events"` → `"🎪 รายการกิจกรรม"` (EN: `🎪 Events`, JA: `🎪 イベント一覧`) with icon prefix
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `styles/index.css`
 - `js/translations.js`
@@ -612,7 +627,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Changed
 - 🔔 **My Upcoming Programs — include group programs** — if a followed artist belongs to a group, programs linked to that group are now included automatically in `my.php` and `my-feed.php`; group IDs are resolved from `artists.group_id` and merged into the program query `artist_id IN (...)` set; no changes to followed-artist list or UI
 
-**📁 Files changed:**
+### Files Changed
 - `my.php`
 - `my-feed.php`
 
@@ -621,7 +636,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Added
 - 📊 **Admin Events tab — sortable columns** — the Events table in Admin Panel supports sorting by clicking any column header: `#`, `Name`, `Start Date`, `End Date`, `Active`, `Programs`; client-side sort (no API reload required); default sort `Start Date DESC` (newest first); click again to toggle asc/desc; ↕ / ↑ / ↓ icons indicate sort state
 
-**📁 Files changed:**
+### Files Changed
 - `admin/index.php`
 
 ## [3.6.1] - 2026-03-20
@@ -629,7 +644,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Changed
 - 🗂️ **Personal feed cache — shard co-location** — personal feed `.ics` cache files moved from `cache/feed_fav_{md5}.ics` (flat directory) into `cache/favorites/{shard}/{token}.ics` (same shard directory as the favorites `.json` file); `fav_cleanup_expired()` GC now deletes both `.json` and `.ics` for expired tokens together; no user-visible behavior change
 
-**📁 Files changed:**
+### Files Changed
 - `my-feed.php`
 - `functions/favorites.php`
 
@@ -643,7 +658,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Changed
 - 🏗️ **`feed.php` refactor** — removed inline function definitions; now delegates to `functions/ics.php`; no behavior change
 
-**📁 Files changed:**
+### Files Changed
 - `my-feed.php` (new)
 - `functions/ics.php` (new)
 - `feed.php`
@@ -656,7 +671,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Fixed
 - 🐛 **Admin artist profile link 404** — artist name links in Admin › Artists were pointing to `/admin/artist/{id}` instead of `/artist/{id}` because `BASE_PATH` resolves from `admin/index.php`'s `SCRIPT_NAME` and returns `/admin`; fixed by adding JS constant `APP_ROOT = dirname(BASE_PATH)` and using `APP_ROOT` for all links pointing to public pages
 
-**📁 Files changed:**
+### Files Changed
 - `admin/index.php`
 
 ## [3.5.3] - 2026-03-20
@@ -664,7 +679,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 ### Fixed
 - 🐛 **Admin form HTML entity encoding** — `'` (single quote) and `&` entered in admin forms were being stored and re-displayed as `&#039;` and `&amp;` due to `htmlspecialchars()` being incorrectly applied to JSON API responses; removed `escapeOutputData()` side effects and all standalone `htmlspecialchars()` calls from `admin/api.php` JSON output paths — JSON transport now carries raw data; HTML escaping remains in `admin/index.php` JS layer (`escapeHtml()` on `innerHTML` insertions, `textContent`/`.value` for form fields)
 
-**📁 Files changed:**
+### Files Changed
 - `admin/api.php`
 
 ## [3.5.2] - 2026-03-20
@@ -680,7 +695,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 📝 **`js/translations.js` new keys** — `section17.myfav.sort` and `section17.cal.title` / `section17.cal.feature1-3` added in all 3 languages (TH/EN/JA)
 - 📖 **`admin/help.php` + `admin/help-en.php` Artists tab** — three new sub-sections documented: **Copy Artist** (pre-fill behavior, variants checkbox, copy flow), **Bulk Import Artists** (Step 1 textarea → Step 2 results + summary), **Bulk Select & Bulk Actions** (Add to Group / Remove from Group table + `is_group=0` filter callout)
 
-**📁 Files changed:**
+### Files Changed
 - `my.php`
 - `how-to-use.php`
 - `js/translations.js`
@@ -696,7 +711,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🔃 **Sort controls per section** — each section has its own A→Z / Z→A sort buttons; sorting is applied client-side with `localeCompare` (locale-aware, handles Thai/Japanese); active sort button is highlighted; preference is saved to `localStorage` (`fav_sort_solo` / `fav_sort_group`) and restored on page load
 - 🌐 **i18n** — new translation keys `fav.soloArtists`, `fav.groups`, `fav.sort`, `fav.sortAZ`, `fav.sortZA` added to TH / EN / JA
 
-**📁 Files changed:**
+### Files Changed
 - `my-favorites.php`
 - `js/translations.js`
 
@@ -722,7 +737,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - `POST admin/api.php?action=artists_bulk_set_group` — accepts `{ids[], group_id}`; updates `group_id` for multiple artists (`is_group = 0` only); `group_id = null` removes group membership
 - `POST admin/api.php?action=artists_bulk_import` — accepts `{names[], is_group, group_id}`; inserts one artist per name; returns `{results: [{name, status, id?}]}` with `created/duplicate/error` statuses; invalidates caches when `created > 0`
 
-**📁 Files changed:**
+### Files Changed
 - `admin/api.php`
 - `admin/index.php`
 - `config/app.php`
@@ -748,7 +763,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - 🔄 **`localStorage.fav_slug`** — now a shortcut helper only; auto-saved/replaced when visiting either favorites page via URL
 - 🔄 **Follow button toggle** (`artist.php`) — ☆ ติดตาม / ★ ติดตามแล้ว toggles in-place without redirect; first-time follow (no existing `fav_slug`) redirects to `/my-favorites/{slug}`; subsequent follow/unfollow updates button state only
 
-**📁 Files changed:**
+### Files Changed
 - `my.php` (new)
 - `my-favorites.php` (rewritten)
 - `api/favorites.php` (new)
@@ -790,7 +805,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - ⚡ **Image cache key: `xxh128` replaces `md5`** — `hash('xxh128', ...)` is faster than `md5()` for non-cryptographic cache key generation; produces 32 hex chars (same length as md5); PHP 8.1+ built-in
 - 🛠️ **`setup.php` v3.3.0 support** — GD extension check (`extension_loaded('gd') && function_exists('imagettftext')`) added as optional requirement in Step 1; `cache/images/` and `fonts/` directories added to Step 2 directory checks; font file detection for NotoSansThai, NotoSansJP, NotoEmoji, Symbola, unifont (all tested and confirmed working); summary badges (Thai/Latin ✅, Japanese/CJK ✅, Symbols/Emoji ✅); font rows displayed inline with directory rows using `check-row` class for consistent margin/padding
 
-**📁 Files changed:**
+### Files Changed
 - `image.php` (new)
 - `js/common.js`
 - `fonts/README.md` (new)
@@ -813,7 +828,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - **`invalidate_feed_cache()` in `functions/cache.php`** — always deletes `feed_artist_*.ics` alongside event-specific files, since artist feeds span all events
 - **`.htaccess`** — new rewrite rule `^artist/([0-9]+)/feed/?$` → `feed.php?artist_id=$1` (placed before the existing artist profile rule)
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `artist.php`
 - `js/common.js`
@@ -838,7 +853,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - Admin API artist write operations (create, update, delete) — now call `invalidate_artist_query_cache()` alongside existing `invalidate_data_version_cache()`
 - Admin API variant write operations (create, delete) — now call `invalidate_artist_query_cache()` (previously had no cache invalidation)
 
-**📁 Files changed:**
+### Files Changed
 - `config/cache.php`
 - `functions/cache.php`
 - `index.php`
@@ -886,7 +901,7 @@ Then add cron job: `*/15 * * * * php /path/to/cron/send-telegram-notifications.p
 - **`artists_autocomplete` Admin API** (`?action=artists_autocomplete&q=...`) — lightweight GET endpoint returning `id`, `name`, `is_group` for matching artists (up to 20; returns top 50 when query is empty); used by the tag-input widget in the program form
 - **`createArtistTagInput()` JS factory function** (`admin/index.php`) — shared factory that initializes the tag-input widget for both the single-program form and the Bulk Edit form (different element IDs, same logic); eliminates code duplication; exposes `setValue()` and `reset()` on the returned public API object
 
-**📁 Files changed:**
+### Files Changed
 - `artist.php` *(new)*
 - `tools/migrate-add-artist-variants-table.php` *(new)*
 - `admin/api.php`
@@ -941,7 +956,7 @@ After migration, all v3.0.0 features activate automatically.
 
 - **CI/CD: PHP 8.4 and 8.5 added to test matrix** (`.github/workflows/tests.yml`) — extended `php-version` matrix from `['8.1','8.2','8.3']` to `['8.1','8.2','8.3','8.4','8.5']`; also added missing migration scripts `migrate-add-stream-url-column.php` and `migrate-add-contact-channels-table.php` to both `test` and `integration-check` jobs
 
-**📁 Files changed:**
+### Files Changed
 - `js/common.js`
 - `tests/run-tests.php`
 - `.github/workflows/tests.yml`
@@ -952,7 +967,7 @@ After migration, all v3.0.0 features activate automatically.
 - **`contact.php` long URL overflow on mobile iOS** — added `word-break: break-all` and `overflow-wrap: anywhere` on contact channel `<a>` tags to prevent long URLs from exceeding layout width on narrow screens
 - **`credits.php` global view event order** — changed `ksort` to `krsort` so event groups are sorted newest-first (descending by `event_id`); "ทั่วไป" (no event) group moved to last position
 
-**📁 Files changed:**
+### Files Changed
 - `contact.php`
 - `credits.php`
 
@@ -970,7 +985,7 @@ After migration, all v3.0.0 features activate automatically.
 - **`admin/index.php`** — added Contact tab (desktop + mobile dropdown); Disclaimer textareas in Settings section; channel modal; JS functions: `loadDisclaimerSetting()`, `saveDisclaimerSetting()`, `loadContactChannels()`, `renderContactChannels()`, `openChannelModal()`, `closeChannelModal()`, `submitChannelForm()`, `deleteChannel()`
 - **`admin/help.php` + `admin/help-en.php`** — added documentation for Contact tab and Disclaimer settings
 
-**📁 Files changed:**
+### Files Changed
 - `contact.php`
 - `js/translations.js`
 - `functions/helpers.php`
@@ -997,7 +1012,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🎨 **Credits menu renamed to "แหล่งข้อมูลอ้างอิง"** — `footer.credits` and `listing.credits` translation keys updated in all 3 languages (TH: แหล่งข้อมูลอ้างอิง / EN: References / JA: 参考資料); `credits.title` and `credits.list.title` keys updated to Thai for the TH locale; related section headings (`credits.announcements.title`, `credits.channels.title`, `credits.disclaimer.title`) translated to Thai
 - 🎨 **`credits.php` page title translated to Thai** — hardcoded fallback text in `<h1>` and `<h2>` updated from "Credits & References" to "แหล่งข้อมูลอ้างอิง"
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `credits.php`
 - `how-to-use.php`
@@ -1022,7 +1037,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🎨 **Event Picker modal sort order** — events sorted: currently-viewing (top) → ongoing (start DESC) → upcoming (start ASC, nearest first) → past (start DESC); `usort()` in modal render loop; filter tabs still work independently after sort
 - 🎨 **Event Picker mobile layout** — bottom-sheet modal (slides up, `border-radius: 16px 16px 0 0`); grid switches to flex list; each row uses CSS grid (2-col: name+date left, badges right) so status badge and "Viewing" badge never overlap or wrap; dates restored on mobile
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `js/common.js`
 - `js/translations.js`
@@ -1038,7 +1053,7 @@ After migration, all v3.0.0 features activate automatically.
 
 - 🎨 **Gantt bar layout — time + title inline** — inside each program bar, time and title are now displayed on the same row (`display: flex; align-items: baseline`) instead of stacked vertically; type badge moves below the row; title truncates with `…` (`white-space: nowrap; text-overflow: ellipsis`) instead of 2-line clamp; makes short bars more readable at a glance
 
-**📁 Files changed:**
+### Files Changed
 - `js/common.js`
 - `styles/index.css`
 
@@ -1052,7 +1067,7 @@ After migration, all v3.0.0 features activate automatically.
 
 - 🐛 **`js/common.js` unused variable** — `const lang` in `openCalendarDetailModal()` was declared but never referenced; removed to eliminate lint warning
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `js/common.js`
 
@@ -1064,7 +1079,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🐛 **`feed.php` calendar header properties unescaped** — `X-WR-CALNAME`, `X-WR-CALDESC`, and `PRODID` were outputting `$calName`/`$siteTitle` without any escaping; backslash/semicolon/newline in the event name or site title would produce a malformed ICS header. `X-WR-CALNAME` now uses `icsEscape()` (comma escaped to `\,` to prevent calendar-name truncation at comma in clients); `X-WR-CALDESC` and `PRODID` use `icsEscapeText()` (comma left unescaped as it is plain text).
 - 🧪 **FeedTest +11 tests** — `_feed_icsEscapeText()` replica + 7 unit tests + 2 SUMMARY source-check tests + 2 header-escaping source-check tests; total 1630 tests (80 in FeedTest)
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `tests/FeedTest.php`
 
@@ -1080,7 +1095,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🔒 **`admin/api.php` `stream_url` scheme not validated** — `createProgram()` and `updateProgram()` stored any value for `stream_url` including `javascript:` URIs; now validates with `preg_match('/^https?:\/\//i')` and stores `null` for non-http(s) values, preventing stored XSS via stream URL
 - 🐛 **`feed.php` TOCTOU race condition on cache read** — `file_exists()` + `readfile()` had a window where the cache file could be deleted (by a concurrent `invalidate_feed_cache()`) between the two calls, causing a PHP warning and empty response; replaced with a single `@file_get_contents()` call that gracefully falls through to regenerate on race loss
 
-**📁 Files changed:**
+### Files Changed
 - `credits.php`
 - `index.php`
 - `api/request.php`
@@ -1104,7 +1119,7 @@ After migration, all v3.0.0 features activate automatically.
   - `testGetEventIdReturnsNullForInactiveEvent` — `get_event_id()` must return `null` when event is inactive
   - `testGetAllActiveEventsExcludesInactiveEvent` — `get_all_active_events()` must not include inactive events
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `export.php`
 - `api.php`
@@ -1119,7 +1134,7 @@ After migration, all v3.0.0 features activate automatically.
   - **Files updated:** `feed.php`, `export.php`, `credits.php`, `index.php`, `api.php`, `api/request.php`, `tools/import-ics-to-sqlite.php`, `functions/cache.php`, `tests/FeedTest.php`
   - No functional changes — rename only
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `export.php`
 - `credits.php`
@@ -1139,7 +1154,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🐛 **Calendar view right-edge gap** — replaced `border: 1px solid` on `.month-calendar` with `box-shadow: inset 0 0 0 1px`; physical border was consuming 1px of content area, leaving a visible sub-pixel gap between the rightmost grid column and the border in rows with dark backgrounds (DOW header, trailing empty cells)
 - 🐛 **Cell divider pixel-rounding artifact** — changed `.cal-dow` and `.cal-day` from `border-right` to `border-left`; right-side borders can leave a residual strip at the grid's right edge due to pixel rounding across 7 columns; left-side borders eliminate this by anchoring dividers to the leading edge of each column
 
-**📁 Files changed:**
+### Files Changed
 - `js/common.js`
 - `styles/common.css`
 
@@ -1157,7 +1172,7 @@ After migration, all v3.0.0 features activate automatically.
   - Admin Events form: added `Calendar` option to Venue Mode dropdown
   - Updated user guide (`how-to-use.php`) and admin help (`admin/help.php`, `admin/help-en.php`) with Calendar View documentation
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `admin/api.php`
 - `admin/index.php`
@@ -1176,7 +1191,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🔒 **Race condition fix in public request rate limiting** — `checkRateLimit()` and `recordRequest()` in `api/request.php` had a TOCTOU race: concurrent requests could all pass the limit check before any recorded, multiplying effective limit; fixed with `flock(LOCK_EX)` wrapping the full read→modify→write cycle
 - 🔒 **JSON error handling in rate limit files** — `json_decode()` return value was checked with `!$data` (falsy), silently treating corrupted files as empty; replaced with explicit `json_last_error() !== JSON_ERROR_NONE` check in both `checkRateLimit()` and `recordRequest()`
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `api/request.php`
 
@@ -1190,7 +1205,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🐛 **ICS Import preview edit saved to DB instead of preview** — `saveEvent()` never read `window.previewEditIndex`, so clicking Save in preview-edit mode would POST a new record to the database instead of updating the in-memory preview; fixed by adding an early-return block that updates `uploadedEvents[index]` and re-renders the preview table
 - 🐛 **`previewEditIndex` state leak** — `closeModal()` now resets `window.previewEditIndex = null` to prevent preview-edit mode from persisting into subsequent normal add/edit modal opens
 
-**📁 Files changed:**
+### Files Changed
 - `admin/index.php`
 
 ---
@@ -1212,7 +1227,7 @@ After migration, all v3.0.0 features activate automatically.
   - **Fix**: `DTSTAMP` and `LAST-MODIFIED` now reflect the actual last-edit time of each event; they only change when an admin modifies the program record
   - **Files changed**: `feed.php`, `IcsParser.php` (added `updated_at` to SELECT queries)
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `IcsParser.php`
 
@@ -1232,7 +1247,7 @@ After migration, all v3.0.0 features activate automatically.
   - **Affected endpoint**: `GET/POST /api/request.php`
   - **Impact**: Low (information disclosure only), but reveals server filesystem layout to unauthenticated users
 
-**📁 Files changed:**
+### Files Changed
 - `data/.htaccess`
 - `cache/.htaccess`
 - `backups/.htaccess`
@@ -1250,7 +1265,7 @@ After migration, all v3.0.0 features activate automatically.
   - **Affected endpoints**: `GET /admin/api.php?action=programs_list` (programs search) and `GET /admin/api.php?action=credits_list` (credits search)
   - **Impact**: Low (admin-only, requires login + CSRF token), but essential for defense-in-depth
 
-**📁 Files changed:**
+### Files Changed
 - `admin/api.php`
 
 ---
@@ -1272,7 +1287,7 @@ After migration, all v3.0.0 features activate automatically.
   - **Setup (`setup.php`)**: `stream_url TEXT DEFAULT NULL` in `CREATE TABLE programs`; `fix_programs_title` migration preserves `stream_url`; `$allTablesOk` checks `$hasStreamUrlColumn`
   - **Tests (`tests/StreamUrlTest.php`)**: 31 new tests (schema, migration idempotency, CRUD, IcsParser URL parsing, admin/public API, export/feed URL: property, public/admin UI, CSS, translations, setup.php) — total **1584 tests** (12 suites)
 
-**📁 Files changed:**
+### Files Changed
 - `styles/index.css`
 - `index.php`
 - `admin/index.php`
@@ -1296,7 +1311,7 @@ After migration, all v3.0.0 features activate automatically.
 - 📖 **How-to-use expanded** — `how-to-use.php` updated to cover all current end-user features: Filter by Type (section 2 item 3, with renumbering), Subscribe to Calendar (🔔 section 3 item 3 with webcal/Google/Outlook steps), Date Jump Bar (new section), Description Modal/Read More (new section)
 - 🌐 **Translation keys** — `js/translations.js` adds `section2.filter3.*`, `section3.subscribe.*`, `section9.*`, `section10.*` in all 3 languages (TH/EN/JA); renumbers `section2.action.title` → 4, `section2.selectedTags.title` → 5, `section2.quickFilter.title` → 6
 
-**📁 Files changed:**
+### Files Changed
 - `how-to-use.php`
 - `js/translations.js`
 
@@ -1307,7 +1322,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - 🔧 **`GOOGLE_ANALYTICS_ID` moved to `config/analytics.php`** — extracted GA Measurement ID from `config/app.php` into a dedicated `config/analytics.php`; prevents `tools/update-version.php` from touching the site-specific GA ID when bumping the version; `config.php` bootstrap loads the new file automatically
 
-**📁 Files changed:**
+### Files Changed
 - 🆕 `config/analytics.php`
 - `config/app.php`
 - `config.php`
@@ -1324,7 +1339,7 @@ After migration, all v3.0.0 features activate automatically.
 - ⚙️ **`FEED_CACHE_DIR` + `FEED_CACHE_TTL`** — new constants in `config/cache.php`; TTL default 3600 s (1 hour); directory is the existing `cache/` folder
 - 🧪 **FeedTest** — 20 new cache tests added (total 69 / 1276 cumulative)
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `functions/cache.php`
 - `config/cache.php`
@@ -1343,7 +1358,7 @@ After migration, all v3.0.0 features activate automatically.
 - 📱 **Mobile action buttons compact layout** — filter buttons changed from `flex-direction: column` (6 full-width rows, ~338px) to `flex-wrap: wrap` with `flex: 1 1 calc(33.33% - 4px)` (3 per row = 2 rows, ~86px); scoped to `.filter-buttons .btn` so modal buttons are unaffected; reduced padding `8px 6px`, font `0.82em`, min-height `40px`
 - 📱 **Subscribe modal URL input overflow** — flex container and input now have `min-width: 0` preventing flex overflow on narrow screens; input `font-size` raised to `1rem` (≥16px) to prevent iOS auto-zoom; `overflow: hidden; text-overflow: ellipsis` truncates long URLs instead of pushing the Copy button off-screen
 
-**📁 Files changed:**
+### Files Changed
 - `feed.php`
 - `index.php`
 - 🆕 `tests/FeedTest.php` (49 tests)
@@ -1366,7 +1381,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⚡ **Admin programs CRUD triggers data version cache invalidation** — `createProgram()`, `updateProgram()`, `deleteProgram()`, `bulkDeletePrograms()`, `bulkUpdatePrograms()`, and `confirmIcsImport()` in `admin/api.php` all call `invalidate_data_version_cache()` on success; ensures subscribed calendar apps receive fresh data on their next poll after admin changes
 
-**📁 Files changed:**
+### Files Changed
 - 🆕 `feed.php`
 - `index.php`
 - `js/common.js`
@@ -1385,7 +1400,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Fixed
 - 📱 **Event selector dropdown overflow on mobile** — `.program-selector select` now has `max-width: 100%` and `box-sizing: border-box`; on `≤768px` breakpoint `width: 100%; min-width: 0` overrides the desktop `min-width: 200px` so long event names no longer overflow the header
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 
 ## [2.4.6] - 2026-03-03
@@ -1401,7 +1416,7 @@ After migration, all v3.0.0 features activate automatically.
 - ↔️ **Type + Categories on same line (mobile)** — `program-type-cell` and `program-categories-cell` changed to `display: inline-flex !important; width: auto !important` using higher-specificity selector to beat `td { width: 100% !important }`
 - 🏷️ **Badge size unified** — `program-categories-badge` and `program-type-badge` share identical layout properties (`padding: 4px 12px`, `border-radius: 16px`, `font-size: 0.85em`, `margin: 2px 2px 2px 0`); only background/text color differs; mobile override reduces both equally (`padding: 3px 9px`, `font-size: 0.8em`)
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `styles/common.css`
 
@@ -1413,7 +1428,7 @@ After migration, all v3.0.0 features activate automatically.
 - 🕐 **Collapse same-time display** — when a program's start time equals its end time (HH:MM), only the start time is shown (no `- end time`); applies to List view, Gantt tooltip, and Admin Programs list
 - 📅 **Collapse same-date display** — when a convention's start date equals its end date, only the start date is shown on the event listing card (no `- end date`); Admin ICS import preview also collapses same-date and same-time ranges via new `formatDateTimeRange()` helper
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `admin/index.php`
 
@@ -1428,7 +1443,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Fixed
 - 🧪 **`IntegrationTest::testDocumentationExists`** — removed `QUICKSTART.md` and `SQLITE_MIGRATION.md` from the docs list after both files were deleted (merged into README.md and PROJECT-STRUCTURE.md in this version)
 
-**📁 Files changed:**
+### Files Changed
 - `export.php`
 - `tests/IntegrationTest.php`
 - 🆕 `tools/update-version.php`
@@ -1460,7 +1475,7 @@ After migration, all v3.0.0 features activate automatically.
   - Added `program_type TEXT DEFAULT NULL` to the `CREATE TABLE` that is always recreated
   - Checks whether `programs_old` already has `program_type`: if yes → includes the column in `INSERT SELECT` to copy values; if no → omits the column from `INSERT` (default is NULL)
 
-**📁 Files changed:**
+### Files Changed
 - `setup.php`
 - 🆕 `tests/ProgramTypeTest.php` (35 tests)
 
@@ -1474,7 +1489,7 @@ After migration, all v3.0.0 features activate automatically.
   - ICS import preview table: header changed from "Organizer" to "Related Artists", data `event.organizer` → `event.categories`
   - The Add/Edit Program form still retains the Organizer field for editing existing data
 
-**📁 Files changed:**
+### Files Changed
 - `admin/index.php`
 
 ---
@@ -1505,7 +1520,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Fixed
 - 🐛 **SyntaxError in badge onclick** — `json_encode()` returned a string containing `"` which prematurely closed the HTML attribute; fixed with `htmlspecialchars(json_encode(...), ENT_QUOTES, 'UTF-8')`
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `js/translations.js`
 - `how-to-use.php`
@@ -1545,7 +1560,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⬆️ **APP_VERSION** → `2.4.0` (cache busting)
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `admin/index.php`
 - `admin/api.php`
@@ -1567,7 +1582,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.4` (cache busting)
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 
 ## [2.3.3] - 2026-03-02
@@ -1581,7 +1596,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.3` (cache busting)
 
-**📁 Files changed:**
+### Files Changed
 - `index.php`
 - `styles/common.css`
 
@@ -1596,7 +1611,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.2` (cache busting)
 
-**📁 Files changed:**
+### Files Changed
 - `config/app.php`
 - `IcsParser.php`
 
@@ -1610,7 +1625,7 @@ After migration, all v3.0.0 features activate automatically.
 ### Changed
 - ⬆️ **APP_VERSION** → `2.3.1` (cache busting)
 
-**📁 Files changed:**
+### Files Changed
 - `admin/api.php`
 
 ## [2.3.0] - 2026-03-02
@@ -1644,7 +1659,7 @@ After migration, all v3.0.0 features activate automatically.
 - ⬆️ **APP_VERSION** → `2.3.0` (cache busting)
 - 🔧 **`tools/migrate-add-event-email-column.php`** — the migrated table is `events` (not `programs`)
 
-**📁 Files changed:**
+### Files Changed
 - `admin/index.php`
 - `admin/api.php`
 - `export.php`
@@ -1671,7 +1686,7 @@ After migration, all v3.0.0 features activate automatically.
   - Added table "Default Event and Events Listing Page" describing 3 cases (default only / has real events / direct URL access)
   - Added callout explaining that the default event is intentionally hidden from the Events listing page
 
-**📁 Files changed:**
+### Files Changed
 - `setup.php`
 - `admin/help.php`
 - `admin/help-en.php`
@@ -1707,7 +1722,7 @@ After migration, all v3.0.0 features activate automatically.
   - Makes the subtitle descriptive like TH (`'Idol Stage Event Schedule'`) and JA (`'アイドルステージタイムテーブル'`)
   - The brand name remains only in `header.title`
 
-**📁 Files changed:**
+### Files Changed
 - `config/app.php`
 - `functions/helpers.php`
 - `admin/api.php`
@@ -1743,7 +1758,7 @@ After migration, all v3.0.0 features activate automatically.
   - `sakura` is only the base CSS in `common.css` (it has no override file of its own)
   - If no Global theme is set and the Event has no theme → uses `dark` theme
 
-**📁 Files changed:**
+### Files Changed
 - `functions/helpers.php`
 - `admin/api.php`
 - `admin/index.php`
@@ -1779,12 +1794,28 @@ After migration, all v3.0.0 features activate automatically.
   - 🎵 Programs, 🎪 Events, 📝 Requests, ✨ Credits, 📤 Import, 👤 Users, 💾 Backup, ⚙️ Settings
   - Renamed "Import ICS" → "Import" in nav (section content still describes ICS format)
 
+### Files Changed
+- `styles/index.css` *(new)* — extracted from `index.php` inline styles
+- `styles/credits.css` *(new)* — extracted from `credits.php` inline styles
+- `styles/how-to-use.css` *(new)* — extracted from `how-to-use.php` inline styles
+- `styles/ocean.css` *(new)*, `styles/forest.css` *(new)*, `styles/midnight.css` *(new)*, `styles/sunset.css` *(new)*, `styles/dark.css` *(new)*, `styles/gray.css` *(new)* — theme CSS files
+- `functions/helpers.php` — `get_site_theme()` helper
+- `admin/api.php` — `theme_get` / `theme_save` API actions
+- `admin/index.php` — Settings tab with theme picker
+- `admin/help.php` — Settings section documentation (Thai)
+- `admin/help-en.php` — Settings section documentation (English)
+- `index.php`, `credits.php`, `how-to-use.php`, `contact.php` — load theme CSS server-side; inline styles moved to external files
+
 ## [2.0.1] - 2026-02-27
 
 ### Changed
 - ⚙️ **Google Analytics ID configurable** — moved the Measurement ID from being hardcoded in each PHP file to a setting in `config/app.php`
   - Added constant `GOOGLE_ANALYTICS_ID` — set to `''` to disable Analytics
   - Updated `index.php`, `how-to-use.php`, `contact.php`, `credits.php` to use the constant instead of hardcoded values
+
+### Files Changed
+- `config/app.php` — `GOOGLE_ANALYTICS_ID` constant
+- `index.php`, `how-to-use.php`, `contact.php`, `credits.php` — use constant instead of hardcoded GA ID
 
 ## [2.0.0] - 2026-02-27
 
@@ -1867,6 +1898,22 @@ php tools/migrate-add-indexes.php
 ### Testing
 - 🧪 **324 automated tests** — all passing (PHP 8.1, 8.2, 8.3)
 
+### Files Changed
+- `setup.php` *(new)* — Setup Wizard (5 steps: requirements, directories, database, import, security)
+- `admin/help.php` *(new)* — Admin panel user guide (Thai)
+- `admin/help-en.php` *(new)* — Admin panel user guide (English)
+- `tools/migrate-rename-tables-columns.php` *(new)* — DB schema rename migration
+- `tools/migrate-add-indexes.php` *(new)* — DB performance indexes
+- `functions/helpers.php` — `get_db()` singleton, renamed helper functions
+- `functions/admin.php` — updated for renamed tables
+- `admin/api.php` — all renamed functions, new endpoints, mobile responsive
+- `admin/index.php` — renamed tabs, mobile responsive layout
+- `admin/login.php` — login rate limiting
+- `index.php` — pre-computed timestamps, CSS class renames
+- `api.php` — ETag + Cache-Control headers
+- `js/translations.js` — renamed translation keys
+- `config/app.php` — version bump
+
 ## [1.2.5] - 2026-02-18
 
 ### Added
@@ -1904,6 +1951,14 @@ php tools/migrate-add-indexes.php
   - User CRUD tests: create, update, delete, validation
   - Permission tests: admin-only actions, agent restrictions
 
+### Files Changed
+- `tools/migrate-add-role-column.php` *(new)* — adds `role` column to `admin_users` table
+- `tests/UserManagementTest.php` *(new)* — 19 automated tests
+- `functions/admin.php` — `$_SESSION['admin_role']` + 4 role helper functions
+- `admin/api.php` — admin-only action gate + 5 user CRUD endpoints
+- `admin/index.php` — Users tab/modal, hide from agent role
+- `config/app.php` — version bump
+
 ## [1.2.4] - 2026-02-17
 
 ### Added
@@ -1934,6 +1989,14 @@ php tools/migrate-add-indexes.php
 - `admin/api.php`: changed backup delete from DELETE to POST method
 - Added 6 new tests (207 total from 189)
 
+### Files Changed
+- `tools/migrate-add-admin-users-table.php` *(new)* — creates `admin_users` table
+- `functions/admin.php` — DB auth functions, `admin_login()` reads from DB first
+- `config/admin.php` — config credentials become fallback only
+- `admin/api.php` — `change_password` endpoint, backup delete → POST
+- `admin/index.php` — Change Password button + modal in header
+- `tools/generate-password-hash.php` — updated recommendations
+
 ## [1.2.3] - 2026-02-17
 
 ### Added
@@ -1960,6 +2023,15 @@ php tools/migrate-add-indexes.php
 - `admin/api.php`: uses `DB_PATH` constant, backup dir changed to `backups/`
 - `functions/cache.php`: added `invalidate_all_caches()` for restore
 - Updated migration tools, tests, Docker files to use the new path
+
+### Files Changed
+- `config/database.php` — `DB_PATH` constant pointing to `data/calendar.db`
+- `admin/api.php` — uses `DB_PATH`, backup dir → `backups/`
+- `admin/index.php` — Backup tab with full backup/restore UI
+- `functions/cache.php` — `invalidate_all_caches()` function
+- `docker-compose.yml` — volume mount updated to `data/`
+- `tools/` — updated all migration tools to use new paths
+- `tests/` — updated tests to use new DB path
 
 ## [1.2.1] - 2026-02-12
 
@@ -2003,6 +2075,16 @@ php tools/migrate-add-indexes.php
 ### Testing
 - 🧪 **189 automated tests** (up from 187) - Added clean URL routing tests
 
+### Files Changed
+- `.htaccess` — Apache rewrite rules for clean URLs and event path routing
+- `nginx-clean-url.conf` *(new)* — Nginx configuration example
+- `functions/helpers.php` — `event_url()` generates clean URLs
+- `admin/api.php` — credits per-event support
+- `admin/index.php` — credits convention selector, date jump bar UI
+- `index.php` — date jump bar, clean URL generation
+- `js/common.js` — `exportToIcs()` uses clean URL paths
+- `js/translations.js` — 20 new request modal keys
+
 ## [1.2.0] - 2026-02-11
 
 ### Added
@@ -2024,6 +2106,18 @@ php tools/migrate-add-indexes.php
   - **ICS Import**: `--event=slug` argument for CLI import tool
   - **Cache Scoping**: Data version and credits cache scoped per convention
   - **15 New Tests**: Multi-event helper functions, IcsParser filtering, cache scoping (total: 187 tests)
+
+### Files Changed
+- `tools/migrate-add-events-meta-table.php` *(new)* — creates `events_meta` table
+- `config/app.php` — `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG` constants
+- `functions/helpers.php` — 6 new multi-event helper functions
+- `admin/api.php` — 5 new `event_meta_*` endpoints
+- `admin/index.php` — Conventions tab with CRUD
+- `index.php` — convention selector, per-convention filtering
+- `export.php`, `credits.php`, `api.php`, `api/request.php` — convention scoping
+- `IcsParser.php` — `--event=slug` argument support
+- `tools/import-ics-to-sqlite.php` — `--event=slug` CLI argument
+- `tests/IntegrationTest.php` — 15 new multi-event tests
 
 ## [1.1.0] - 2026-02-11
 
@@ -2207,6 +2301,22 @@ php tools/migrate-add-indexes.php
 - Added TESTING.md with 129 manual test cases covering all features
 - Added tests/README.md with comprehensive automated testing guide
 
+### Files Changed
+- `Dockerfile` *(new)*, `docker-compose.yml` *(new)*, `docker-compose.dev.yml` *(new)*, `.dockerignore` *(new)*, `DOCKER.md` *(new)* — Docker support
+- `tools/migrate-add-credits-table.php` *(new)* — creates `credits` table
+- `tests/run-tests.php` *(new)*, `tests/TestRunner.php` *(new)*, `tests/SecurityTest.php` *(new)*, `tests/CacheTest.php` *(new)*, `tests/AdminAuthTest.php` *(new)*, `tests/CreditsApiTest.php` *(new)*, `tests/IntegrationTest.php` *(new)* — automated test suite
+- `quick-test.sh` *(new)*, `quick-test.bat` *(new)* — pre-commit test scripts
+- `.github/workflows/tests.yml` *(new)* — CI/CD GitHub Actions
+- `functions/security.php` — `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`
+- `functions/admin.php` — session security rewrite (timing attack prevention, session fixation, timeout)
+- `functions/cache.php` — `get_cached_credits()`, `invalidate_credits_cache()`
+- `config/cache.php` — `CREDITS_CACHE_FILE`, `CREDITS_CACHE_TTL` constants
+- `config/admin.php` — `SESSION_TIMEOUT` constant
+- `admin/api.php` — 6 credits CRUD endpoints, bulk operations, CSRF protection
+- `admin/index.php` — Credits tab, bulk delete/edit, ICS upload, per-page selector
+- `credits.php` — DB-driven from `get_cached_credits()`
+- `index.php`, `export.php` — input sanitization
+
 ## [1.0.0] - 2026-02-09
 
 ### Added
@@ -2304,3 +2414,22 @@ php tools/migrate-add-indexes.php
 - LICENSE - MIT License
 - CONTRIBUTING.md - Contribution guidelines
 - SECURITY.md - Security policy and deployment best practices
+
+### Files Changed
+- `index.php` — main calendar page (initial version)
+- `how-to-use.php` — user guide page
+- `contact.php` — contact page
+- `credits.php` — credits/references page
+- `export.php` — ICS export endpoint
+- `api.php` — public API endpoint
+- `config.php` — bootstrap file
+- `IcsParser.php` — ICS parser class
+- `config/app.php`, `config/admin.php`, `config/security.php`, `config/database.php`, `config/cache.php` *(new)* — modular config files
+- `functions/helpers.php`, `functions/cache.php`, `functions/admin.php`, `functions/security.php` *(new)* — helper function modules
+- `admin/index.php`, `admin/api.php`, `admin/login.php` — admin interface
+- `api/request.php` — user request API
+- `styles/common.css` — shared Sakura theme styles
+- `js/translations.js` — 3-language translations
+- `js/common.js` — shared JS utilities
+- `.htaccess` — rewrite rules
+- `tools/import-ics-to-sqlite.php`, `tools/update-ics-categories.php`, `tools/migrate-add-requests-table.php`, `tools/migrate-add-credits-table.php` — development tools

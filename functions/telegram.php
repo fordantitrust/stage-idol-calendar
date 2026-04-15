@@ -430,9 +430,9 @@ function telegram_format_summary($programs, $dateStr, $language = 'th') {
 
     // Separators
     $separators = [
-        'th' => "━━━━━━━━━━━━━━━━━━━━━━",
-        'en' => "━━━━━━━━━━━━━━━━━━━━━━",
-        'ja' => "━━━━━━━━━━━━━━━━━━━━━━"
+        'th' => "━━━━━━━━━━━━━━",
+        'en' => "━━━━━━━━━━━━━━",
+        'ja' => "━━━━━━━━━━━━━━"
     ];
     $separator = $separators[$language] ?? $separators['th'];
 
