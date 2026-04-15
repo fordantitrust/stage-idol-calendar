@@ -610,15 +610,13 @@ function _telegram_resolve_artists(array $artistIds): array {
         $db = get_db();
         $placeholders = implode(',', array_fill(0, count($artistIds), '?'));
         $stmt = $db->prepare("
-            SELECT DISTINCT a.id FROM artists a
-            WHERE a.group_id IN (
-                SELECT DISTINCT group_id FROM artists WHERE id IN ($placeholders) AND group_id IS NOT NULL
-            ) AND a.is_group = 0
+            SELECT DISTINCT group_id FROM artists
+            WHERE id IN ($placeholders) AND group_id IS NOT NULL
         ");
         $stmt->execute($artistIds);
-        $groupMembers = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        $groupIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
         $stmt = null;
-        return array_unique(array_merge($artistIds, $groupMembers));
+        return array_unique(array_merge($artistIds, $groupIds));
     } catch (Exception $e) {
         return $artistIds;
     }

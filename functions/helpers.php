@@ -27,7 +27,7 @@ function asset_url($path) {
  * @return string Theme name (sakura|ocean|forest|midnight|sunset|dark|gray)
  */
 function get_site_theme($eventMeta = null) {
-    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
 
     // 1. Event-specific theme takes priority
     if ($eventMeta && !empty($eventMeta['theme']) && in_array($eventMeta['theme'], $validThemes)) {

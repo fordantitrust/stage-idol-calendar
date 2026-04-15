@@ -1,0 +1,28 @@
+/* Rose Theme 🌹 — Rose Gold */
+:root {
+    --sakura-light: #FECDD3;
+    --sakura-medium: #FB7185;
+    --sakura-dark: #E11D48;
+    --sakura-deep: #9F1239;
+    --sakura-deeper: #6B0629;
+    --sakura-gradient: linear-gradient(135deg, #FECDD3 0%, #E11D48 100%);
+    --sakura-gradient-hover: linear-gradient(135deg, #FDA4AF 0%, #E43D63 100%);
+    --sakura-gradient-soft: linear-gradient(135deg, #FECDD3 0%, #FB7185 100%);
+    --sakura-gradient-full: linear-gradient(135deg, #FECDD3 0%, #FB7185 50%, #E11D48 100%);
+    --sakura-gradient-vertical: linear-gradient(180deg, #FECDD3 0%, #FB7185 50%, #E11D48 100%);
+    --sakura-gradient-pale: linear-gradient(135deg, #fff0f3, #ffe4e8);
+    --sakura-bg: #FFF0F3;
+    --sakura-bg-soft: #FFF5F7;
+    --sakura-bg-hover: #FFE8EC;
+    --sakura-bg-medium: #FBACB8;
+    --sakura-bg-dark: #F07080;
+    --sakura-border: #FECDD3;
+    --sakura-dark-10: rgba(225, 29, 72, 0.1);
+    --sakura-dark-15: rgba(225, 29, 72, 0.15);
+    --sakura-dark-18: rgba(225, 29, 72, 0.18);
+    --sakura-dark-20: rgba(225, 29, 72, 0.2);
+    --sakura-dark-30: rgba(225, 29, 72, 0.3);
+    --sakura-dark-40: rgba(225, 29, 72, 0.4);
+    --sakura-dark-50: rgba(225, 29, 72, 0.5);
+    --sakura-deeper-20: rgba(159, 18, 57, 0.2);
+}

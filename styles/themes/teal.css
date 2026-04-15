@@ -1,0 +1,28 @@
+/* Teal Theme 🌊 — Teal/Aqua */
+:root {
+    --sakura-light: #B2DFDB;
+    --sakura-medium: #26A69A;
+    --sakura-dark: #00796B;
+    --sakura-deep: #004D40;
+    --sakura-deeper: #00251A;
+    --sakura-gradient: linear-gradient(135deg, #B2DFDB 0%, #00796B 100%);
+    --sakura-gradient-hover: linear-gradient(135deg, #80CBC4 0%, #00897B 100%);
+    --sakura-gradient-soft: linear-gradient(135deg, #B2DFDB 0%, #26A69A 100%);
+    --sakura-gradient-full: linear-gradient(135deg, #B2DFDB 0%, #26A69A 50%, #00796B 100%);
+    --sakura-gradient-vertical: linear-gradient(180deg, #B2DFDB 0%, #26A69A 50%, #00796B 100%);
+    --sakura-gradient-pale: linear-gradient(135deg, #f0fafa, #d6f0ee);
+    --sakura-bg: #E0F2F1;
+    --sakura-bg-soft: #F0FAF9;
+    --sakura-bg-hover: #E8F6F5;
+    --sakura-bg-medium: #A8D8D4;
+    --sakura-bg-dark: #6DB8B2;
+    --sakura-border: #B2DFDB;
+    --sakura-dark-10: rgba(0, 121, 107, 0.1);
+    --sakura-dark-15: rgba(0, 121, 107, 0.15);
+    --sakura-dark-18: rgba(0, 121, 107, 0.18);
+    --sakura-dark-20: rgba(0, 121, 107, 0.2);
+    --sakura-dark-30: rgba(0, 121, 107, 0.3);
+    --sakura-dark-40: rgba(0, 121, 107, 0.4);
+    --sakura-dark-50: rgba(0, 121, 107, 0.5);
+    --sakura-deeper-20: rgba(0, 77, 64, 0.2);
+}

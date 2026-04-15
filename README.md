@@ -169,6 +169,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v5.3.0** | 2026-04-14 | **Telegram Log Viewer in Admin UI** — new Activity Log section in Admin › Settings › 🤖 Telegram; file dropdown (active + dated archives), refresh/download buttons, color-coded output (INFO/DEBUG/WARN/ERROR); API endpoints `telegram_log_get` + `telegram_log_download`; displays last 500 lines + total count |
 | **v5.3.1** | 2026-04-14 | **Full Server-Side HTML Escaping** — restored `escapeOutputData()` to escape with `htmlspecialchars()`; added `decodeHtml()` JS helper for form inputs; removed double-escaping from 40+ display paths; fixed 2 XSS bugs in error `innerHTML`; unified `escHtml()` → `escapeHtml()` · **2523 tests pass** |
 | **v5.4.0** | 2026-04-15 | **Extended Telegram Bot Commands** — `/tomorrow`, `/week`, `/artists`, `/next` (new); `/lang`, `/mute N`, `/notify on\|off`, `/status` (notification controls); modified `/today` (event list + count) and `/upcoming [N]` (default 3, max 10); group member resolution for all program commands · **3064 tests pass** |
+| **v5.5.0** | 2026-04-15 | **5 New Themes** — Crimson 🔴 · Teal 🩵 · Rose 🌹 · Amber 🌟 · Indigo 🔷; theme system expanded from 7 → 12 themes; each theme includes CSS variables, image export GD palette, Admin picker gradient preview, and per-event override support |
+| **v5.5.1** | 2026-04-15 | **Fixed Telegram group program resolution** — `_telegram_resolve_artists()` now adds the parent group ID instead of sibling members, matching My Upcoming Programs logic; programs tagged to the group entity now appear in `/today`, `/tomorrow`, `/week`, `/upcoming`, `/next` |
 
 ---
 

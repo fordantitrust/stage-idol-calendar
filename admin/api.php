@@ -2070,7 +2070,7 @@ function createEvent() {
         return;
     }
 
-    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -2147,7 +2147,7 @@ function updateEvent() {
         return;
     }
 
-    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -2883,7 +2883,7 @@ function saveThemeSetting() {
         return;
     }
     $input = json_decode(file_get_contents('php://input'), true);
-    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray'];
+    $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
     $theme = $input['theme'] ?? 'sakura';
     if (!in_array($theme, $validThemes)) {
         jsonResponse(false, null, 'Invalid theme');

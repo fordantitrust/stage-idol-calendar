@@ -5,6 +5,41 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.1] - 2026-04-15
+
+### Fixed
+- **Telegram group program resolution** — `_telegram_resolve_artists()` in `api/telegram.php` now adds the **parent group ID** when a followed artist is a group member, instead of expanding to all sibling members. This matches the same logic used by My Upcoming Programs (`my.php`): programs tagged to the group entity are now shown correctly via `/today`, `/tomorrow`, `/week`, `/upcoming`, and `/next` commands.
+
+### Files Changed
+- `api/telegram.php` — updated `_telegram_resolve_artists()` SQL from sibling-expansion to parent-group lookup
+- `config/app.php` — version bump to 5.5.1
+
+> **Test Coverage**: All 3064 automated tests pass (100% pass rate)
+
+## [5.5.0] - 2026-04-15
+
+### Added
+- **5 New Themes** — expanded theme system from 7 to 12 themes; all new themes follow the same CSS variable pattern as existing themes and support image export (PHP GD palette), Admin theme picker (gradient preview), and per-event theme override
+  - 🔴 **Crimson** — bold deep red (`#C62828`), energetic idol-stage feel
+  - 🩵 **Teal** — teal/aqua (`#00796B`), fresh summer aquamarine between ocean and forest
+  - 🌹 **Rose** — rose-gold (`#E11D48`), warm coral-pink distinct from sakura
+  - 🌟 **Amber** — gold/amber (`#F57F17`), premium warm yellow-orange distinct from sunset
+  - 🔷 **Indigo** — indigo/navy (`#3F51B5`), deep blue-purple bridging ocean and midnight
+
+### Files Changed
+- `styles/themes/crimson.css` — new theme file (28 CSS variables)
+- `styles/themes/teal.css` — new theme file (28 CSS variables)
+- `styles/themes/rose.css` — new theme file (28 CSS variables)
+- `styles/themes/amber.css` — new theme file (28 CSS variables)
+- `styles/themes/indigo.css` — new theme file (28 CSS variables)
+- `functions/helpers.php` — added 5 themes to `$validThemes` array in `get_site_theme()`
+- `image.php` — added 5 RGB palette entries in `$_palettes` for server-side image export
+- `admin/index.php` — added 5 options in `conventionTheme` select + 5 entries in `THEME_OPTIONS` array (gradient preview)
+- `admin/api.php` — added 5 themes to `$validThemes` whitelist in all 3 occurrences (`createEvent`, `updateEvent`, `saveThemeSetting`)
+- `config/app.php` — version bump to 5.5.0
+
+> **Test Coverage**: All 3064 automated tests pass (100% pass rate)
+
 ## [5.4.1] - 2026-04-15
 
 ### Fixed

@@ -401,6 +401,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li><code>/start {slug}</code> — <span data-i18n="section20.commands.start">เชื่อมต่อบัญชี (ดูส่วน 1)</span></li>
                     <li><code>/stop</code> — <span data-i18n="section20.commands.stop">ยกเลิกการเชื่อมต่อ</span></li>
                 </ul>
+                <p data-i18n="section20.commands.group">ถ้าศิลปินที่ติดตามอยู่ในวง/กลุ่ม — คำสั่ง /today /tomorrow /week /upcoming /next จะรวม programs ที่แสดงในนามวงนั้นด้วยอัตโนมัติ (เช่นเดียวกับหน้า My Upcoming Programs)</p>
 
                 <h3 data-i18n="section20.controls.title">5. ควบคุมการแจ้งเตือน</h3>
                 <ul>

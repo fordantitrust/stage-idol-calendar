@@ -2564,6 +2564,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <option value="sunset">☀️ Sunset</option>
                             <option value="dark">🖤 Dark</option>
                             <option value="gray">🩶 Gray</option>
+                            <option value="crimson">🔴 Crimson</option>
+                            <option value="teal">🩵 Teal</option>
+                            <option value="rose">🌹 Rose</option>
+                            <option value="amber">🌟 Amber</option>
+                            <option value="indigo">🔷 Indigo</option>
                         </select>
                         <small class="form-hint" data-i18n="event.themeHint">ธีมเฉพาะ event นี้ — ถ้าไม่เลือก จะใช้ Global Theme จาก Settings (fallback: Dark)</small>
                     </div>
@@ -5619,6 +5624,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             { id: 'sunset',   label: '☀️ Sunset',   color: 'linear-gradient(135deg,#FFCC80,#F57C00)' },
             { id: 'dark',     label: '🖤 Dark',     color: 'linear-gradient(135deg,#78909C,#37474F)' },
             { id: 'gray',     label: '🩶 Gray',     color: 'linear-gradient(135deg,#BDBDBD,#757575)' },
+            { id: 'crimson',  label: '🔴 Crimson',  color: 'linear-gradient(135deg,#FFCDD2,#C62828)' },
+            { id: 'teal',     label: '🩵 Teal',     color: 'linear-gradient(135deg,#B2DFDB,#00796B)' },
+            { id: 'rose',     label: '🌹 Rose',     color: 'linear-gradient(135deg,#FECDD3,#E11D48)' },
+            { id: 'amber',    label: '🌟 Amber',    color: 'linear-gradient(135deg,#FFF9C4,#F57F17)' },
+            { id: 'indigo',   label: '🔷 Indigo',   color: 'linear-gradient(135deg,#C5CAE9,#3F51B5)' },
         ];
         let currentTheme = 'sakura';
 
