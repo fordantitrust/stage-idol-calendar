@@ -5,6 +5,15 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.2] - 2026-04-16
+
+### Fixed
+- **Admin event/artist dropdowns showing HTML entities** — After the v5.3.1 server-side HTML escaping change, `escapeOutputData()` in `admin/api.php` began returning HTML-escaped strings (e.g. `Idol&#039;s`) in JSON responses. The `populateEventSelect()` function and artist group dropdown builders in `admin/index.php` were setting `option.textContent = meta.name` directly, which renders the raw string — displaying `&#039;` literally instead of `'`. Fixed by wrapping all 6 affected `option.textContent` assignments with `decodeHtml()`: 3 in `populateEventSelect()` (Recent / Active Events / Past Events optgroups) and 3 in artist group selects (artist form, bulk add-to-group modal, bulk remove-from-group modal).
+
+**Files changed:** `admin/index.php`, `config/app.php`
+
+---
+
 ## [5.5.1] - 2026-04-15
 
 ### Fixed

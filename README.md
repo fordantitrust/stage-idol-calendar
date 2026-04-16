@@ -100,7 +100,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **2523 Unit Tests** | Automated test suite across 14 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **3064 Unit Tests** | Automated test suite across 15 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
@@ -171,6 +171,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v5.4.0** | 2026-04-15 | **Extended Telegram Bot Commands** — `/tomorrow`, `/week`, `/artists`, `/next` (new); `/lang`, `/mute N`, `/notify on\|off`, `/status` (notification controls); modified `/today` (event list + count) and `/upcoming [N]` (default 3, max 10); group member resolution for all program commands · **3064 tests pass** |
 | **v5.5.0** | 2026-04-15 | **5 New Themes** — Crimson 🔴 · Teal 🩵 · Rose 🌹 · Amber 🌟 · Indigo 🔷; theme system expanded from 7 → 12 themes; each theme includes CSS variables, image export GD palette, Admin picker gradient preview, and per-event override support |
 | **v5.5.1** | 2026-04-15 | **4 bug fixes** — (1) Telegram `api/telegram.php` group resolution: parent group ID instead of siblings; (2) Telegram cron timezone: `strftime('%s')` treated Bangkok datetimes as UTC causing 7-hour notification delay — fixed with datetime string `BETWEEN`; (3) Telegram cron group resolution: parent-group lookup applied to cron; (4) Admin backup timestamps: `gmdate()` → `date()` so filenames and UI times show Bangkok time |
+| **v5.5.2** | 2026-04-16 | **Bug fix: Admin dropdowns showing HTML entities** — `populateEventSelect()` and artist group selects used `option.textContent = meta.name` directly; after v5.3.1 server-side escaping, names like `Idol's` were stored as `Idol&#039;s` in JSON and displayed literally; fixed by wrapping all 6 `option.textContent` assignments with `decodeHtml()` |
 
 ---
 
@@ -841,7 +842,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 4.1.0
+**Current Version**: 5.5.2
 
 ---
 

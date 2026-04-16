@@ -4696,7 +4696,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     recentEvents.forEach(meta => {
                         const option = document.createElement('option');
                         option.value = meta.id;
-                        option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                        option.textContent = decodeHtml(meta.name) + (meta.is_active ? '' : ' (inactive)');
                         recentGroup.appendChild(option);
                     });
                     select.appendChild(recentGroup);
@@ -4710,7 +4710,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 active.forEach(meta => {
                     const option = document.createElement('option');
                     option.value = meta.id;
-                    option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                    option.textContent = decodeHtml(meta.name) + (meta.is_active ? '' : ' (inactive)');
                     activeGroup.appendChild(option);
                 });
                 select.appendChild(activeGroup);
@@ -4723,7 +4723,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 past.forEach(meta => {
                     const option = document.createElement('option');
                     option.value = meta.id;
-                    option.textContent = meta.name + (meta.is_active ? '' : ' (inactive)');
+                    option.textContent = decodeHtml(meta.name) + (meta.is_active ? '' : ' (inactive)');
                     pastGroup.appendChild(option);
                 });
                 select.appendChild(pastGroup);
@@ -6415,7 +6415,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 result.data.groups.forEach(g => {
                     const opt = document.createElement('option');
                     opt.value = g.id;
-                    opt.textContent = g.name;
+                    opt.textContent = decodeHtml(g.name);
                     if (selectedGroupId && parseInt(g.id) === parseInt(selectedGroupId)) {
                         opt.selected = true;
                     }
@@ -6761,7 +6761,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     result.data.groups.forEach(g => {
                         const opt = document.createElement('option');
                         opt.value = g.id;
-                        opt.textContent = g.name;
+                        opt.textContent = decodeHtml(g.name);
                         sel.appendChild(opt);
                     });
                 }
@@ -6851,7 +6851,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     result.data.groups.forEach(g => {
                         const opt = document.createElement('option');
                         opt.value = g.id;
-                        opt.textContent = g.name;
+                        opt.textContent = decodeHtml(g.name);
                         sel.appendChild(opt);
                     });
                 }
