@@ -9,9 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Telegram group program resolution** — `_telegram_resolve_artists()` in `api/telegram.php` now adds the **parent group ID** when a followed artist is a group member, instead of expanding to all sibling members. This matches the same logic used by My Upcoming Programs (`my.php`): programs tagged to the group entity are now shown correctly via `/today`, `/tomorrow`, `/week`, `/upcoming`, and `/next` commands.
+- **Telegram cron notification timezone bug** — `cron/send-telegram-notifications.php` was comparing notification window timestamps using `CAST(strftime('%s', p.start) AS INTEGER)` which treats stored datetimes as UTC. Since `p.start` is stored in event-local time (Bangkok, UTC+7), notifications were delayed by 7 hours (e.g. a program at 18:30 Bangkok triggered a notification at 01:20 the next day). Fixed by converting PHP window timestamps to event-timezone datetime strings and using `p.start BETWEEN :windowStart AND :windowEnd` for string comparison instead.
+- **Telegram cron group resolution** — `cron/send-telegram-notifications.php` was expanding followed artists to sibling group members (B, C, D) instead of the parent group entity (G). Programs tagged to the group directly were never matched, causing missed notifications for group-level programs. Fixed to use parent-group lookup identical to `my.php` and `api/telegram.php`.
+
+- **Admin backup timestamps showing UTC** — `createBackup()`, `listBackups()`, `restoreBackup()`, and `uploadAndRestoreBackup()` in `admin/api.php` all used `gmdate()` which returns UTC time. Backup filenames (e.g. `backup_20260415_113000.db`) and the created-at timestamps shown in the Backup UI were 7 hours behind Bangkok time. Fixed by replacing all 5 `gmdate()` calls with `date()`, which uses `Asia/Bangkok` already set via `date_default_timezone_set()` in `config/app.php`.
 
 ### Files Changed
 - `api/telegram.php` — updated `_telegram_resolve_artists()` SQL from sibling-expansion to parent-group lookup
+- `cron/send-telegram-notifications.php` — fixed timezone comparison (strftime → datetime string BETWEEN); fixed group resolution to use parent-group lookup matching `my.php`
+- `admin/api.php` — replaced `gmdate()` with `date()` in all 5 backup timestamp calls (createBackup filename, createBackup response, listBackups display, restoreBackup auto-backup filename, uploadAndRestoreBackup auto-backup filename)
 - `config/app.php` — version bump to 5.5.1
 
 > **Test Coverage**: All 3064 automated tests pass (100% pass rate)

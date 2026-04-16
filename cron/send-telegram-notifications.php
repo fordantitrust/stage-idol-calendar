@@ -209,22 +209,24 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
 
     telegram_log('DEBUG', "User details", ['chat_id' => substr($chatId, 0, 4) . '***', 'artists_count' => count($artistIds)]);
 
-    // Resolve group members (same logic as my.php)
+    // Resolve parent groups (same logic as my.php and api/telegram.php v5.5.1+):
+    // If you follow artist A who belongs to group G, also include programs tagged as group G.
+    // Do NOT expand to sibling members (B, C, D) — that caused missed group-level programs.
     $allArtistIds = $artistIds;
     try {
         $db = get_db();
         $placeholders = implode(',', array_fill(0, count($artistIds), '?'));
         $stmt = $db->prepare("
-            SELECT DISTINCT a.id
-            FROM artists a
-            WHERE a.group_id IN (SELECT DISTINCT group_id FROM artists WHERE id IN ($placeholders))
-                AND a.is_group = 0
+            SELECT DISTINCT group_id
+            FROM artists
+            WHERE id IN ($placeholders)
+                AND group_id IS NOT NULL
         ");
         $stmt->execute($artistIds);
-        $groupMembers = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        $parentGroupIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
         $stmt = null;
-        $allArtistIds = array_unique(array_merge($artistIds, $groupMembers));
-        telegram_log('DEBUG', "Group members resolved", ['original_count' => count($artistIds), 'total_with_members' => count($allArtistIds)]);
+        $allArtistIds = array_values(array_unique(array_merge($artistIds, $parentGroupIds)));
+        telegram_log('DEBUG', "Parent groups resolved", ['original_count' => count($artistIds), 'total_with_groups' => count($allArtistIds)]);
     } catch (Exception $e) {
         telegram_log('ERROR', "Error resolving group members", ['error' => $e->getMessage()]);
     }
@@ -233,6 +235,15 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
     try {
         $db = get_db();
         $placeholders = implode(',', array_fill(0, count($allArtistIds), '?'));
+
+        // Convert Unix timestamps to event-timezone datetime strings for comparison.
+        // SQLite's strftime('%s', ...) treats stored datetimes as UTC, but p.start is stored
+        // in the event's local timezone (DEFAULT_TIMEZONE). Comparing Unix timestamps directly
+        // causes notifications to be delayed by the UTC offset (e.g. +7h for Bangkok).
+        // Using datetime string comparison avoids this mismatch entirely.
+        $tzObj = new DateTimeZone(defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok');
+        $windowStartStr = (new DateTime('@' . $windowStart))->setTimezone($tzObj)->format('Y-m-d H:i:s');
+        $windowEndStr   = (new DateTime('@' . $windowEnd))->setTimezone($tzObj)->format('Y-m-d H:i:s');
 
         $stmt = $db->prepare("
             SELECT DISTINCT
@@ -244,22 +255,18 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
             JOIN program_artists pa ON p.id = pa.program_id
             WHERE pa.artist_id IN ($placeholders)
                 AND e.is_active = 1
-                AND CAST(strftime('%s', p.start) AS INTEGER) BETWEEN :windowStart AND :windowEnd
+                AND p.start BETWEEN :windowStart AND :windowEnd
         ");
 
-        $params = $allArtistIds;
-        $params[] = $windowStart;
-        $params[] = $windowEnd;
-
         $stmt->execute(array_merge($allArtistIds, [
-            ':windowStart' => $windowStart,
-            ':windowEnd' => $windowEnd
+            ':windowStart' => $windowStartStr,
+            ':windowEnd' => $windowEndStr
         ]));
 
         $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt = null;
 
-        telegram_log('DEBUG', "Programs in notification window", ['count' => count($programs), 'window' => $windowStart . '-' . $windowEnd]);
+        telegram_log('DEBUG', "Programs in notification window", ['count' => count($programs), 'window_start' => $windowStartStr, 'window_end' => $windowEndStr]);
 
         // Send notifications
         foreach ($programs as $prog) {

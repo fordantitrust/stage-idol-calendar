@@ -2604,7 +2604,7 @@ function createBackup() {
         }
     }
 
-    $timestamp = gmdate('Ymd_His');
+    $timestamp = date('Ymd_His');
     $backupFilename = "backup_{$timestamp}.db";
     $backupPath = $backupDir . '/' . $backupFilename;
 
@@ -2625,7 +2625,7 @@ function createBackup() {
     jsonResponse(true, [
         'filename' => $backupFilename,
         'size' => filesize($backupPath),
-        'created_at' => gmdate('Y-m-d H:i:s')
+        'created_at' => date('Y-m-d H:i:s')
     ], 'Backup created successfully');
 }
 
@@ -2648,7 +2648,7 @@ function listBackups() {
         $backups[] = [
             'filename' => $filename,
             'size' => filesize($file),
-            'created_at' => gmdate('Y-m-d H:i:s', filemtime($file))
+            'created_at' => date('Y-m-d H:i:s', filemtime($file))
         ];
     }
 
@@ -2763,7 +2763,7 @@ function restoreBackup() {
     }
 
     // Auto-create backup before restore (safety net)
-    $autoBackupName = 'auto_before_restore_' . gmdate('Ymd_His') . '.db';
+    $autoBackupName = 'auto_before_restore_' . date('Ymd_His') . '.db';
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0755, true);
     }
@@ -2832,7 +2832,7 @@ function uploadAndRestoreBackup() {
     if (!is_dir($backupDir)) {
         mkdir($backupDir, 0755, true);
     }
-    $autoBackupName = 'auto_before_restore_' . gmdate('Ymd_His') . '.db';
+    $autoBackupName = 'auto_before_restore_' . date('Ymd_His') . '.db';
     if (!copy($dbPath, $backupDir . '/' . $autoBackupName)) {
         jsonResponse(false, null, 'Failed to create auto-backup before restore. Restore aborted.');
         return;
