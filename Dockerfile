@@ -39,9 +39,11 @@ COPY . /var/www/html/
 RUN mkdir -p /var/www/html/cache/images \
     && mkdir -p /var/www/html/cache/favorites \
     && mkdir -p /var/www/html/ics \
+    && mkdir -p /var/www/html/uploads/artists \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \
-    && chmod -R 777 /var/www/html/cache
+    && chmod -R 777 /var/www/html/cache \
+    && chmod -R 777 /var/www/html/uploads
 
 # Create database if ICS files exist
 RUN if [ -f /var/www/html/ics/*.ics ]; then \

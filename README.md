@@ -73,6 +73,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔴 **Live Stream URL** | Set a stream URL per program; validates http/https scheme; badge displayed in admin list | v2.6.0 |
 | 📞 **Contact Channels** | Manage contact channels (DB-driven) via Admin › Contact tab; displays on contact page | v2.10.0 |
 | 🎤 **Artist Management** | Artists tab — manage artist records, assign group members, add/remove variant names (aliases); tag-input widget with autocomplete for Artist/Group field in program form | v3.0.0 |
+| 🖼️ **Artist Picture Management** | Upload display picture (circular, 400×400 px) and cover picture (banner, 1200×400 px) directly from Artist edit modal; PHP GD server-side resize & center-crop; preview in modal; one-click delete | v6.0.0 |
 | 📋 **Copy Artist** | Copy any artist (solo or group) — pre-filled modal lets you verify/edit name, type, group, and choose which variant aliases to carry over before saving | v3.5.0 |
 | 📥 **Bulk Import Artists** | Paste a list of artist names (1 per line, up to 500) with optional group assignment; step-2 result screen shows created / duplicate / error per name | v3.5.0 |
 | ☑️ **Bulk Artist Actions** | Select multiple artists with checkboxes; bulk "Add to Group" modal or "Remove from Group" in one click | v3.5.0 |
@@ -90,6 +91,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📋 **Telegram Log Viewer** | Admin › Settings › 🤖 Telegram now includes Activity Log section — dropdown file selector, refresh button, download button, and color-coded log display (green/gray/orange/red for INFO/DEBUG/WARN/ERROR); auto-loads on tab open; shows last 500 lines + total count | v5.3.0 |
 | 🔒 **Server-Side HTML Escaping** | `escapeOutputData()` in admin API restored to actually escape with `htmlspecialchars()`; `decodeHtml()` JS helper for form inputs; removed double-escaping from display paths; 2 XSS fixes in error message `innerHTML`; unified `escHtml()` → `escapeHtml()` | v5.3.1 |
 | 🤖 **Telegram Bot Commands (Extended)** | 8 new commands: `/tomorrow`, `/week`, `/artists`, `/next`, `/lang`, `/mute`, `/notify`, `/status` · Modified `/today` (event list + count) and `/upcoming` (default 3, supports `/upcoming N` 1–10) · Mute/notify controls with favorites JSON state · All program commands include group member resolution | v5.4.0 |
+| 🖼️ **Artist Pictures** | Upload display picture (circular avatar, 400×400 px) and cover picture (banner, 1200×400 px) per artist; PHP GD auto-resize & center-crop on upload (max 5 MB); stored in `uploads/artists/`; display picture shows as hover tooltip on program list badges | v6.0.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -100,7 +102,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **3064 Unit Tests** | Automated test suite across 15 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **3666 Unit Tests** | Automated test suite across 16 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
@@ -173,6 +175,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v5.5.1** | 2026-04-15 | **4 bug fixes** — (1) Telegram `api/telegram.php` group resolution: parent group ID instead of siblings; (2) Telegram cron timezone: `strftime('%s')` treated Bangkok datetimes as UTC causing 7-hour notification delay — fixed with datetime string `BETWEEN`; (3) Telegram cron group resolution: parent-group lookup applied to cron; (4) Admin backup timestamps: `gmdate()` → `date()` so filenames and UI times show Bangkok time |
 | **v5.5.2** | 2026-04-16 | **Bug fix: Admin dropdowns showing HTML entities** — `populateEventSelect()` and artist group selects used `option.textContent = meta.name` directly; after v5.3.1 server-side escaping, names like `Idol's` were stored as `Idol&#039;s` in JSON and displayed literally; fixed by wrapping all 6 `option.textContent` assignments with `decodeHtml()` |
 | **v5.5.3** | 2026-04-17 | **Telegram cron notification window — dynamic + smart recommendation** — notification half-window now scales with notify_before (`min(N/2, 7.5) min`) preventing post-program-start alerts for short notify times · notify-before changed to dropdown (5/10/15/30/60 min) · cron_interval removed as config; replaced with dynamic recommendation box (`floor(min(N,15)/1.5)` min, ≥150% coverage) that updates live in Admin UI |
+| **v6.0.0** | 2026-04-17 | **Artist Cover & Display Picture System** — `display_picture` + `cover_picture` columns in `artists` table; Admin artist edit modal gets picture upload section with live preview; PHP GD auto-resize (display → 400×400 px · cover → 1200×400 px center-crop, JPEG 85%); cover displayed as full-width banner in `/artist/{id}`; display picture as circular avatar beside name; hover tooltip on program list artist badges (`position:fixed` JS tooltip avoids `overflow:hidden` clipping); `uploads/artists/` directory; **3666 automated tests pass** (16 suites) |
+| **v6.0.1** | 2026-04-17 | **Bug fix: setup.php init_database missing artist picture columns** — `CREATE TABLE artists` in `init_database` lacked `display_picture`/`cover_picture`; fresh DB init created table without v6.0.0 columns; fixed schema + added `ALTER TABLE` fallback in all 3 setup action handlers; migration checklist updated with v6.0.0 entry |
 
 ---
 
@@ -843,7 +847,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 5.5.3
+**Current Version**: 6.1.5
 
 ---
 

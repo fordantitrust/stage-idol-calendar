@@ -49,7 +49,8 @@ $testFiles = [
     'StreamUrlTest'   => __DIR__ . '/StreamUrlTest.php',
     'FavoritesTest'   => __DIR__ . '/FavoritesTest.php',
     'TimezoneTest'    => __DIR__ . '/TimezoneTest.php',
-    'TelegramTest'    => __DIR__ . '/TelegramTest.php',
+    'TelegramTest'       => __DIR__ . '/TelegramTest.php',
+    'ArtistPictureTest'  => __DIR__ . '/ArtistPictureTest.php',
 ];
 
 // Filter test files if specific test requested

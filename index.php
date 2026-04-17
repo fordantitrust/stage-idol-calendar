@@ -151,7 +151,7 @@ if (!$showEventListing) {
             // program→artists map (name + id)
             if ($eventId !== null) {
                 $stmtPA = $dbArtists->prepare("
-                    SELECT pa.program_id, a.id AS artist_id, a.name
+                    SELECT pa.program_id, a.id AS artist_id, a.name, a.display_picture
                     FROM program_artists pa
                     JOIN artists a ON a.id = pa.artist_id
                     JOIN programs p ON p.id = pa.program_id
@@ -160,7 +160,7 @@ if (!$showEventListing) {
                 $stmtPA->execute([$eventId]);
             } else {
                 $stmtPA = $dbArtists->query("
-                    SELECT pa.program_id, a.id AS artist_id, a.name
+                    SELECT pa.program_id, a.id AS artist_id, a.name, a.display_picture
                     FROM program_artists pa
                     JOIN artists a ON a.id = pa.artist_id
                 ");
@@ -171,6 +171,7 @@ if (!$showEventListing) {
                 $programArtistIdMap[$pid][] = [
                     'id'   => (int)$rowPA['artist_id'],
                     'name' => $rowPA['name'],
+                    'pic'  => $rowPA['display_picture'] ?? '',
                 ];
             }
 
@@ -755,7 +756,7 @@ if ($_listingCalDataFromCache !== null) {
                     <button type="button" class="btn btn-success" onclick="saveAsImage()" data-i18n="button.saveImage">📸 บันทึกเป็นรูปภาพ</button>
                     <button type="button" class="btn btn-primary" onclick="exportToIcs()" data-i18n="button.exportIcs">📅 Export to Calendar</button>
                     <button type="button" class="btn btn-subscribe" onclick="openSubscribeModal()" data-i18n="button.subscribe">🔔 Subscribe</button>
-                    <button type="button" class="btn btn-warning" onclick="openRequestModal()" data-i18n="button.requestAdd">📝 แจ้งเพิ่ม Event</button>
+                    <button type="button" class="btn btn-request" onclick="openRequestModal()" data-i18n="button.requestAdd">📝 แจ้งเพิ่ม / แก้ไข</button>
                 </div>
 
                 <!-- View Toggle Switch (hidden in calendar mode) -->
@@ -813,7 +814,6 @@ if ($_listingCalDataFromCache !== null) {
                                         <th data-i18n="table.type">ประเภท</th>
                                         <?php endif; ?>
                                         <th data-i18n="table.categories">ศิลปินที่เกี่ยวข้อง</th>
-                                        <th class="col-edit-request" style="width:80px;text-align:center;" data-i18n="table.editRequest">แจ้งแก้ไข</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -888,7 +888,7 @@ if ($_listingCalDataFromCache !== null) {
                                             <td class="program-categories-cell<?php echo empty($artistLinks) ? ' cell-empty' : ''; ?>">
                                                 <?php foreach ($artistLinks as $al): ?>
                                                     <?php if (!empty($al['id'])): ?>
-                                                        <span class="program-categories-badge-wrap">
+                                                        <span class="program-categories-badge-wrap"<?php if (!empty($al['pic'])): ?> data-display-pic="<?php echo htmlspecialchars(get_base_path() . '/' . $al['pic'], ENT_QUOTES, 'UTF-8'); ?>" data-display-name="<?php echo htmlspecialchars($al['name'], ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
                                                             <button type="button" class="program-categories-badge" onclick="appendFilter('artist', <?php echo htmlspecialchars(json_encode($al['name']), ENT_QUOTES, 'UTF-8'); ?>)" title="กรองตามศิลปิน: <?php echo htmlspecialchars($al['name']); ?>">
                                                                 <?php echo htmlspecialchars($al['name']); ?>
                                                             </button><a href="<?php echo get_base_path(); ?>/artist/<?php echo $al['id']; ?>" target="_blank" class="artist-profile-link" title="ดูโปรไฟล์ศิลปิน">↗</a>
@@ -899,22 +899,6 @@ if ($_listingCalDataFromCache !== null) {
                                                         </button>
                                                     <?php endif; ?>
                                                 <?php endforeach; ?>
-                                            </td>
-                                            <td class="program-action-cell" style="text-align:center;">
-                                                <button type="button" class="btn-edit-request"
-                                                    data-event='<?php echo htmlspecialchars(json_encode([
-                                                        'id' => $event['id'] ?? null,
-                                                        'title' => $event['title'] ?? '',
-                                                        'location' => $event['location'] ?? '',
-                                                        'organizer' => $event['organizer'] ?? '',
-                                                        'categories' => $event['categories'] ?? '',
-                                                        'description' => $event['description'] ?? '',
-                                                        'start' => $event['start'] ?? '',
-                                                        'end' => $event['end'] ?? ''
-                                                    ], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>'
-                                                    onclick="openModifyModal(JSON.parse(this.dataset.event))">
-                                                    ✏️
-                                                </button>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -1052,17 +1036,37 @@ if ($_listingCalDataFromCache !== null) {
     <div id="requestModal" class="req-modal-overlay">
         <div class="req-modal">
             <div class="req-modal-header">
-                <h2 id="modalTitle" data-i18n="modal.addTitle">📝 แจ้งเพิ่ม Event</h2>
+                <h2 id="modalTitle" data-i18n="modal.addTitle">📝 แจ้งเพิ่ม Program</h2>
                 <button onclick="closeRequestModal()" class="req-close">&times;</button>
             </div>
             <form id="requestForm" onsubmit="submitRequest(event)">
-                <input type="hidden" id="reqType" value="add">
                 <input type="hidden" id="reqEventId" value="">
                 <div class="req-modal-body">
-                    <div class="req-row">
-                        <div class="req-group"><label data-i18n="modal.programName">ชื่อ Event *</label><input type="text" id="reqTitle" required maxlength="200"></div>
-                        <div class="req-group"><label data-i18n="modal.organizer">Organizer</label><input type="text" id="reqOrganizer" maxlength="200"></div>
+
+                    <!-- Type toggle -->
+                    <div class="req-group req-type-group">
+                        <label data-i18n="modal.requestType">ประเภทคำขอ *</label>
+                        <div class="req-types">
+                            <label class="req-type">
+                                <input type="radio" name="reqTypeRadio" id="reqTypeAdd" value="add" checked onchange="onReqTypeChange()">
+                                <span data-i18n="modal.typeAdd">📝 เพิ่ม program ใหม่</span>
+                            </label>
+                            <label class="req-type">
+                                <input type="radio" name="reqTypeRadio" id="reqTypeModify" value="modify" onchange="onReqTypeChange()">
+                                <span data-i18n="modal.typeModify">✏️ แก้ไข program ที่มีอยู่</span>
+                            </label>
+                        </div>
                     </div>
+
+                    <!-- Program selector (modify only) -->
+                    <div class="req-group" id="reqProgramSelectorGroup" style="display:none">
+                        <label data-i18n="modal.selectProgram">เลือก program ที่ต้องการแก้ไข *</label>
+                        <select id="reqProgramSelector" onchange="onProgramSelected()">
+                            <option value="" data-i18n="modal.selectProgramPlaceholder">-- เลือก program --</option>
+                        </select>
+                    </div>
+
+                    <div class="req-group"><label data-i18n="modal.programName">ชื่อ Program *</label><input type="text" id="reqTitle" required maxlength="200"></div>
                     <div class="req-row">
                         <div class="req-group">
                             <label data-i18n="modal.venue">เวที</label>
@@ -1074,9 +1078,12 @@ if ($_listingCalDataFromCache !== null) {
                         <div class="req-group"><label data-i18n="modal.categories">Categories</label><input type="text" id="reqCategories" maxlength="500"></div>
                     </div>
                     <div class="req-row">
-                        <div class="req-group"><label data-i18n="modal.date">วันที่ *</label><input type="date" id="reqDate" required></div>
-                        <div class="req-group"><label data-i18n="modal.startTime">เริ่ม *</label><input type="time" id="reqStart" required></div>
-                        <div class="req-group"><label data-i18n="modal.endTime">สิ้นสุด *</label><input type="time" id="reqEnd" required></div>
+                        <div class="req-group"><label data-i18n="modal.startDate">วันที่เริ่ม *</label><input type="date" id="reqDate" required onchange="onReqStartDateChange(this.value)"></div>
+                        <div class="req-group"><label data-i18n="modal.startTime">เวลาเริ่ม *</label><input type="time" id="reqStart" required></div>
+                    </div>
+                    <div class="req-row">
+                        <div class="req-group"><label data-i18n="modal.endDate">วันที่สิ้นสุด *</label><input type="date" id="reqEndDate" required></div>
+                        <div class="req-group"><label data-i18n="modal.endTime">เวลาสิ้นสุด *</label><input type="time" id="reqEnd" required></div>
                     </div>
                     <div class="req-group"><label data-i18n="modal.description">รายละเอียด</label><textarea id="reqDesc" rows="2" maxlength="2000"></textarea></div>
                     <hr style="margin:15px 0;border:none;border-top:1px solid #ddd;">
@@ -1206,42 +1213,95 @@ if ($_listingCalDataFromCache !== null) {
         daySections.forEach(section => observer.observe(section));
     })();
 
-    function openRequestModal() {
+    var _reqProgramsLoaded = false;
+
+    async function openRequestModal() {
         document.getElementById('requestForm').reset();
-        document.getElementById('reqType').value = 'add';
+        document.getElementById('reqTypeAdd').checked = true;
         document.getElementById('reqEventId').value = '';
-        document.getElementById('modalTitle').textContent = translations[currentLang]['modal.addTitle'] || '📝 แจ้งเพิ่ม Event';
-        document.getElementById('reqDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('reqProgramSelectorGroup').style.display = 'none';
+        document.getElementById('modalTitle').setAttribute('data-i18n', 'modal.addTitle');
+        document.getElementById('modalTitle').textContent = translations[currentLang]['modal.addTitle'] || '📝 แจ้งเพิ่ม Program';
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('reqDate').value = today;
+        document.getElementById('reqEndDate').value = today;
+        // โหลด programs เข้า dropdown ครั้งเดียว
+        if (!_reqProgramsLoaded) {
+            await loadProgramsIntoSelector();
+            _reqProgramsLoaded = true;
+        }
         document.getElementById('requestModal').classList.add('active');
     }
 
-    function openModifyModal(eventData) {
-        document.getElementById('requestForm').reset();
-        document.getElementById('reqType').value = 'modify';
-        document.getElementById('reqEventId').value = eventData.id || '';
-        document.getElementById('modalTitle').textContent = translations[currentLang]['modal.editTitle'] || '✏️ แจ้งแก้ไข Event';
-
-        // Fill form with event data
-        document.getElementById('reqTitle').value = eventData.title || '';
-        document.getElementById('reqOrganizer').value = eventData.organizer || '';
-        document.getElementById('reqLocation').value = eventData.location || '';
-        document.getElementById('reqCategories').value = eventData.categories || '';
-        document.getElementById('reqDesc').value = eventData.description || '';
-
-        // Parse start datetime
-        if (eventData.start) {
-            const startDate = new Date(eventData.start);
-            document.getElementById('reqDate').value = startDate.toISOString().split('T')[0];
-            document.getElementById('reqStart').value = startDate.toTimeString().substring(0, 5);
+    function onReqTypeChange() {
+        const isModify = document.getElementById('reqTypeModify').checked;
+        document.getElementById('reqProgramSelectorGroup').style.display = isModify ? 'block' : 'none';
+        const titleKey = isModify ? 'modal.editTitle' : 'modal.addTitle';
+        document.getElementById('modalTitle').setAttribute('data-i18n', titleKey);
+        document.getElementById('modalTitle').textContent = translations[currentLang][titleKey] || (isModify ? '✏️ แจ้งแก้ไข Program' : '📝 แจ้งเพิ่ม Program');
+        if (!isModify) {
+            document.getElementById('reqProgramSelector').value = '';
+            document.getElementById('reqEventId').value = '';
+            ['reqTitle','reqOrganizer','reqCategories','reqDesc'].forEach(function(id) {
+                document.getElementById(id).value = '';
+            });
         }
+    }
 
-        // Parse end datetime
-        if (eventData.end) {
-            const endDate = new Date(eventData.end);
-            document.getElementById('reqEnd').value = endDate.toTimeString().substring(0, 5);
+    function onReqStartDateChange(val) {
+        const endDate = document.getElementById('reqEndDate');
+        if (!endDate.value || endDate.value < val) {
+            endDate.value = val;
         }
+    }
 
-        document.getElementById('requestModal').classList.add('active');
+    function onProgramSelected() {
+        const sel = document.getElementById('reqProgramSelector');
+        const opt = sel.options[sel.selectedIndex];
+        if (!opt || !opt.value) return;
+        var prog = {};
+        try { prog = JSON.parse(opt.dataset.program || '{}'); } catch(e) {}
+        document.getElementById('reqEventId').value = prog.id || '';
+        document.getElementById('reqTitle').value = prog.title || '';
+        document.getElementById('reqCategories').value = prog.categories || '';
+        document.getElementById('reqDesc').value = prog.description || '';
+        if (prog.start) {
+            var startStr = prog.start.replace(' ', 'T');
+            document.getElementById('reqDate').value = startStr.slice(0, 10);
+            document.getElementById('reqStart').value = startStr.slice(11, 16);
+        }
+        if (prog.end) {
+            var endStr = prog.end.replace(' ', 'T');
+            document.getElementById('reqEndDate').value = endStr.slice(0, 10);
+            document.getElementById('reqEnd').value = endStr.slice(11, 16);
+        }
+        // match venue dropdown
+        var locSel = document.getElementById('reqLocation');
+        for (var i = 0; i < locSel.options.length; i++) {
+            if (locSel.options[i].value === (prog.location || '')) {
+                locSel.selectedIndex = i; break;
+            }
+        }
+    }
+
+    async function loadProgramsIntoSelector() {
+        try {
+            var url = BASE_PATH + '/api/request?action=programs' + (EVENT_SLUG ? '&event=' + encodeURIComponent(EVENT_SLUG) : '');
+            var res = await fetch(url);
+            var data = await res.json();
+            var sel = document.getElementById('reqProgramSelector');
+            sel.innerHTML = '<option value="">' + (translations[currentLang]['modal.selectProgramPlaceholder'] || '-- เลือก program --') + '</option>';
+            var programs = Array.isArray(data) ? data : (data.data || data.programs || []);
+            programs.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.id;
+                var startDate = p.start ? p.start.slice(5, 10).replace('-', '/') : '';
+                var startTime = p.start ? p.start.slice(11, 16) : '';
+                opt.textContent = (startDate ? startDate + ' ' : '') + (startTime ? startTime + ' ' : '') + (p.title || '');
+                opt.dataset.program = JSON.stringify(p);
+                sel.appendChild(opt);
+            });
+        } catch(e) { console.error('Failed to load programs', e); }
     }
 
     function closeRequestModal() {
@@ -1251,17 +1311,18 @@ if ($_listingCalDataFromCache !== null) {
     async function submitRequest(ev) {
         ev.preventDefault();
         const btn = document.getElementById('reqSubmitBtn');
-        const type = document.getElementById('reqType').value;
-        const date = document.getElementById('reqDate').value;
+        const type = document.querySelector('input[name="reqTypeRadio"]:checked')?.value || 'add';
+        const startDate = document.getElementById('reqDate').value;
+        const endDate = document.getElementById('reqEndDate').value;
 
         const data = {
             type,
             program_id: type === 'modify' ? document.getElementById('reqEventId').value : null,
             title: document.getElementById('reqTitle').value,
-            start: date + ' ' + document.getElementById('reqStart').value + ':00',
-            end: date + ' ' + document.getElementById('reqEnd').value + ':00',
+            start: startDate + ' ' + document.getElementById('reqStart').value + ':00',
+            end: endDate + ' ' + document.getElementById('reqEnd').value + ':00',
             location: document.getElementById('reqLocation').value,
-            organizer: document.getElementById('reqOrganizer').value,
+            organizer: '',
             description: document.getElementById('reqDesc').value,
             categories: document.getElementById('reqCategories').value,
             requester_name: document.getElementById('reqName').value,
@@ -1659,6 +1720,63 @@ if ($_listingCalDataFromCache !== null) {
     </script>
     <?php endif; ?>
     <?php endif; ?>
+
+<!-- Artist Display Picture Tooltip (shared, fixed-position) -->
+<div id="artistDpTooltip" style="display:none;position:fixed;z-index:9999;pointer-events:none;text-align:center;background:#fff;border-radius:12px;padding:10px 12px 8px;box-shadow:0 6px 20px rgba(0,0,0,.18);border:1px solid rgba(0,0,0,.07);min-width:80px;transform:translateX(-50%)">
+    <div id="artistDpTooltipImg" style="width:60px;height:60px;border-radius:50%;background:center/cover no-repeat #f3f4f6;margin:0 auto 5px;border:2px solid var(--sakura-light,#FFB7C5)"></div>
+    <div id="artistDpTooltipName" style="font-size:.75rem;font-weight:600;color:#374151;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+</div>
+<script>
+(function(){
+    var tip = document.getElementById('artistDpTooltip');
+    var tipImg = document.getElementById('artistDpTooltipImg');
+    var tipName = document.getElementById('artistDpTooltipName');
+    var activeEl = null;
+
+    function show(el) {
+        var pic = el.getAttribute('data-display-pic');
+        var name = el.getAttribute('data-display-name');
+        if (!pic) return;
+        tipImg.style.backgroundImage = 'url(' + JSON.stringify(pic) + ')';
+        tipName.textContent = name || '';
+        tip.style.display = 'block';
+        position(el);
+    }
+    function hide() {
+        tip.style.display = 'none';
+        activeEl = null;
+    }
+    function position(el) {
+        var r = el.getBoundingClientRect();
+        var tipH = tip.offsetHeight || 100;
+        var cx = r.left + r.width / 2;
+        var top = r.top - tipH - 8;
+        if (top < 8) top = r.bottom + 8; // flip below if no room above
+        tip.style.left = cx + 'px';
+        tip.style.top  = top + 'px';
+    }
+
+    document.addEventListener('mouseover', function(e) {
+        var el = e.target.closest('[data-display-pic]');
+        if (el && el !== activeEl) {
+            activeEl = el;
+            show(el);
+        } else if (!el && activeEl) {
+            hide();
+        }
+    });
+    document.addEventListener('mouseout', function(e) {
+        var el = e.target.closest('[data-display-pic]');
+        if (el) {
+            var to = e.relatedTarget;
+            if (!el.contains(to)) hide();
+        }
+    });
+    // Also hide on scroll/resize
+    window.addEventListener('scroll', hide, { passive: true });
+    window.addEventListener('resize', hide, { passive: true });
+})();
+</script>
 
 <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
 <!-- Event Picker Modal -->

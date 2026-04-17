@@ -1887,6 +1887,44 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <small class="form-hint" data-i18n="artist.groupOfHint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
                     </div>
 
+                    <!-- Picture Section (shown only in edit mode, not create/copy) -->
+                    <div id="artistPictureSection" style="display:none">
+                        <hr style="margin:14px 0;border:none;border-top:1px solid #e9ecef">
+                        <div style="font-weight:600;margin-bottom:10px;color:#374151" data-i18n="artist.pictureSection">🖼️ รูปภาพ</div>
+
+                        <!-- Display Picture -->
+                        <div style="margin-bottom:14px">
+                            <label style="font-size:0.88em;font-weight:600;color:#6b7280;display:block;margin-bottom:6px" data-i18n="artist.displayPicLabel">📷 Display Picture (รูปโปรไฟล์ วงกลม)</label>
+                            <div style="display:flex;align-items:center;gap:12px">
+                                <div id="artistDisplayPicPreview" style="width:72px;height:72px;border-radius:50%;background:#f3f4f6;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;font-size:1.8rem;overflow:hidden;flex-shrink:0">
+                                    <span id="artistDisplayPicPlaceholder">🎤</span>
+                                    <img id="artistDisplayPicImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:6px">
+                                    <input type="file" id="artistDisplayPicFile" accept="image/*" style="display:none" onchange="uploadArtistPicture('display', this)">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('artistDisplayPicFile').click()" data-i18n="artist.changePic">📸 เปลี่ยนรูป</button>
+                                    <button type="button" id="artistDisplayPicDeleteBtn" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:none;display:none" onclick="deleteArtistPicture('display')" data-i18n="artist.deletePic">🗑️ ลบรูป</button>
+                                    <div id="artistDisplayPicSpinner" style="display:none;font-size:0.8em;color:#6b7280">⏳ กำลังอัปโหลด...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cover Picture -->
+                        <div>
+                            <label style="font-size:0.88em;font-weight:600;color:#6b7280;display:block;margin-bottom:6px" data-i18n="artist.coverPicLabel">🖼️ Cover Picture (รูปแบนเนอร์)</label>
+                            <div id="artistCoverPicPreview" style="width:100%;height:80px;border-radius:8px;background:#f3f4f6;border:2px solid #e5e7eb;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:6px;position:relative">
+                                <span id="artistCoverPicPlaceholder" style="color:#9ca3af;font-size:0.85em" data-i18n="artist.coverPicPlaceholder">ยังไม่มีรูปแบนเนอร์</span>
+                                <img id="artistCoverPicImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover">
+                            </div>
+                            <div style="display:flex;gap:6px">
+                                <input type="file" id="artistCoverPicFile" accept="image/*" style="display:none" onchange="uploadArtistPicture('cover', this)">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('artistCoverPicFile').click()" data-i18n="artist.changePic">📸 เปลี่ยนรูป</button>
+                                <button type="button" id="artistCoverPicDeleteBtn" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:none;display:none" onclick="deleteArtistPicture('cover')" data-i18n="artist.deletePic">🗑️ ลบรูป</button>
+                                <div id="artistCoverPicSpinner" style="display:none;font-size:0.8em;color:#6b7280">⏳ กำลังอัปโหลด...</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Copy Variants Section (shown only in copy mode) -->
                     <div id="artistCopyVariantsSection" style="display:none">
                         <hr style="margin:12px 0;border:none;border-top:1px solid #e9ecef">
@@ -2869,7 +2907,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const type = r.type === 'add' ? `<span class="type-add">${adminT('req.typeAdd')}</span>` : `<span class="type-modify">${adminT('req.typeModify')}</span>`;
                 const status = r.status === 'pending' ? `<span class="status-pending">${adminT('req.statusPending')}</span>` : r.status === 'approved' ? `<span class="status-approved">${adminT('req.statusApproved')}</span>` : `<span class="status-rejected">${adminT('req.statusRejected')}</span>`;
                 const viewBtn = `<button class="btn btn-sm btn-info" onclick="viewRequestDetail(${r.id})">${adminT('req.view')}</button>`;
-                const actions = r.status === 'pending' ? `${viewBtn} <button class="btn btn-sm btn-primary" onclick="approveReq(${r.id})">${adminT('req.approve')}</button> <button class="btn btn-sm btn-danger" onclick="rejectReq(${r.id})">${adminT('req.reject')}</button>` : viewBtn;
+                const actions = r.status === 'pending' ? `${viewBtn} <button class="btn btn-sm btn-primary" onclick="viewRequestDetail(${r.id});showAdminNoteForm(${r.id},'approve')">${adminT('req.approve')}</button> <button class="btn btn-sm btn-danger" onclick="viewRequestDetail(${r.id});showAdminNoteForm(${r.id},'reject')">${adminT('req.reject')}</button>` : viewBtn;
                 return `<tr><td>${r.id}</td><td>${type}</td><td>${r.title}</td><td>${r.requester_name}</td><td>${d}</td><td>${status}</td><td class="actions">${actions}</td></tr>`;
             }).join('');
         }
@@ -2990,17 +3028,57 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (r.status === 'pending') {
                 footerHtml = `
                     <button type="button" class="btn btn-secondary" onclick="closeRequestDetailModal()">${adminT('common.close')}</button>
-                    <button type="button" class="btn btn-danger" onclick="closeRequestDetailModal();rejectReq(${r.id})">${adminT('req.reject')}</button>
-                    <button type="button" class="btn btn-primary" onclick="closeRequestDetailModal();approveReq(${r.id})">${adminT('req.approve')}</button>
+                    <button type="button" class="btn btn-danger" onclick="showAdminNoteForm(${r.id},'reject')">${adminT('req.reject')}</button>
+                    <button type="button" class="btn btn-primary" onclick="showAdminNoteForm(${r.id},'approve')">${adminT('req.approve')}</button>
                 `;
             }
             document.getElementById('requestDetailFooter').innerHTML = footerHtml;
 
+            window._currentReqData = r;
             document.getElementById('requestDetailModal').classList.add('active');
         }
 
         function closeRequestDetailModal() {
             document.getElementById('requestDetailModal').classList.remove('active');
+            window._currentReqData = null;
+        }
+
+        function showAdminNoteForm(id, action) {
+            const isApprove = action === 'approve';
+            const btnClass = isApprove ? 'btn-primary' : 'btn-danger';
+            const btnLabel = isApprove ? adminT('req.approve') : adminT('req.reject');
+            document.getElementById('requestDetailFooter').innerHTML = `
+                <div style="width:100%">
+                    <label style="display:block;margin-bottom:6px;font-size:0.875rem;font-weight:600;">${adminT('req.adminNote')} <span style="font-weight:400;color:#888;">(${adminT('common.optional')})</span></label>
+                    <textarea id="adminNoteInput" rows="2" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:4px;font-size:0.875rem;resize:vertical;margin-bottom:10px;" placeholder="${adminT('req.adminNotePlaceholder')}"></textarea>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="viewRequestDetail(window._currentReqData?.id)">${adminT('common.back')}</button>
+                        <button type="button" class="btn ${btnClass}" onclick="confirmReqAction(${id},'${action}')">${btnLabel}</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('adminNoteInput').focus();
+        }
+
+        async function confirmReqAction(id, action) {
+            const adminNote = (document.getElementById('adminNoteInput')?.value || '').trim();
+            const endpoint = action === 'approve' ? 'request_approve' : 'request_reject';
+            showLoading();
+            try {
+                const res = await fetch(`api.php?action=${endpoint}&id=${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ admin_note: adminNote })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    closeRequestDetailModal();
+                    showToast(action === 'approve' ? adminT('req.approve') : adminT('req.reject'), 'success');
+                    loadRequests();
+                    loadPendingCount();
+                } else showToast(result.message, 'error');
+            } catch (e) { showToast('Error', 'error'); }
+            hideLoading();
         }
 
         function renderReqPagination(p) {
@@ -3011,29 +3089,6 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 (p.page < p.totalPages ? `<button onclick="reqPage=${p.page+1};loadRequests()">»</button>` : '');
         }
 
-        async function approveReq(id) {
-            if (!confirm('อนุมัติ?')) return;
-            showLoading();
-            try {
-                const res = await fetch(`api.php?action=request_approve&id=${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN }, body: '{}' });
-                const result = await res.json();
-                if (result.success) { showToast('อนุมัติแล้ว', 'success'); loadRequests(); loadPendingCount(); }
-                else showToast(result.message, 'error');
-            } catch (e) { showToast('Error', 'error'); }
-            hideLoading();
-        }
-
-        async function rejectReq(id) {
-            if (!confirm('ปฏิเสธ?')) return;
-            showLoading();
-            try {
-                const res = await fetch(`api.php?action=request_reject&id=${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN }, body: '{}' });
-                const result = await res.json();
-                if (result.success) { showToast('ปฏิเสธแล้ว', 'success'); loadRequests(); loadPendingCount(); }
-                else showToast(result.message, 'error');
-            } catch (e) { showToast('Error', 'error'); }
-            hideLoading();
-        }
 
         // Setup keyboard shortcuts (ESC to close modal)
         function setupKeyboardShortcuts() {
@@ -6457,12 +6512,144 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('artistCopyVariantsList').innerHTML = `<span style="color:#9ca3af;font-size:0.9em">${adminT('common.loading')}</span>`;
         }
 
+        function resetArtistPictureSection() {
+            document.getElementById('artistPictureSection').style.display = 'none';
+            // Reset display picture preview
+            document.getElementById('artistDisplayPicImg').style.display = 'none';
+            document.getElementById('artistDisplayPicImg').src = '';
+            document.getElementById('artistDisplayPicPlaceholder').style.display = '';
+            document.getElementById('artistDisplayPicDeleteBtn').style.display = 'none';
+            document.getElementById('artistDisplayPicFile').value = '';
+            // Reset cover picture preview
+            document.getElementById('artistCoverPicImg').style.display = 'none';
+            document.getElementById('artistCoverPicImg').src = '';
+            document.getElementById('artistCoverPicPlaceholder').style.display = '';
+            document.getElementById('artistCoverPicDeleteBtn').style.display = 'none';
+            document.getElementById('artistCoverPicFile').value = '';
+        }
+
+        function showArtistPictureSection(artist) {
+            document.getElementById('artistPictureSection').style.display = 'block';
+            // Display picture
+            const dpImg = document.getElementById('artistDisplayPicImg');
+            const dpPh  = document.getElementById('artistDisplayPicPlaceholder');
+            const dpDel = document.getElementById('artistDisplayPicDeleteBtn');
+            const dp = artist.display_picture ? decodeHtml(artist.display_picture) : '';
+            if (dp) {
+                dpImg.src = APP_ROOT + '/' + dp;
+                dpImg.style.display = 'block';
+                dpPh.style.display  = 'none';
+                dpDel.style.display = 'inline-flex';
+            } else {
+                dpImg.style.display = 'none';
+                dpPh.style.display  = '';
+                dpDel.style.display = 'none';
+            }
+            // Cover picture
+            const cpImg = document.getElementById('artistCoverPicImg');
+            const cpPh  = document.getElementById('artistCoverPicPlaceholder');
+            const cpDel = document.getElementById('artistCoverPicDeleteBtn');
+            const cp = artist.cover_picture ? decodeHtml(artist.cover_picture) : '';
+            if (cp) {
+                cpImg.src = APP_ROOT + '/' + cp;
+                cpImg.style.display = 'block';
+                cpPh.style.display  = 'none';
+                cpDel.style.display = 'inline-flex';
+            } else {
+                cpImg.style.display = 'none';
+                cpPh.style.display  = '';
+                cpDel.style.display = 'none';
+            }
+        }
+
+        async function uploadArtistPicture(type, fileInput) {
+            const artistId = document.getElementById('artistId').value;
+            if (!artistId) return;
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const spinnerId = type === 'display' ? 'artistDisplayPicSpinner' : 'artistCoverPicSpinner';
+            document.getElementById(spinnerId).style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('artist_id', artistId);
+            formData.append('picture_type', type);
+            formData.append('picture', file);
+            formData.append('csrf_token', CSRF_TOKEN);
+
+            try {
+                const response = await fetch('api.php?action=artist_picture_upload', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                    body: formData,
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    showToast(result.message || 'Upload failed', 'error');
+                    return;
+                }
+                const imgUrl = APP_ROOT + '/' + result.data.path + '?t=' + Date.now();
+                if (type === 'display') {
+                    const img = document.getElementById('artistDisplayPicImg');
+                    img.src = imgUrl;
+                    img.style.display = 'block';
+                    document.getElementById('artistDisplayPicPlaceholder').style.display = 'none';
+                    document.getElementById('artistDisplayPicDeleteBtn').style.display = 'inline-flex';
+                } else {
+                    const img = document.getElementById('artistCoverPicImg');
+                    img.src = imgUrl;
+                    img.style.display = 'block';
+                    document.getElementById('artistCoverPicPlaceholder').style.display = 'none';
+                    document.getElementById('artistCoverPicDeleteBtn').style.display = 'inline-flex';
+                }
+                showToast('อัปโหลดรูปสำเร็จ', 'success');
+                loadArtists();
+            } catch (err) {
+                showToast('Upload error: ' + err.message, 'error');
+            } finally {
+                document.getElementById(spinnerId).style.display = 'none';
+                fileInput.value = '';
+            }
+        }
+
+        async function deleteArtistPicture(type) {
+            const artistId = document.getElementById('artistId').value;
+            if (!artistId) return;
+            if (!confirm('ลบรูปนี้?')) return;
+
+            try {
+                const response = await fetch('api.php?action=artist_picture_delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ artist_id: parseInt(artistId), picture_type: type }),
+                });
+                const result = await response.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                if (type === 'display') {
+                    document.getElementById('artistDisplayPicImg').style.display = 'none';
+                    document.getElementById('artistDisplayPicImg').src = '';
+                    document.getElementById('artistDisplayPicPlaceholder').style.display = '';
+                    document.getElementById('artistDisplayPicDeleteBtn').style.display = 'none';
+                } else {
+                    document.getElementById('artistCoverPicImg').style.display = 'none';
+                    document.getElementById('artistCoverPicImg').src = '';
+                    document.getElementById('artistCoverPicPlaceholder').style.display = '';
+                    document.getElementById('artistCoverPicDeleteBtn').style.display = 'none';
+                }
+                showToast('ลบรูปสำเร็จ', 'success');
+                loadArtists();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+        }
+
         async function openAddArtistModal() {
             document.getElementById('artistModalTitle').textContent = adminT('artist.addTitle');
             document.getElementById('artistForm').reset();
             document.getElementById('artistId').value = '';
             document.getElementById('artistGroupIdRow').style.display = 'block';
             resetArtistCopyState();
+            resetArtistPictureSection();
             await loadGroupsIntoSelect(null);
             document.getElementById('artistModal').classList.add('active');
         }
@@ -6484,6 +6671,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('artistIsGroup').checked = artist.is_group == 1;
                 document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
                 resetArtistCopyState();
+                showArtistPictureSection(artist);
 
                 await loadGroupsIntoSelect(artist.group_id);
                 document.getElementById('artistModal').classList.add('active');
@@ -6497,6 +6685,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         async function openCopyArtistModal(id) {
             showLoading();
             try {
+                resetArtistPictureSection();
                 // Fetch artist data
                 const [artistRes, variantsRes] = await Promise.all([
                     fetch(`api.php?action=artists_get&id=${id}`),
@@ -6552,6 +6741,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         function closeArtistModal() {
             document.getElementById('artistModal').classList.remove('active');
             resetArtistCopyState();
+            resetArtistPictureSection();
         }
 
         async function saveArtist(e) {

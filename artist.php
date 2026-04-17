@@ -50,6 +50,7 @@ if (!$hasPATable) {
 // Fetch artist
 $stmtA = $db->prepare("
     SELECT a.id, a.name, a.is_group, a.group_id,
+           a.display_picture, a.cover_picture,
            g.name AS group_name
     FROM artists a
     LEFT JOIN artists g ON g.id = a.group_id
@@ -256,7 +257,28 @@ function include_404(string $msg): never {
         <div class="content" style="padding-top:16px">
 
             <!-- Artist Header Card -->
-            <div class="artist-profile-header">
+            <?php
+            $coverPic   = $artist['cover_picture'] ?? '';
+            $displayPic = $artist['display_picture'] ?? '';
+            $hasCover   = !empty($coverPic);
+            $headerStyle = $hasCover
+                ? ' style="--cover-url:url(\'' . htmlspecialchars(get_base_path() . '/' . $coverPic, ENT_QUOTES, 'UTF-8') . '\')"'
+                : '';
+            $headerClass = 'artist-profile-header' . ($hasCover ? ' has-cover' : '');
+            ?>
+            <div class="<?php echo $headerClass; ?>"<?php echo $headerStyle; ?>>
+                <div class="artist-header-content">
+                <div class="artist-header-top">
+                    <?php if (!empty($displayPic)): ?>
+                    <img class="artist-display-picture"
+                         src="<?php echo htmlspecialchars(get_base_path() . '/' . $displayPic, ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($artist['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php else: ?>
+                    <div class="artist-display-placeholder">
+                        <?php echo $artist['is_group'] ? '🎵' : '🎤'; ?>
+                    </div>
+                    <?php endif; ?>
+                    <div class="artist-header-info">
                 <h1><?php echo htmlspecialchars($artist['name'], ENT_QUOTES, 'UTF-8'); ?></h1>
                 <div class="artist-meta-row">
                     <?php if ($artist['is_group']): ?>
@@ -300,6 +322,9 @@ function include_404(string $msg): never {
                         ☆ ติดตาม
                     </button>
                 </div>
+                    </div><!-- /.artist-header-info -->
+                </div><!-- /.artist-header-top -->
+                </div><!-- /.artist-header-content -->
             </div>
 
             <?php if ($artist['is_group'] && !empty($members)): ?>

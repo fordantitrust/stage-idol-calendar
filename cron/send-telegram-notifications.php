@@ -244,7 +244,10 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
         // SQLite's strftime('%s', ...) treats stored datetimes as UTC, but p.start is stored
         // in the event's local timezone (DEFAULT_TIMEZONE). Comparing Unix timestamps directly
         // causes notifications to be delayed by the UTC offset (e.g. +7h for Bangkok).
-        // Using datetime string comparison avoids this mismatch entirely.
+        // Using datetime() in SQL normalizes both the stored value and the window strings,
+        // handling both 'T' and ' ' separators (e.g. "2026-04-17T11:00:00" vs "2026-04-17 23:53:24").
+        // Raw BETWEEN string comparison is incorrect because 'T' (ASCII 84) > ' ' (ASCII 32),
+        // so "2026-04-17T11:00:00" would falsely match a window of "2026-04-17 23:53:24"–"2026-04-18 00:03:24".
         $tzObj = new DateTimeZone(defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok');
         $windowStartStr = (new DateTime('@' . $windowStart))->setTimezone($tzObj)->format('Y-m-d H:i:s');
         $windowEndStr   = (new DateTime('@' . $windowEnd))->setTimezone($tzObj)->format('Y-m-d H:i:s');
@@ -259,7 +262,7 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
             JOIN program_artists pa ON p.id = pa.program_id
             WHERE pa.artist_id IN ($placeholders)
                 AND e.is_active = 1
-                AND p.start BETWEEN :windowStart AND :windowEnd
+                AND datetime(p.start) BETWEEN datetime(:windowStart) AND datetime(:windowEnd)
         ");
 
         $stmt->execute(array_merge($allArtistIds, [

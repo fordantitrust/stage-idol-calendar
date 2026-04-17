@@ -97,25 +97,25 @@ function submitRequest() {
     }
 
     $data = [
-        ':type' => $input['type'],
-        ':program_id' => $input['type'] === 'modify' ? intval($input['program_id']) : null,
-        ':title' => mb_substr(trim($input['title']), 0, 200),
-        ':start' => $input['start'],
-        ':end' => $input['end'],
-        ':location' => mb_substr(trim($input['location'] ?? ''), 0, 200),
-        ':organizer' => mb_substr(trim($input['organizer'] ?? ''), 0, 200),
-        ':description' => mb_substr(trim($input['description'] ?? ''), 0, 2000),
-        ':categories' => mb_substr(trim($input['categories'] ?? ''), 0, 500),
-        ':requester_name' => mb_substr(trim($input['requester_name']), 0, 100),
+        ':request_type' => $input['type'],
+        ':program_id'   => $input['type'] === 'modify' ? intval($input['program_id']) : null,
+        ':summary'      => mb_substr(trim($input['title']), 0, 200),
+        ':start'        => $input['start'],
+        ':end'          => $input['end'],
+        ':location'     => mb_substr(trim($input['location'] ?? ''), 0, 200),
+        ':organizer'    => mb_substr(trim($input['organizer'] ?? ''), 0, 200),
+        ':description'  => mb_substr(trim($input['description'] ?? ''), 0, 2000),
+        ':categories'   => mb_substr(trim($input['categories'] ?? ''), 0, 500),
+        ':requester_name'  => mb_substr(trim($input['requester_name']), 0, 100),
         ':requester_email' => mb_substr(trim($input['requester_email'] ?? ''), 0, 200),
-        ':requester_note' => mb_substr(trim($input['requester_note'] ?? ''), 0, 1000),
-        ':event_id' => $eventId,
+        ':note'         => mb_substr(trim($input['requester_note'] ?? ''), 0, 1000),
+        ':event_id'     => $eventId,
     ];
 
     try {
         $stmt = $db->prepare("
-            INSERT INTO program_requests (type, program_id, title, start, end, location, organizer, description, categories, requester_name, requester_email, requester_note, event_id)
-            VALUES (:type, :program_id, :title, :start, :end, :location, :organizer, :description, :categories, :requester_name, :requester_email, :requester_note, :event_id)
+            INSERT INTO program_requests (request_type, program_id, summary, start, end, location, organizer, description, categories, requester_name, requester_email, note, event_id)
+            VALUES (:request_type, :program_id, :summary, :start, :end, :location, :organizer, :description, :categories, :requester_name, :requester_email, :note, :event_id)
         ");
         $stmt->execute($data);
         recordRequest($ip);
@@ -141,10 +141,10 @@ function getEvents() {
         }
 
         if ($eventId) {
-            $stmt = $db->prepare("SELECT id, title, start, location, organizer FROM programs WHERE event_id = :emi ORDER BY start DESC LIMIT 100");
+            $stmt = $db->prepare("SELECT id, title, start, end, location, organizer, categories, description FROM programs WHERE event_id = :emi ORDER BY start ASC LIMIT 200");
             $stmt->execute([':emi' => $eventId]);
         } else {
-            $stmt = $db->query("SELECT id, title, start, location, organizer FROM programs ORDER BY start DESC LIMIT 100");
+            $stmt = $db->query("SELECT id, title, start, end, location, organizer, categories, description FROM programs ORDER BY start ASC LIMIT 200");
         }
         $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
         jsonResponse(true, $events);

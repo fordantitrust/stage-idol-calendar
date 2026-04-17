@@ -256,6 +256,12 @@ switch ($action) {
     case 'artists_variants_delete':
         deleteArtistVariant();
         break;
+    case 'artist_picture_upload':
+        uploadArtistPicture();
+        break;
+    case 'artist_picture_delete':
+        deleteArtistPicture();
+        break;
     case 'artists_bulk_set_group':
         artistsBulkSetGroup();
         break;
@@ -873,7 +879,8 @@ function listRequests() {
         $countStmt->execute($params);
         $total = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-        $sql = "SELECT * FROM program_requests $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        // Alias renamed columns so admin JS (which uses .type, .title, .requester_note) still works
+        $sql = "SELECT *, request_type AS type, summary AS title, note AS requester_note FROM program_requests $where ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
         $stmt = $db->prepare($sql);
         foreach ($params as $k => $v) $stmt->bindValue($k, $v);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -883,12 +890,12 @@ function listRequests() {
         $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Fields ที่ต้อง escape เพื่อป้องกัน XSS
-        $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories',
-                          'requester_name', 'requester_email', 'requester_note', 'admin_note', 'reviewed_by'];
+        $fieldsToEscape = ['title', 'summary', 'location', 'organizer', 'description', 'categories',
+                          'requester_name', 'requester_email', 'requester_note', 'note', 'admin_note', 'reviewed_by'];
 
         // สำหรับ request ประเภท modify ให้ดึงข้อมูล event เดิมมาด้วย
         foreach ($requests as &$req) {
-            if ($req['type'] === 'modify' && !empty($req['program_id'])) {
+            if ($req['request_type'] === 'modify' && !empty($req['program_id'])) {
                 $eventStmt = $db->prepare("SELECT id, title, start, end, location, organizer, description, categories FROM programs WHERE id = :id");
                 $eventStmt->execute([':id' => $req['program_id']]);
                 $originalEvent = $eventStmt->fetch(PDO::FETCH_ASSOC);
@@ -926,27 +933,28 @@ function approveRequest() {
     try {
         $db->beginTransaction();
 
-        $stmt = $db->prepare("SELECT * FROM program_requests WHERE id = :id AND status = 'pending'");
+        // Alias renamed columns for consistent field access
+        $stmt = $db->prepare("SELECT *, request_type AS type, summary AS title, note AS requester_note FROM program_requests WHERE id = :id AND status = 'pending'");
         $stmt->execute([':id' => $id]);
         $req = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$req) { $db->rollBack(); jsonResponse(false, null, 'Not found or processed'); }
 
         $now = date('Y-m-d H:i:s');
 
-        if ($req['type'] === 'add') {
+        if ($req['request_type'] === 'add') {
             $uid = uniqid('req-') . '@local';
             $reqEventId = $req['event_id'] ?? null;
             $stmt = $db->prepare("INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, event_id, created_at, updated_at) VALUES (:uid, :title, :start, :end, :location, :organizer, :description, :categories, :event_id, :now, :now2)");
-            $stmt->execute([':uid' => $uid, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':event_id' => $reqEventId, ':now' => $now, ':now2' => $now]);
+            $stmt->execute([':uid' => $uid, ':title' => $req['summary'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':event_id' => $reqEventId, ':now' => $now, ':now2' => $now]);
             $programId = $db->lastInsertId();
         } else {
             $programId = $req['program_id'];
             $stmt = $db->prepare("UPDATE programs SET title = :title, start = :start, end = :end, location = :location, organizer = :organizer, description = :description, categories = :categories, updated_at = :now WHERE id = :id");
-            $stmt->execute([':id' => $programId, ':title' => $req['title'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now]);
+            $stmt->execute([':id' => $programId, ':title' => $req['summary'], ':start' => $req['start'], ':end' => $req['end'], ':location' => $req['location'], ':organizer' => $req['organizer'], ':description' => $req['description'], ':categories' => $req['categories'], ':now' => $now]);
         }
 
-        $stmt = $db->prepare("UPDATE program_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id");
-        $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => $now, ':by' => $_SESSION['admin_username'] ?? 'admin']);
+        $stmt = $db->prepare("UPDATE program_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by, updated_at = :now WHERE id = :id");
+        $stmt->execute([':id' => $id, ':note' => mb_substr(trim($input['admin_note'] ?? ''), 0, 500), ':now' => $now, ':by' => $_SESSION['admin_username'] ?? 'admin']);
 
         $db->commit();
         jsonResponse(true, ['program_id' => $programId], 'Approved');
@@ -969,8 +977,8 @@ function rejectRequest() {
     $input = json_decode(file_get_contents('php://input'), true);
 
     try {
-        $stmt = $db->prepare("UPDATE program_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by WHERE id = :id AND status = 'pending'");
-        $stmt->execute([':id' => $id, ':note' => $input['admin_note'] ?? '', ':now' => date('Y-m-d H:i:s'), ':by' => $_SESSION['admin_username'] ?? 'admin']);
+        $stmt = $db->prepare("UPDATE program_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by, updated_at = :now WHERE id = :id AND status = 'pending'");
+        $stmt->execute([':id' => $id, ':note' => mb_substr(trim($input['admin_note'] ?? ''), 0, 500), ':now' => date('Y-m-d H:i:s'), ':by' => $_SESSION['admin_username'] ?? 'admin']);
         if ($stmt->rowCount() === 0) jsonResponse(false, null, 'Not found or processed');
         jsonResponse(true, null, 'Rejected');
     } catch (PDOException $e) {
@@ -3539,6 +3547,7 @@ function listArtists() {
 
         $sql = "
             SELECT a.id, a.name, a.is_group, a.group_id, a.created_at,
+                   a.display_picture, a.cover_picture,
                    g.name AS group_name,
                    $variantCountExpr AS variant_count,
                    (SELECT COUNT(*) FROM artists m WHERE m.group_id = a.id AND m.is_group = 0) AS member_count
@@ -3558,7 +3567,7 @@ function listArtists() {
         $artists = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $artists = array_map(function($a) {
-            return escapeOutputData($a, ['name', 'group_name']);
+            return escapeOutputData($a, ['name', 'group_name', 'display_picture', 'cover_picture']);
         }, $artists);
 
         jsonResponse(true, [
@@ -3627,6 +3636,7 @@ function getArtist() {
     try {
         $stmt = $db->prepare("
             SELECT a.id, a.name, a.is_group, a.group_id,
+                   a.display_picture, a.cover_picture,
                    g.name AS group_name
             FROM artists a
             LEFT JOIN artists g ON a.group_id = g.id
@@ -3640,7 +3650,7 @@ function getArtist() {
             return;
         }
 
-        $artist = escapeOutputData($artist, ['name', 'group_name']);
+        $artist = escapeOutputData($artist, ['name', 'group_name', 'display_picture', 'cover_picture']);
         jsonResponse(true, $artist);
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to fetch artist', $e->getMessage()));
@@ -3819,6 +3829,237 @@ function deleteArtist() {
         jsonResponse(true, null, 'Artist deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete artist', $e->getMessage()));
+    }
+}
+
+/**
+ * Upload display_picture or cover_picture for an artist
+ * POST multipart/form-data: artist_id, picture_type (display|cover), picture (file)
+ * Resizes: display → 400×400 center-crop JPEG 85%; cover → 1200×400 center-crop JPEG 85%
+ */
+function uploadArtistPicture() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $artistId    = intval($_POST['artist_id'] ?? 0);
+    $pictureType = trim($_POST['picture_type'] ?? '');
+
+    if ($artistId <= 0) {
+        jsonResponse(false, null, 'Valid artist_id required');
+        return;
+    }
+    if (!in_array($pictureType, ['display', 'cover'])) {
+        jsonResponse(false, null, 'picture_type must be "display" or "cover"');
+        return;
+    }
+    if (!isset($_FILES['picture']) || $_FILES['picture']['error'] !== UPLOAD_ERR_OK) {
+        $errCode = $_FILES['picture']['error'] ?? -1;
+        jsonResponse(false, null, 'File upload error (code: ' . $errCode . ')');
+        return;
+    }
+
+    $file = $_FILES['picture'];
+
+    // Size limit: 5 MB
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(false, null, 'File too large (max 5 MB)');
+        return;
+    }
+
+    // Validate image via getimagesize (checks actual file content)
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if (!$imgInfo) {
+        jsonResponse(false, null, 'Invalid image file');
+        return;
+    }
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($imgInfo['mime'], $allowedMimes)) {
+        jsonResponse(false, null, 'Unsupported image type. Allowed: JPG, PNG, GIF, WEBP');
+        return;
+    }
+    if (!function_exists('imagecreatefromjpeg')) {
+        jsonResponse(false, null, 'GD extension not available on this server');
+        return;
+    }
+
+    // Target dimensions
+    if ($pictureType === 'display') {
+        $targetW = 400; $targetH = 400;
+    } else {
+        $targetW = 1200; $targetH = 400;
+    }
+
+    // Destination path
+    $uploadsDir = defined('ROOT_DIR') ? ROOT_DIR . '/uploads/artists' : dirname(__DIR__) . '/uploads/artists';
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0755, true);
+    }
+    $filename = $artistId . '_' . $pictureType . '_' . uniqid() . '.jpg';
+    $destPath = $uploadsDir . '/' . $filename;
+
+    // Process image with GD
+    if (!processAndSaveArtistImage($file['tmp_name'], $destPath, $targetW, $targetH, $imgInfo[2])) {
+        jsonResponse(false, null, 'Failed to process image');
+        return;
+    }
+
+    // Relative URL for storing
+    $column   = ($pictureType === 'display') ? 'display_picture' : 'cover_picture';
+    $relPath  = 'uploads/artists/' . $filename;
+
+    try {
+        // Fetch old picture path to delete it
+        $stmtOld = $db->prepare("SELECT $column FROM artists WHERE id = :id");
+        $stmtOld->execute([':id' => $artistId]);
+        $old = $stmtOld->fetchColumn();
+
+        // Save new path to DB
+        $stmt = $db->prepare("UPDATE artists SET $column = :path, updated_at = :now WHERE id = :id");
+        $stmt->execute([':path' => $relPath, ':now' => date('Y-m-d H:i:s'), ':id' => $artistId]);
+
+        if ($stmt->rowCount() === 0) {
+            @unlink($destPath);
+            jsonResponse(false, null, 'Artist not found');
+            return;
+        }
+
+        // Delete old file if it exists and differs
+        if ($old && $old !== $relPath) {
+            $oldFull = dirname(__DIR__) . '/' . $old;
+            if (file_exists($oldFull)) {
+                @unlink($oldFull);
+            }
+        }
+
+        invalidate_artist_query_cache();
+        invalidate_query_cache();
+
+        // Return relative path only — JS uses APP_ROOT to build the full URL
+        jsonResponse(true, ['path' => $relPath], 'Picture uploaded successfully');
+    } catch (PDOException $e) {
+        @unlink($destPath);
+        jsonResponse(false, null, safe_error_message('Failed to save picture', $e->getMessage()));
+    }
+}
+
+/**
+ * Center-crop and resize an image, save as JPEG 85%.
+ * Returns true on success, false on failure.
+ */
+function processAndSaveArtistImage(string $srcPath, string $destPath, int $targetW, int $targetH, int $imgType): bool {
+    switch ($imgType) {
+        case IMAGETYPE_JPEG:
+            $src = @imagecreatefromjpeg($srcPath);
+            break;
+        case IMAGETYPE_PNG:
+            $src = @imagecreatefrompng($srcPath);
+            break;
+        case IMAGETYPE_GIF:
+            $src = @imagecreatefromgif($srcPath);
+            break;
+        case IMAGETYPE_WEBP:
+            $src = function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($srcPath) : false;
+            break;
+        default:
+            return false;
+    }
+    if (!$src) return false;
+
+    $srcW = imagesx($src);
+    $srcH = imagesy($src);
+
+    // Calculate crop to maintain target aspect ratio
+    $srcRatio    = $srcW / $srcH;
+    $targetRatio = $targetW / $targetH;
+
+    if ($srcRatio > $targetRatio) {
+        // Source is wider — crop width
+        $cropH = $srcH;
+        $cropW = (int)round($srcH * $targetRatio);
+        $cropX = (int)round(($srcW - $cropW) / 2);
+        $cropY = 0;
+    } else {
+        // Source is taller — crop height
+        $cropW = $srcW;
+        $cropH = (int)round($srcW / $targetRatio);
+        $cropX = 0;
+        $cropY = (int)round(($srcH - $cropH) / 2);
+    }
+
+    $dst = imagecreatetruecolor($targetW, $targetH);
+    if (!$dst) { imagedestroy($src); return false; }
+
+    // Preserve transparency for PNG
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    $white = imagecolorallocate($dst, 255, 255, 255);
+    imagefill($dst, 0, 0, $white);
+
+    imagecopyresampled($dst, $src, 0, 0, $cropX, $cropY, $targetW, $targetH, $cropW, $cropH);
+    imagedestroy($src);
+
+    $result = imagejpeg($dst, $destPath, 85);
+    imagedestroy($dst);
+    return $result;
+}
+
+/**
+ * Delete display_picture or cover_picture for an artist
+ * POST JSON: { artist_id, picture_type }
+ */
+function deleteArtistPicture() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input       = json_decode(file_get_contents('php://input'), true);
+    $artistId    = intval($input['artist_id'] ?? 0);
+    $pictureType = trim($input['picture_type'] ?? '');
+
+    if ($artistId <= 0) {
+        jsonResponse(false, null, 'Valid artist_id required');
+        return;
+    }
+    if (!in_array($pictureType, ['display', 'cover'])) {
+        jsonResponse(false, null, 'picture_type must be "display" or "cover"');
+        return;
+    }
+
+    $column = ($pictureType === 'display') ? 'display_picture' : 'cover_picture';
+
+    try {
+        $stmtGet = $db->prepare("SELECT $column FROM artists WHERE id = :id");
+        $stmtGet->execute([':id' => $artistId]);
+        $filePath = $stmtGet->fetchColumn();
+
+        $stmt = $db->prepare("UPDATE artists SET $column = NULL, updated_at = :now WHERE id = :id");
+        $stmt->execute([':now' => date('Y-m-d H:i:s'), ':id' => $artistId]);
+
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Artist not found');
+            return;
+        }
+
+        // Delete physical file
+        if ($filePath) {
+            $fullPath = dirname(__DIR__) . '/' . $filePath;
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+
+        invalidate_artist_query_cache();
+        invalidate_query_cache();
+        jsonResponse(true, null, 'Picture deleted successfully');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete picture', $e->getMessage()));
     }
 }
 

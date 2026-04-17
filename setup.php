@@ -122,12 +122,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // สร้าง directories ที่ขาด
     if ($action === 'create_dirs') {
         $toCreate = [
-            __DIR__ . '/data'         => 'data/',
-            __DIR__ . '/cache'        => 'cache/',
-            __DIR__ . '/cache/images' => 'cache/images/',
-            __DIR__ . '/backups'      => 'backups/',
-            __DIR__ . '/ics'          => 'ics/',
-            __DIR__ . '/fonts'        => 'fonts/',
+            __DIR__ . '/data'              => 'data/',
+            __DIR__ . '/cache'             => 'cache/',
+            __DIR__ . '/cache/images'      => 'cache/images/',
+            __DIR__ . '/backups'           => 'backups/',
+            __DIR__ . '/ics'               => 'ics/',
+            __DIR__ . '/fonts'             => 'fonts/',
+            __DIR__ . '/uploads'           => 'uploads/',
+            __DIR__ . '/uploads/artists'   => 'uploads/artists/',
             __DIR__ . '/cache/favorites' => 'cache/favorites/',
         ];
         $created = 0;
@@ -208,6 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 note TEXT,
                 status TEXT DEFAULT 'pending',
                 ip_address TEXT,
+                admin_note TEXT,
+                reviewed_at DATETIME,
+                reviewed_by TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -249,15 +254,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 last_login_at DATETIME
             )");
 
-            // artists table — ศิลปิน/กลุ่ม (v3.0.0+)
+            // artists table — ศิลปิน/กลุ่ม (v3.0.0+; display_picture + cover_picture added v6.0.0)
             $db->exec("CREATE TABLE IF NOT EXISTS artists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
                 is_group INTEGER DEFAULT 0,
                 group_id INTEGER REFERENCES artists(id),
+                display_picture TEXT DEFAULT NULL,
+                cover_picture TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
+            // Ensure picture columns exist on older databases (idempotent)
+            $acols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('display_picture', $acols)) {
+                $db->exec("ALTER TABLE artists ADD COLUMN display_picture TEXT DEFAULT NULL");
+            }
+            if (!in_array('cover_picture', $acols)) {
+                $db->exec("ALTER TABLE artists ADD COLUMN cover_picture TEXT DEFAULT NULL");
+            }
 
             // program_artists junction table — many-to-many (v3.0.0+)
             $db->exec("CREATE TABLE IF NOT EXISTS program_artists (
@@ -627,12 +642,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     name TEXT UNIQUE NOT NULL,
                     is_group INTEGER DEFAULT 0,
                     group_id INTEGER REFERENCES artists(id),
+                    display_picture TEXT DEFAULT NULL,
+                    cover_picture TEXT DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
                 $messages[] = ['type' => 'success', 'text' => "สร้างตาราง <strong>artists</strong> เรียบร้อย"];
             } else {
                 $messages[] = ['type' => 'info', 'text' => "ตาราง artists มีอยู่แล้ว"];
+                // Ensure new columns exist (idempotent — added in v6.0.0)
+                $artistCols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                if (!in_array('display_picture', $artistCols)) {
+                    $db->exec("ALTER TABLE artists ADD COLUMN display_picture TEXT DEFAULT NULL");
+                    $messages[] = ['type' => 'success', 'text' => "เพิ่ม column <strong>display_picture</strong> ใน artists"];
+                }
+                if (!in_array('cover_picture', $artistCols)) {
+                    $db->exec("ALTER TABLE artists ADD COLUMN cover_picture TEXT DEFAULT NULL");
+                    $messages[] = ['type' => 'success', 'text' => "เพิ่ม column <strong>cover_picture</strong> ใน artists"];
+                }
             }
 
             if (!in_array('program_artists', $existingTables)) {
@@ -788,11 +815,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         name TEXT UNIQUE NOT NULL,
                         is_group INTEGER DEFAULT 0,
                         group_id INTEGER REFERENCES artists(id),
+                        display_picture TEXT DEFAULT NULL,
+                        cover_picture TEXT DEFAULT NULL,
                         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                     )");
                     $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>artists</strong>"];
                     $ran++;
+                } else {
+                    // Ensure new columns exist (idempotent — added in v6.0.0)
+                    $artistCols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    if (!in_array('display_picture', $artistCols)) {
+                        $db->exec("ALTER TABLE artists ADD COLUMN display_picture TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>display_picture</strong> ใน artists"];
+                        $ran++;
+                    }
+                    if (!in_array('cover_picture', $artistCols)) {
+                        $db->exec("ALTER TABLE artists ADD COLUMN cover_picture TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>cover_picture</strong> ใน artists"];
+                        $ran++;
+                    }
                 }
                 if (!in_array('program_artists', $existingTables)) {
                     $db->exec("CREATE TABLE program_artists (
@@ -818,6 +860,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_variants_artist_id ON artist_variants(artist_id)");
                     $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>artist_variants</strong>"];
                     $ran++;
+                }
+
+                // program_requests review columns (added in v6.1.3)
+                if (in_array('program_requests', $existingTables)) {
+                    $reqCols = $db->query("PRAGMA table_info(program_requests)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    if (!in_array('admin_note', $reqCols)) {
+                        $db->exec("ALTER TABLE program_requests ADD COLUMN admin_note TEXT");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>admin_note</strong> ใน program_requests"];
+                        $ran++;
+                    }
+                    if (!in_array('reviewed_at', $reqCols)) {
+                        $db->exec("ALTER TABLE program_requests ADD COLUMN reviewed_at DATETIME");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>reviewed_at</strong> ใน program_requests"];
+                        $ran++;
+                    }
+                    if (!in_array('reviewed_by', $reqCols)) {
+                        $db->exec("ALTER TABLE program_requests ADD COLUMN reviewed_by TEXT");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>reviewed_by</strong> ใน program_requests"];
+                        $ran++;
+                    }
                 }
 
                 if ($ran === 0) {
@@ -938,7 +1000,9 @@ $dirChecks = [
     'cache_images' => ['label' => 'cache/images/', 'path' => __DIR__ . '/cache/images', 'need_write' => true,  'purpose' => $isEn ? 'Stores generated PNG images (v3.3.0)' : 'เก็บรูปภาพ PNG ที่ generate (v3.3.0)'],
     'backups'      => ['label' => 'backups/',      'path' => __DIR__ . '/backups',      'need_write' => true,  'purpose' => $isEn ? 'Stores backup files'                 : 'เก็บ backup files'],
     'ics'          => ['label' => 'ics/',          'path' => __DIR__ . '/ics',          'need_write' => false, 'purpose' => $isEn ? 'Stores ICS files (optional)'         : 'เก็บไฟล์ ICS (optional)'],
-    'fonts'        => ['label' => 'fonts/',        'path' => __DIR__ . '/fonts',        'need_write' => false, 'purpose' => $isEn ? 'TrueType fonts for image export (optional, see fonts/README.md)' : 'TrueType fonts สำหรับ image export (optional, ดู fonts/README.md)'],
+    'fonts'           => ['label' => 'fonts/',           'path' => __DIR__ . '/fonts',           'need_write' => false, 'purpose' => $isEn ? 'TrueType fonts for image export (optional, see fonts/README.md)' : 'TrueType fonts สำหรับ image export (optional, ดู fonts/README.md)'],
+    'uploads'         => ['label' => 'uploads/',         'path' => __DIR__ . '/uploads',         'need_write' => true,  'purpose' => $isEn ? 'Stores uploaded artist pictures (v6.0.0)'  : 'เก็บรูปภาพ artist ที่ upload (v6.0.0)'],
+    'uploads_artists' => ['label' => 'uploads/artists/', 'path' => __DIR__ . '/uploads/artists', 'need_write' => true,  'purpose' => $isEn ? 'Stores artist display & cover pictures (v6.0.0)' : 'เก็บ display/cover picture ของ artist (v6.0.0)'],
     'cache_favorites' => ['label' => 'cache/favorites/', 'path' => __DIR__ . '/cache/favorites', 'need_write' => true,  'purpose' => $isEn ? 'Stores anonymous favorites JSON files' : 'เก็บไฟล์ favorites (anonymous)'],
 ];
 foreach ($dirChecks as &$dc) {
@@ -998,6 +1062,8 @@ $hasProgramTypeColumn = false;
 $hasStreamUrlColumn = false;
 $hasContactChannelsTable = false;
 $hasArtistTables = false;
+$hasArtistPictureColumns = false;
+$hasRequestReviewColumns = false;
 $hasIndexes = false;
 $dbError = '';
 $existingIndexes = [];
@@ -1016,6 +1082,16 @@ if ($dbExists) {
         $hasArtistTables = in_array('artists', $existingTables)
                         && in_array('program_artists', $existingTables)
                         && in_array('artist_variants', $existingTables);
+        if (in_array('artists', $existingTables)) {
+            $acols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            $hasArtistPictureColumns = in_array('display_picture', $acols) && in_array('cover_picture', $acols);
+        }
+        if (in_array('program_requests', $existingTables)) {
+            $reqcols = $db->query("PRAGMA table_info(program_requests)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            $hasRequestReviewColumns = in_array('admin_note', $reqcols)
+                                    && in_array('reviewed_at', $reqcols)
+                                    && in_array('reviewed_by', $reqcols);
+        }
 
         if ($tableStatus['programs'] ?? false) {
             $programCount = (int)$db->query("SELECT COUNT(*) FROM programs")->fetchColumn();
@@ -1054,7 +1130,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables && $hasArtistPictureColumns && $hasRequestReviewColumns;
 
 // Migration checklist — ใช้ตรวจว่าค้าง migration ตัวไหน
 // แต่ละรายการมี: label, version, applied (bool), action (string action name สำหรับรัน)
@@ -1069,7 +1145,9 @@ $migrationChecks = $dbExists ? [
     ['label' => 'Performance indexes (7 indexes)',                               'version' => 'v1.2.10','applied' => $hasIndexes,                                               'action' => 'add_indexes'],
     ['label' => 'contact_channels table',                                        'version' => 'v2.10.0','applied' => $hasContactChannelsTable,                                  'action' => 'add_contact_channels_table'],
     ['label' => 'artists + program_artists + artist_variants tables (v3.0.0)',   'version' => 'v3.0.0', 'applied' => $hasArtistTables,                                         'action' => 'add_artist_tables'],
-    ['label' => 'events.timezone column',                                        'version' => 'v4.0.0', 'applied' => $hasTimezoneColumn,                                         'action' => 'add_timezone_column'],
+    ['label' => 'events.timezone column',                                        'version' => 'v4.0.0', 'applied' => $hasTimezoneColumn,                                          'action' => 'add_timezone_column'],
+    ['label' => 'artists.display_picture + artists.cover_picture columns',       'version' => 'v6.0.0', 'applied' => $hasArtistPictureColumns,                                    'action' => 'add_artist_tables'],
+    ['label' => 'program_requests.admin_note + reviewed_at + reviewed_by columns', 'version' => 'v6.1.3', 'applied' => $hasRequestReviewColumns,                                  'action' => 'run_all_migrations'],
 ] : [];
 $pendingMigrations = array_filter($migrationChecks, fn($m) => !$m['applied'] && $m['action'] !== null);
 $allMigrationsApplied = $dbExists && empty($pendingMigrations);
@@ -1658,7 +1736,7 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                 </div>
                 <div class="step-content">
                     <strong><?= $isEn ? 'Create Required Directories' : 'สร้าง Directories ที่จำเป็น' ?></strong>
-                    <p><?= $isEn ? 'Folders' : 'โฟลเดอร์' ?> <code>data/</code>, <code>cache/</code>, <code>cache/images/</code>, <code>cache/favorites/</code>, <code>backups/</code>, <code>ics/</code>, <code>fonts/</code></p>
+                    <p><?= $isEn ? 'Folders' : 'โฟลเดอร์' ?> <code>data/</code>, <code>cache/</code>, <code>cache/images/</code>, <code>cache/favorites/</code>, <code>backups/</code>, <code>ics/</code>, <code>fonts/</code>, <code>uploads/</code>, <code>uploads/artists/</code></p>
                 </div>
             </div>
             <div class="step">

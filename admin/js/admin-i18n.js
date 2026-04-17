@@ -242,6 +242,7 @@
             'common.yes'       : 'ใช่',
             'common.no'        : 'ไม่',
             'common.back'      : '← กลับ',
+            'common.optional'  : 'ไม่บังคับ',
             'common.import'    : 'นำเข้า',
             'common.copy'      : 'คัดลอก',
 
@@ -416,9 +417,11 @@
             'ch.active'      : 'แสดงในหน้าติดต่อเรา (Active)',
 
             /* Request Detail */
-            'req.detailTitle'   : '📋 รายละเอียดคำขอ',
-            'req.approve'       : '✅ อนุมัติ',
-            'req.reject'        : '❌ ปฏิเสธ',
+            'req.detailTitle'        : '📋 รายละเอียดคำขอ',
+            'req.approve'            : '✅ อนุมัติ',
+            'req.reject'             : '❌ ปฏิเสธ',
+            'req.adminNote'          : 'หมายเหตุจาก Admin',
+            'req.adminNotePlaceholder': 'ระบุหมายเหตุสำหรับผู้แจ้ง (ไม่บังคับ)',
 
             /* Login page */
             'login.title'      : 'Admin Login',
@@ -666,6 +669,7 @@
             'common.yes'       : 'Yes',
             'common.no'        : 'No',
             'common.back'      : '← Back',
+            'common.optional'  : 'optional',
             'common.import'    : 'Import',
             'common.copy'      : 'Copy',
 
@@ -842,9 +846,11 @@
             'ch.active'      : 'Show on Contact page (Active)',
 
             /* Request Detail */
-            'req.detailTitle'   : '📋 Request Details',
-            'req.approve'       : '✅ Approve',
-            'req.reject'        : '❌ Reject',
+            'req.detailTitle'        : '📋 Request Details',
+            'req.approve'            : '✅ Approve',
+            'req.reject'             : '❌ Reject',
+            'req.adminNote'          : 'Admin Note',
+            'req.adminNotePlaceholder': 'Optional note for the requester',
 
             /* Login page */
             'login.title'      : 'Admin Login',

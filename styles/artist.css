@@ -7,10 +7,69 @@
 .artist-profile-header {
     background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%));
     border-radius: 12px;
-    padding: 24px 28px;
+    padding: 0;
     margin-bottom: 24px;
     color: #fff;
+    position: relative;
+    overflow: hidden;
 }
+
+/* Cover picture background */
+.artist-profile-header.has-cover {
+    background-image: var(--cover-url);
+    background-size: cover;
+    background-position: center top;
+}
+.artist-profile-header.has-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,.25) 0%, rgba(0,0,0,.6) 100%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+/* Inner content wrapper */
+.artist-header-content {
+    position: relative;
+    z-index: 1;
+    padding: 24px 28px;
+}
+
+/* Top row: avatar + info */
+.artist-header-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+.artist-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Display picture (circular avatar) */
+.artist-display-picture {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,.85);
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.artist-display-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    border: 3px solid rgba(255,255,255,.3);
+}
+
 .artist-profile-header h1 {
     margin: 0 0 6px;
     font-size: 1.7em;
@@ -217,7 +276,14 @@
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-    .artist-profile-header { padding: 16px; }
+    .artist-header-content { padding: 16px; }
     .artist-profile-header h1 { font-size: 1.3em; }
     .programs-toggle-btn { padding: 7px 12px; font-size: 0.85em; }
+    .artist-display-picture,
+    .artist-display-placeholder {
+        width: 72px;
+        height: 72px;
+        font-size: 1.8rem;
+    }
+    .artist-header-top { gap: 12px; }
 }

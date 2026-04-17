@@ -5,6 +5,203 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.5] - 2026-04-18
+
+### Fixed
+- **`setup.php` missing migration check for v6.1.3 review columns** — `program_requests.admin_note`, `reviewed_at`, `reviewed_by` columns added in v6.1.3 were not tracked in the setup wizard's Migration Status checklist; existing databases without these columns would pass the `$allTablesOk` check and not surface the gap
+  - Added `$hasRequestReviewColumns` detection via `PRAGMA table_info(program_requests)`
+  - Added `$hasRequestReviewColumns` to `$allTablesOk` condition
+  - Added v6.1.3 entry to `$migrationChecks` pointing to `run_all_migrations` action
+  - Corrected migration block comment from v6.1.2 → v6.1.3
+- **Back button in admin note form does nothing** — `showAdminNoteForm()` back button called `openRequestDetail(window._currentReqData)` which does not exist; changed to `viewRequestDetail(window._currentReqData?.id)` to correctly re-render the detail modal
+
+### Files Changed
+
+**Modified files:**
+- `setup.php` — added `$hasRequestReviewColumns` detection, `$allTablesOk` condition, and `$migrationChecks` entry for v6.1.3
+- `admin/index.php` — fixed back button in `showAdminNoteForm()` to call `viewRequestDetail()` with the stored request ID
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.1.4] - 2026-04-18
+
+### Added
+- **Admin note input on approve/reject** — replaced the bare `confirm()` dialog with an inline admin note form inside the request detail modal; clicking Approve or Reject now shows a textarea (optional) for an admin note before submitting; a Back button returns to the detail view without closing the modal
+- `admin_note` is saved to `program_requests` and displayed in the detail modal under "หมายเหตุ Admin" when set; `reviewed_at` and `reviewed_by` are also recorded
+
+### Fixed
+- **`approveReq`/`rejectReq` ReferenceError** — table-row Approve/Reject buttons still called the old removed functions; replaced with `viewRequestDetail(id); showAdminNoteForm(id, action)` so they open the detail modal then immediately show the note form
+
+### Files Changed
+
+**Modified files:**
+- `admin/index.php` — replaced `approveReq()`/`rejectReq()` with `showAdminNoteForm()` + `confirmReqAction()`; table-row buttons updated to match
+- `admin/api.php` — `approveRequest()` and `rejectRequest()` now write `admin_note` (max 500 chars) from request body
+- `admin/js/admin-i18n.js` — added `req.adminNote`, `req.adminNotePlaceholder`, `common.optional` keys (TH + EN)
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.1.3] - 2026-04-18
+
+### Fixed
+- **Admin approve/reject request fails** — `admin/api.php` `approveRequest()` and `rejectRequest()` UPDATE statements referenced `admin_note`, `reviewed_at`, `reviewed_by` columns that did not exist in the `program_requests` table (the schema was never updated when these fields were added to the API logic); SQLite rejected the UPDATE with a PDOException caught as a silent failure, so every approve/reject returned an error
+  - Added the three missing columns to the live DB via `ALTER TABLE`
+  - Updated `setup.php` `CREATE TABLE program_requests` to include the new columns for fresh installs
+  - Added a migration block in `setup.php` `run_all_migrations` to add the columns to existing databases
+
+### Files Changed
+
+**Modified files:**
+- `admin/api.php` — restored full `approveRequest()` and `rejectRequest()` UPDATE statements with `admin_note`, `reviewed_at`, `reviewed_by` now that columns exist
+- `setup.php` — added `admin_note TEXT`, `reviewed_at DATETIME`, `reviewed_by TEXT` to `CREATE TABLE program_requests`; added migration block for existing DBs
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.1.2] - 2026-04-18
+
+### Fixed
+- **Request form submit fails with "Submit failed"** — `api/request.php` INSERT used stale column names that no longer match the actual `program_requests` table schema (renamed in a prior migration); the query silently threw a PDOException that was caught and returned as `{"success":false,"message":"Submit failed"}`
+  - `type` → `request_type` (column has `NOT NULL` constraint — root cause of the exception)
+  - `title` → `summary`
+  - `requester_note` → `note`
+- **Admin Requests tab not showing submitted requests** — `admin/api.php` `listRequests()` and `approveRequest()` used the same stale column names when reading back from the DB, causing the admin UI (which references `r.type`, `r.title`, `r.requester_note`) to receive `undefined` for all three fields and render nothing
+  - `listRequests()`: changed `SELECT *` to `SELECT *, request_type AS type, summary AS title, note AS requester_note`; fixed PHP reference `$req['type']` → `$req['request_type']`
+  - `approveRequest()`: same SELECT alias fix; fixed `$req['type']` → `$req['request_type']` and `$req['title']` → `$req['summary']` in INSERT/UPDATE statements
+
+### Files Changed
+
+**Modified files:**
+- `api/request.php` — corrected column names in `$data` array keys and INSERT statement to match actual DB schema (`request_type`, `summary`, `note`)
+- `admin/api.php` — added column aliases in `listRequests()` and `approveRequest()` SELECT queries; fixed PHP references to use actual column names when reading request data
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.1.1] - 2026-04-18
+
+### Fixed
+- **Telegram cron incorrect datetime comparison (T-separator bug)** — `cron/send-telegram-notifications.php` used raw `BETWEEN` string comparison in SQL for the notification window; programs stored with ISO 8601 `T` separator (e.g. `"2026-04-17T11:00:00"`) were falsely matched because SQLite lexicographic string comparison treats `T` (ASCII 84) as greater than space (ASCII 32), causing `"2026-04-17T11:00:00"` to rank *after* `"2026-04-17 23:53:24"` on the same date — resulting in programs notifying 12+ hours after their actual start time (e.g. an 11:00 program triggering a notification at 23:48)
+  - Fixed by wrapping both sides of the comparison with SQLite's `datetime()` function: `datetime(p.start) BETWEEN datetime(:windowStart) AND datetime(:windowEnd)`
+  - `datetime()` normalises both `T`-separator and space-separator formats to `YYYY-MM-DD HH:MM:SS` before comparison; no timezone conversion occurs since both sides are already in the event's local timezone (Bangkok)
+
+### Files Changed
+
+**Modified files:**
+- `cron/send-telegram-notifications.php` — changed `p.start BETWEEN :windowStart AND :windowEnd` to `datetime(p.start) BETWEEN datetime(:windowStart) AND datetime(:windowEnd)`
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.1.0] - 2026-04-18
+
+### Changed
+- **Request form redesign — unified "Add / Edit" button** — merged the separate "Add Program" button and the per-row ✏️ "Edit Request" column into a single `btn-request` button in the action bar
+  - **Removed "Edit Request" column** (`<th>` + `<td>` per row) from the program table — reduces table width and UI clutter
+  - **New `btn-request` button** (sakura outline style, replacing `btn-warning`); label "📝 แจ้งเพิ่ม / แก้ไข" (TH) / "📝 Request Add / Edit" (EN) / "📝 追加・編集をリクエスト" (JA)
+  - **Modal redesign** — added visible type radio toggle (Add / Edit) replacing `<input type="hidden">`; selecting "Edit" reveals a program dropdown that loads all programs in the current event and pre-fills all fields (title, venue, start/end date & time, categories, description) automatically
+  - **Added "End Date" field** (`reqEndDate`) to support cross-day programs; auto-syncs when start date changes and end date is empty or earlier
+  - **Removed Organizer field** from the form — not needed for the request workflow
+  - **Renamed "Categories" label → "Artist / Group"** (TH: ศิลปิน) for clarity across all three languages
+  - **`api/request.php` `action=programs`** — added `end`, `categories`, `description` to SELECT; changed ORDER to `start ASC`; increased LIMIT to 200
+
+### Files Changed
+
+**Modified files:**
+- `index.php` — removed `<th class="col-edit-request">` + `<td class="program-action-cell">`; changed button to `btn-request`; redesigned modal (type radio, program dropdown, end date field, removed Organizer); added JS functions `onReqTypeChange()`, `onReqStartDateChange()`, `onProgramSelected()`, `loadProgramsIntoSelector()`; updated `openRequestModal()` and `submitRequest()`
+- `styles/index.css` — removed `.btn-edit-request`, `.program-action-cell`; added `.btn-request` (sakura outline + `::before` divider)
+- `js/translations.js` — updated `button.requestAdd`; changed `modal.categories`; added 7 new keys (`modal.requestType`, `modal.typeAdd`, `modal.typeModify`, `modal.selectProgram`, `modal.selectProgramPlaceholder`, `modal.startDate`, `modal.endDate`) for all three languages (TH/EN/JA)
+- `api/request.php` — added columns to `getEvents()` SELECT; changed ORDER and LIMIT
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.0.1] - 2026-04-17
+
+### Fixed
+- **`setup.php` init_database missing artist picture columns** — `CREATE TABLE IF NOT EXISTS artists` in the `init_database` action was missing `display_picture` and `cover_picture` columns (added in v6.0.0); fresh installs created the `artists` table without these columns, causing setup migration status to show ⚠️ pending and `ArtistPictureTest` to fail after a clean database initialisation
+
+### Files Changed
+
+**Modified files:**
+- `setup.php` — 5 fixes:
+  - `init_database` action: added `display_picture TEXT DEFAULT NULL` + `cover_picture TEXT DEFAULT NULL` to `CREATE TABLE IF NOT EXISTS artists`; added `PRAGMA table_info(artists)` + `ALTER TABLE` fallback for existing databases that already have the `artists` table
+  - `add_artist_tables` action: added `PRAGMA table_info(artists)` check in `else` branch to `ALTER TABLE` and add missing picture columns
+  - `run_all_migrations` action: same `else` branch fix as `add_artist_tables`
+  - `$allTablesOk`: added `&& $hasArtistPictureColumns` condition so setup shows ⚠️ when columns are missing
+  - `$migrationChecks`: added v6.0.0 entry `artists.display_picture + artists.cover_picture columns` pointing to `add_artist_tables` action
+- `config/app.php` — version bump to 6.0.1
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+---
+
+## [6.0.0] - 2026-04-17
+
+### Added
+- 🖼️ **Artist Cover & Display Picture System** — full upload pipeline for per-artist profile images stored in `uploads/artists/`
+  - **`display_picture`** — circular avatar (400×400 px), shown beside the artist name on `/artist/{id}` and as a hover tooltip on artist badge pills in the program list
+  - **`cover_picture`** — landscape banner (1200×400 px), shown as a full-width background in the artist profile header; sakura gradient overlay ensures text remains readable
+  - PHP GD **server-side resize + center-crop** (JPEG quality 85%); supports JPG, PNG, GIF, WEBP input; max file size 5 MB
+  - `processAndSaveArtistImage()` helper handles aspect-ratio-aware center-crop before downscaling
+  - Old file automatically deleted when a new upload replaces it
+
+- 🛠️ **Admin UI — Artist Picture Section in Edit Modal**
+  - Appears only in **edit mode** (artist must be saved first); hidden in create/copy modes
+  - Display picture preview: 72×72 px circle; cover picture preview: full-width banner strip (80 px height)
+  - `📸 เปลี่ยนรูป` button opens native file picker → uploads immediately via AJAX (no form re-submit needed)
+  - `🗑️ ลบรูป` button appears only when a picture exists; confirmation dialog before delete
+  - `showArtistPictureSection(artist)` / `resetArtistPictureSection()` JS helpers manage section visibility and populate previews on modal open/close
+  - Uses `APP_ROOT` (not `BASE_PATH`) to build image URLs — avoids `/admin/uploads/...` wrong-path bug
+
+- 🎨 **Artist Profile Page (`/artist/{id}`) — visual overhaul**
+  - Header restructured with `.artist-header-top` flex row: circular avatar (or emoji placeholder 🎤/🎵) on the left, name + meta on the right
+  - **Cover picture**: injected as `--cover-url` CSS variable on `.artist-profile-header.has-cover`; dark gradient overlay via `::before` pseudo-element keeps white text legible
+  - **Display picture**: `<img class="artist-display-picture">` (100×100 px desktop, 72×72 px mobile) with white border + soft box-shadow
+  - Falls back to emoji placeholder div when no picture is set
+
+- 💬 **Hover tooltip on program list artist badges**
+  - Single shared `<div id="artistDpTooltip">` with `position: fixed; z-index: 9999` — sidesteps all `overflow: hidden` clipping from `.events-table tbody tr` and `.program-card` parent elements
+  - Artist badge wraps render `data-display-pic` + `data-display-name` attributes only when `display_picture` is set (no empty DOM nodes for unpictured artists)
+  - JS delegate listener (`mouseover` / `mouseout`) on `document` — positions tooltip above the badge using `getBoundingClientRect()`; auto-flips below if insufficient top space
+  - Auto-hides on `scroll` and `resize` events
+  - Tooltip shows 60×60 px circle image + artist name
+
+- 🗄️ **Database** — `display_picture TEXT DEFAULT NULL` + `cover_picture TEXT DEFAULT NULL` columns added to `artists` table
+- 🔧 **Migration** — `tools/migrate-add-artist-pictures-column.php` (idempotent; also creates `uploads/artists/` directory)
+- 📁 **New directory** — `uploads/artists/` with `.htaccess` blocking directory listing and PHP execution
+- 🐳 **Dockerfile** — `mkdir -p uploads/artists` + `chmod -R 777 uploads/` added to build step
+
+### Changed
+- `admin/api.php` — `listArtists()` and `getArtist()` now SELECT `display_picture` and `cover_picture`; `escapeOutputData()` includes both picture fields; upload endpoint returns `path` (relative) instead of a PHP-computed `url` (which was using wrong `get_base_path()` in admin context)
+- `setup.php` — both `CREATE TABLE artists` statements updated with new columns; `$toCreate` and `$dirChecks` arrays include `uploads/` and `uploads/artists/`
+
+### New Admin API Actions
+| Action | Method | Description |
+|--------|--------|-------------|
+| `artist_picture_upload` | POST multipart | Upload display or cover picture; resize; save; update DB |
+| `artist_picture_delete` | POST JSON | Delete physical file; clear DB column |
+
+### Files Changed
+
+**New files:**
+- `tools/migrate-add-artist-pictures-column.php` — idempotent migration (ALTER TABLE + create uploads dir)
+- `uploads/.htaccess` — block directory listing + PHP execution
+- `uploads/artists/.htaccess` — same
+- `tests/ArtistPictureTest.php` — 61 automated tests
+
+**Modified files:**
+- `admin/api.php` — `listArtists()` / `getArtist()` select picture fields; `uploadArtistPicture()`, `deleteArtistPicture()`, `processAndSaveArtistImage()` new functions; upload returns `path` not `url`
+- `admin/index.php` — picture section in artist edit modal; `showArtistPictureSection()`, `resetArtistPictureSection()`, `uploadArtistPicture()`, `deleteArtistPicture()` JS functions; uses `APP_ROOT` for image URLs
+- `artist.php` — cover picture banner + display picture avatar in header
+- `index.php` — `a.display_picture` in program_artists query; `data-display-pic` attributes on badge wraps; shared `#artistDpTooltip` fixed-position JS tooltip
+- `styles/artist.css` — `.artist-display-picture`, `.artist-display-placeholder`, `.artist-profile-header.has-cover`, `.artist-header-top` rules
+- `styles/index.css` — removed CSS hover card rules (replaced by JS `position:fixed` tooltip)
+- `setup.php` — `CREATE TABLE artists` includes new columns; `$toCreate` + `$dirChecks` include `uploads/` and `uploads/artists/`
+- `Dockerfile` — `mkdir -p uploads/artists` + `chmod -R 777 uploads/`
+- `tests/run-tests.php` — registered `ArtistPictureTest` suite
+- `config/app.php` — version bump to 6.0.0
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate, 16 suites)
+
+---
+
 ## [5.5.3] - 2026-04-17
 
 ### Changed
@@ -28,7 +225,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Admin event/artist dropdowns showing HTML entities** — After the v5.3.1 server-side HTML escaping change, `escapeOutputData()` in `admin/api.php` began returning HTML-escaped strings (e.g. `Idol&#039;s`) in JSON responses. The `populateEventSelect()` function and artist group dropdown builders in `admin/index.php` were setting `option.textContent = meta.name` directly, which renders the raw string — displaying `&#039;` literally instead of `'`. Fixed by wrapping all 6 affected `option.textContent` assignments with `decodeHtml()`: 3 in `populateEventSelect()` (Recent / Active Events / Past Events optgroups) and 3 in artist group selects (artist form, bulk add-to-group modal, bulk remove-from-group modal).
 
-**Files changed:** `admin/index.php`, `config/app.php`
+### Files Changed
+- `admin/index.php` — wrapped 6 `option.textContent` assignments in `decodeHtml()` (Recent / Active Events / Past Events optgroups + 3 artist group selects)
+- `config/app.php` — version bump to 5.5.2
 
 ---
 

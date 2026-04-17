@@ -759,6 +759,28 @@ header p {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
 }
+.btn-request {
+    background: transparent;
+    color: var(--sakura-deep, #C2185B);
+    border: 1.5px solid var(--sakura-medium, #F48FB1);
+    position: relative;
+    margin-left: 10px;
+}
+.btn-request::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 15%;
+    height: 70%;
+    width: 1px;
+    background: #ddd;
+}
+.btn-request:hover {
+    background: var(--sakura-bg, #FFF0F3);
+    border-color: var(--sakura-dark, #E91E63);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.15);
+}
 
 .btn-subscribe {
     background: linear-gradient(135deg, #6a1b9a 0%, #ab47bc 100%);
@@ -1044,6 +1066,7 @@ header p {
     align-items: stretch;
     gap: 0;
     margin: 2px 2px 2px 0;
+    position: relative;
 }
 .program-categories-badge-wrap .program-categories-badge {
     margin: 0;
@@ -1066,6 +1089,9 @@ header p {
 .artist-profile-link:hover {
     opacity: 1;
 }
+
+/* Artist hover card styles now handled by JS fixed-position tooltip in index.php
+   See: #artistDpTooltip — position:fixed prevents overflow:hidden clipping */
 
 /* Artist filter: event count badge + profile link */
 .checkbox-label .artist-event-count {
@@ -1405,42 +1431,7 @@ tr.program-live {
         margin-right: 2px;
     }
 
-    /* Edit button: absolute, top-right of white body (below gradient strip)
-       Use higher specificity (.events-table tbody) to beat td { width:100%!important } */
-    .events-table tbody .program-action-cell {
-        position: absolute !important;
-        top: 33px;
-        right: 8px;
-        width: auto !important;
-        padding: 0 !important;
-        border: none !important;
-        margin: 0 !important;
-    }
-
-    .events-table tbody .program-action-cell::before {
-        display: none !important;
-    }
-
-    .events-table tbody .program-action-cell .btn-edit-request {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
-        border: 1px solid var(--sakura-border, #FCE4EC);
-        border-radius: 6px;
-        color: var(--sakura-dark);
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: background 0.15s;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    .events-table tbody .program-action-cell .btn-edit-request:hover,
-    .events-table tbody .program-action-cell .btn-edit-request:active {
-        background: var(--sakura-bg, #FFF0F3);
-    }
+    /* program-action-cell removed in v6.1.0 */
 
     /* First body cell: breathing room after gradient strip + right space for button */
     .program-info-cell {
@@ -2253,9 +2244,6 @@ tr.program-live {
 .req-type:has(input:checked){border-color:var(--sakura-medium);background:var(--sakura-border)}
 .req-type input{width:auto}
 @media(max-width:600px){.req-row{flex-direction:column;gap:0}}
-.btn-edit-request{background:none;border:1px solid #ddd;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:1rem;transition:all .2s}
-.btn-edit-request:hover{background:#fff3e0;border-color:#ff9800}
-.program-action-cell{white-space:nowrap}
 
 /* ── Listing Calendar (Homepage) ─────────────────────────────────────────── */
 .listing-cal-section{padding:0 30px 8px}
