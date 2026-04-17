@@ -82,17 +82,21 @@ if (!TELEGRAM_ENABLED || !TELEGRAM_BOT_TOKEN) {
 $runTime = date('Y-m-d H:i:s');
 telegram_log('INFO', 'Starting Telegram notifications cron');
 
-// Calculate notification window
-// Notify programs starting in [now + N - 7.5min, now + N + 7.5min]
-// This window (±7.5min) means we notify reliably even if cron is delayed, without duplicates
+// Calculate notification window: [now + N - halfWindow, now + N + halfWindow]
+// halfWindow = min(notify_before / 2, 7.5 min) so the window never extends past program start
+// and scales down for short notify times (e.g. notify=5 → ±2.5 min, notify≥15 → ±7.5 min).
+// Recommended cron interval = floor(window / 1.5) for exactly 150% coverage.
+// Consecutive runs that catch the same program are de-duped by telegram_should_notify().
 $notifyBefore = TELEGRAM_NOTIFY_BEFORE_MINUTES * 60; // Convert to seconds
-$windowStart = time() + $notifyBefore - 450;  // 7.5 minutes = 450 seconds
-$windowEnd = time() + $notifyBefore + 450;
+$halfWindow   = (int)(min(TELEGRAM_NOTIFY_BEFORE_MINUTES / 2, 7.5) * 60); // seconds, max 450
+$windowStart  = time() + $notifyBefore - $halfWindow;
+$windowEnd    = time() + $notifyBefore + $halfWindow;
 
 telegram_log('DEBUG', 'Notification window', [
     'notify_before_minutes' => TELEGRAM_NOTIFY_BEFORE_MINUTES,
-    'window_start' => date('Y-m-d H:i:s', $windowStart),
-    'window_end' => date('Y-m-d H:i:s', $windowEnd)
+    'half_window_seconds'   => $halfWindow,
+    'window_start'          => date('Y-m-d H:i:s', $windowStart),
+    'window_end'            => date('Y-m-d H:i:s', $windowEnd),
 ]);
 
 $notifiedCount = 0;

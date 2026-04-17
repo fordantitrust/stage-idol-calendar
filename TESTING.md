@@ -979,7 +979,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.1 List Programs
 
-**Test Case 5.5.1**: Load programs list
+**Test Case 5.5.3**: Load programs list
 
 **Steps**:
 1. Login to admin
@@ -992,7 +992,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 5.5.1**: Filter by venue
+**Test Case 5.5.3**: Filter by venue
 
 **Steps**:
 1. Select venue from dropdown
@@ -1065,7 +1065,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.3 Update Program
 
-**Test Case 5.5.1**: Edit program
+**Test Case 5.5.3**: Edit program
 
 **Steps**:
 1. Click "Edit" on program
@@ -1081,7 +1081,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.4 Delete Program
 
-**Test Case 5.5.1**: Delete single program
+**Test Case 5.5.3**: Delete single program
 
 **Steps**:
 1. Click "Delete" on program
@@ -1095,7 +1095,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.5 Bulk Operations - Programs
 
-**Test Case 5.5.1**: Bulk delete programs
+**Test Case 5.5.3**: Bulk delete programs
 
 **Steps**:
 1. Select 3 programs
@@ -1108,7 +1108,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 5.5.2**: Bulk edit venue
+**Test Case 5.5.3**: Bulk edit venue
 
 **Steps**:
 1. Select multiple programs

@@ -5,6 +5,24 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.5.3] - 2026-04-17
+
+### Changed
+- **Telegram notification window — dynamic half-window** — `cron/send-telegram-notifications.php` replaced hardcoded `±7.5 min` window with `halfWindow = min(notify_before / 2, 7.5) minutes`. Prevents the window from extending past program start for short notify times (e.g. notify=5 min → ±2.5 min; notify≥15 min → ±7.5 min capped).
+- **Notify before — dropdown instead of free-text input** — `<input type="number">` replaced with `<select>` offering 5 / 10 / 15 / 30 / 60 minutes in Admin › Settings › Telegram.
+- **Cron interval — recommendation instead of config field** — removed `cron_interval_minutes` as a user-configurable setting. Admin UI now shows a dynamic cron recommendation box (`updateCronRecommendation()`) that auto-calculates the optimal crontab interval using `floor(min(notify_before, 15) / 1.5)`, guaranteeing ≥150% coverage. The recommended command updates live when the notify dropdown changes.
+
+### Files Changed
+- `cron/send-telegram-notifications.php` — dynamic `$halfWindow = (int)(min(TELEGRAM_NOTIFY_BEFORE_MINUTES / 2, 7.5) * 60)`
+- `config/telegram.php` — removed `cron_interval_minutes` from `$defaultTelegramConfig`; removed `TELEGRAM_CRON_INTERVAL_MINUTES` constant
+- `config/telegram-config.json` — removed `cron_interval_minutes` field
+- `admin/api.php` — removed `cron_interval_minutes` from `getTelegramConfig()` default and `saveTelegramConfig()` save logic
+- `admin/index.php` — notify select replaces number input; cron dropdown replaced with recommendation box; `updateCronRecommendation()` JS function; `onchange` wired to notify select; called on config load
+- `admin/js/admin-i18n.js` — updated hint keys (TH/EN); added `telegramCronInterval`/`telegramCronIntervalHint`/`telegramCronPathHint` keys; removed `(5-1440)` range hint from notify field
+- `config/app.php` — version bump to 5.5.3
+
+---
+
 ## [5.5.2] - 2026-04-16
 
 ### Fixed

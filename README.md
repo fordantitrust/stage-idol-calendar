@@ -172,6 +172,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v5.5.0** | 2026-04-15 | **5 New Themes** — Crimson 🔴 · Teal 🩵 · Rose 🌹 · Amber 🌟 · Indigo 🔷; theme system expanded from 7 → 12 themes; each theme includes CSS variables, image export GD palette, Admin picker gradient preview, and per-event override support |
 | **v5.5.1** | 2026-04-15 | **4 bug fixes** — (1) Telegram `api/telegram.php` group resolution: parent group ID instead of siblings; (2) Telegram cron timezone: `strftime('%s')` treated Bangkok datetimes as UTC causing 7-hour notification delay — fixed with datetime string `BETWEEN`; (3) Telegram cron group resolution: parent-group lookup applied to cron; (4) Admin backup timestamps: `gmdate()` → `date()` so filenames and UI times show Bangkok time |
 | **v5.5.2** | 2026-04-16 | **Bug fix: Admin dropdowns showing HTML entities** — `populateEventSelect()` and artist group selects used `option.textContent = meta.name` directly; after v5.3.1 server-side escaping, names like `Idol's` were stored as `Idol&#039;s` in JSON and displayed literally; fixed by wrapping all 6 `option.textContent` assignments with `decodeHtml()` |
+| **v5.5.3** | 2026-04-17 | **Telegram cron notification window — dynamic + smart recommendation** — notification half-window now scales with notify_before (`min(N/2, 7.5) min`) preventing post-program-start alerts for short notify times · notify-before changed to dropdown (5/10/15/30/60 min) · cron_interval removed as config; replaced with dynamic recommendation box (`floor(min(N,15)/1.5)` min, ≥150% coverage) that updates live in Admin UI |
 
 ---
 
@@ -842,7 +843,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 5.5.2
+**Current Version**: 5.5.3
 
 ---
 

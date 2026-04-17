@@ -1698,10 +1698,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <small class="form-hint" data-i18n="settings.telegramWebhookSecretHint">Token สำหรับ webhook validation (auto-generate)</small>
                         </div>
                         <div>
-                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramNotifyMinutes">แจ้งเตือนก่อน (นาที)</label>
-                            <input type="number" id="telegramNotifyMinutes" min="5" max="1440" value="60"
-                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
-                            <small class="form-hint" data-i18n="settings.telegramNotifyMinutesHint">นาทีก่อนโปรแกรมจะส่งการแจ้งเตือน (5-1440)</small>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramNotifyMinutes">แจ้งเตือนก่อน</label>
+                            <select id="telegramNotifyMinutes" onchange="updateCronRecommendation()"
+                                    style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                <option value="5">5 นาที</option>
+                                <option value="10">10 นาที</option>
+                                <option value="15" selected>15 นาที</option>
+                                <option value="30">30 นาที</option>
+                                <option value="60">60 นาที</option>
+                            </select>
+                            <small class="form-hint" data-i18n="settings.telegramNotifyMinutesHint">เวลาก่อนโปรแกรมเริ่มที่จะส่งการแจ้งเตือน</small>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.telegramCronInterval">📋 คำแนะนำ Cron</label>
+                            <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:12px">
+                                <div style="font-size:0.875rem;color:#374151;margin-bottom:8px" data-i18n="settings.telegramCronIntervalHint">
+                                    ตั้ง cron ให้รันตามคำแนะนำด้านล่าง — coverage ≥150%, window ±7.5 นาที
+                                </div>
+                                <code id="telegramCronCommand" style="display:block;background:#e0e7ff;padding:8px 10px;border-radius:4px;font-size:0.8rem;word-break:break-all;cursor:pointer;user-select:all" title="คลิกเพื่อคัดลอก">*/10 * * * * php /path/to/cron/send-telegram-notifications.php</code>
+                                <small style="display:block;margin-top:6px;color:#6b7280;font-size:0.78rem" data-i18n="settings.telegramCronPathHint">แทน /path/to/ ด้วย path จริงของระบบ</small>
+                            </div>
                         </div>
                     </div>
 
@@ -5805,6 +5821,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             .catch(() => { btn.disabled = false; alert('Network error'); });
         }
 
+        // Cron recommendation: floor(min(notify, 15) / 1.5) → exactly 150% coverage
+        function updateCronRecommendation() {
+            const notify   = parseInt(document.getElementById('telegramNotifyMinutes').value) || 15;
+            const interval = Math.max(1, Math.floor(Math.min(notify, 15) / 1.5));
+            document.getElementById('telegramCronCommand').textContent =
+                '*/' + interval + ' * * * * php /path/to/cron/send-telegram-notifications.php';
+        }
+
         // Telegram Settings
         function loadTelegramSetting() {
             fetch('api.php?action=telegram_config_get')
@@ -5816,6 +5840,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         document.getElementById('telegramBotUsername').value = decodeHtml(cfg.bot_username || '');
                         document.getElementById('telegramWebhookSecret').value = decodeHtml(cfg.webhook_secret || '');
                         document.getElementById('telegramNotifyMinutes').value = cfg.notify_before_minutes || 60;
+                        updateCronRecommendation();
                         document.getElementById('summaryStartHour').value = cfg.daily_summary_start_hour || 9;
                         document.getElementById('summaryStartMinute').value = cfg.daily_summary_start_minute || 0;
                         document.getElementById('summaryEndHour').value = cfg.daily_summary_end_hour || 9;
