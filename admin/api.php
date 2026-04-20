@@ -2125,6 +2125,7 @@ function createEvent() {
         ]);
 
         invalidate_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, ['id' => $db->lastInsertId()], 'Convention created successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to create convention', $e->getMessage()));
@@ -2211,6 +2212,7 @@ function updateEvent() {
         }
 
         invalidate_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, ['id' => $id], 'Convention updated successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to update convention', $e->getMessage()));
@@ -2254,6 +2256,7 @@ function deleteEvent() {
         }
 
         invalidate_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, null, 'Convention deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete convention', $e->getMessage()));
@@ -3705,6 +3708,7 @@ function createArtist() {
         $id = $db->lastInsertId();
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, ['id' => $id], 'Artist created successfully');
     } catch (PDOException $e) {
         if (strpos($e->getMessage(), 'UNIQUE') !== false) {
@@ -3778,6 +3782,7 @@ function updateArtist() {
 
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, null, 'Artist updated successfully');
     } catch (PDOException $e) {
         if (strpos($e->getMessage(), 'UNIQUE') !== false) {
@@ -3826,6 +3831,7 @@ function deleteArtist() {
 
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
+        invalidate_sitemap_cache();
         jsonResponse(true, null, 'Artist deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete artist', $e->getMessage()));

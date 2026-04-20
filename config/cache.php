@@ -73,3 +73,16 @@ define('IMAGE_CACHE_DIR', dirname(__DIR__) . '/cache/images');
  * Default: 3600 seconds (1 hour)
  */
 define('IMAGE_CACHE_TTL', 3600);
+
+/**
+ * Sitemap Cache File Path
+ * Stores the generated sitemap.xml output
+ */
+define('SITEMAP_CACHE_FILE', dirname(__DIR__) . '/cache/sitemap.xml');
+
+/**
+ * Sitemap Cache TTL (Time To Live)
+ * How long to serve the cached sitemap before regenerating (in seconds)
+ * Default: 3600 seconds (1 hour)
+ */
+define('SITEMAP_CACHE_TTL', 3600);

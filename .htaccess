@@ -4,6 +4,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Sitemap & robots
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    RewriteRule ^robots\.txt$ robots.php [L]
+
     # Event path with subpage: /event/slug/credits → credits.php?event=slug
     RewriteRule ^event/([^/]+)/([^/]+)$ $2.php?event=$1 [L,QSA]
 

@@ -348,6 +348,20 @@ function invalidate_artist_query_cache(): bool {
 }
 
 /**
+ * Invalidate sitemap cache
+ * Call this after creating, updating, or deleting events or artists
+ *
+ * @return bool True if cache was deleted (or did not exist), false on failure
+ */
+function invalidate_sitemap_cache(): bool {
+    $file = SITEMAP_CACHE_FILE;
+    if (file_exists($file)) {
+        return unlink($file);
+    }
+    return true;
+}
+
+/**
  * Invalidate all caches (data_version + credits + feed + query)
  * Call this function after restoring database
  *
@@ -367,6 +381,7 @@ function invalidate_all_caches() {
         'feed_*.ics',
         'query_event_*.json',
         'query_artist_*.json',
+        'sitemap.xml',
     ];
 
     foreach ($patterns as $pattern) {

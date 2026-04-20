@@ -5,6 +5,32 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 2026-04-20
+
+### Added
+- **Dynamic XML Sitemap** (`sitemap.php`) — generates RFC-compliant `sitemap.xml` at `/sitemap.xml` via `.htaccess` rewrite; includes static pages (`/`, `/artists`, `/how-to-use`, `/contact`, `/credits`), all active events (`/event/{slug}` + `/event/{slug}/credits`, excluding default slug which maps to root), and all artist profile pages (`/artist/{id}`); `lastmod` derived from `updated_at` in DB; per-URL `changefreq` and `priority` tuned by page type
+- **Sitemap file cache** — output captured with `ob_start()`/`ob_get_clean()` and saved to `cache/sitemap.xml`; subsequent requests served via `readfile()` without touching SQLite; TTL 1 hour (`SITEMAP_CACHE_TTL`); `invalidate_sitemap_cache()` called automatically by Admin API on any event or artist write (create/update/delete — 6 call sites total); also cleared by `invalidate_all_caches()` on DB restore
+- **Dynamic robots.txt** (`robots.php`) — serves `/robots.txt` via `.htaccess` rewrite; auto-injects `Sitemap:` directive with correct absolute URL (protocol + host + base path); Disallows only user-specific paths (`/my/`, `/my-favorites/`) — internal directories intentionally omitted to avoid disclosing server structure
+- **`.htaccess` rewrite rules** — added `^sitemap\.xml$` → `sitemap.php` and `^robots\.txt$` → `robots.php` at the top of the rewrite block (before all other rules)
+
+### Files Changed
+
+**New files:**
+- `sitemap.php` — dynamic XML sitemap generator with file cache
+- `robots.php` — dynamic robots.txt with auto-injected Sitemap URL
+- `robots.txt` — static fallback (superseded by `robots.php` via rewrite)
+
+**Modified files:**
+- `config/cache.php` — added `SITEMAP_CACHE_FILE` and `SITEMAP_CACHE_TTL` constants
+- `functions/cache.php` — added `invalidate_sitemap_cache()`; added `sitemap.xml` to `invalidate_all_caches()` patterns
+- `admin/api.php` — added `invalidate_sitemap_cache()` to `createEvent`, `updateEvent`, `deleteEvent`, `createArtist`, `updateArtist`, `deleteArtist`
+- `.htaccess` — added rewrite rules for `sitemap.xml` and `robots.txt`
+- `config/app.php` — version bump to 6.2.0
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+---
+
 ## [6.1.5] - 2026-04-18
 
 ### Fixed
