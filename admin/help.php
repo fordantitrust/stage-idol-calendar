@@ -1160,10 +1160,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>Tab Settings จัดระเบียบการตั้งค่าด้วย 6 sub-tabs สำหรับ <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong> และ <strong>Disclaimer</strong> โดยเข้าถึงได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+                <p>Tab Settings จัดระเบียบการตั้งค่าด้วย 7 sub-tabs สำหรับ <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Google Services</strong> และ <strong>Disclaimer</strong> โดยเข้าถึงได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
 
-                <h3>📝 Settings Sub-tabs (v5.1.1+)</h3>
-                <p>Settings tab มี 6 sub-tabs ที่จัดระเบียบอย่างเป็นระบบ:</p>
+                <h3>📝 Settings Sub-tabs (v6.4.0+)</h3>
+                <p>Settings tab มี 7 sub-tabs ที่จัดระเบียบอย่างเป็นระบบ:</p>
                 <table class="help-table">
                     <thead><tr><th>Sub-tab</th><th>ฟังก์ชัน</th><th>สำหรับ</th></tr></thead>
                     <tbody>
@@ -1172,6 +1172,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>👤 <strong>Users</strong></td><td>จัดการ Admin Users, สิทธิ์ (Admin/Agent)</td><td>User management</td></tr>
                         <tr><td>💾 <strong>Backup</strong></td><td>Backup/Restore database</td><td>Database management</td></tr>
                         <tr><td>🤖 <strong>Telegram</strong></td><td>ตั้งค่า Telegram Bot, Notifications</td><td>Telegram integration</td></tr>
+                        <tr><td>🔵 <strong>Google</strong></td><td>ตั้งค่า Google Analytics (GA4) และ Google AdSense</td><td>Monetization &amp; tracking</td></tr>
                         <tr><td>⚠️ <strong>Disclaimer</strong></td><td>ตั้งค่า Disclaimer (TH/EN/JA)</td><td>Legal content</td></tr>
                     </tbody>
                 </table>
@@ -1250,6 +1251,55 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>ตั้งค่า theme ของ Event ได้ที่แท็บ <strong>🎪 Events</strong> → คลิก <strong>➕ เพิ่ม Event</strong> หรือ <strong>✏️</strong> แก้ไข → ช่อง <strong>Theme</strong></div>
                 </div>
 
+                <h3>🔵 Google Services (v6.3.0–6.4.0)</h3>
+                <p>
+                    ตั้งค่า <strong>Google Analytics</strong> และ <strong>Google AdSense</strong> ได้โดยตรงจาก Admin UI ไม่ต้อง SSH หรือแก้ไขไฟล์บน server
+                    การตั้งค่าถูกบันทึกใน <code>config/google-config.json</code> และโหลดผ่าน <code>config/google.php</code>
+                </p>
+
+                <h4>📈 Google Analytics (GA4)</h4>
+                <table class="help-table">
+                    <thead><tr><th>ฟิลด์</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td>Measurement ID</td><td>GA4 Measurement ID รูปแบบ <code>G-XXXXXXXXXX</code> — ดูได้จาก Google Analytics Dashboard; ปล่อยว่างเพื่อปิด Analytics</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>💰 Google AdSense</h4>
+                <table class="help-table">
+                    <thead><tr><th>ฟิลด์</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td>Publisher ID</td><td>รูปแบบ <code>ca-pub-XXXXXXXXXXXXXXXX</code> — ดูได้จาก AdSense Dashboard; <strong>ปล่อยว่างเพื่อปิด Ads ทั้งหมด</strong></td></tr>
+                        <tr><td>Slot: Leaderboard</td><td>Ad slot ID สำหรับ leaderboard (728×90) — แสดงหลัง event header ในหน้าหลัก</td></tr>
+                        <tr><td>Slot: Rectangle</td><td>Ad slot ID สำหรับ rectangle (300×250) — แสดงในหน้าโปรไฟล์ศิลปิน</td></tr>
+                        <tr><td>Slot: Responsive</td><td>Ad slot ID สำหรับ responsive (auto) — แสดงก่อน footer ในหน้าอื่นๆ</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>ขั้นตอนการตั้งค่า Google</h4>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>⚙️ Settings</strong></li>
+                    <li>คลิก sub-tab <strong>🔵 Google</strong></li>
+                    <li>กรอก <strong>Measurement ID</strong> สำหรับ Analytics และ/หรือ <strong>Publisher ID + Slot IDs</strong> สำหรับ AdSense</li>
+                    <li>กด <strong>💾 บันทึก Analytics</strong></li>
+                    <li>เห็นข้อความ <strong>✅ บันทึกแล้ว</strong> — โค้ด GA4/AdSense จะโหลดอัตโนมัติในทุกหน้า public</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>เปิด/ปิด Ads อิสระจาก Analytics:</strong>
+                        ปล่อย Publisher ID ว่างจะปิด Ads ทั้งหมด แต่ GA4 ยังทำงานอยู่ (ถ้า Measurement ID มีค่า) และในทางกลับกัน
+                    </div>
+                </div>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>
+                        <strong>ไฟล์ config/google-config.json</strong> ถูกป้องกันไม่ให้เข้าถึงผ่าน HTTP โดย <code>config/.htaccess</code> อัตโนมัติ — ไม่มีความเสี่ยงที่ key จะถูกเปิดเผยผ่านเว็บ
+                    </div>
+                </div>
+
                 <h3>⚠️ Disclaimer (ข้อจำกัดความรับผิดชอบ)</h3>
                 <p>
                     ข้อความ disclaimer ที่แสดงในหน้า <strong>ติดต่อเรา</strong> รองรับ 3 ภาษา (ไทย / English / 日本語)
@@ -1326,7 +1376,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme + Disclaimer)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>

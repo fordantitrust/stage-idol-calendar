@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v3.1.0
+All API endpoints for Idol Stage Timetable v6.4.0
 
 ---
 
@@ -17,6 +17,10 @@ All API endpoints for Idol Stage Timetable v3.1.0
   - [Credits](#credits-endpoints)
   - [Backup/Restore](#backuprestore-endpoints)
   - [User Management](#user-management-endpoints-admin-only)
+  - [Settings](#settings-endpoints)
+  - [Contact Channels](#contact-channels-endpoints)
+  - [Artist Variants](#artist-variants-endpoints)
+  - [Google Config (Analytics + AdSense)](#google-config-endpoints)
   - [Account](#account-endpoint)
 
 ---
@@ -643,6 +647,56 @@ X-CSRF-Token: <token>
 
 ---
 
+### Google Config Endpoints
+
+Google Analytics 4 and AdSense settings stored in `config/google-config.json`. **admin role only** (v6.4.0+).
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `analytics_config_get` | GET | Get current Google Analytics + AdSense configuration |
+| `analytics_config_save` | POST | Save Google Analytics + AdSense configuration |
+
+#### Get Google Config
+
+```http
+GET /admin/api.php?action=analytics_config_get
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "ga_id": "G-XXXXXXXXXX",
+    "ads_client": "ca-pub-XXXXXXXXXXXXXXXX",
+    "ads_slot_leaderboard": "1234567890",
+    "ads_slot_rectangle": "0987654321",
+    "ads_slot_responsive": "1122334455"
+  }
+}
+```
+
+#### Save Google Config
+
+```http
+POST /admin/api.php?action=analytics_config_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "ga_id": "G-XXXXXXXXXX",
+  "ads_client": "ca-pub-XXXXXXXXXXXXXXXX",
+  "ads_slot_leaderboard": "1234567890",
+  "ads_slot_rectangle": "0987654321",
+  "ads_slot_responsive": "1122334455"
+}
+```
+
+> **Security**: `config/google-config.json` is protected from direct HTTP access by `config/.htaccess` (Deny from all for .json files).
+> **Effect**: Changes take effect immediately on next page load — constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` are loaded at runtime from the JSON file.
+
+---
+
 ### Account Endpoint
 
 | Action | Method | Description |
@@ -679,6 +733,7 @@ X-CSRF-Token: <token>
 | Contact Channels (CRUD) | ✅ | ❌ |
 | Settings (title, theme, disclaimer) save | ✅ | ❌ |
 | Artist Variants (list, create, delete) | ✅ | ✅ |
+| Google Config (Analytics + AdSense) get/save | ✅ | ❌ |
 | Change own password | ✅ | ✅ |
 
 ---
@@ -693,4 +748,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v3.1.0*
+*Idol Stage Timetable v6.4.0*

@@ -1127,10 +1127,10 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Settings Tab -->
             <section class="help-section" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>The Settings tab organizes configuration with 6 sub-tabs for <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, and <strong>Disclaimer</strong>. Only users with the <strong>admin</strong> role can access this tab.</p>
+                <p>The Settings tab organizes configuration with 7 sub-tabs for <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Google Services</strong>, and <strong>Disclaimer</strong>. Only users with the <strong>admin</strong> role can access this tab.</p>
 
-                <h3>📝 Settings Sub-tabs (v5.1.1+)</h3>
-                <p>The Settings tab is organized into 6 sub-tabs for easy navigation:</p>
+                <h3>📝 Settings Sub-tabs (v6.4.0+)</h3>
+                <p>The Settings tab is organized into 7 sub-tabs for easy navigation:</p>
                 <table class="help-table">
                     <thead><tr><th>Sub-tab</th><th>Function</th><th>Category</th></tr></thead>
                     <tbody>
@@ -1139,6 +1139,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>👤 <strong>Users</strong></td><td>Manage Admin Users, permissions (Admin/Agent)</td><td>User management</td></tr>
                         <tr><td>💾 <strong>Backup</strong></td><td>Backup/Restore database</td><td>Database management</td></tr>
                         <tr><td>🤖 <strong>Telegram</strong></td><td>Configure Telegram Bot, Notifications</td><td>Telegram integration</td></tr>
+                        <tr><td>🔵 <strong>Google</strong></td><td>Configure Google Analytics (GA4) and Google AdSense</td><td>Monetization &amp; tracking</td></tr>
                         <tr><td>⚠️ <strong>Disclaimer</strong></td><td>Configure Disclaimer (TH/EN/JA)</td><td>Legal content</td></tr>
                     </tbody>
                 </table>
@@ -1217,6 +1218,56 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Set a per-event theme in the <strong>🎪 Events</strong> tab → click <strong>➕ Add Event</strong> or the <strong>✏️</strong> edit button → <strong>Theme</strong> field</div>
                 </div>
 
+                <h3>🔵 Google Services (v6.3.0–6.4.0)</h3>
+                <p>
+                    Configure <strong>Google Analytics</strong> and <strong>Google AdSense</strong> directly from the Admin UI —
+                    no SSH or file editing required. Settings are saved in <code>config/google-config.json</code>
+                    and loaded via <code>config/google.php</code>.
+                </p>
+
+                <h4>📈 Google Analytics (GA4)</h4>
+                <table class="help-table">
+                    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Measurement ID</td><td>GA4 Measurement ID in the format <code>G-XXXXXXXXXX</code> — found in your Google Analytics dashboard. Leave blank to disable Analytics.</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>💰 Google AdSense</h4>
+                <table class="help-table">
+                    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>Publisher ID</td><td>Format: <code>ca-pub-XXXXXXXXXXXXXXXX</code> — found in your AdSense dashboard. <strong>Leave blank to disable all ads.</strong></td></tr>
+                        <tr><td>Slot: Leaderboard</td><td>Ad slot ID for the leaderboard unit (728×90) — displayed after the event header on the main page.</td></tr>
+                        <tr><td>Slot: Rectangle</td><td>Ad slot ID for the rectangle unit (300×250) — displayed on artist profile pages.</td></tr>
+                        <tr><td>Slot: Responsive</td><td>Ad slot ID for the responsive unit (auto-size) — displayed before the footer on other pages.</td></tr>
+                    </tbody>
+                </table>
+
+                <h4>How to Configure Google Services</h4>
+                <ol class="steps">
+                    <li>Click the <strong>⚙️ Settings</strong> tab</li>
+                    <li>Click the <strong>🔵 Google</strong> sub-tab</li>
+                    <li>Enter your <strong>Measurement ID</strong> for Analytics and/or <strong>Publisher ID + Slot IDs</strong> for AdSense</li>
+                    <li>Click <strong>💾 Save Analytics</strong></li>
+                    <li>You will see <strong>✅ Saved</strong> — the GA4/AdSense code loads automatically on all public pages</li>
+                </ol>
+
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>
+                        <strong>Analytics and Ads are independent:</strong>
+                        Leaving Publisher ID blank disables all ads while Analytics continues to work (if Measurement ID is set), and vice versa.
+                    </div>
+                </div>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>
+                        <code>config/google-config.json</code> is protected from HTTP access by <code>config/.htaccess</code> automatically — your API keys are never exposed through the web.
+                    </div>
+                </div>
+
                 <h3>⚠️ Disclaimer</h3>
                 <p>
                     The disclaimer text shown on the <strong>Contact</strong> page supports 3 languages (Thai / English / Japanese).
@@ -1293,7 +1344,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
                         <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme + Disclaimer)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td></tr>
                         <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
                     </tbody>
                 </table>

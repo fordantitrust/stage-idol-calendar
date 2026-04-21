@@ -382,6 +382,10 @@ if ($_listingCalDataFromCache !== null) {
     gtag('config', '<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');
     </script>
     <?php endif; ?>
+    <?php if (defined('GOOGLE_ADS_CLIENT') && GOOGLE_ADS_CLIENT): ?>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?php echo htmlspecialchars(GOOGLE_ADS_CLIENT, ENT_QUOTES, 'UTF-8'); ?>"
+         crossorigin="anonymous"></script>
+    <?php endif; ?>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <!-- Index page CSS -->
@@ -650,6 +654,7 @@ if ($_listingCalDataFromCache !== null) {
                 <a href="#data-version" class="header-nav-link">🔄️ <?php echo get_data_version($eventId); ?></a>
             </nav>
         </header>
+        <?php render_ad_unit('leaderboard'); ?>
 
         <div class="filters">
             <form method="GET" action="<?php echo event_url('index.php'); ?>"  >
@@ -935,6 +940,7 @@ if ($_listingCalDataFromCache !== null) {
                 }
             }
         ?>
+        <?php render_ad_unit('responsive'); ?>
         <section class="cross-event-section">
             <h3 class="cross-event-section-title" data-i18n="section.crossEvent">งานอื่นที่เกี่ยวข้องกับศิลปิน</h3>
             <div class="cross-event-list">

@@ -232,6 +232,22 @@ Access /admin ✅
 
 ---
 
+## Post-Setup: Admin Settings
+
+After completing the wizard and logging into `/admin/`, configure these Settings sub-tabs:
+
+| Sub-tab | Where | Purpose |
+|---------|-------|---------|
+| **📝 Site** | Admin › Settings | Set site title + global theme |
+| **✉️ Contact** | Admin › Settings | Add contact channels (shown on contact.php) |
+| **👤 Users** | Admin › Settings | Manage admin users + roles |
+| **💾 Backup** | Admin › Settings | Create/restore database backups |
+| **🤖 Telegram** | Admin › Settings | Configure Telegram notification bot |
+| **🔵 Google** (v6.4.0+) | Admin › Settings | Configure Google Analytics 4 ID + AdSense client/slot IDs — no SSH needed; stored in `config/google-config.json` |
+| **⚠️ Disclaimer** | Admin › Settings | Set multilingual disclaimer text (TH/EN/JA) |
+
+---
+
 ## Related Files
 
 | File | Purpose |
@@ -241,9 +257,10 @@ Access /admin ✅
 | `data/calendar.db` | SQLite database |
 | `config/admin.php` | Admin credentials (fallback) |
 | `config/app.php` | App version and settings |
+| `config/google-config.json` | Google Analytics + AdSense config (created/edited via Admin UI) |
 
 For all CLI migration scripts and their descriptions, see **[PROJECT-STRUCTURE.md — tools/](PROJECT-STRUCTURE.md#️-tools)**.
 
 ---
 
-*Idol Stage Timetable v3.1.0*
+*Idol Stage Timetable v6.4.0*

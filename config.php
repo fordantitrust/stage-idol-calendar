@@ -28,7 +28,7 @@
 // =============================================================================
 
 require_once __DIR__ . '/config/app.php';         // Application settings
-require_once __DIR__ . '/config/analytics.php';  // Google Analytics ID
+require_once __DIR__ . '/config/google.php';      // Google services (Analytics + AdSense)
 require_once __DIR__ . '/config/admin.php';       // Admin & authentication
 require_once __DIR__ . '/config/security.php';    // Security settings
 require_once __DIR__ . '/config/database.php';    // Database configuration
@@ -41,6 +41,7 @@ require_once __DIR__ . '/config/telegram.php';    // Telegram bot settings
 // =============================================================================
 
 require_once __DIR__ . '/functions/helpers.php';   // General helpers
+require_once __DIR__ . '/functions/ads.php';       // Google Ads helper
 require_once __DIR__ . '/functions/cache.php';     // Cache functions
 require_once __DIR__ . '/functions/security.php';  // Security functions
 require_once __DIR__ . '/functions/admin.php';     // Admin functions

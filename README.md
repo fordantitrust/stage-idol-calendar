@@ -92,6 +92,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Server-Side HTML Escaping** | `escapeOutputData()` in admin API restored to actually escape with `htmlspecialchars()`; `decodeHtml()` JS helper for form inputs; removed double-escaping from display paths; 2 XSS fixes in error message `innerHTML`; unified `escHtml()` → `escapeHtml()` | v5.3.1 |
 | 🤖 **Telegram Bot Commands (Extended)** | 8 new commands: `/tomorrow`, `/week`, `/artists`, `/next`, `/lang`, `/mute`, `/notify`, `/status` · Modified `/today` (event list + count) and `/upcoming` (default 3, supports `/upcoming N` 1–10) · Mute/notify controls with favorites JSON state · All program commands include group member resolution | v5.4.0 |
 | 🖼️ **Artist Pictures** | Upload display picture (circular avatar, 400×400 px) and cover picture (banner, 1200×400 px) per artist; PHP GD auto-resize & center-crop on upload (max 5 MB); stored in `uploads/artists/`; display picture shows as hover tooltip on program list badges | v6.0.0 |
+| 💰 **Google AdSense** | Monetize with AdSense — `render_ad_unit()` helper in `functions/ads.php`; 3 sizes: leaderboard (728×90), rectangle (300×250), responsive (auto); 8 placements across public pages; disabled by default (`GOOGLE_ADS_CLIENT = ''`) | v6.3.0 |
+| 🔵 **Google Admin UI** | Configure Google Analytics 4 + AdSense entirely from Admin › Settings › 🔵 Google — no SSH needed; settings stored in `config/google-config.json` (protected from HTTP access); same JSON-loader pattern as Telegram config | v6.4.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -183,6 +185,9 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v6.1.3** | 2026-04-18 | **Bug fix: admin approve/reject silent failure** — UPDATE in `approveRequest()` / `rejectRequest()` referenced `admin_note`, `reviewed_at`, `reviewed_by` columns that did not yet exist; SQLite threw a PDOException caught silently; fixed by adding the three columns to the live DB via `ALTER TABLE` + updating `setup.php` `CREATE TABLE` + adding migration block |
 | **v6.1.4** | 2026-04-18 | **Admin note form for approve/reject** — replaced bare `confirm()` dialog with an inline textarea form inside the request detail modal; Approve/Reject shows an optional note field before submitting; Back button returns to the detail view; `admin_note`, `reviewed_at`, `reviewed_by` saved to `program_requests`; fixed `approveReq`/`rejectReq` ReferenceError (table-row buttons still called removed functions) |
 | **v6.1.5** | 2026-04-18 | **Bug fixes: setup.php migration check + Back button** — added `$hasRequestReviewColumns` detection for `admin_note`/`reviewed_at`/`reviewed_by` columns in `program_requests` so setup wizard surfaces missing v6.1.3 migration; fixed Back button in admin note form calling non-existent `openRequestDetail()` → changed to `viewRequestDetail(window._currentReqData?.id)` |
+| **v6.2.0** | 2026-04-20 | **Dynamic XML Sitemap** — `sitemap.php` at `/sitemap.xml` (Apache rewrite); includes static pages, active events (`/event/{slug}` + `/event/{slug}/credits`), and artist profiles (`/artist/{id}`); `lastmod` from DB · **Sitemap file cache** — output saved to `cache/sitemap.xml` (TTL 1 hr); `invalidate_sitemap_cache()` auto-called on event/artist changes (6 points); included in `invalidate_all_caches()` · **Dynamic robots.txt** — `robots.php` at `/robots.txt`; injects `Sitemap:` URL from actual host; Disallows only `/my/` and `/my-favorites/` |
+| **v6.3.0** | 2026-04-21 | **Google AdSense System** — `render_ad_unit()` helper in `functions/ads.php`; 3 ad sizes: leaderboard (728×90), rectangle (300×250), responsive (auto); 8 placements across `index.php`, `artist.php`, `artists.php`, `how-to-use.php`, `credits.php`, `contact.php`, `past-events.php`; disabled when `GOOGLE_ADS_CLIENT = ''`; CSS classes in `styles/common.css` |
+| **v6.4.0** | 2026-04-21 | **Google Admin UI** — Google Analytics 4 + AdSense settings configurable via Admin › Settings › 🔵 Google (renamed from 📊 Analytics); `config/google-config.json` stores `ga_id`, `ads_client`, `ads_slot_*`; `analytics_config_get` + `analytics_config_save` API endpoints (admin-role only); `config/analytics.php` renamed + rewritten as `config/google.php` loading from JSON; no SSH required |
 
 ---
 
@@ -616,7 +621,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           2523 automated tests (14 suites)
+├── tests/           3666 automated tests (16 suites)
 └── *.md             Documentation
 ```
 
@@ -682,7 +687,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all 2523 automated tests
+# Run all 3666 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -780,7 +785,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **2523 automated unit tests** covering all critical functionality:
+The project includes **3666 automated unit tests** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
@@ -834,14 +839,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 2523 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 3666 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 2523 tests
-Passed: 2523
+Total: 3666 tests
+Passed: 3666
 Pass Rate: 100.0%
 ```
 
@@ -853,7 +858,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 6.2.0
+**Current Version**: 6.4.0
 
 ---
 

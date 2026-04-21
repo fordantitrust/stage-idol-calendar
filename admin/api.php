@@ -190,6 +190,13 @@ switch ($action) {
     case 'disclaimer_save':
         saveDisclaimerSetting();
         break;
+    // Analytics Config (GA + AdSense)
+    case 'analytics_config_get':
+        getAnalyticsConfig();
+        break;
+    case 'analytics_config_save':
+        saveAnalyticsConfig();
+        break;
     // Telegram Config
     case 'telegram_config_get':
         getTelegramConfig();
@@ -2980,6 +2987,80 @@ function saveDisclaimerSetting() {
         jsonResponse(true, null, 'Disclaimer saved');
     } else {
         jsonResponse(false, null, 'Failed to save disclaimer');
+    }
+}
+
+// =============================================================================
+// GOOGLE CONFIG (Google Analytics + Google AdSense)
+// =============================================================================
+
+function getAnalyticsConfig() {
+    require_api_admin_role();
+    $configFile = __DIR__ . '/../config/google-config.json';
+
+    $default = [
+        'ga_id'               => '',
+        'ads_client'          => '',
+        'ads_slot_leaderboard'=> '',
+        'ads_slot_rectangle'  => '',
+        'ads_slot_responsive' => '',
+        'updated_at'          => '',
+    ];
+
+    $escFields = function(array &$cfg): void {
+        foreach (['ga_id', 'ads_client', 'ads_slot_leaderboard', 'ads_slot_rectangle', 'ads_slot_responsive'] as $f) {
+            if (isset($cfg[$f]) && is_string($cfg[$f])) {
+                $cfg[$f] = htmlspecialchars($cfg[$f], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+        }
+    };
+
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true);
+        if (is_array($config)) {
+            $config = array_merge($default, $config);
+            $escFields($config);
+            jsonResponse(true, $config);
+            return;
+        }
+    }
+
+    $escFields($default);
+    jsonResponse(true, $default);
+}
+
+function saveAnalyticsConfig() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $configFile = __DIR__ . '/../config/google-config.json';
+    $configDir  = dirname($configFile);
+
+    if (!is_dir($configDir)) {
+        mkdir($configDir, 0755, true);
+    }
+
+    $existing = [];
+    if (file_exists($configFile)) {
+        $existing = json_decode(file_get_contents($configFile), true) ?? [];
+    }
+
+    $existing['ga_id']                = trim($input['ga_id']                ?? '');
+    $existing['ads_client']           = trim($input['ads_client']           ?? '');
+    $existing['ads_slot_leaderboard'] = trim($input['ads_slot_leaderboard'] ?? '');
+    $existing['ads_slot_rectangle']   = trim($input['ads_slot_rectangle']   ?? '');
+    $existing['ads_slot_responsive']  = trim($input['ads_slot_responsive']  ?? '');
+    $existing['updated_at']           = date('c');
+
+    $ok = file_put_contents($configFile, json_encode($existing, JSON_PRETTY_PRINT), LOCK_EX);
+    if ($ok !== false) {
+        jsonResponse(true, null, 'Analytics settings saved');
+    } else {
+        jsonResponse(false, null, 'Failed to save analytics settings');
     }
 }
 

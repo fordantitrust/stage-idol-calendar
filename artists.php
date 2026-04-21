@@ -90,6 +90,10 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');</script>
     <?php endif; ?>
+    <?php if (defined('GOOGLE_ADS_CLIENT') && GOOGLE_ADS_CLIENT): ?>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?php echo htmlspecialchars(GOOGLE_ADS_CLIENT, ENT_QUOTES, 'UTF-8'); ?>"
+         crossorigin="anonymous"></script>
+    <?php endif; ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <?php if ($theme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $theme . '.css'); ?>">
@@ -115,6 +119,7 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
         <h1 data-i18n="portal.title">🎤 Artist Portal</h1>
         <p class="portal-subtitle" data-i18n="portal.subtitle">รายการกลุ่มและศิลปินทั้งหมดในระบบ</p>
     </header>
+    <?php render_ad_unit('leaderboard'); ?>
 
     <div class="content" style="padding-top:8px">
 

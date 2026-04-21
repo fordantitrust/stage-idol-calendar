@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '4.5.1'); // Change to force cache refresh
+define('APP_VERSION', '6.4.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -798,7 +798,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **2523 automated unit tests** across 14 test suites for quality assurance:
+The project includes **3666 automated unit tests** across 16 test suites for quality assurance:
 
 ```bash
 # Run all tests
@@ -849,11 +849,13 @@ chmod +x quick-test.sh
 | **FeedTest** | 291 | ICS escaping, line folding, CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986 compliance |
 | **StreamUrlTest** | 322 | Stream URL column, CRUD, admin badge, platform icons, ICS URL property |
 | **FavoritesTest** | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, localStorage persistence, artist profiles |
-| **TimezoneTest** | 487 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
+| **TimezoneTest** | 473 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
+| **ArtistPictureTest** | — | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
+| **TelegramTest** | — | Telegram bot commands, mute/notify state, group resolution, helpers |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 2523 total test executions.
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 3666 total test executions.
 
-✅ **All 2523 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 3666 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 
@@ -879,7 +881,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 1630 tests pass
+- [ ] Verify all 3666 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`

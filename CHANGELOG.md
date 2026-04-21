@@ -5,6 +5,71 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.4.0] - 2026-04-21
+
+### Added
+- **Google Admin UI** — Google Analytics & Google AdSense configurable via Admin UI › Settings › 🔵 Google sub-tab; same pattern as Telegram config (JSON file + PHP loader + API)
+- **`config/google-config.json`** — stores `ga_id`, `ads_client`, `ads_slot_leaderboard`, `ads_slot_rectangle`, `ads_slot_responsive`; protected by existing `config/.htaccess` (`Deny from all` for `.json`)
+- **`analytics_config_get` / `analytics_config_save`** API endpoints in `admin/api.php` — admin-role required; reads/writes `config/google-config.json`; fields HTML-escaped on output; `updated_at` timestamp on save
+- **`loadAnalyticsSetting()` / `saveAnalyticsSetting()`** JS functions in `admin/index.php` — auto-loaded with Settings tab; populate/save all 5 fields; uses `decodeHtml()` pattern from other settings
+- **i18n keys** in `admin/js/admin-i18n.js` — `settings.subtab.analytics`, `settings.analytics*` keys in both TH and EN dictionaries
+
+### Changed
+- **`config/analytics.php`** renamed to **`config/google.php`** — combined GA + AdSense loader; reads from `config/google-config.json` (like `config/telegram.php`), falling back to empty strings; constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` unchanged for backward compatibility
+- **Admin UI sub-tab** label changed from `📊 Analytics` to `🔵 Google`
+
+### Documentation
+- **Admin Help updated (TH + EN)** — `admin/help.php` and `admin/help-en.php` updated to cover v6.4.0:
+  - Settings sub-tabs table updated from 6 → **7 sub-tabs**; added `🔵 Google` row (between Telegram and Disclaimer)
+  - New `🔵 Google Services (v6.3.0–6.4.0)` section covering Google Analytics (GA4 Measurement ID) and Google AdSense (Publisher ID + 3 slot IDs), setup steps, and security callouts
+  - Roles table updated: `Settings (Title + Theme + Disclaimer)` → `Settings (Title + Theme + Google + Disclaimer)`
+- **All .md files updated** — README.md, API.md, PROJECT-STRUCTURE.md, SECURITY.md, SETUP.md, INSTALLATION.md, TESTING.md updated with v6.2.0–v6.4.0 entries (Sitemap, AdSense, Google Admin UI), new file listings, API endpoint docs, security checklist, and test counts
+
+### Files Changed
+**New files:**
+- `config/google.php` — (renamed from `config/analytics.php`) GA + AdSense loader from JSON
+- `config/google-config.json` — JSON config for GA + AdSense
+
+**Modified files:**
+- `config.php` — updated require to `config/google.php`
+- `admin/api.php` — added `analytics_config_get` + `analytics_config_save` endpoints + functions; config file path updated to `google-config.json`
+- `admin/index.php` — added 🔵 Google sub-tab button + HTML panel + JS functions + loader call
+- `admin/js/admin-i18n.js` — added analytics i18n keys (TH + EN); sub-tab label updated to 🔵 Google
+- `admin/help.php` — Settings sub-tabs (6→7), 🔵 Google section, Roles table
+- `admin/help-en.php` — Settings sub-tabs (6→7), 🔵 Google section, Roles table
+- `config/app.php` — version bump to 6.4.0
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
+## [6.3.0] - 2026-04-21
+
+### Added
+- **Google AdSense System** — monetization system with enable/disable identical to Google Analytics (`GOOGLE_ADS_CLIENT = ''` = disabled)
+- **`render_ad_unit(string $slot, string $class = ''): void`** helper in `functions/ads.php` — renders `<ins class="adsbygoogle">` with correct attributes; silently skips if publisher ID or slot ID is empty; supports 3 slot types: `leaderboard` (728×90), `rectangle` (300×250), `responsive` (auto)
+- **AdSense `<head>` script** added to all 7 public pages (`index.php`, `artist.php`, `artists.php`, `how-to-use.php`, `credits.php`, `contact.php`, `past-events.php`) — loaded only when `GOOGLE_ADS_CLIENT` is set
+- **8 ad placements** across public pages: leaderboard after event-detail header (`index.php`), responsive before cross-event section (`index.php`), rectangle after artist header (`artist.php`), leaderboard after header (`artists.php`), responsive before footer on `how-to-use.php`, `credits.php`, `contact.php`
+- **`.ads-unit` CSS classes** in `styles/common.css` — `.ads-leaderboard` (max-width 728px), `.ads-rectangle` (max-width 336px), `.ads-responsive` (full width)
+- **4 new constants** in `config/google.php` — `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_LEADERBOARD`, `GOOGLE_ADS_SLOT_RECTANGLE`, `GOOGLE_ADS_SLOT_RESPONSIVE`
+
+### Files Changed
+**New files:**
+- `functions/ads.php` — `render_ad_unit()` helper function
+
+**Modified files:**
+- `config/google.php` — added `GOOGLE_ADS_CLIENT` + 3 slot constants
+- `config.php` — added `require_once functions/ads.php`
+- `index.php` — AdSense head script + 2 ad placements
+- `artist.php` — AdSense head script + 1 ad placement
+- `artists.php` — AdSense head script + 1 ad placement
+- `how-to-use.php` — AdSense head script + 1 ad placement
+- `credits.php` — AdSense head script + 1 ad placement
+- `contact.php` — AdSense head script + 1 ad placement
+- `past-events.php` — AdSense head script (no placement)
+- `styles/common.css` — added `.ads-unit` CSS classes
+- `config/app.php` — version bump to 6.3.0
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
 ## [6.2.0] - 2026-04-20
 
 ### Added

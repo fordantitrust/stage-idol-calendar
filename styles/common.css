@@ -1512,3 +1512,19 @@ footer {
     /* #month-calendar-view still needed for outer containment */
     #month-calendar-view { overflow: visible; }
 }
+
+/* Google AdSense ad units */
+.ads-unit {
+    text-align: center;
+    margin: 16px auto;
+    overflow: hidden;
+}
+.ads-leaderboard {
+    max-width: 728px;
+}
+.ads-rectangle {
+    max-width: 336px;
+}
+.ads-responsive {
+    width: 100%;
+}

@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v3.1.0
+File and folder structure for Idol Stage Timetable v6.4.0
 
 ---
 
@@ -39,6 +39,11 @@ stage-idol-calendar/
 | `feed.php` | Live ICS subscription feed — ETag, static file cache, RFC 5545/7986 |
 | `api.php` | Public API endpoint (programs, organizers, locations, events_list) |
 | `artist.php` | Artist Profile page — `/artist/{id}`; all programs grouped by event; group members, variants |
+| `artists.php` | Artist & Group Portal (`/artists`) — gradient group cards + solo grid, real-time search, tab filter |
+| `sitemap.php` | Dynamic XML Sitemap at `/sitemap.xml` (Apache rewrite) — static pages, active events, artist profiles; file-cached to `cache/sitemap.xml` (TTL 1 hr) |
+| `robots.php` | Dynamic `robots.txt` at `/robots.txt` (Apache rewrite) — injects `Sitemap:` URL from actual host; Disallows `/my/`, `/my-favorites/` |
+| `robots.txt` | Static fallback robots.txt (rewrite routes to `robots.php`) |
+| `past-events.php` | Past Events archive page |
 | `setup.php` | Setup Wizard — fresh install & maintenance (6 steps) |
 | `config.php` | Bootstrap — loads all config/ and functions/ |
 | `IcsParser.php` | ICS Parser class — parse .ics files → SQLite |
@@ -53,11 +58,15 @@ Configuration constants for the entire system, loaded via `config.php`
 
 | File | Defines | Purpose |
 |------|---------|---------|
-| `app.php` | `APP_VERSION`, `APP_NAME`, `PRODUCTION_MODE`, `VENUE_MODE`, `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG`, `GOOGLE_ANALYTICS_ID` | App settings + cache busting + site title default |
+| `app.php` | `APP_VERSION`, `APP_NAME`, `PRODUCTION_MODE`, `VENUE_MODE`, `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG`, `DEFAULT_TIMEZONE` | App settings + cache busting + site title default |
 | `admin.php` | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `SESSION_TIMEOUT`, `ADMIN_IP_WHITELIST_ENABLED`, `ADMIN_ALLOWED_IPS` | Admin auth fallback + IP whitelist |
 | `security.php` | Security rate limiting constants | Rate limiting config |
 | `database.php` | `DB_PATH` (`data/calendar.db`) | Database file path |
-| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s) | Cache TTL settings + ICS feed cache |
+| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s), `SITEMAP_CACHE_FILE`, `SITEMAP_CACHE_TTL` (3600s) | Cache TTL settings + ICS feed cache + sitemap cache |
+| `google.php` | `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_LEADERBOARD`, `GOOGLE_ADS_SLOT_RECTANGLE`, `GOOGLE_ADS_SLOT_RESPONSIVE` | Loads from `google-config.json`; constants kept for backward compatibility (replaces `analytics.php` in v6.4.0) |
+| `google-config.json` | JSON file with `ga_id`, `ads_client`, `ads_slot_*` | Runtime-editable Google config; protected from HTTP by `config/.htaccess` |
+| `favorites.php` | `FAV_SECRET`, `FAV_CACHE_DIR`, `FAV_CACHE_TTL` | Anonymous favorites HMAC secret + storage config |
+| `telegram.php` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_NOTIFY_BEFORE_MINUTES` | Loads from `telegram-config.json`; constants for telegram bot |
 
 ---
 
@@ -67,10 +76,14 @@ Helper functions loaded via `config.php`
 
 | File | Key Functions | Purpose |
 |------|--------------|---------|
-| `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()` | General utilities + DB singleton + site title/theme + multi-event helpers |
-| `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_feed_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate (data version, credits, ICS feed) |
+| `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`, `get_event_timezone()` | General utilities + DB singleton + site title/theme + multi-event helpers + timezone |
+| `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_feed_cache()`, `invalidate_sitemap_cache()`, `invalidate_query_cache()`, `invalidate_artist_query_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate (data version, credits, ICS feed, sitemap, query cache) |
 | `admin.php` | `admin_login()`, `safe_session_start()`, `check_admin_session()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting |
 | `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `generate_csrf_token()`, `validate_csrf_token()` | XSS, CSRF, headers, IP whitelist |
+| `ads.php` | `render_ad_unit(type)` | Google AdSense helper — renders leaderboard/rectangle/responsive ad units; no-op when `GOOGLE_ADS_CLIENT` is empty (v6.3.0+) |
+| `ics.php` | `icsLine()`, `icsFold()`, `icsEscape()`, `icsEscapeText()`, `icsVtimezone()`, `icsOffsetString()` | Shared ICS helpers for RFC 5545 compliant export and feed generation |
+| `telegram.php` | `send_telegram_message()`, `find_favorites_by_chat_id()`, `telegram_is_muted()`, `telegram_notify_is_enabled()`, `telegram_format_events_list()` | Telegram Bot API helpers + notification state |
+| `favorites.php` | `fav_create()`, `fav_load()`, `fav_save()`, `fav_build_slug()`, `fav_parse_slug()`, `fav_verify_slug()`, `fav_maybe_cleanup()` | Anonymous favorites: HMAC-signed slug, JSON file I/O, sharded storage |
 
 ---
 
@@ -104,9 +117,15 @@ Auto-created by the system
 | `data_version.json` | Last data update timestamp (ETag for public API + feed) | 10 minutes |
 | `credits.json` | Credits data cache | 1 hour |
 | `feed_*.ics` | Static ICS feed cache files (key = md5 of sorted filters+eventId) | 1 hour |
+| `sitemap.xml` | Static XML sitemap cache (served by `readfile()` on hit) | 1 hour |
+| `query_event_{id}.json` | Event page DB query results (programs, artists, venues, types) | 1 hour |
+| `query_artist_{id}.json` | Artist profile page DB query results | 1 hour |
+| `query_listing.json` | Homepage listing query cache (`$activeEvents` + `$listingCalData`) | 1 hour |
+| `query_portal.json` | Artists & Group Portal page query cache | 1 hour |
 | `login_attempts.json` | Login rate limiting data | 15 minutes |
 | `site-theme.json` | Global site theme setting | Persistent (changed by admin) |
 | `site-settings.json` | Site settings: `site_title`, `disclaimer_th/en/ja` | Persistent (changed by admin) |
+| `images/img_*.png` | Server-side image export PNG cache (theme-aware) | 1 hour |
 
 ---
 
@@ -168,7 +187,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 2523 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 3666 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Unique Tests | Cumulative | Coverage |
 |------|-------------|-----------|---------|
@@ -187,12 +206,14 @@ Automated test suite — 2523 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 | `FeedTest.php` | 80 | 291 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
 | `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
 | `FavoritesTest.php` | 84 | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
-| `TimezoneTest.php` | 117 | 487 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
+| `TimezoneTest.php` | 67 | 473 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
+| `ArtistPictureTest.php` | 61 | — | Artist display/cover picture upload, GD resize, admin API, tooltip |
+| `TelegramTest.php` | 54 | — | Telegram bot commands, helpers, mute/notify state, group resolution |
 
-> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 2523.
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 3666.
 
 ```bash
-# Run all 2523 tests
+# Run all 3666 tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -533,4 +554,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v3.1.0*
+*Idol Stage Timetable v6.4.0*

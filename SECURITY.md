@@ -4,11 +4,11 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 3.0.x   | :white_check_mark: |
-| 2.10.x  | :white_check_mark: |
-| 2.9.x   | :white_check_mark: |
-| 2.8.x   | :white_check_mark: |
-| < 2.8   | :x:                |
+| 6.4.x   | :white_check_mark: |
+| 6.3.x   | :white_check_mark: |
+| 6.2.x   | :white_check_mark: |
+| 6.x.x   | :white_check_mark: |
+| < 6.0   | :x:                |
 
 ---
 
@@ -245,11 +245,16 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Path disclosure: public API error responses return generic messages; no server paths or PDO details
 - Concurrent cache write: `LOCK_EX` flag in `file_put_contents()` for all cache file writes
 
+✅ **Google Config Security** (Added in v6.4.0)
+- `config/google-config.json` stores GA4 ID and AdSense credentials; protected from HTTP access by `config/.htaccess` (`Deny from all` for `.json` files) — no key exposure via browser
+- Google Analytics + AdSense settings edited exclusively through Admin UI (`analytics_config_get` / `analytics_config_save`); admin-role only; CSRF-protected
+- Constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` loaded at runtime from JSON — no credentials in committed PHP constants
+
 ---
 
 ## Known Limitations
 
-### Current Version (v4.5.1)
+### Current Version (v6.4.0)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -293,6 +298,7 @@ Before going live:
 - [ ] Tested admin login
 - [ ] Tested rate limiting
 - [ ] Run automated tests: `php tests/run-tests.php`
+- [ ] Verify `config/google-config.json` is NOT committed with real credentials (add to `.gitignore`)
 - [ ] Updated contact information
 - [ ] Removed test data from database
 
@@ -320,5 +326,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-03-13
-**Version:** 4.5.1
+**Last Updated:** 2026-04-21
+**Version:** 6.4.0

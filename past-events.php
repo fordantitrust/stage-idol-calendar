@@ -56,6 +56,10 @@ $baseUrl    = get_base_path() . '/past-events';
     gtag('config', '<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');
     </script>
     <?php endif; ?>
+    <?php if (defined('GOOGLE_ADS_CLIENT') && GOOGLE_ADS_CLIENT): ?>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<?php echo htmlspecialchars(GOOGLE_ADS_CLIENT, ENT_QUOTES, 'UTF-8'); ?>"
+         crossorigin="anonymous"></script>
+    <?php endif; ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <link rel="stylesheet" href="<?php echo asset_url('styles/index.css'); ?>">
     <?php if ($theme !== 'sakura'): ?>

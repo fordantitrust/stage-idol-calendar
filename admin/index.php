@@ -1558,6 +1558,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="admin-subtab-btn" data-subtab="users" onclick="switchSettingsSubtab('users')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.users">👤 Users</button>
                 <button class="admin-subtab-btn" data-subtab="backup" onclick="switchSettingsSubtab('backup')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.backup">💾 Backup</button>
                 <button class="admin-subtab-btn" data-subtab="telegram" onclick="switchSettingsSubtab('telegram')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.telegram">🤖 Telegram</button>
+                <button class="admin-subtab-btn" data-subtab="analytics" onclick="switchSettingsSubtab('analytics')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.analytics">🔵 Google</button>
                 <button class="admin-subtab-btn" data-subtab="disclaimer" onclick="switchSettingsSubtab('disclaimer')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.disclaimer">⚠️ Disclaimer</button>
             </div>
 
@@ -1821,6 +1822,61 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         white-space:pre-wrap;word-break:break-all;
                         margin:0;border:1px solid #333;
                     ">Loading...</pre>
+                </div>
+            </div>
+
+            <!-- Analytics Sub-tab (Google Analytics + Google AdSense) -->
+            <div id="settingsSubtab-analytics" class="settings-subtab-content" style="display:none;max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.analytics">🔵 Google Services</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="settings.analyticsDesc">ตั้งค่า Google Analytics และ Google AdSense — ปล่อยว่างเพื่อปิดใช้งาน</p>
+
+                <!-- Google Analytics -->
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:16px;margin-bottom:20px">
+                    <h4 style="margin:0 0 12px 0;color:#495057" data-i18n="settings.analyticsGaTitle">📈 Google Analytics</h4>
+                    <div style="margin-bottom:12px">
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.analyticsGaId">Measurement ID</label>
+                        <input type="text" id="analyticsGaId" maxlength="30"
+                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                               placeholder="G-XXXXXXXXXX">
+                        <small class="form-hint" data-i18n="settings.analyticsGaIdHint">GA4 Measurement ID จาก Google Analytics dashboard</small>
+                    </div>
+                </div>
+
+                <!-- Google AdSense -->
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:16px;margin-bottom:20px">
+                    <h4 style="margin:0 0 12px 0;color:#495057" data-i18n="settings.analyticsAdsTitle">💰 Google AdSense</h4>
+                    <div style="margin-bottom:12px">
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.analyticsAdsClient">Publisher ID</label>
+                        <input type="text" id="analyticsAdsClient" maxlength="30"
+                               style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                               placeholder="ca-pub-XXXXXXXXXXXXXXXX">
+                        <small class="form-hint" data-i18n="settings.analyticsAdsClientHint">Publisher ID จาก AdSense dashboard — ปล่อยว่างเพื่อปิด Ads ทั้งหมด</small>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr;gap:12px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.analyticsAdsLeaderboard">Slot: Leaderboard <small style="color:#888;font-weight:400">(728×90, after header)</small></label>
+                            <input type="text" id="analyticsAdsLeaderboard" maxlength="20"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                                   placeholder="1234567890">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.analyticsAdsRectangle">Slot: Rectangle <small style="color:#888;font-weight:400">(300×250, inline content)</small></label>
+                            <input type="text" id="analyticsAdsRectangle" maxlength="20"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                                   placeholder="0987654321">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.analyticsAdsResponsive">Slot: Responsive <small style="color:#888;font-weight:400">(auto, before footer)</small></label>
+                            <input type="text" id="analyticsAdsResponsive" maxlength="20"
+                                   style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace;background:#fff"
+                                   placeholder="1122334455">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center">
+                    <button class="btn btn-primary" onclick="saveAnalyticsSetting()" id="analyticsSaveBtn" data-i18n="settings.saveAnalytics">💾 บันทึก Analytics</button>
+                    <span id="analyticsSaveMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
                 </div>
             </div>
 
@@ -2826,6 +2882,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 loadTitleSetting();
                 loadDisclaimerSetting();
                 loadTelegramSetting();
+                loadAnalyticsSetting();
                 loadUsers();
                 loadBackups();
                 loadContactChannels();
@@ -6074,6 +6131,53 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
             })
             .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        // Analytics Settings (Google Analytics + AdSense)
+        function loadAnalyticsSetting() {
+            fetch('api.php?action=analytics_config_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const cfg = data.data;
+                        document.getElementById('analyticsGaId').value          = decodeHtml(cfg.ga_id                || '');
+                        document.getElementById('analyticsAdsClient').value     = decodeHtml(cfg.ads_client           || '');
+                        document.getElementById('analyticsAdsLeaderboard').value= decodeHtml(cfg.ads_slot_leaderboard || '');
+                        document.getElementById('analyticsAdsRectangle').value  = decodeHtml(cfg.ads_slot_rectangle   || '');
+                        document.getElementById('analyticsAdsResponsive').value = decodeHtml(cfg.ads_slot_responsive  || '');
+                    }
+                });
+        }
+
+        function saveAnalyticsSetting() {
+            const btn = document.getElementById('analyticsSaveBtn');
+            btn.disabled = true;
+
+            const payload = {
+                ga_id:                document.getElementById('analyticsGaId').value.trim(),
+                ads_client:           document.getElementById('analyticsAdsClient').value.trim(),
+                ads_slot_leaderboard: document.getElementById('analyticsAdsLeaderboard').value.trim(),
+                ads_slot_rectangle:   document.getElementById('analyticsAdsRectangle').value.trim(),
+                ads_slot_responsive:  document.getElementById('analyticsAdsResponsive').value.trim(),
+            };
+
+            fetch('api.php?action=analytics_config_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(payload)
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('analyticsSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; });
         }
 
         // Telegram Log Viewer
