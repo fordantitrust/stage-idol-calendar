@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '6.4.0'); // Change to force cache refresh
+define('APP_VERSION', '6.4.1'); // Change to force cache refresh
 ```
 
 **When to change**:

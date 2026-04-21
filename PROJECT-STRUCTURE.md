@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v6.4.0
+File and folder structure for Idol Stage Timetable v6.4.1
 
 ---
 
@@ -63,7 +63,7 @@ Configuration constants for the entire system, loaded via `config.php`
 | `security.php` | Security rate limiting constants | Rate limiting config |
 | `database.php` | `DB_PATH` (`data/calendar.db`) | Database file path |
 | `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s), `SITEMAP_CACHE_FILE`, `SITEMAP_CACHE_TTL` (3600s) | Cache TTL settings + ICS feed cache + sitemap cache |
-| `google.php` | `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_LEADERBOARD`, `GOOGLE_ADS_SLOT_RECTANGLE`, `GOOGLE_ADS_SLOT_RESPONSIVE` | Loads from `google-config.json`; constants kept for backward compatibility (replaces `analytics.php` in v6.4.0) |
+| `google.php` | `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_LEADERBOARD`, `GOOGLE_ADS_SLOT_RECTANGLE`, `GOOGLE_ADS_SLOT_RESPONSIVE` | Loads from `google-config.json`; constants kept for backward compatibility (replaces `analytics.php` in v6.4.1) |
 | `google-config.json` | JSON file with `ga_id`, `ads_client`, `ads_slot_*` | Runtime-editable Google config; protected from HTTP by `config/.htaccess` |
 | `favorites.php` | `FAV_SECRET`, `FAV_CACHE_DIR`, `FAV_CACHE_TTL` | Anonymous favorites HMAC secret + storage config |
 | `telegram.php` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_NOTIFY_BEFORE_MINUTES` | Loads from `telegram-config.json`; constants for telegram bot |
@@ -554,4 +554,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v6.4.0*
+*Idol Stage Timetable v6.4.1*

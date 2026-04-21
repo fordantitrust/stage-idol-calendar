@@ -245,7 +245,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Path disclosure: public API error responses return generic messages; no server paths or PDO details
 - Concurrent cache write: `LOCK_EX` flag in `file_put_contents()` for all cache file writes
 
-✅ **Google Config Security** (Added in v6.4.0)
+✅ **Google Config Security** (Added in v6.4.1)
 - `config/google-config.json` stores GA4 ID and AdSense credentials; protected from HTTP access by `config/.htaccess` (`Deny from all` for `.json` files) — no key exposure via browser
 - Google Analytics + AdSense settings edited exclusively through Admin UI (`analytics_config_get` / `analytics_config_save`); admin-role only; CSRF-protected
 - Constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` loaded at runtime from JSON — no credentials in committed PHP constants
@@ -254,7 +254,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (v6.4.0)
+### Current Version (v6.4.1)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -327,4 +327,4 @@ If you discover a security issue:
 ---
 
 **Last Updated:** 2026-04-21
-**Version:** 6.4.0
+**Version:** 6.4.1

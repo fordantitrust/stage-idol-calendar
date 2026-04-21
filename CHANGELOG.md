@@ -5,6 +5,19 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.4.1] - 2026-04-21
+
+### Fixed
+- 🐛 **Google AdSense leaderboard (728×90) not rendering** — `render_ad_unit()` in `functions/ads.php` used `data-ad-format="auto"` + `data-full-width-responsive="true"` for all slot types including fixed-size leaderboard and rectangle; AdSense interprets these attributes as responsive mode and refuses to render without an explicit container size; fixed by using slot-specific `<ins>` attributes: leaderboard → `style="display:inline-block;width:728px;height:90px"` (no `data-ad-format`), rectangle → `style="display:inline-block;width:300px;height:250px"` (no `data-ad-format`), responsive → `style="display:block"` + `data-ad-format="auto"` + `data-full-width-responsive="true"` (unchanged)
+- 🎨 **Leaderboard hidden on mobile** — added `@media (max-width:767px) { .ads-leaderboard { display:none } }` to `styles/common.css`; 728px fixed-width ad overflows on narrow screens and AdSense may not serve it at all below that width
+
+### Files Changed
+- `functions/ads.php` — slot-specific `<ins>` style + attributes per type
+- `styles/common.css` — hide `.ads-leaderboard` on mobile (< 768px)
+- `config/app.php` — version bump to 6.4.1
+
+> **Test Coverage**: All 3666 automated tests pass (100% pass rate)
+
 ## [6.4.0] - 2026-04-21
 
 ### Added

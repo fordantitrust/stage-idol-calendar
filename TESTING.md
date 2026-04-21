@@ -979,7 +979,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.1 List Programs
 
-**Test Case 6.4.0**: Load programs list
+**Test Case 6.4.1**: Load programs list
 
 **Steps**:
 1. Login to admin
@@ -992,7 +992,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Filter by venue
+**Test Case 6.4.1**: Filter by venue
 
 **Steps**:
 1. Select venue from dropdown
@@ -1065,7 +1065,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.3 Update Program
 
-**Test Case 6.4.0**: Edit program
+**Test Case 6.4.1**: Edit program
 
 **Steps**:
 1. Click "Edit" on program
@@ -1081,7 +1081,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.4 Delete Program
 
-**Test Case 6.4.0**: Delete single program
+**Test Case 6.4.1**: Delete single program
 
 **Steps**:
 1. Click "Delete" on program
@@ -1095,7 +1095,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 5.5 Bulk Operations - Programs
 
-**Test Case 6.4.0**: Bulk delete programs
+**Test Case 6.4.1**: Bulk delete programs
 
 **Steps**:
 1. Select 3 programs
@@ -1108,7 +1108,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Bulk edit venue
+**Test Case 6.4.1**: Bulk edit venue
 
 **Steps**:
 1. Select multiple programs
@@ -1122,7 +1122,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Bulk edit organizer
+**Test Case 6.4.1**: Bulk edit organizer
 
 **Steps**:
 1. Select programs
@@ -1141,7 +1141,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ### 6.1 Submit Request
 
-**Test Case 6.4.0**: Add event request
+**Test Case 6.4.1**: Add event request
 
 **Steps**:
 1. On index.php, click "📝 Report New Event"
@@ -1159,7 +1159,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Modify event request
+**Test Case 6.4.1**: Modify event request
 
 **Steps**:
 1. Click "✏️" button on existing event
@@ -1175,7 +1175,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Validation - Required fields
+**Test Case 6.4.1**: Validation - Required fields
 
 **Steps**:
 1. Leave title empty
@@ -1187,7 +1187,7 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
-**Test Case 6.4.0**: Rate limiting
+**Test Case 6.4.1**: Rate limiting
 
 **Steps**:
 1. Submit 10 requests
@@ -1881,7 +1881,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v6.4.0
+**Version**: v6.4.1
 
 **Result**: Pass / Fail
 

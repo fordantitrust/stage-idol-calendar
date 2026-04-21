@@ -1522,6 +1522,9 @@ footer {
 .ads-leaderboard {
     max-width: 728px;
 }
+@media (max-width: 767px) {
+    .ads-leaderboard { display: none; }
+}
 .ads-rectangle {
     max-width: 336px;
 }
