@@ -130,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             __DIR__ . '/fonts'             => 'fonts/',
             __DIR__ . '/uploads'           => 'uploads/',
             __DIR__ . '/uploads/artists'   => 'uploads/artists/',
+            __DIR__ . '/uploads/events'    => 'uploads/events/',
             __DIR__ . '/cache/favorites' => 'cache/favorites/',
         ];
         $created = 0;
@@ -292,6 +293,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UNIQUE(artist_id, variant)
             )");
 
+            // event_pictures table (v7.0.0)
+            $db->exec("CREATE TABLE IF NOT EXISTS event_pictures (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id      INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                filename      TEXT NOT NULL,
+                caption       TEXT DEFAULT NULL,
+                display_order INTEGER DEFAULT 0,
+                created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            // gallery_template column in events (idempotent)
+            $ecols0 = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('gallery_template', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN gallery_template TEXT DEFAULT 'grid3'");
+            }
+
             // Indexes สำหรับ performance
             $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_programs_event_id ON programs(event_id)");
@@ -304,6 +320,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_artists_program_id ON program_artists(program_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_artists_artist_id ON program_artists(artist_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_variants_artist_id ON artist_variants(artist_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_event_id ON event_pictures(event_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_order ON event_pictures(event_id, display_order)");
 
             // Seed admin user ถ้ายังไม่มี
             $adminCount = $db->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();
@@ -698,6 +716,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // เพิ่ม timezone column ใน events (migration สำหรับ existing install — v4.0.0)
+    if ($action === 'add_event_pictures_table') {
+        $migScript = __DIR__ . '/tools/migrate-add-event-pictures-table.php';
+        if (!file_exists($migScript)) {
+            $messages[] = ['type' => 'error', 'text' => 'ไม่พบ migration script'];
+        } else {
+            ob_start();
+            include $migScript;
+            $out = ob_get_clean();
+            if (strpos($out, '❌') !== false) {
+                $messages[] = ['type' => 'error', 'text' => nl2br(htmlspecialchars($out))];
+            } else {
+                $messages[] = ['type' => 'success', 'text' => 'สร้างตาราง <strong>event_pictures</strong> + เพิ่ม <strong>events.gallery_template</strong> เรียบร้อย'];
+            }
+        }
+    }
+
     if ($action === 'add_timezone_column') {
         try {
             $db = new PDO('sqlite:' . $dbPath);
@@ -882,6 +916,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                // event_pictures table + events.gallery_template column (added in v7.0.0)
+                if (!in_array('event_pictures', $existingTables)) {
+                    $db->exec("CREATE TABLE IF NOT EXISTS event_pictures (
+                        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id      INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+                        filename      TEXT NOT NULL,
+                        caption       TEXT DEFAULT NULL,
+                        display_order INTEGER DEFAULT 0,
+                        created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )");
+                    $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_event_id ON event_pictures(event_id)");
+                    $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_order ON event_pictures(event_id, display_order)");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>event_pictures</strong>"];
+                    $ran++;
+                }
+                if (in_array('events', $existingTables)) {
+                    $evCols2 = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    if (!in_array('gallery_template', $evCols2)) {
+                        $db->exec("ALTER TABLE events ADD COLUMN gallery_template TEXT DEFAULT 'grid3'");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.gallery_template</strong>"];
+                        $ran++;
+                    }
+                }
+
                 if ($ran === 0) {
                     $messages[] = ['type' => 'info', 'text' => "✅ ไม่มี migration ที่ค้างอยู่ — database เป็นปัจจุบันแล้ว"];
                 } else {
@@ -1003,6 +1061,7 @@ $dirChecks = [
     'fonts'           => ['label' => 'fonts/',           'path' => __DIR__ . '/fonts',           'need_write' => false, 'purpose' => $isEn ? 'TrueType fonts for image export (optional, see fonts/README.md)' : 'TrueType fonts สำหรับ image export (optional, ดู fonts/README.md)'],
     'uploads'         => ['label' => 'uploads/',         'path' => __DIR__ . '/uploads',         'need_write' => true,  'purpose' => $isEn ? 'Stores uploaded artist pictures (v6.0.0)'  : 'เก็บรูปภาพ artist ที่ upload (v6.0.0)'],
     'uploads_artists' => ['label' => 'uploads/artists/', 'path' => __DIR__ . '/uploads/artists', 'need_write' => true,  'purpose' => $isEn ? 'Stores artist display & cover pictures (v6.0.0)' : 'เก็บ display/cover picture ของ artist (v6.0.0)'],
+    'uploads_events'  => ['label' => 'uploads/events/',  'path' => __DIR__ . '/uploads/events',  'need_write' => true,  'purpose' => $isEn ? 'Stores event gallery pictures (v7.0.0)'           : 'เก็บรูปภาพ gallery ของ event (v7.0.0)'],
     'cache_favorites' => ['label' => 'cache/favorites/', 'path' => __DIR__ . '/cache/favorites', 'need_write' => true,  'purpose' => $isEn ? 'Stores anonymous favorites JSON files' : 'เก็บไฟล์ favorites (anonymous)'],
 ];
 foreach ($dirChecks as &$dc) {
@@ -1064,6 +1123,7 @@ $hasContactChannelsTable = false;
 $hasArtistTables = false;
 $hasArtistPictureColumns = false;
 $hasRequestReviewColumns = false;
+$hasGalleryTemplateColumn = false;
 $hasIndexes = false;
 $dbError = '';
 $existingIndexes = [];
@@ -1078,6 +1138,7 @@ if ($dbExists) {
         foreach (['programs', 'events', 'program_requests', 'credits', 'admin_users'] as $t) {
             $tableStatus[$t] = in_array($t, $existingTables);
         }
+        $tableStatus['event_pictures'] = in_array('event_pictures', $existingTables);
         $hasContactChannelsTable = in_array('contact_channels', $existingTables);
         $hasArtistTables = in_array('artists', $existingTables)
                         && in_array('program_artists', $existingTables)
@@ -1109,6 +1170,7 @@ if ($dbExists) {
             $hasThemeColumn = in_array('theme', $ecols);
             $hasEventEmailColumn = in_array('email', $ecols);
             $hasTimezoneColumn = in_array('timezone', $ecols);
+            $hasGalleryTemplateColumn = in_array('gallery_template', $ecols);
         }
         $hasTitleColumn = false;
         $hasProgramTypeColumn = false;
@@ -1130,7 +1192,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables && $hasArtistPictureColumns && $hasRequestReviewColumns;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables && $hasArtistPictureColumns && $hasRequestReviewColumns && $hasGalleryTemplateColumn;
 
 // Migration checklist — ใช้ตรวจว่าค้าง migration ตัวไหน
 // แต่ละรายการมี: label, version, applied (bool), action (string action name สำหรับรัน)
@@ -1148,6 +1210,7 @@ $migrationChecks = $dbExists ? [
     ['label' => 'events.timezone column',                                        'version' => 'v4.0.0', 'applied' => $hasTimezoneColumn,                                          'action' => 'add_timezone_column'],
     ['label' => 'artists.display_picture + artists.cover_picture columns',       'version' => 'v6.0.0', 'applied' => $hasArtistPictureColumns,                                    'action' => 'add_artist_tables'],
     ['label' => 'program_requests.admin_note + reviewed_at + reviewed_by columns', 'version' => 'v6.1.3', 'applied' => $hasRequestReviewColumns,                                  'action' => 'run_all_migrations'],
+    ['label' => 'event_pictures table + events.gallery_template column',           'version' => 'v7.0.0', 'applied' => ($tableStatus['event_pictures'] ?? false) && $hasGalleryTemplateColumn, 'action' => 'add_event_pictures_table'],
 ] : [];
 $pendingMigrations = array_filter($migrationChecks, fn($m) => !$m['applied'] && $m['action'] !== null);
 $allMigrationsApplied = $dbExists && empty($pendingMigrations);

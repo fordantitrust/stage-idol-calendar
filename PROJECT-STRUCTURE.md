@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v6.4.1
+File and folder structure for Idol Stage Timetable v7.4.0
 
 ---
 
@@ -84,6 +84,7 @@ Helper functions loaded via `config.php`
 | `ics.php` | `icsLine()`, `icsFold()`, `icsEscape()`, `icsEscapeText()`, `icsVtimezone()`, `icsOffsetString()` | Shared ICS helpers for RFC 5545 compliant export and feed generation |
 | `telegram.php` | `send_telegram_message()`, `find_favorites_by_chat_id()`, `telegram_is_muted()`, `telegram_notify_is_enabled()`, `telegram_format_events_list()` | Telegram Bot API helpers + notification state |
 | `favorites.php` | `fav_create()`, `fav_load()`, `fav_save()`, `fav_build_slug()`, `fav_parse_slug()`, `fav_verify_slug()`, `fav_maybe_cleanup()` | Anonymous favorites: HMAC-signed slug, JSON file I/O, sharded storage |
+| `seo.php` | `seo_full_url()`, `seo_truncate()`, `seo_render_meta()`, `seo_render_json_ld()` | CLI-safe SEO helpers — meta description, Open Graph, Twitter Card, canonical URL, noindex, JSON-LD structured data (v6.5.0+) |
 
 ---
 
@@ -187,7 +188,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 3666 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 5053 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Unique Tests | Cumulative | Coverage |
 |------|-------------|-----------|---------|
@@ -207,13 +208,15 @@ Automated test suite — 3666 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 | `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
 | `FavoritesTest.php` | 84 | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
 | `TimezoneTest.php` | 67 | 473 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
-| `ArtistPictureTest.php` | 61 | — | Artist display/cover picture upload, GD resize, admin API, tooltip |
-| `TelegramTest.php` | 54 | — | Telegram bot commands, helpers, mute/notify state, group resolution |
+| `TelegramTest.php` | 54 | 541 | Telegram bot commands, helpers, mute/notify state, group resolution |
+| `ArtistPictureTest.php` | 61 | 602 | Artist display/cover picture upload, GD resize, admin API, tooltip |
+| `SeoTest.php` | 63 | 665 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks on 8 public pages |
+| `EventPicturesTest.php` | 57 | 722 | event_pictures table/columns/indexes/CASCADE, events.gallery_template, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list), processAndSaveImage mode='fit', uploads/events dir/htaccess, setup.php, index.php gallery+lightbox, admin/index.php picture section+template dropdown, CSS templates, translations |
 
-> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 3666.
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 5053.
 
 ```bash
-# Run all 3666 tests
+# Run all 5053 tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -554,4 +557,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v6.4.1*
+*Idol Stage Timetable v7.4.0*

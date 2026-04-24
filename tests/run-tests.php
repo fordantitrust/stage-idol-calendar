@@ -50,7 +50,9 @@ $testFiles = [
     'FavoritesTest'   => __DIR__ . '/FavoritesTest.php',
     'TimezoneTest'    => __DIR__ . '/TimezoneTest.php',
     'TelegramTest'       => __DIR__ . '/TelegramTest.php',
-    'ArtistPictureTest'  => __DIR__ . '/ArtistPictureTest.php',
+    'ArtistPictureTest'   => __DIR__ . '/ArtistPictureTest.php',
+    'SeoTest'             => __DIR__ . '/SeoTest.php',
+    'EventPicturesTest'   => __DIR__ . '/EventPicturesTest.php',
 ];
 
 // Filter test files if specific test requested

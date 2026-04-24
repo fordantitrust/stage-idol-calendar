@@ -47,6 +47,11 @@ $baseUrl    = get_base_path() . '/past-events';
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php seo_render_meta([
+        'description' => 'อีเวนต์ที่ผ่านมาของ ' . $siteTitle,
+        'canonical'   => seo_full_url('/past-events'),
+        'og_type'     => 'website',
+    ]); ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
     <script>

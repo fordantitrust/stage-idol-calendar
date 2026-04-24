@@ -171,6 +171,54 @@ function include_404(string $msg): never {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title><?php echo htmlspecialchars($artist['name'], ENT_QUOTES, 'UTF-8'); ?> – <?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <?php
+    // ── SEO meta tags ─────────────────────────────────────────────────────────
+    $artistType   = $artist['is_group'] ? 'วง' : 'ศิลปิน';
+    $eventCount   = count($byEvent);
+    $seoDesc      = $artist['name'] . ' — ' . $artistType
+                  . ' มีโปรแกรมใน ' . $eventCount . ' งาน | ' . $siteTitle;
+    $seoCanonical = seo_full_url('/artist/' . $artistId);
+    $imagePath = $artist['cover_picture'] ?: ($artist['display_picture'] ?: '');
+    $seoImage  = $imagePath ? seo_full_url('/' . ltrim($imagePath, '/')) : '';
+    seo_render_meta([
+        'title'       => $artist['name'] . ' – ' . $siteTitle,
+        'description' => $seoDesc,
+        'canonical'   => $seoCanonical,
+        'og_type'     => 'profile',
+        'og_image'    => $seoImage,
+        'site_title'  => $siteTitle,
+    ]);
+
+    // JSON-LD: Person or MusicGroup
+    $ldType   = $artist['is_group'] ? 'MusicGroup' : 'Person';
+    $ldSchema = [
+        '@context' => 'https://schema.org',
+        '@type'    => $ldType,
+        'name'     => $artist['name'],
+        'url'      => $seoCanonical,
+    ];
+    if ($seoImage) {
+        $ldSchema['image'] = $seoImage;
+    }
+    if ($artist['is_group'] && !empty($members)) {
+        $ldSchema['member'] = array_map(
+            fn($m) => ['@type' => 'Person', 'name' => $m['name'], 'url' => seo_full_url('/artist/' . $m['id'])],
+            $members
+        );
+    }
+    seo_render_json_ld($ldSchema);
+
+    // JSON-LD: BreadcrumbList
+    seo_render_json_ld([
+        '@context'        => 'https://schema.org',
+        '@type'           => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'หน้าแรก', 'item' => seo_full_url('/')],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => 'ศิลปิน',  'item' => seo_full_url('/artists')],
+            ['@type' => 'ListItem', 'position' => 3, 'name' => $artist['name'], 'item' => $seoCanonical],
+        ],
+    ]);
+    ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');</script>
@@ -202,7 +250,6 @@ function include_404(string $msg): never {
             </div>
             <h1 style="font-size:1.1em;font-weight:600;margin:4px 0" data-i18n="artist.pageTitle">🎤 Artist Profile</h1>
         </header>
-        <?php render_ad_unit('rectangle'); ?>
 
         <?php
         // Shared table header row (used in both group & own programs sections)
@@ -397,6 +444,7 @@ function include_404(string $msg): never {
             </div>
 
         </div><!-- .content -->
+        <?php render_ad_unit('leaderboard'); ?>
 
         <footer>
             <div class="footer-text">

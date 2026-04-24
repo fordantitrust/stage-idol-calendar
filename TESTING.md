@@ -19,6 +19,7 @@ Complete test cases for all features and security aspects.
 11. [Edge Cases & Error Handling](#edge-cases--error-handling)
 12. [User Management & Roles](#user-management--roles)
 13. [Artist Reuse System](#artist-reuse-system)
+14. [Event Pictures Gallery (Admin)](#event-pictures-gallery-admin)
 
 ---
 
@@ -1773,6 +1774,136 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 ---
 
+---
+
+## Event Pictures Gallery (Admin)
+
+### Upload & Progress
+
+**Test Case 14.1.1**: Upload multiple pictures with progress bar
+
+**Steps**:
+1. Open Admin › Events, edit an event, scroll to picture section
+2. Click "+ เพิ่มรูป" and select 3 valid image files (JPG/PNG)
+3. Watch the progress bar
+
+**Expected Result**:
+- ✅ Progress bar appears and fills step-by-step (1/3 → 2/3 → 3/3)
+- ✅ Counter shows `X/3 (Y%)` after each file
+- ✅ Green summary `✓ อัปโหลดสำเร็จ 3 รูป` after all complete
+- ✅ Bar auto-hides after 3 seconds
+- ✅ Thumbnails reload and appear in grid
+
+**Test Case 14.1.2**: Upload with an invalid file
+
+**Steps**:
+1. Select a mix of 1 valid image and 1 non-image file (e.g. .txt)
+
+**Expected Result**:
+- ✅ Valid file uploads successfully; invalid file shows toast error
+- ✅ Orange summary shows partial success count + failed count
+- ✅ Progress bar turns orange
+
+---
+
+### Drag-and-Drop Reorder
+
+**Test Case 14.2.1**: Reorder pictures by dragging
+
+**Steps**:
+1. Upload 3+ pictures so they appear in the thumbnail grid
+2. Drag the first picture using the ⠿ handle to the third position
+
+**Expected Result**:
+- ✅ Dashed blue outline shows valid drop target during drag
+- ✅ Picture moves to new position on drop
+- ✅ Hint text cycles: "⏳ กำลังบันทึก..." → "✓ บันทึกลำดับแล้ว" → "ลากเพื่อเรียงลำดับ" (after 2 s)
+- ✅ Reloading the modal shows the new order persisted
+
+---
+
+### Click-to-Preview Lightbox
+
+**Test Case 14.3.1**: Open preview lightbox
+
+**Steps**:
+1. Click any picture thumbnail (not the × button)
+
+**Expected Result**:
+- ✅ Fullscreen dark overlay lightbox opens
+- ✅ Full-size image displayed, caption shown below (if set)
+- ✅ Prev/Next buttons visible when multiple pictures; hidden when only one
+
+**Test Case 14.3.2**: Navigate and close lightbox
+
+**Steps**:
+1. Open lightbox on the first picture
+2. Press → (ArrowRight) key
+3. Click the ‹ prev button
+4. Press Escape
+
+**Expected Result**:
+- ✅ → key advances to next picture
+- ✅ ‹ button navigates backward; wraps around at boundaries
+- ✅ Escape closes lightbox
+- ✅ Clicking the dark overlay also closes lightbox
+
+---
+
+### Bulk Delete
+
+**Test Case 14.4.1**: Enter select mode and bulk delete
+
+**Steps**:
+1. Upload 3+ pictures
+2. Click "☑ เลือก" button
+3. Click 2 thumbnails to select them
+4. Click "🗑️ ลบที่เลือก" and confirm
+
+**Expected Result**:
+- ✅ Select mode: thumbnails show blue outline + ✓ badge when selected
+- ✅ Bulk action bar appears with count `เลือก 2 รูป`
+- ✅ "ลบที่เลือก" is disabled until at least one thumbnail is selected
+- ✅ After confirming, selected pictures are deleted and grid reloads
+- ✅ Toast shows `2 รูปลบแล้ว`
+- ✅ Select mode exits automatically after bulk delete
+
+**Test Case 14.4.2**: Cancel select mode
+
+**Steps**:
+1. Enter select mode, select 2 thumbnails
+2. Click "ยกเลิก"
+
+**Expected Result**:
+- ✅ Bulk action bar hides; all selections cleared
+- ✅ Thumbnails return to normal (no blue outline)
+- ✅ Button label reverts to "☑ เลือก"
+- ✅ Drag-sort and lightbox preview resume working normally
+
+**Test Case 14.4.3**: Select mode disables drag-sort and lightbox
+
+**Steps**:
+1. Enter select mode
+2. Try dragging a thumbnail by its handle
+3. Try clicking a thumbnail image
+
+**Expected Result**:
+- ✅ Drag does not start; thumbnails cannot be reordered
+- ✅ Clicking a thumbnail toggles selection instead of opening lightbox
+
+**Test Case 14.4.4**: Closing modal resets select mode
+
+**Steps**:
+1. Enter select mode, select some pictures
+2. Close the Event edit modal (without bulk deleting)
+3. Reopen the same event
+
+**Expected Result**:
+- ✅ Select mode is off; bulk bar is hidden
+- ✅ "☑ เลือก" button shows normal label
+
+---
+
 ## 📊 Test Execution Checklist
 
 ### Pre-Deployment Tests (Must Pass)
@@ -1881,7 +2012,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v6.4.1
+**Version**: v7.4.0
 
 **Result**: Pass / Fail
 

@@ -211,7 +211,7 @@ server {
 
     # Restrict internal directories to LAN/localhost
     location ~* ^/(config|functions|tests|tools)(/|$) {
-        allow 127.0.0.1;
+        allow 127.4.0.1;
         allow ::1;
         allow 192.168.0.0/16;
         allow 10.0.0.0/8;
@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '6.4.1'); // Change to force cache refresh
+define('APP_VERSION', '7.4.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -526,7 +526,7 @@ Edit [config/admin.php](config/admin.php):
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 
 define('ADMIN_ALLOWED_IPS', [
-    '127.0.0.1',           // Localhost
+    '127.4.0.1',           // Localhost
     '::1',                 // Localhost IPv6
     '192.168.1.100',       // Single IP
     '192.168.1.0/24',      // IP range (CIDR notation)
@@ -798,7 +798,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **3666 automated unit tests** across 16 test suites for quality assurance:
+The project includes **5053 automated unit tests** across 18 test suites for quality assurance:
 
 ```bash
 # Run all tests
@@ -819,6 +819,10 @@ php tests/run-tests.php FeedTest
 php tests/run-tests.php StreamUrlTest
 php tests/run-tests.php FavoritesTest
 php tests/run-tests.php TimezoneTest
+php tests/run-tests.php TelegramTest
+php tests/run-tests.php ArtistPictureTest
+php tests/run-tests.php SeoTest
+php tests/run-tests.php EventPicturesTest
 ```
 
 ### Quick Pre-Commit Tests
@@ -850,12 +854,14 @@ chmod +x quick-test.sh
 | **StreamUrlTest** | 322 | Stream URL column, CRUD, admin badge, platform icons, ICS URL property |
 | **FavoritesTest** | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, localStorage persistence, artist profiles |
 | **TimezoneTest** | 473 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
-| **ArtistPictureTest** | — | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
-| **TelegramTest** | — | Telegram bot commands, mute/notify state, group resolution, helpers |
+| **TelegramTest** | 541 | Telegram bot commands, mute/notify state, group resolution, helpers |
+| **ArtistPictureTest** | 602 | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
+| **SeoTest** | 665 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks |
+| **EventPicturesTest** | 722 | event_pictures table, events.gallery_template, migration idempotency, DB CRUD, admin API, processAndSaveImage mode='fit', uploads/events, setup.php, index.php gallery+lightbox, admin/index.php, CSS templates, translations |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 3666 total test executions.
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 5053 total test executions.
 
-✅ **All 3666 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 5053 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 
@@ -881,7 +887,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 3666 tests pass
+- [ ] Verify all 5053 tests pass
 - [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`

@@ -5,6 +5,148 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.4.0] - 2026-04-25
+
+### Added
+- **Bulk delete for event pictures** in Admin › Events picture section
+  - New "☑ เลือก" toggle button enters select mode; clicking thumbnails toggles selection (blue outline + ✓ checkmark)
+  - Yellow bulk-action bar shows selected count + "🗑️ ลบที่เลือก" button + Cancel
+  - Deletes all selected pictures sequentially via existing `event_picture_delete` API; shows toast summary on completion
+  - Drag-sort and preview lightbox automatically disabled while in select mode
+  - "ยกเลิก" button or closing the modal exits select mode and deselects all
+
+### Files Changed
+- `admin/index.php` — CSS (`.pic-thumb.ep-selected`, `#eventPicSelectBar`), HTML (select button + bar), JS (`_epSelectMode` var, `_epPicClick`, `_updateSelectCount`, `togglePicSelectMode`, `bulkDeleteEventPictures`; updated `renderEventPictureGrid`, `resetEventPictureSection`)
+- `admin/js/admin-i18n.js` — `event.selectMode`, `event.cancelSelect`, `event.deleteSelected`, `event.selectedCount` keys (TH + EN)
+- `config/app.php` — version bump to 7.4.0
+
+> **Test Coverage**: All 5,053 automated tests pass (100% pass rate)
+
+## [7.3.0] - 2026-04-25
+
+### Added
+- **Upload progress bar** in Admin › Events picture section
+  - Replaces simple spinner with a live progress bar + `X/N (Y%)` counter that updates after each file
+  - After all uploads complete: green summary `✓ อัปโหลดสำเร็จ N รูป`; orange summary when some files failed (e.g. `✓ 2 รูปสำเร็จ (1 รูปล้มเหลว)`)
+  - Progress bar turns orange/red on partial/total failure; auto-hides after 3 s
+- **Click thumbnail to preview** — clicking any picture in the admin thumbnail grid opens a fullscreen lightbox
+  - Full-size image centered over dark overlay; caption displayed below image
+  - Prev/next navigation buttons (hidden when only one picture); keyboard support: Escape to close, ← → to navigate
+  - Overlay click also closes the lightbox; keyboard listener added/removed on open/close
+
+### Files Changed
+- `admin/index.php` — CSS (progress bar + lightbox classes), HTML (progress block replaces spinner, lightbox HTML), JS (module vars, updated render/upload/reset functions, 5 new lightbox functions)
+- `admin/js/admin-i18n.js` — `event.uploadDoneAll`, `event.uploadFailed` keys (TH + EN)
+- `config/app.php` — version bump to 7.3.0
+
+> **Test Coverage**: All 5,053 automated tests pass (100% pass rate)
+
+## [7.2.0] - 2026-04-24
+
+### Changed
+- **Event pictures shard by event ID** — uploaded pictures are now stored in `uploads/events/{event_id}/{uniqid}.jpg` instead of the flat `uploads/events/{event_id}_{uniqid}.jpg`; prevents the folder from growing unbounded as events accumulate
+  - Parent `uploads/events/.htaccess` Apache rules apply to all subdirectories automatically — no per-shard `.htaccess` needed
+  - Backward compatible: existing pictures stored with the old flat path are still served and deleted correctly (DB stores the full relative path)
+
+### Files Changed
+- `admin/api.php` — `uploadEventPicture()`: `$uploadsDir` now includes `/{eventId}` shard; `$filename` drops the redundant `{eventId}_` prefix; `$relPath` reflects new structure
+- `config/app.php` — version bump to 7.2.0
+
+> **Test Coverage**: All 5,053 automated tests pass (100% pass rate)
+
+## [7.1.0] - 2026-04-24
+
+### Added
+- **Drag-and-drop picture reordering** in Admin › Events › edit modal picture section
+  - Each thumbnail card is now draggable (HTML5 Drag and Drop API, no external library)
+  - Drag handle icon (⠿) shown on each card; dashed blue outline on drag-over target
+  - Drop position determined by cursor midpoint (insert before or after target card)
+  - Order auto-saved on drop via `event_pictures_reorder` API; hint shows "⏳ Saving…" → "✓ Order saved" → reverts to "Drag to reorder" after 2 s
+  - i18n keys `event.dragToReorder`, `event.savingOrder`, `event.orderSaved` (TH + EN)
+
+### Files Changed
+- `admin/index.php` — `.pic-thumb` CSS classes, drag handle, `initPictureDragSort()`, `saveEventPictureOrder()`, order hint div
+- `admin/js/admin-i18n.js` — 3 new keys (TH + EN)
+- `config/app.php` — version bump to 7.1.0
+
+> **Test Coverage**: All 5,053 automated tests pass (100% pass rate)
+
+## [7.0.0] - 2026-04-24
+
+### Added
+- **Event Pictures Gallery** — upload and display photos per event at natural aspect ratios (no cropping)
+  - Admin selects gallery layout per event: `grid1` (1 col), `grid2` (2 col), `grid3` (3 col, default), `masonry` (CSS column-count)
+  - Stored in new `events.gallery_template TEXT DEFAULT 'grid3'` column
+  - New `event_pictures` table: `id, event_id, filename, caption, display_order, created_at`; ON DELETE CASCADE; 2 indexes
+  - Upload via Admin › Events › edit modal — picture section with file picker (multi-select), thumbnail grid, delete × button
+  - Images processed by PHP GD new `processAndSaveImage()` with `mode='fit'` (scale to fit 1200×900, no upscale, no crop); JPEG 85%
+  - Public gallery rendered in `index.php` before cross-event section; CSS class `template-{value}` drives layout
+  - Responsive: grid3 → 2 col at ≤768px; all grid templates → 1 col at ≤480px; masonry col-count scales down
+  - Lightbox with keyboard nav (Escape/ArrowLeft/ArrowRight), caption display
+- **`tools/migrate-add-event-pictures-table.php`** — idempotent migration (CREATE TABLE + indexes + ALTER TABLE gallery_template)
+- **`uploads/events/`** directory + `.htaccess` (blocks PHP execution + directory listing)
+- **57 tests** in `tests/EventPicturesTest.php` — **รวม 5,053 tests** (18 suites, 100% pass rate)
+
+### Changed
+- `processAndSaveArtistImage()` in `admin/api.php` refactored as thin wrapper over new `processAndSaveImage(src, dst, maxW, maxH, imgType, mode)` — backward compatible, no behavior change
+
+### Files Changed
+**New files:**
+- `tools/migrate-add-event-pictures-table.php` — idempotent DB migration
+- `uploads/events/.htaccess` — blocks PHP execution + directory listing
+- `tests/EventPicturesTest.php` — 57 automated tests
+
+**Modified files:**
+- `admin/api.php` — processAndSaveImage(), 4 event picture actions, gallery_template in CRUD
+- `index.php` — event_pictures query, gallery HTML, lightbox HTML + JS
+- `admin/index.php` — gallery template dropdown, picture section UI + JS functions
+- `styles/index.css` — gallery grid templates CSS + lightbox CSS
+- `js/translations.js` — `section.eventGallery` key (TH/EN/JA)
+- `admin/js/admin-i18n.js` — gallery template + picture section keys (TH/EN)
+- `setup.php` — event_pictures table + gallery_template column checks
+- `Dockerfile` — mkdir uploads/events
+- `tests/run-tests.php` — registered EventPicturesTest
+- `config/app.php` — version bump to 7.0.0
+
+> **Test Coverage**: All 5,053 automated tests pass (100% pass rate)
+
+## [6.5.0] - 2026-04-22
+
+### Added
+- **Comprehensive SEO Support** — zero-DB-query SEO helper layer wired into all public pages; search engines and social networks now see full meta descriptions, Open Graph tags, Twitter Cards, canonical URLs, noindex directives, and JSON-LD structured data
+- **`functions/seo.php`** — 4 CLI-safe helper functions:
+  - `seo_full_url(string $path): string` — builds absolute URL; returns `''` in CLI context (prevents broken tags in test runs); detects HTTPS via `$_SERVER['HTTPS']` + `HTTP_X_FORWARDED_PROTO`
+  - `seo_truncate(string $text, int $max = 155): string` — strips HTML, normalises whitespace, snaps to word boundary (Thai-text guard: never snaps back more than 50% of `$max`), appends `…` on truncation
+  - `seo_render_meta(array $opts): void` — renders `<meta name="robots">` (noindex), `<meta name="description">`, `<link rel="canonical">`, full Open Graph (`og:type/title/site_name/locale/url/description/image+width+height`), full Twitter Card (`twitter:card/title/description/image`); `twitter:card = summary_large_image` when `og_image` provided, else `summary`; all values escaped with `htmlspecialchars(ENT_QUOTES, 'UTF-8')`
+  - `seo_render_json_ld(array $schema): void` — emits `<script type="application/ld+json">` with `JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT`; no output for empty array
+- **`index.php` SEO** — event meta description (`{name} — ตารางกิจกรรม {date} · {venue} · {count} ศิลปิน | {site}`); canonical URL; WebSite JSON-LD with SearchAction; Event JSON-LD (when viewing specific event) with startDate/endDate/eventStatus/organizer/location
+- **`artist.php` SEO** — artist/group description with event count; `og:image` from cover or display picture when available; `og:type = profile`; MusicGroup/Person JSON-LD with member list (for groups); BreadcrumbList JSON-LD
+- **`artists.php` SEO** — portal description with group/solo counts; ItemList JSON-LD for top 20 artists
+- **`credits.php`, `contact.php`, `how-to-use.php`, `past-events.php` SEO** — canonical URL + meta description on each page
+- **`my.php`, `my-favorites.php` noindex** — `<meta name="robots" content="noindex, nofollow">` prevents personal/user-specific pages from being indexed
+- **`tests/SeoTest.php`** — 63 automated tests covering all 4 functions, all output scenarios (description tag, canonical, noindex, og:type/title/description/url/image/site_name/locale, twitter:card variants, JSON-LD script tag, valid JSON, Unicode not escaped, empty array), and source-level checks on all 8 modified public pages
+
+### Files Changed
+**New files:**
+- `functions/seo.php` — SEO helper functions (4 functions)
+- `tests/SeoTest.php` — 63 automated tests
+
+**Modified files:**
+- `config.php` — added `require_once __DIR__ . '/functions/seo.php'`
+- `index.php` — SEO meta + WebSite schema + Event schema (after `</title>`, before GA block)
+- `artist.php` — SEO meta + MusicGroup/Person schema + BreadcrumbList (after `</title>`, before GA block)
+- `artists.php` — SEO meta + ItemList schema (after `</title>`, before GA block)
+- `credits.php` — SEO meta (canonical + description)
+- `contact.php` — SEO meta (canonical + description)
+- `how-to-use.php` — SEO meta (canonical + description)
+- `my.php` — noindex meta
+- `my-favorites.php` — noindex meta
+- `past-events.php` — SEO meta (canonical + description)
+- `tests/run-tests.php` — added `SeoTest` to test file list
+- `config/app.php` — version bump to 6.5.0
+
+> **Test Coverage**: All 4,331 automated tests pass (100% pass rate)
+
 ## [6.4.1] - 2026-04-21
 
 ### Fixed

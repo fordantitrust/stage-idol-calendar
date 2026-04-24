@@ -321,6 +321,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#header">Header &amp; Account</a>
             <a href="#programs">Tab: Programs</a>
             <a href="#events">Tab: Events</a>
+            <a href="#events-gallery">↳ Event Pictures Gallery</a>
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
@@ -354,7 +355,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#prog-sort">Sorting</a></li>
                     </ul>
                 </li>
-                <li><a href="#events">Tab: Events</a></li>
+                <li><a href="#events">Tab: Events</a>
+                    <ul class="toc-sub">
+                        <li><a href="#events-gallery">Event Pictures Gallery</a></li>
+                        <li><a href="#events-timezone">Timezone</a></li>
+                    </ul>
+                </li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
                 <li><a href="#import">Tab: Import</a>
@@ -567,6 +573,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Start Date / End Date</td><td>The event's opening and closing dates</td></tr>
                         <tr><td>Venue Mode</td><td><strong>multi</strong> = multiple venues (shows venue filter, Gantt view) | <strong>single</strong> = single venue | <strong>calendar</strong> = monthly calendar</td></tr>
                         <tr><td>Theme</td><td>Color theme specific to this event (if not set, falls back to the global theme from Settings)</td></tr>
+                        <tr><td>Gallery Layout</td><td>Layout for the event's photo gallery: <strong>grid3</strong> (3 columns, default) | <strong>grid2</strong> | <strong>grid1</strong> | <strong>masonry</strong></td></tr>
                         <tr><td>Active</td><td>Toggle visibility of this event on the public website</td></tr>
                     </tbody>
                 </table>
@@ -629,7 +636,42 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
                 </div>
 
-                <h3>🌐 Per-Event Timezone <span class="badge-version">v4.0.0</span></h3>
+                <h3 id="events-gallery">🖼️ Event Pictures Gallery <span class="badge-version">v7.0.0</span></h3>
+                <p>
+                    Each Event can have a <strong>photo gallery</strong> displayed below the event details on the public page.
+                    Visitors can click any photo to open a lightbox with ◀ ▶ navigation and caption display.
+                </p>
+
+                <h4>Managing Photos</h4>
+                <p>The <strong>📸 Event Pictures</strong> section appears inside the Edit Event modal (not visible when creating a new event):</p>
+                <ol>
+                    <li>Admin → Tab <strong>Events</strong> → click ✏️ to edit the event.</li>
+                    <li>Scroll down to the <strong>📸 Event Pictures</strong> section.</li>
+                    <li>Click <strong>+ Add Picture</strong> → select files (JPG, PNG, GIF, WEBP; max 5 MB per file; multiple files can be selected at once).</li>
+                    <li>Photos upload and appear in the thumbnail grid immediately. Click <strong>×</strong> on any thumbnail to delete it.</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>Every photo is automatically resized by PHP GD using <strong>scale-to-fit</strong> mode (max 1200×900 px, no upscaling, no cropping) and saved as JPEG 85%. Portrait, landscape, and square originals are all displayed at their <strong>natural aspect ratio</strong> — nothing is stretched or cropped.</div>
+                </div>
+
+                <h4>Gallery Layout</h4>
+                <p>Select the layout from the <strong>Gallery Layout</strong> dropdown in the Event form — this controls the public gallery only (Admin thumbnails are always square):</p>
+                <table class="help-table">
+                    <thead><tr><th>Value</th><th>Layout</th><th>Responsive (≤768px)</th><th>Responsive (≤480px)</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>grid3</code> (default)</td><td>3 equal columns</td><td>2 columns</td><td>1 column</td></tr>
+                        <tr><td><code>grid2</code></td><td>2 equal columns</td><td>2 columns</td><td>1 column</td></tr>
+                        <tr><td><code>grid1</code></td><td>1 full-width column</td><td>1 column</td><td>1 column</td></tr>
+                        <tr><td><code>masonry</code></td><td>CSS column-count 3 (portrait photos flow down naturally)</td><td>2 columns</td><td>1 column</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Use <strong>masonry</strong> when mixing portrait (tall) and landscape photos — images flow into columns naturally without leaving blank gaps between rows.</div>
+                </div>
+
+                <h3 id="events-timezone">🌐 Per-Event Timezone <span class="badge-version">v4.0.0</span></h3>
                 <p>
                     Each event can have its own <strong>Timezone</strong> — for example, a Japan event uses <code>Asia/Tokyo</code>
                     while a Thailand event uses <code>Asia/Bangkok</code>. This setting affects three areas:

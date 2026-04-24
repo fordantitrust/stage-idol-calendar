@@ -47,6 +47,11 @@ foreach ($activeEvents as $ev) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Credits - <?php echo htmlspecialchars(get_site_title()); ?></title>
+    <?php seo_render_meta([
+        'description' => 'แหล่งข้อมูลอ้างอิงและ Credits สำหรับ ' . get_site_title(),
+        'canonical'   => seo_full_url('/credits'),
+        'og_type'     => 'website',
+    ]); ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>

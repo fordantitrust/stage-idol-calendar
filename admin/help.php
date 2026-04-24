@@ -357,6 +357,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <a href="#header">Header &amp; การตั้งค่า</a>
             <a href="#programs">Tab: Programs</a>
             <a href="#events">Tab: Events</a>
+            <a href="#events-gallery">↳ Gallery รูปภาพ</a>
             <a href="#requests">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
             <a href="#import">Tab: Import</a>
@@ -390,7 +391,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#prog-sort">เรียงลำดับ</a></li>
                     </ul>
                 </li>
-                <li><a href="#events">Tab: Events</a></li>
+                <li><a href="#events">Tab: Events</a>
+                    <ul class="toc-sub">
+                        <li><a href="#events-gallery">Gallery รูปภาพ</a></li>
+                        <li><a href="#events-timezone">Timezone</a></li>
+                    </ul>
+                </li>
                 <li><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
                 <li><a href="#import">Tab: Import</a>
@@ -600,6 +606,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Start Date / End Date</td><td>วันเริ่มและวันสิ้นสุดของงาน</td></tr>
                         <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายเวที (แสดง venue filter, Gantt) | <strong>single</strong> = เวทีเดียว | <strong>calendar</strong> = ปฏิทินรายเดือน</td></tr>
                         <tr><td>Theme</td><td>Theme สีสำหรับ event นี้โดยเฉพาะ (ถ้าไม่เลือกจะใช้ global theme จาก Settings)</td></tr>
+                        <tr><td>Gallery Layout</td><td>รูปแบบ gallery รูปภาพในหน้า event: <strong>grid3</strong> (3 คอลัมน์, default) | <strong>grid2</strong> | <strong>grid1</strong> | <strong>masonry</strong></td></tr>
                         <tr><td>Active</td><td>เปิด/ปิดการแสดงผล event บนหน้าเว็บ</td></tr>
                     </tbody>
                 </table>
@@ -662,7 +669,42 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
                 </div>
 
-                <h3>🌐 Timezone (เขตเวลา) ต่อ Event <span class="badge-version">v4.0.0</span></h3>
+                <h3 id="events-gallery">🖼️ Event Pictures Gallery <span class="badge-version">v7.0.0</span></h3>
+                <p>
+                    แต่ละ Event สามารถมี <strong>รูปภาพจากงาน</strong> ที่แสดงในส่วน gallery ใต้รายละเอียด event บนหน้าเว็บ
+                    ผู้ใช้กดรูปเพื่อเปิด lightbox พร้อมปุ่มนำทาง ◀ ▶ และ caption
+                </p>
+
+                <h4>การจัดการรูปภาพ</h4>
+                <p>ส่วน <strong>📸 รูปภาพจากงาน</strong> จะปรากฏใน modal แก้ไข Event (ไม่แสดงขณะสร้างใหม่):</p>
+                <ol>
+                    <li>Admin → Tab <strong>Events</strong> → คลิก ✏️ แก้ไข event ที่ต้องการ</li>
+                    <li>เลื่อนลงถึงส่วน <strong>📸 รูปภาพจากงาน</strong></li>
+                    <li>กด <strong>+ เพิ่มรูป</strong> → เลือกไฟล์ (รองรับ JPG, PNG, GIF, WEBP, สูงสุด 5 MB ต่อไฟล์; เลือกได้หลายไฟล์พร้อมกัน)</li>
+                    <li>รูปถูก upload และแสดงใน grid ทันที; กด <strong>×</strong> มุมบนขวาของ thumbnail เพื่อลบรูปนั้น</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>รูปทุกรูปถูก resize อัตโนมัติโดย PHP GD ด้วยโหมด <strong>scale-to-fit</strong> (สูงสุด 1200×900 px, ไม่ขยายรูปเล็ก, ไม่ crop) บันทึกเป็น JPEG 85% — รูปต้นฉบับ portrait/landscape/square แสดง <strong>ตามสัดส่วนจริง</strong> ไม่ถูกบีบหรือตัด</div>
+                </div>
+
+                <h4>Gallery Layout (รูปแบบ gallery)</h4>
+                <p>เลือกได้ที่ dropdown <strong>รูปแบบ Gallery</strong> ในฟอร์ม Event — กระทบการแสดงผลบนหน้าเว็บเท่านั้น (ไม่ใช่ thumbnail ใน Admin):</p>
+                <table class="help-table">
+                    <thead><tr><th>ค่า</th><th>Layout</th><th>Responsive (≤768px)</th><th>Responsive (≤480px)</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>grid3</code> (default)</td><td>3 คอลัมน์เท่ากัน</td><td>2 คอลัมน์</td><td>1 คอลัมน์</td></tr>
+                        <tr><td><code>grid2</code></td><td>2 คอลัมน์เท่ากัน</td><td>2 คอลัมน์</td><td>1 คอลัมน์</td></tr>
+                        <tr><td><code>grid1</code></td><td>1 คอลัมน์เต็มความกว้าง</td><td>1 คอลัมน์</td><td>1 คอลัมน์</td></tr>
+                        <tr><td><code>masonry</code></td><td>CSS column-count 3 (รูป portrait ไหลลงได้)</td><td>2 คอลัมน์</td><td>1 คอลัมน์</td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>ใช้ <strong>masonry</strong> เมื่อมีรูป portrait (สูง) ผสมกับรูป landscape — รูปจะไหลลงเองโดยไม่เกิดพื้นที่ว่างระหว่างแถว</div>
+                </div>
+
+                <h3 id="events-timezone">🌐 Timezone (เขตเวลา) ต่อ Event <span class="badge-version">v4.0.0</span></h3>
                 <p>
                     แต่ละ Event กำหนด <strong>Timezone</strong> ได้อิสระ เช่น งานในญี่ปุ่นใช้ <code>Asia/Tokyo</code>
                     งานในไทยใช้ <code>Asia/Bangkok</code> ค่านี้ส่งผลต่อ 3 จุด:

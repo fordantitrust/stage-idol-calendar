@@ -269,6 +269,18 @@ switch ($action) {
     case 'artist_picture_delete':
         deleteArtistPicture();
         break;
+    case 'event_pictures_list':
+        listEventPictures();
+        break;
+    case 'event_picture_upload':
+        uploadEventPicture();
+        break;
+    case 'event_picture_delete':
+        deleteEventPicture();
+        break;
+    case 'event_pictures_reorder':
+        reorderEventPictures();
+        break;
     case 'artists_bulk_set_group':
         artistsBulkSetGroup();
         break;
@@ -2061,6 +2073,14 @@ function getEvent() {
         $fieldsToEscape = ['name', 'slug', 'description'];
         $meta = escapeOutputData($meta, $fieldsToEscape);
 
+        // Attach pictures sub-list
+        $stmtPics = $db->prepare(
+            "SELECT id, filename, caption, display_order FROM event_pictures
+             WHERE event_id = :id ORDER BY display_order ASC, id ASC"
+        );
+        $stmtPics->execute([':id' => $id]);
+        $meta['pictures'] = $stmtPics->fetchAll(PDO::FETCH_ASSOC);
+
         jsonResponse(true, $meta);
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to fetch event meta', $e->getMessage()));
@@ -2086,6 +2106,7 @@ function createEvent() {
     }
 
     $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
+    $validTemplates = ['grid1', 'grid2', 'grid3', 'masonry'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -2094,6 +2115,7 @@ function createEvent() {
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
+    $galleryTemplate = in_array($input['gallery_template'] ?? '', $validTemplates) ? $input['gallery_template'] : 'grid3';
     $emailRaw = trim($input['email'] ?? '');
     $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
     $timezoneRaw = trim($input['timezone'] ?? '');
@@ -2113,8 +2135,8 @@ function createEvent() {
 
         $now = date('Y-m-d H:i:s');
         $stmt = $db->prepare("
-            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, email, timezone, created_at, updated_at)
-            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :email, :timezone, :now, :now2)
+            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, gallery_template, email, timezone, created_at, updated_at)
+            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :gallery_template, :email, :timezone, :now, :now2)
         ");
         $stmt->execute([
             ':slug' => $slug,
@@ -2125,6 +2147,7 @@ function createEvent() {
             ':venue_mode' => $venueMode,
             ':is_active' => $isActive,
             ':theme' => $theme,
+            ':gallery_template' => $galleryTemplate,
             ':email' => $email,
             ':timezone' => $timezone,
             ':now' => $now,
@@ -2164,6 +2187,7 @@ function updateEvent() {
     }
 
     $validThemes = ['sakura', 'ocean', 'forest', 'midnight', 'sunset', 'dark', 'gray', 'crimson', 'teal', 'rose', 'amber', 'indigo'];
+    $validTemplates = ['grid1', 'grid2', 'grid3', 'masonry'];
     $slug = preg_replace('/[^a-zA-Z0-9\-_]/', '', trim($input['slug']));
     $name = mb_substr(trim($input['name']), 0, 200);
     $description = mb_substr(trim($input['description'] ?? ''), 0, 1000);
@@ -2172,6 +2196,7 @@ function updateEvent() {
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
+    $galleryTemplate = in_array($input['gallery_template'] ?? '', $validTemplates) ? $input['gallery_template'] : 'grid3';
     $emailRaw = trim($input['email'] ?? '');
     $email = ($emailRaw !== '' && filter_var($emailRaw, FILTER_VALIDATE_EMAIL)) ? $emailRaw : null;
     $timezoneRaw = trim($input['timezone'] ?? '');
@@ -2194,7 +2219,8 @@ function updateEvent() {
             SET slug = :slug, name = :name, description = :description,
                 start_date = :start_date, end_date = :end_date,
                 venue_mode = :venue_mode, is_active = :is_active,
-                theme = :theme, email = :email, timezone = :timezone,
+                theme = :theme, gallery_template = :gallery_template,
+                email = :email, timezone = :timezone,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -2207,6 +2233,7 @@ function updateEvent() {
             ':venue_mode' => $venueMode,
             ':is_active' => $isActive,
             ':theme' => $theme,
+            ':gallery_template' => $galleryTemplate,
             ':email' => $email,
             ':timezone' => $timezone,
             ':updated_at' => date('Y-m-d H:i:s'),
@@ -4034,10 +4061,11 @@ function uploadArtistPicture() {
 }
 
 /**
- * Center-crop and resize an image, save as JPEG 85%.
- * Returns true on success, false on failure.
+ * Process and save image as JPEG 85%.
+ * mode='crop' → center-crop to exact targetW×targetH
+ * mode='fit'  → scale to fit within maxW×maxH preserving aspect ratio (no upscale)
  */
-function processAndSaveArtistImage(string $srcPath, string $destPath, int $targetW, int $targetH, int $imgType): bool {
+function processAndSaveImage(string $srcPath, string $destPath, int $maxW, int $maxH, int $imgType, string $mode = 'crop'): bool {
     switch ($imgType) {
         case IMAGETYPE_JPEG:
             $src = @imagecreatefromjpeg($srcPath);
@@ -4059,28 +4087,40 @@ function processAndSaveArtistImage(string $srcPath, string $destPath, int $targe
     $srcW = imagesx($src);
     $srcH = imagesy($src);
 
-    // Calculate crop to maintain target aspect ratio
-    $srcRatio    = $srcW / $srcH;
-    $targetRatio = $targetW / $targetH;
-
-    if ($srcRatio > $targetRatio) {
-        // Source is wider — crop width
-        $cropH = $srcH;
-        $cropW = (int)round($srcH * $targetRatio);
-        $cropX = (int)round(($srcW - $cropW) / 2);
-        $cropY = 0;
+    if ($mode === 'fit') {
+        // Scale to fit within maxW×maxH, no upscale
+        $scale   = min($maxW / $srcW, $maxH / $srcH, 1.0);
+        $dstW    = max(1, (int)round($srcW * $scale));
+        $dstH    = max(1, (int)round($srcH * $scale));
+        $cropX   = 0;
+        $cropY   = 0;
+        $cropW   = $srcW;
+        $cropH   = $srcH;
+        $targetW = $dstW;
+        $targetH = $dstH;
     } else {
-        // Source is taller — crop height
-        $cropW = $srcW;
-        $cropH = (int)round($srcW / $targetRatio);
-        $cropX = 0;
-        $cropY = (int)round(($srcH - $cropH) / 2);
+        // Center-crop to exact maxW×maxH
+        $srcRatio    = $srcW / $srcH;
+        $targetRatio = $maxW / $maxH;
+
+        if ($srcRatio > $targetRatio) {
+            $cropH = $srcH;
+            $cropW = (int)round($srcH * $targetRatio);
+            $cropX = (int)round(($srcW - $cropW) / 2);
+            $cropY = 0;
+        } else {
+            $cropW = $srcW;
+            $cropH = (int)round($srcW / $targetRatio);
+            $cropX = 0;
+            $cropY = (int)round(($srcH - $cropH) / 2);
+        }
+        $targetW = $maxW;
+        $targetH = $maxH;
     }
 
     $dst = imagecreatetruecolor($targetW, $targetH);
     if (!$dst) { imagedestroy($src); return false; }
 
-    // Preserve transparency for PNG
     imagealphablending($dst, false);
     imagesavealpha($dst, true);
     $white = imagecolorallocate($dst, 255, 255, 255);
@@ -4092,6 +4132,13 @@ function processAndSaveArtistImage(string $srcPath, string $destPath, int $targe
     $result = imagejpeg($dst, $destPath, 85);
     imagedestroy($dst);
     return $result;
+}
+
+/**
+ * Center-crop and resize an image, save as JPEG 85% (thin wrapper for backward compat).
+ */
+function processAndSaveArtistImage(string $srcPath, string $destPath, int $targetW, int $targetH, int $imgType): bool {
+    return processAndSaveImage($srcPath, $destPath, $targetW, $targetH, $imgType, 'crop');
 }
 
 /**
@@ -4147,6 +4194,234 @@ function deleteArtistPicture() {
         jsonResponse(true, null, 'Picture deleted successfully');
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to delete picture', $e->getMessage()));
+    }
+}
+
+// ============================================================
+// Event Pictures
+// ============================================================
+
+/**
+ * List pictures for an event
+ * GET ?action=event_pictures_list&event_id=N
+ */
+function listEventPictures() {
+    global $db;
+
+    $eventId = intval($_GET['event_id'] ?? 0);
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+
+    try {
+        $stmt = $db->prepare(
+            "SELECT id, filename, caption, display_order FROM event_pictures
+             WHERE event_id = :eid ORDER BY display_order ASC, id ASC"
+        );
+        $stmt->execute([':eid' => $eventId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($rows as &$r) {
+            if ($r['caption'] !== null) {
+                $r['caption'] = htmlspecialchars($r['caption'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            }
+        }
+        unset($r);
+
+        jsonResponse(true, ['pictures' => $rows]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to list pictures', $e->getMessage()));
+    }
+}
+
+/**
+ * Upload a picture for an event
+ * POST multipart/form-data with file field "picture", GET param event_id
+ */
+function uploadEventPicture() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $eventId = intval($_GET['event_id'] ?? 0);
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+
+    // Verify event exists
+    $chk = $db->prepare("SELECT id FROM events WHERE id = :id");
+    $chk->execute([':id' => $eventId]);
+    if (!$chk->fetch()) {
+        jsonResponse(false, null, 'Event not found');
+        return;
+    }
+
+    if (!isset($_FILES['picture']) || $_FILES['picture']['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'File upload error');
+        return;
+    }
+
+    $file = $_FILES['picture'];
+
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(false, null, 'File exceeds 5 MB limit');
+        return;
+    }
+
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if (!$imgInfo) {
+        jsonResponse(false, null, 'Invalid image file');
+        return;
+    }
+
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($imgInfo['mime'], $allowedMimes)) {
+        jsonResponse(false, null, 'Unsupported image type');
+        return;
+    }
+
+    if (!extension_loaded('gd')) {
+        jsonResponse(false, null, 'GD extension not available');
+        return;
+    }
+
+    $imgType    = $imgInfo[2];
+    $uploadsDir = dirname(__DIR__) . '/uploads/events/' . $eventId;
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0755, true);
+    }
+
+    $filename = uniqid() . '.jpg';
+    $destPath = $uploadsDir . '/' . $filename;
+    $relPath  = 'uploads/events/' . $eventId . '/' . $filename;
+
+    if (!processAndSaveImage($file['tmp_name'], $destPath, 1200, 900, $imgType, 'fit')) {
+        jsonResponse(false, null, 'Failed to process image');
+        return;
+    }
+
+    try {
+        // Auto-increment display_order
+        $maxOrd = $db->prepare("SELECT COALESCE(MAX(display_order), 0) FROM event_pictures WHERE event_id = :eid");
+        $maxOrd->execute([':eid' => $eventId]);
+        $nextOrder = intval($maxOrd->fetchColumn()) + 1;
+
+        $ins = $db->prepare(
+            "INSERT INTO event_pictures (event_id, filename, caption, display_order, created_at)
+             VALUES (:eid, :fn, NULL, :ord, :now)"
+        );
+        $ins->execute([
+            ':eid' => $eventId,
+            ':fn'  => $relPath,
+            ':ord' => $nextOrder,
+            ':now' => date('Y-m-d H:i:s'),
+        ]);
+
+        invalidate_query_cache($eventId);
+        jsonResponse(true, ['id' => $db->lastInsertId(), 'filename' => $relPath, 'caption' => null]);
+    } catch (PDOException $e) {
+        @unlink($destPath);
+        jsonResponse(false, null, safe_error_message('Failed to save picture', $e->getMessage()));
+    }
+}
+
+/**
+ * Delete a picture from an event
+ * POST JSON: { id, event_id }
+ */
+function deleteEventPicture() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input   = json_decode(file_get_contents('php://input'), true);
+    $picId   = intval($input['id'] ?? 0);
+    $eventId = intval($input['event_id'] ?? 0);
+
+    if ($picId <= 0 || $eventId <= 0) {
+        jsonResponse(false, null, 'Valid id and event_id required');
+        return;
+    }
+
+    try {
+        $stmtGet = $db->prepare("SELECT filename FROM event_pictures WHERE id = :id AND event_id = :eid");
+        $stmtGet->execute([':id' => $picId, ':eid' => $eventId]);
+        $row = $stmtGet->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            jsonResponse(false, null, 'Picture not found');
+            return;
+        }
+
+        $del = $db->prepare("DELETE FROM event_pictures WHERE id = :id AND event_id = :eid");
+        $del->execute([':id' => $picId, ':eid' => $eventId]);
+
+        // Delete physical file
+        $fullPath = dirname(__DIR__) . '/' . $row['filename'];
+        if (file_exists($fullPath)) {
+            @unlink($fullPath);
+        }
+
+        invalidate_query_cache($eventId);
+        jsonResponse(true, null, 'Picture deleted');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete picture', $e->getMessage()));
+    }
+}
+
+/**
+ * Reorder pictures for an event
+ * POST JSON: { event_id, order: [id1, id2, ...] }
+ */
+function reorderEventPictures() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input   = json_decode(file_get_contents('php://input'), true);
+    $eventId = intval($input['event_id'] ?? 0);
+    $order   = $input['order'] ?? [];
+
+    if ($eventId <= 0 || !is_array($order) || empty($order)) {
+        jsonResponse(false, null, 'Valid event_id and order array required');
+        return;
+    }
+
+    // Validate all IDs belong to this event
+    $placeholders = implode(',', array_fill(0, count($order), '?'));
+    $stmtCheck = $db->prepare(
+        "SELECT COUNT(*) FROM event_pictures WHERE id IN ($placeholders) AND event_id = ?"
+    );
+    $stmtCheck->execute(array_merge(array_map('intval', $order), [$eventId]));
+    if (intval($stmtCheck->fetchColumn()) !== count($order)) {
+        jsonResponse(false, null, 'Invalid picture IDs for this event');
+        return;
+    }
+
+    try {
+        $db->beginTransaction();
+        $upd = $db->prepare("UPDATE event_pictures SET display_order = :ord WHERE id = :id AND event_id = :eid");
+        foreach ($order as $idx => $picId) {
+            $upd->execute([':ord' => $idx + 1, ':id' => intval($picId), ':eid' => $eventId]);
+        }
+        $db->commit();
+
+        invalidate_query_cache($eventId);
+        jsonResponse(true, null, 'Order updated');
+    } catch (PDOException $e) {
+        $db->rollBack();
+        jsonResponse(false, null, safe_error_message('Failed to reorder pictures', $e->getMessage()));
     }
 }
 

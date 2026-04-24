@@ -82,6 +82,7 @@ foreach ($artistIds as $aid) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>My Favorites - <?= htmlspecialchars($siteTitle) ?></title>
+    <?php seo_render_meta(['noindex' => true]); ?>
     <link rel="stylesheet" href="<?= asset_url('styles/common.css') ?>">
     <?php if ($theme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?= asset_url('styles/themes/' . $theme . '.css') ?>">

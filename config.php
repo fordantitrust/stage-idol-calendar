@@ -47,3 +47,4 @@ require_once __DIR__ . '/functions/security.php';  // Security functions
 require_once __DIR__ . '/functions/admin.php';     // Admin functions
 require_once __DIR__ . '/functions/favorites.php'; // Favorites system
 require_once __DIR__ . '/functions/telegram.php';  // Telegram bot functions
+require_once __DIR__ . '/functions/seo.php';       // SEO meta helpers

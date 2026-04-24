@@ -151,6 +151,7 @@ foreach ($byDate as $date => $progs) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>My Favorites Upcoming Programs - <?= htmlspecialchars($siteTitle) ?></title>
+    <?php seo_render_meta(['noindex' => true]); ?>
     <link rel="stylesheet" href="<?= asset_url('styles/common.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('styles/artist.css') ?>">
     <?php if ($theme !== 'sakura'): ?>

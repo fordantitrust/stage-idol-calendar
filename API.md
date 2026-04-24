@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v6.4.1
+All API endpoints for Idol Stage Timetable v7.4.0
 
 ---
 
@@ -378,6 +378,64 @@ X-CSRF-Token: <token>
 
 **theme**: one of `sakura`, `ocean`, `forest`, `midnight`, `sunset`, `dark`, `gray` (or omit to use global setting)
 
+**gallery_template** *(v7.4.0)*: `"grid1"` (1 column) / `"grid2"` (2 columns) / `"grid3"` (3 columns, default) / `"masonry"` (CSS column-count layout)
+
+---
+
+### Event Pictures Endpoints *(v7.4.0)*
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `event_pictures_list` | GET | List pictures for an event |
+| `event_picture_upload` | POST | Upload a picture (multipart/form-data) |
+| `event_picture_delete` | POST | Delete a picture |
+| `event_pictures_reorder` | POST | Reorder pictures |
+
+#### List Event Pictures
+
+```http
+GET /admin/api.php?action=event_pictures_list&event_id=1
+```
+
+Returns `{ pictures: [{ id, filename, caption, display_order }] }`
+
+#### Upload Event Picture
+
+```http
+POST /admin/api.php?action=event_picture_upload&event_id=1
+X-CSRF-Token: <token>
+Content-Type: multipart/form-data
+
+picture=<file>
+```
+
+- Max 5 MB per file; accepted MIME types: `image/jpeg`, `image/png`, `image/gif`, `image/webp`
+- PHP GD scales image to fit within 1200×900 px (no upscale, no crop); saves as JPEG 85%
+- Stored in `uploads/events/{eventId}_{uniqid}.jpg`
+- Returns `{ id, filename, caption }`
+
+#### Delete Event Picture
+
+```http
+POST /admin/api.php?action=event_picture_delete
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "id": 5, "event_id": 1 }
+```
+
+#### Reorder Event Pictures
+
+```http
+POST /admin/api.php?action=event_pictures_reorder
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "event_id": 1, "order": [3, 1, 5, 2] }
+```
+
+`order` is an array of picture IDs in the desired display sequence.
+
 #### Events in Public URL
 
 Access an event via URL: `/event/{slug}` e.g. `/event/idol-stage-feb-2026`
@@ -748,4 +806,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v6.4.1*
+*Idol Stage Timetable v7.4.0*

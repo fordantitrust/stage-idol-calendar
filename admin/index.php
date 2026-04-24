@@ -1078,6 +1078,61 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             color: #fff;
             background: rgba(255,255,255,0.25);
         }
+        /* Event picture drag-sort */
+        .pic-thumb { transition: opacity .15s; }
+        .pic-thumb.drag-over { outline: 2px dashed var(--admin-primary); outline-offset: 2px; border-radius: 6px; }
+        .pic-thumb .pic-drag-handle {
+            position: absolute; top: 2px; left: 2px;
+            background: rgba(0,0,0,.5); color: #fff;
+            border-radius: 3px; padding: 1px 4px;
+            font-size: 13px; line-height: 1.3;
+            pointer-events: none; user-select: none;
+            letter-spacing: 1px;
+        }
+        /* Event picture upload progress */
+        .ep-upload-progress-bar {
+            height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-bottom: 4px;
+        }
+        .ep-upload-progress-fill {
+            height: 100%; width: 0%; border-radius: 3px;
+            background: var(--admin-primary); transition: width .2s ease;
+        }
+        /* Event picture admin lightbox */
+        #epAdminLightbox {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,.88);
+            display: none; align-items: center; justify-content: center;
+        }
+        #epAdminLightbox.active { display: flex; }
+        .ep-admin-lb-overlay { position: absolute; inset: 0; cursor: pointer; }
+        .ep-admin-lb-inner { position: relative; z-index: 1; text-align: center; max-width: 90vw; }
+        .ep-admin-lb-inner img { max-width: 90vw; max-height: 82vh; object-fit: contain; border-radius: 4px; }
+        .ep-admin-lb-caption { color: rgba(255,255,255,.85); font-size: .88em; margin-top: 8px; }
+        .ep-admin-lb-btn {
+            position: fixed; background: rgba(255,255,255,.15); color: #fff;
+            border: none; border-radius: 50%; width: 40px; height: 40px;
+            font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+        }
+        .ep-admin-lb-btn:hover { background: rgba(255,255,255,.3); }
+        .ep-admin-lb-close { top: 14px; right: 18px; font-size: 22px; }
+        .ep-admin-lb-prev  { left: 12px; top: 50%; transform: translateY(-50%); }
+        .ep-admin-lb-next  { right: 12px; top: 50%; transform: translateY(-50%); }
+        /* Event picture bulk select */
+        .pic-thumb.ep-selected { outline: 3px solid var(--admin-primary); outline-offset: -3px; border-radius: 6px; }
+        .pic-thumb.ep-selected::after {
+            content: '✓'; position: absolute; top: 2px; left: 2px;
+            background: var(--admin-primary); color: #fff;
+            border-radius: 50%; width: 20px; height: 20px;
+            font-size: 12px; line-height: 20px; text-align: center;
+            font-weight: 700; z-index: 2; pointer-events: none;
+        }
+        #eventPicSelectBar {
+            display: none; align-items: center; gap: 8px; flex-wrap: wrap;
+            margin-top: 6px; padding: 6px 10px; background: #fff3cd;
+            border: 1px solid #ffc107; border-radius: 6px; font-size: 0.88em;
+        }
+        #eventPicSelectBar.active { display: flex; }
     </style>
     <script src="<?php echo asset_url('js/admin-i18n.js'); ?>"></script>
 </head>
@@ -2714,6 +2769,48 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             </optgroup>
                         </select>
                         <small class="form-hint" data-i18n="event.timezoneHint">เขตเวลาที่ใช้ในงาน — ใช้สำหรับ ICS export และแสดงผลบนหน้า event</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conventionGalleryTemplate" data-i18n="event.galleryTemplateLabel">รูปแบบ Gallery</label>
+                        <select id="conventionGalleryTemplate">
+                            <option value="grid3" data-i18n="event.galleryTemplate.grid3">3 คอลัมน์ (Default)</option>
+                            <option value="grid2" data-i18n="event.galleryTemplate.grid2">2 คอลัมน์</option>
+                            <option value="grid1" data-i18n="event.galleryTemplate.grid1">1 คอลัมน์</option>
+                            <option value="masonry" data-i18n="event.galleryTemplate.masonry">Masonry</option>
+                        </select>
+                    </div>
+
+                    <div id="eventPictureSection" style="display:none">
+                        <hr>
+                        <div style="font-weight:600;margin-bottom:8px;" data-i18n="event.pictureSection">📸 รูปภาพจากงาน</div>
+                        <div id="eventPictureGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;"></div>
+                        <div id="eventPicOrderHint" style="font-size:0.75em;color:#888;margin-bottom:8px;min-height:1.2em;" data-i18n="event.dragToReorder">ลากเพื่อเรียงลำดับ</div>
+                        <input type="file" id="eventPicFile" accept="image/*" multiple style="display:none"
+                               onchange="uploadEventPictures(this)">
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('eventPicFile').click()"
+                                    data-i18n="event.addPicture">+ เพิ่มรูป</button>
+                            <button type="button" class="btn btn-secondary" id="eventPicSelectBtn"
+                                    onclick="togglePicSelectMode()" data-i18n="event.selectMode">☑ เลือก</button>
+                        </div>
+                        <div id="eventPicSelectBar">
+                            <span id="eventPicSelectedCount"></span>
+                            <button type="button" class="btn btn-danger btn-sm" id="eventPicDeleteSelectedBtn"
+                                    onclick="bulkDeleteEventPictures()">🗑️ <span data-i18n="event.deleteSelected">ลบที่เลือก</span></button>
+                            <button type="button" class="btn btn-secondary btn-sm"
+                                    onclick="togglePicSelectMode()" data-i18n="event.cancelSelect">ยกเลิก</button>
+                        </div>
+                        <div id="eventPicUploadProgress" style="display:none;margin-top:8px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.82em;color:#555;margin-bottom:3px;">
+                                <span id="eventPicProgressText">⏳ <span data-i18n="event.uploadingPicture">กำลังอัปโหลด...</span></span>
+                                <span id="eventPicProgressCount" style="font-weight:600;"></span>
+                            </div>
+                            <div class="ep-upload-progress-bar">
+                                <div id="eventPicProgressFill" class="ep-upload-progress-fill"></div>
+                            </div>
+                        </div>
+                        <small class="form-hint" data-i18n="event.pictureHint">สูงสุด 5 MB ต่อไฟล์ (JPG/PNG/GIF/WEBP)</small>
                     </div>
                 </form>
             </div>
@@ -5116,6 +5213,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionVenueMode').value = 'multi';
             document.getElementById('conventionTheme').value = '';
             document.getElementById('conventionTimezone').value = 'Asia/Bangkok';
+            document.getElementById('conventionGalleryTemplate').value = 'grid3';
+            resetEventPictureSection();
             conventionsFormChanged = false;
             document.getElementById('conventionModal').classList.add('active');
         }
@@ -5146,6 +5245,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('conventionIsActive').checked = !!conv.is_active;
                 document.getElementById('conventionTheme').value = conv.theme || '';
                 document.getElementById('conventionTimezone').value = conv.timezone || 'Asia/Bangkok';
+                document.getElementById('conventionGalleryTemplate').value = conv.gallery_template || 'grid3';
+                showEventPictureSection(conv.id);
 
                 conventionsFormChanged = false;
                 document.getElementById('conventionModal').classList.add('active');
@@ -5164,6 +5265,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 }
             }
             conventionsFormChanged = false;
+            resetEventPictureSection();
             document.getElementById('conventionModal').classList.remove('active');
         }
 
@@ -5183,7 +5285,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 venue_mode: document.getElementById('conventionVenueMode').value,
                 is_active: document.getElementById('conventionIsActive').checked ? 1 : 0,
                 theme: themeVal || null,
-                timezone: document.getElementById('conventionTimezone').value || 'Asia/Bangkok'
+                timezone: document.getElementById('conventionTimezone').value || 'Asia/Bangkok',
+                gallery_template: document.getElementById('conventionGalleryTemplate').value || 'grid3'
             };
 
             const isEdit = !!id;
@@ -5218,6 +5321,327 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             } finally {
                 hideLoading();
             }
+        }
+
+        // ===== Event Pictures =====
+        let _epAdminPics  = [];
+        let _epAdminIdx   = 0;
+        let _epSelectMode = false;
+
+        function resetEventPictureSection() {
+            document.getElementById('eventPictureSection').style.display = 'none';
+            document.getElementById('eventPictureGrid').innerHTML = '';
+            document.getElementById('eventPicFile').value = '';
+            document.getElementById('eventPicUploadProgress').style.display = 'none';
+            document.getElementById('eventPicProgressFill').style.width = '0%';
+            document.getElementById('eventPicProgressCount').textContent = '';
+            _epSelectMode = false;
+            document.getElementById('eventPicSelectBar').classList.remove('active');
+            const btn = document.getElementById('eventPicSelectBtn');
+            if (btn) { btn.setAttribute('data-i18n', 'event.selectMode'); btn.textContent = adminT('event.selectMode') || '☑ เลือก'; }
+        }
+
+        function showEventPictureSection(eventId) {
+            document.getElementById('eventPictureSection').style.display = '';
+            loadEventPictures(eventId);
+        }
+
+        async function loadEventPictures(eventId) {
+            try {
+                const response = await fetch(`api.php?action=event_pictures_list&event_id=${eventId}`);
+                const result = await response.json();
+                if (result.success) {
+                    renderEventPictureGrid(result.data?.pictures || [], eventId);
+                }
+            } catch (e) { /* silently ignore */ }
+        }
+
+        function renderEventPictureGrid(pictures, eventId) {
+            _epAdminPics = pictures;
+            const grid = document.getElementById('eventPictureGrid');
+            const hint = document.getElementById('eventPicOrderHint');
+            if (!pictures.length) {
+                grid.innerHTML = '';
+                if (hint) { hint.textContent = ''; }
+                return;
+            }
+            if (hint) {
+                hint.textContent = _epSelectMode ? '' : adminT('event.dragToReorder');
+                hint.style.color = '#888';
+            }
+            grid.innerHTML = pictures.map((pic, i) => {
+                const src = APP_ROOT + '/' + pic.filename;
+                const caption = pic.caption ? escapeHtml(pic.caption) : '';
+                const imgCursor = _epSelectMode ? 'pointer' : 'zoom-in';
+                const showHandle = _epSelectMode ? 'display:none' : '';
+                return `<div class="pic-thumb" data-pic-id="${pic.id}" draggable="${!_epSelectMode}"
+                             style="position:relative;width:100px;flex-shrink:0;cursor:${_epSelectMode ? 'pointer' : 'grab'};">
+                    <span class="pic-drag-handle" style="${showHandle}">⠿</span>
+                    <img src="${escapeHtml(src)}" alt="${caption}"
+                         onclick="_epPicClick(event,${i})"
+                         style="width:100px;height:100px;object-fit:cover;border-radius:6px;border:1px solid #ddd;display:block;cursor:${imgCursor};">
+                    <button type="button" title="ลบ" onclick="deleteEventPicture(${pic.id},${eventId})"
+                            style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:14px;line-height:1;padding:0;">&times;</button>
+                    ${caption ? `<div style="font-size:0.7em;color:#555;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${caption}</div>` : ''}
+                </div>`;
+            }).join('');
+            if (!_epSelectMode) initPictureDragSort(eventId);
+        }
+
+        function initPictureDragSort(eventId) {
+            const grid = document.getElementById('eventPictureGrid');
+            let dragSrc = null;
+
+            grid.querySelectorAll('.pic-thumb').forEach(card => {
+                card.addEventListener('dragstart', e => {
+                    dragSrc = card;
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => { if (dragSrc) dragSrc.style.opacity = '0.4'; }, 0);
+                });
+                card.addEventListener('dragend', () => {
+                    if (dragSrc) dragSrc.style.opacity = '';
+                    dragSrc = null;
+                    grid.querySelectorAll('.pic-thumb').forEach(c => c.classList.remove('drag-over'));
+                });
+                card.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+                card.addEventListener('dragenter', () => {
+                    if (dragSrc && card !== dragSrc) card.classList.add('drag-over');
+                });
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('drag-over');
+                });
+                card.addEventListener('drop', e => {
+                    e.preventDefault();
+                    card.classList.remove('drag-over');
+                    if (!dragSrc || dragSrc === card) return;
+                    const rect = card.getBoundingClientRect();
+                    if (e.clientX < rect.left + rect.width / 2) {
+                        grid.insertBefore(dragSrc, card);
+                    } else {
+                        grid.insertBefore(dragSrc, card.nextSibling);
+                    }
+                    saveEventPictureOrder(eventId);
+                });
+            });
+        }
+
+        async function saveEventPictureOrder(eventId) {
+            const grid = document.getElementById('eventPictureGrid');
+            const hint = document.getElementById('eventPicOrderHint');
+            const order = Array.from(grid.querySelectorAll('.pic-thumb')).map(c => parseInt(c.dataset.picId));
+            if (hint) { hint.textContent = '⏳ ' + adminT('event.savingOrder'); hint.style.color = '#888'; }
+            try {
+                const response = await fetch('api.php?action=event_pictures_reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ event_id: parseInt(eventId), order })
+                });
+                const result = await response.json();
+                if (hint) {
+                    if (result.success) {
+                        hint.textContent = '✓ ' + adminT('event.orderSaved');
+                        hint.style.color = '#2e7d32';
+                        setTimeout(() => {
+                            if (hint) { hint.textContent = adminT('event.dragToReorder'); hint.style.color = '#888'; }
+                        }, 2000);
+                    } else {
+                        hint.textContent = '✗ ' + (result.message || 'Error');
+                        hint.style.color = '#c62828';
+                    }
+                }
+            } catch (e) {
+                if (hint) { hint.textContent = '✗ Error'; hint.style.color = '#c62828'; }
+            }
+        }
+
+        async function uploadEventPictures(fileInput) {
+            const eventId = document.getElementById('conventionId').value;
+            if (!eventId) return;
+            const files = Array.from(fileInput.files);
+            const total = files.length;
+            if (!total) return;
+
+            const progressDiv   = document.getElementById('eventPicUploadProgress');
+            const progressText  = document.getElementById('eventPicProgressText');
+            const progressCount = document.getElementById('eventPicProgressCount');
+            const progressFill  = document.getElementById('eventPicProgressFill');
+
+            progressDiv.style.display = '';
+            progressText.textContent = '⏳ ' + adminT('event.uploadingPicture');
+            progressText.style.color = '';
+            progressFill.style.background = 'var(--admin-primary)';
+            progressFill.style.width = '0%';
+            progressCount.textContent = '0/' + total + ' (0%)';
+
+            let done = 0, failed = 0;
+
+            const updateBar = () => {
+                const finished = done + failed;
+                const pct = Math.round(finished / total * 100);
+                progressFill.style.width = pct + '%';
+                progressCount.textContent = finished + '/' + total + ' (' + pct + '%)';
+            };
+
+            for (const file of files) {
+                const fd = new FormData();
+                fd.append('picture', file);
+                try {
+                    const res = await fetch(
+                        'api.php?action=event_picture_upload&event_id=' + encodeURIComponent(eventId),
+                        { method: 'POST', headers: { 'X-CSRF-Token': CSRF_TOKEN }, body: fd }
+                    );
+                    const result = await res.json();
+                    if (result.success) { done++; } else {
+                        failed++;
+                        showToast(result.message || 'Upload failed', 'error');
+                    }
+                } catch (e) { failed++; showToast('Upload error', 'error'); }
+                updateBar();
+            }
+
+            // Summary after all files
+            if (failed === 0) {
+                progressText.textContent = '✓ ' + adminT('event.uploadDoneAll').replace('%n', done);
+                progressText.style.color = '#2e7d32';
+            } else {
+                const doneStr  = done > 0 ? '✓ ' + done + ' รูปสำเร็จ' : '✗';
+                const failStr  = ' (' + failed + ' ' + adminT('event.uploadFailed') + ')';
+                progressText.textContent = doneStr + failStr;
+                progressText.style.color = done > 0 ? '#e65100' : '#c62828';
+                progressFill.style.background = done > 0 ? '#ffa726' : '#ef5350';
+            }
+
+            setTimeout(() => {
+                progressDiv.style.display = 'none';
+                progressFill.style.width = '0%';
+                progressFill.style.background = 'var(--admin-primary)';
+                progressCount.textContent = '';
+            }, 3000);
+
+            fileInput.value = '';
+            loadEventPictures(eventId);
+        }
+
+        function openPicPreview(idx) {
+            _epAdminIdx = idx;
+            _epAdminRefreshLb();
+            document.getElementById('epAdminLightbox').classList.add('active');
+            document.addEventListener('keydown', _epAdminKeyHandler);
+        }
+
+        function closePicPreview() {
+            document.getElementById('epAdminLightbox').classList.remove('active');
+            document.removeEventListener('keydown', _epAdminKeyHandler);
+        }
+
+        function navPicPreview(dir) {
+            _epAdminIdx = (_epAdminIdx + dir + _epAdminPics.length) % _epAdminPics.length;
+            _epAdminRefreshLb();
+        }
+
+        function _epAdminRefreshLb() {
+            const pic = _epAdminPics[_epAdminIdx];
+            if (!pic) return;
+            document.getElementById('epAdminLbImg').src = APP_ROOT + '/' + pic.filename;
+            document.getElementById('epAdminLbImg').alt = pic.caption || '';
+            document.getElementById('epAdminLbCaption').textContent = pic.caption || '';
+            const multi = _epAdminPics.length > 1;
+            document.getElementById('epAdminLbPrev').style.display = multi ? '' : 'none';
+            document.getElementById('epAdminLbNext').style.display = multi ? '' : 'none';
+        }
+
+        function _epAdminKeyHandler(e) {
+            if (e.key === 'Escape')          closePicPreview();
+            else if (e.key === 'ArrowLeft')  navPicPreview(-1);
+            else if (e.key === 'ArrowRight') navPicPreview(1);
+        }
+
+        async function deleteEventPicture(picId, eventId) {
+            if (!confirm('ลบรูปภาพนี้?')) return;
+            try {
+                const response = await fetch('api.php?action=event_picture_delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ id: picId, event_id: eventId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    loadEventPictures(eventId);
+                } else {
+                    showToast(result.message || 'Delete failed', 'error');
+                }
+            } catch (e) {
+                showToast('Delete error', 'error');
+            }
+        }
+
+        // Bulk select helpers
+        function _epPicClick(e, i) {
+            if (_epSelectMode) {
+                e.stopPropagation();
+                const card = e.target.closest('.pic-thumb');
+                if (card) {
+                    card.classList.toggle('ep-selected');
+                    _updateSelectCount();
+                }
+            } else {
+                openPicPreview(i);
+            }
+        }
+
+        function _updateSelectCount() {
+            const count = document.querySelectorAll('.pic-thumb.ep-selected').length;
+            const countEl = document.getElementById('eventPicSelectedCount');
+            const deleteBtn = document.getElementById('eventPicDeleteSelectedBtn');
+            if (countEl) countEl.textContent = (adminT('event.selectedCount') || 'เลือก %n รูป').replace('%n', count);
+            if (deleteBtn) deleteBtn.disabled = count === 0;
+        }
+
+        function togglePicSelectMode() {
+            const eventId = document.getElementById('conventionId').value;
+            _epSelectMode = !_epSelectMode;
+            const btn = document.getElementById('eventPicSelectBtn');
+            const bar = document.getElementById('eventPicSelectBar');
+            if (_epSelectMode) {
+                if (btn) { btn.setAttribute('data-i18n', 'event.cancelSelect'); btn.textContent = adminT('event.cancelSelect') || 'ยกเลิก'; }
+                bar.classList.add('active');
+                _updateSelectCount();
+            } else {
+                if (btn) { btn.setAttribute('data-i18n', 'event.selectMode'); btn.textContent = adminT('event.selectMode') || '☑ เลือก'; }
+                bar.classList.remove('active');
+            }
+            renderEventPictureGrid(_epAdminPics, eventId);
+        }
+
+        async function bulkDeleteEventPictures() {
+            const selected = Array.from(document.querySelectorAll('.pic-thumb.ep-selected'));
+            if (!selected.length) return;
+            const eventId = document.getElementById('conventionId').value;
+            const count = selected.length;
+            if (!confirm(count + ' รูปจะถูกลบ ยืนยัน?')) return;
+            let failed = 0;
+            for (const card of selected) {
+                const picId = parseInt(card.dataset.picId);
+                try {
+                    const res = await fetch('api.php?action=event_picture_delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                        body: JSON.stringify({ id: picId, event_id: parseInt(eventId) })
+                    });
+                    const result = await res.json();
+                    if (!result.success) { failed++; }
+                } catch (e) { failed++; }
+            }
+            if (failed) showToast(failed + ' รูปลบไม่สำเร็จ', 'error');
+            else showToast(count + ' รูปลบแล้ว', 'success');
+            _epSelectMode = false;
+            document.getElementById('eventPicSelectBar').classList.remove('active');
+            const btn = document.getElementById('eventPicSelectBtn');
+            if (btn) { btn.setAttribute('data-i18n', 'event.selectMode'); btn.textContent = adminT('event.selectMode') || '☑ เลือก'; }
+            loadEventPictures(eventId);
         }
 
         // Delete Event Meta
@@ -7450,5 +7874,17 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         );
 
     </script>
+
+    <!-- Event Picture Admin Lightbox -->
+    <div id="epAdminLightbox" role="dialog" aria-modal="true">
+        <div class="ep-admin-lb-overlay" onclick="closePicPreview()"></div>
+        <button class="ep-admin-lb-btn ep-admin-lb-close" onclick="closePicPreview()" title="Close">&times;</button>
+        <button class="ep-admin-lb-btn ep-admin-lb-prev" id="epAdminLbPrev" onclick="navPicPreview(-1)">&#10094;</button>
+        <button class="ep-admin-lb-btn ep-admin-lb-next" id="epAdminLbNext" onclick="navPicPreview(1)">&#10095;</button>
+        <div class="ep-admin-lb-inner">
+            <img id="epAdminLbImg" src="" alt="">
+            <p id="epAdminLbCaption" class="ep-admin-lb-caption"></p>
+        </div>
+    </div>
 </body>
 </html>

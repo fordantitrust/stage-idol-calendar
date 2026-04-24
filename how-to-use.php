@@ -14,6 +14,12 @@ $eventMeta = get_event_by_slug($eventSlug);
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>วิธีการใช้งาน - <?php echo htmlspecialchars(get_site_title()); ?></title>
+    <?php seo_render_meta([
+        'description' => 'วิธีการใช้งาน ' . get_site_title()
+                       . ' — ดูตารางกิจกรรม กรองศิลปิน บันทึกรูปภาพ และ Export ปฏิทิน',
+        'canonical'   => seo_full_url('/how-to-use'),
+        'og_type'     => 'website',
+    ]); ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>

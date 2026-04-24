@@ -45,6 +45,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🌐 **Per-event Timezone** | Each event can have its own timezone (e.g. Asia/Tokyo, America/LA); event page shows inline timezone badge `🕐 Asia/Tokyo (Asia/Bangkok)` when client TZ differs; JS auto-appends `(HH:MM–HH:MM local)` range after program times | v4.0.0 |
 | 🎨 **Event Color Coding** | My Upcoming Programs page colors each event's program rows in a distinct pastel shade (6 colors cycling) with a matching left-border accent, making it easy to identify which event each program belongs to at a glance | v4.0.3 |
 | 🔔 **Telegram Notifications** | Link Telegram account via deep-link (`/start {slug}`); receive per-program push notifications N minutes before each followed artist's program starts + daily summary at 9:00 AM; notifications grouped by event; configurable timing; admin UI settings | v5.0.0 |
+| 🖼️ **Event Pictures Gallery** | Per-event photo gallery displayed on the event page; natural aspect ratios (no forced crop); 4 selectable layout templates per event: `grid1` (1 col), `grid2` (2 col), `grid3` (3 col, default), `masonry` (CSS column-count); click any image to open a keyboard-navigable lightbox | v7.0.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -94,6 +95,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🖼️ **Artist Pictures** | Upload display picture (circular avatar, 400×400 px) and cover picture (banner, 1200×400 px) per artist; PHP GD auto-resize & center-crop on upload (max 5 MB); stored in `uploads/artists/`; display picture shows as hover tooltip on program list badges | v6.0.0 |
 | 💰 **Google AdSense** | Monetize with AdSense — `render_ad_unit()` helper in `functions/ads.php`; 3 sizes: leaderboard (728×90), rectangle (300×250), responsive (auto); 8 placements across public pages; disabled by default (`GOOGLE_ADS_CLIENT = ''`) | v6.3.0 |
 | 🔵 **Google Admin UI** | Configure Google Analytics 4 + AdSense entirely from Admin › Settings › 🔵 Google — no SSH needed; settings stored in `config/google-config.json` (protected from HTTP access); same JSON-loader pattern as Telegram config | v6.4.0 |
+| 🖼️ **Event Pictures Upload** | Upload multiple photos per event from Admin › Events edit modal; PHP GD scale-to-fit (1200×900 px, no upscale, no crop, JPEG 85%); max 5 MB per file (JPG/PNG/GIF/WEBP); live upload progress bar (X/N Y%); thumbnail grid with × delete button; drag-and-drop reordering; click thumbnail to preview fullscreen (lightbox, keyboard nav); bulk select mode to delete multiple pictures at once; `gallery_template` dropdown (grid1/grid2/grid3/masonry); pictures sharded to `uploads/events/{event_id}/` | v7.0.0–v7.4.0 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -104,7 +106,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **3666 Unit Tests** | Automated test suite across 16 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **5053 Unit Tests** | Automated test suite across 18 suites, CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
@@ -188,6 +190,12 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v6.2.0** | 2026-04-20 | **Dynamic XML Sitemap** — `sitemap.php` at `/sitemap.xml` (Apache rewrite); includes static pages, active events (`/event/{slug}` + `/event/{slug}/credits`), and artist profiles (`/artist/{id}`); `lastmod` from DB · **Sitemap file cache** — output saved to `cache/sitemap.xml` (TTL 1 hr); `invalidate_sitemap_cache()` auto-called on event/artist changes (6 points); included in `invalidate_all_caches()` · **Dynamic robots.txt** — `robots.php` at `/robots.txt`; injects `Sitemap:` URL from actual host; Disallows only `/my/` and `/my-favorites/` |
 | **v6.3.0** | 2026-04-21 | **Google AdSense System** — `render_ad_unit()` helper in `functions/ads.php`; 3 ad sizes: leaderboard (728×90), rectangle (300×250), responsive (auto); 8 placements across `index.php`, `artist.php`, `artists.php`, `how-to-use.php`, `credits.php`, `contact.php`, `past-events.php`; disabled when `GOOGLE_ADS_CLIENT = ''`; CSS classes in `styles/common.css` |
 | **v6.4.0** | 2026-04-21 | **Google Admin UI** — Google Analytics 4 + AdSense settings configurable via Admin › Settings › 🔵 Google (renamed from 📊 Analytics); `config/google-config.json` stores `ga_id`, `ads_client`, `ads_slot_*`; `analytics_config_get` + `analytics_config_save` API endpoints (admin-role only); `config/analytics.php` renamed + rewritten as `config/google.php` loading from JSON; no SSH required |
+| **v6.5.0** | 2026-04-22 | **Comprehensive SEO Support** — `functions/seo.php` with 4 helpers (`seo_full_url`, `seo_truncate`, `seo_render_meta`, `seo_render_json_ld`); all public pages get meta descriptions, Open Graph, Twitter Cards, canonical URLs; `index.php` + `artist.php` + `artists.php` get JSON-LD structured data (WebSite/Event/MusicGroup/BreadcrumbList/ItemList schemas); personal pages (`my.php`, `my-favorites.php`) get `noindex`; **4331 automated tests pass** (17 suites) |
+| **v7.0.0** ⚠️ | 2026-04-24 | **Event Pictures Gallery** — **Run migration:** `php tools/migrate-add-event-pictures-table.php`; new `event_pictures` table (id, event_id, filename, caption, display_order, created_at; ON DELETE CASCADE); `events.gallery_template TEXT DEFAULT 'grid3'` column; Admin event edit modal gets picture upload section (multi-select, thumbnail grid, × delete); PHP GD `mode='fit'` — scale-to-fit 1200×900 px, no upscale, no crop, JPEG 85%; 4 CSS gallery templates: `grid1/grid2/grid3/masonry`; `height:auto` on all images — natural aspect ratio; lightbox with keyboard nav (Escape/←/→); responsive: grid3 → 2 col ≤768px, all → 1 col ≤480px; **5053 automated tests pass** (18 suites) |
+| **v7.1.0** | 2026-04-24 | **Drag-and-drop picture reordering** — Admin › Events picture section: thumbnail cards are draggable (HTML5 DnD, no external libs); ⠿ drag handle; dashed blue outline on hover target; inserts before/after by cursor midpoint; auto-saves order via `event_pictures_reorder` API on drop; hint cycles saving → saved → "ลากเพื่อเรียงลำดับ" |
+| **v7.2.0** | 2026-04-24 | **Event pictures shard storage** — pictures now stored in `uploads/events/{event_id}/{uniqid}.jpg` (subdirectory per event) instead of flat `uploads/events/{event_id}_{uniqid}.jpg`; prevents a single directory from growing unbounded; `.htaccess` on parent directory covers all subdirs automatically; backward compatible with existing flat-path records |
+| **v7.3.0** | 2026-04-25 | **Upload progress bar + click-to-preview lightbox** — progress bar replaces spinner, shows `X/N (Y%)` and updates after each file; green/orange summary on completion; auto-hides after 3 s · Clicking any thumbnail opens a fullscreen admin lightbox (prev/next buttons, Escape/←/→ keyboard, overlay click to close) |
+| **v7.4.0** | 2026-04-25 | **Bulk delete event pictures** — "☑ เลือก" button enters select mode; clicking thumbnails toggles selection (blue outline + ✓ badge); yellow bulk-action bar shows count + "🗑️ ลบที่เลือก" (disabled when nothing selected) + Cancel; loops existing `event_picture_delete` API; drag-sort and lightbox automatically disabled in select mode |
 
 ---
 
@@ -477,7 +485,7 @@ php migrate-add-artist-variants-table.php
 ```php
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 define('ADMIN_ALLOWED_IPS', [
-    '127.0.0.1',
+    '127.4.0.1',
     '192.168.1.0/24',  // Your office network
 ]);
 ```
@@ -621,7 +629,7 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           3666 automated tests (16 suites)
+├── tests/           5053 automated tests (18 suites)
 └── *.md             Documentation
 ```
 
@@ -687,7 +695,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all 3666 automated tests
+# Run all 5053 automated tests
 php tests/run-tests.php
 
 # Run specific suite
@@ -785,7 +793,7 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **3666 automated unit tests** covering all critical functionality:
+The project includes **5053 automated unit tests** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
@@ -802,6 +810,10 @@ The project includes **3666 automated unit tests** covering all critical functio
 - 🔴 **StreamUrlTest** (322) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
 - ⭐ **FavoritesTest** (406) - config constants, UUID v7 format/uniqueness, HMAC, slug build/parse/tamper resistance, file I/O (write→read roundtrip, sharded path), api/favorites.php actions, my-favorites.php solo/group split + sort, my.php mini calendar + day modal, translations 3-language coverage, common.js nav injection, artist.php follow/unfollow, .htaccess routing
 - 🌐 **TimezoneTest** (473) - events.timezone schema, migration idempotency, DEFAULT_TIMEZONE constant, get_event_timezone() priority logic, icsOffsetString() ±HHMM format, icsVtimezone() RFC 5545 VTIMEZONE block (STANDARD + DAYLIGHT auto-detection), UTC timestamp computation, DB CRUD, export.php TZID format, feed.php TZID format, index.php timezone injection, admin API timezone picker, translations.js keys, common.js initTimezoneDisplay(), CSS classes, setup.php integration
+- 🔔 **TelegramTest** (541) - Telegram helper functions, bot commands, notification logic, cron guards, favorites JSON fields
+- 🖼️ **ArtistPictureTest** (602) - Artist display/cover picture upload, GD resize, admin API, hover tooltip on program list
+- 🔍 **SeoTest** (665) - seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() all OG/Twitter/noindex scenarios, seo_render_json_ld() Unicode/empty-array, JSON-LD schema keys, source-level checks on all 8 modified public pages
+- 🖼️ **EventPicturesTest** (722) - event_pictures table/columns/indexes/CASCADE, events.gallery_template column, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list/getEvent), processAndSaveImage mode='fit', uploads/events directory/htaccess, setup.php integration, index.php gallery HTML + lightbox, admin/index.php picture section + template dropdown, CSS templates, translations
 
 **Run All Tests:**
 ```bash
@@ -839,14 +851,14 @@ strategy:
     php-version: ['8.1', '8.2', '8.3', '8.4', '8.5']
 ```
 
-✅ **All 3666 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All 5053 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 **Expected Output:**
 ```
 ✅ ALL TESTS PASSED
 
-Total: 3666 tests
-Passed: 3666
+Total: 5053 tests
+Passed: 5053
 Pass Rate: 100.0%
 ```
 
@@ -858,7 +870,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 6.4.1
+**Current Version**: 7.4.0
 
 ---
 

@@ -86,6 +86,38 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?> – Artist Portal</title>
+    <?php
+    // ── SEO meta tags ─────────────────────────────────────────────────────────
+    $seoDesc      = 'รายชื่อศิลปินและวง ' . $totalGroups . ' วง ' . $totalSolos . ' เดี่ยว | ' . $siteTitle;
+    $seoCanonical = seo_full_url('/artists');
+    seo_render_meta([
+        'title'       => $siteTitle . ' – Artist Portal',
+        'description' => $seoDesc,
+        'canonical'   => $seoCanonical,
+        'og_type'     => 'website',
+        'site_title'  => $siteTitle,
+    ]);
+
+    // JSON-LD: ItemList of top artists (limit 20)
+    $topItems = array_slice(array_merge($groups, $soloArtists), 0, 20);
+    if (!empty($topItems)) {
+        $ldItems = [];
+        foreach ($topItems as $i => $a) {
+            $ldItems[] = [
+                '@type'    => 'ListItem',
+                'position' => $i + 1,
+                'name'     => $a['name'],
+                'url'      => seo_full_url('/artist/' . $a['id']),
+            ];
+        }
+        seo_render_json_ld([
+            '@context'        => 'https://schema.org',
+            '@type'           => 'ItemList',
+            'name'            => 'ศิลปิน & วง',
+            'itemListElement' => $ldItems,
+        ]);
+    }
+    ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
     <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>');</script>

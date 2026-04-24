@@ -84,6 +84,7 @@ if (!$showEventListing) {
         $programArtistIdMap = $qcd['program_artist_id_map'];
         $artistOtherEvents  = $qcd['artist_other_events'];
         $useArtistsTable    = $qcd['use_artists_table'];
+        $eventPictures      = $qcd['event_pictures'] ?? [];
     } else {
     $parser = new IcsParser('ics', true, 'data/calendar.db', $eventId);
 
@@ -213,6 +214,23 @@ if (!$showEventListing) {
     if (!$useArtistsTable) {
         $artists = $parser->getAllOrganizers();
     }
+
+    // Event pictures (v6.6.0)
+    $eventPictures = [];
+    if ($eventId !== null) {
+        try {
+            $dbPic = new PDO('sqlite:' . DB_PATH);
+            $dbPic->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $stmtPic = $dbPic->prepare(
+                "SELECT id, filename, caption FROM event_pictures
+                 WHERE event_id = ? ORDER BY display_order ASC, id ASC"
+            );
+            $stmtPic->execute([$eventId]);
+            $eventPictures = $stmtPic->fetchAll(PDO::FETCH_ASSOC);
+            $dbPic = null;
+        } catch (PDOException $e) { $eventPictures = []; }
+    }
+
     save_query_cache($queryCacheFile, [
         'all_events'            => $allEvents,
         'venues'                => $venues,
@@ -223,6 +241,7 @@ if (!$showEventListing) {
         'program_artist_id_map' => $programArtistIdMap,
         'artist_other_events'   => $artistOtherEvents,
         'use_artists_table'     => $useArtistsTable,
+        'event_pictures'        => $eventPictures,
     ]);
     } // end query cache miss block
 } else {
@@ -235,6 +254,7 @@ if (!$showEventListing) {
     $artistMeta         = [];
     $artistOtherEvents  = [];
     $useArtistsTable    = false;
+    $eventPictures      = [];
 }
 
 // รับค่า filter จาก GET parameters (รองรับหลายค่า) with sanitization
@@ -366,12 +386,75 @@ if ($_listingCalDataFromCache !== null) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?php
-        $pageTitle = get_site_title();
-        if ($eventMeta && $eventMeta['name'] !== $pageTitle) {
-            $pageTitle = $eventMeta['name'] . ' - ' . $pageTitle;
+        $siteTitle = get_site_title();
+        $pageTitle = $siteTitle;
+        if ($eventMeta && $eventMeta['name'] !== $siteTitle) {
+            $pageTitle = $eventMeta['name'] . ' - ' . $siteTitle;
         }
         echo htmlspecialchars($pageTitle);
     ?></title>
+    <?php
+    // ── SEO meta tags ─────────────────────────────────────────────────────────
+    if ($eventMeta) {
+        $startFmt    = !empty($eventMeta['start_date']) ? date('d/m/Y', strtotime($eventMeta['start_date'])) : '';
+        $endFmt      = !empty($eventMeta['end_date'])   ? date('d/m/Y', strtotime($eventMeta['end_date']))   : $startFmt;
+        $venueStr    = !empty($venues) ? $venues[0] : '';
+        $artistCount = count($artists);
+        $seoDesc = $eventMeta['name'] . ' — ตารางกิจกรรม ' . $startFmt . '–' . $endFmt
+                 . ($venueStr    ? ' · ' . $venueStr    : '')
+                 . ($artistCount ? ' · ' . $artistCount . ' ศิลปิน' : '')
+                 . ' | ' . $siteTitle;
+        $seoCanonical = seo_full_url('/event/' . $eventMeta['slug']);
+    } else {
+        $seoDesc      = $siteTitle . ' — ปฏิทินตารางกิจกรรม Idol Stage';
+        $seoCanonical = seo_full_url('/');
+    }
+    seo_render_meta([
+        'title'       => $pageTitle,
+        'description' => $seoDesc,
+        'canonical'   => $seoCanonical,
+        'og_type'     => 'website',
+        'site_title'  => $siteTitle,
+    ]);
+
+    // JSON-LD: WebSite (always)
+    seo_render_json_ld([
+        '@context'        => 'https://schema.org',
+        '@type'           => 'WebSite',
+        'name'            => $siteTitle,
+        'url'             => seo_full_url('/'),
+        'potentialAction' => [
+            '@type'       => 'SearchAction',
+            'target'      => [
+                '@type'       => 'EntryPoint',
+                'urlTemplate' => seo_full_url('/') . '?artist={search_term_string}',
+            ],
+            'query-input' => 'required name=search_term_string',
+        ],
+    ]);
+
+    // JSON-LD: Event (when viewing a specific event)
+    if ($eventMeta) {
+        $eventSchema = [
+            '@context'    => 'https://schema.org',
+            '@type'       => 'Event',
+            'name'        => $eventMeta['name'],
+            'startDate'   => $eventMeta['start_date'] ?? '',
+            'endDate'     => $eventMeta['end_date']   ?? ($eventMeta['start_date'] ?? ''),
+            'eventStatus' => 'https://schema.org/EventScheduled',
+            'organizer'   => [
+                '@type' => 'Organization',
+                'name'  => $siteTitle,
+                'url'   => seo_full_url('/'),
+            ],
+            'url'         => $seoCanonical,
+        ];
+        if (!empty($venues)) {
+            $eventSchema['location'] = ['@type' => 'Place', 'name' => $venues[0]];
+        }
+        seo_render_json_ld($eventSchema);
+    }
+    ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo htmlspecialchars(GOOGLE_ANALYTICS_ID); ?>"></script>
@@ -449,6 +532,7 @@ if ($_listingCalDataFromCache !== null) {
                 <a href="<?php echo event_url('credits.php'); ?>" class="header-nav-link" data-i18n="footer.credits">📋 แหล่งข้อมูลอ้างอิง</a>
             </nav>
         </header>
+        <?php render_ad_unit('leaderboard'); ?>
 
         <?php if (!empty($listingCalData)): ?>
         <!-- Listing Calendar -->
@@ -924,6 +1008,24 @@ if ($_listingCalDataFromCache !== null) {
         </div>
         <?php endif; ?> <!-- end showEventListing conditional -->
 
+        <?php if ($eventId !== null && !empty($eventPictures)): ?>
+        <?php $galleryTemplate = htmlspecialchars($eventMeta['gallery_template'] ?? 'grid3', ENT_QUOTES, 'UTF-8'); ?>
+        <section class="event-gallery-section">
+            <div class="event-gallery-grid template-<?php echo $galleryTemplate; ?>" id="eventGalleryGrid">
+                <?php foreach ($eventPictures as $i => $pic): ?>
+                <div class="event-gallery-item"
+                     data-index="<?php echo $i; ?>"
+                     data-src="<?php echo htmlspecialchars(get_base_path() . '/' . $pic['filename'], ENT_QUOTES, 'UTF-8'); ?>"
+                     data-caption="<?php echo htmlspecialchars($pic['caption'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <img src="<?php echo htmlspecialchars(get_base_path() . '/' . $pic['filename'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo htmlspecialchars($pic['caption'] ?? 'รูปภาพจากงาน', ENT_QUOTES, 'UTF-8'); ?>"
+                         loading="lazy">
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+        <?php endif; ?>
+
         <?php
         if ($eventId !== null && !empty($artistOtherEvents)):
             $crossEvents = [];
@@ -1035,6 +1137,18 @@ if ($_listingCalDataFromCache !== null) {
             <div class="req-modal-footer">
                 <button onclick="closeSubscribeModal()" class="btn btn-secondary" data-i18n="modal.cancel">ยกเลิก</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Event Picture Lightbox -->
+    <div id="eventPicLightbox" class="ep-lightbox" style="display:none" role="dialog" aria-modal="true">
+        <div class="ep-lightbox-overlay" onclick="epCloseLightbox()"></div>
+        <button class="ep-lightbox-close" onclick="epCloseLightbox()">&times;</button>
+        <button class="ep-lightbox-prev" onclick="epLightboxNav(-1)">&#10094;</button>
+        <button class="ep-lightbox-next" onclick="epLightboxNav(1)">&#10095;</button>
+        <div class="ep-lightbox-inner">
+            <img id="epLightboxImg" src="" alt="">
+            <p id="epLightboxCaption" class="ep-lightbox-caption"></p>
         </div>
     </div>
 
@@ -1868,5 +1982,61 @@ if ($_listingCalDataFromCache !== null) {
     </div>
 </div>
 <?php endif; ?>
+<script>
+(function() {
+    var _epItems = [];
+    var _epIdx   = 0;
+
+    function epOpenLightbox(idx) {
+        var grid = document.getElementById('eventGalleryGrid');
+        if (!grid) return;
+        var items = grid.querySelectorAll('.event-gallery-item');
+        _epItems = Array.prototype.slice.call(items);
+        _epIdx   = idx;
+        epRender();
+        document.getElementById('eventPicLightbox').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function epRender() {
+        var item = _epItems[_epIdx];
+        if (!item) return;
+        document.getElementById('epLightboxImg').src     = item.getAttribute('data-src') || '';
+        document.getElementById('epLightboxImg').alt     = item.getAttribute('data-caption') || '';
+        document.getElementById('epLightboxCaption').textContent = item.getAttribute('data-caption') || '';
+        var lb = document.getElementById('eventPicLightbox');
+        lb.querySelector('.ep-lightbox-prev').style.display = _epItems.length > 1 ? '' : 'none';
+        lb.querySelector('.ep-lightbox-next').style.display = _epItems.length > 1 ? '' : 'none';
+    }
+
+    window.epCloseLightbox = function() {
+        document.getElementById('eventPicLightbox').style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    window.epLightboxNav = function(dir) {
+        _epIdx = (_epIdx + dir + _epItems.length) % _epItems.length;
+        epRender();
+    };
+
+    document.addEventListener('keydown', function(e) {
+        var lb = document.getElementById('eventPicLightbox');
+        if (!lb || lb.style.display === 'none') return;
+        if (e.key === 'Escape')     window.epCloseLightbox();
+        if (e.key === 'ArrowLeft')  window.epLightboxNav(-1);
+        if (e.key === 'ArrowRight') window.epLightboxNav(1);
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var grid = document.getElementById('eventGalleryGrid');
+        if (!grid) return;
+        grid.addEventListener('click', function(e) {
+            var item = e.target.closest('.event-gallery-item');
+            if (!item) return;
+            epOpenLightbox(parseInt(item.getAttribute('data-index'), 10) || 0);
+        });
+    });
+}());
+</script>
 </body>
 </html>
