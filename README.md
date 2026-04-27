@@ -95,7 +95,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🖼️ **Artist Pictures** | Upload display picture (circular avatar, 400×400 px) and cover picture (banner, 1200×400 px) per artist; PHP GD auto-resize & center-crop on upload (max 5 MB); stored in `uploads/artists/`; display picture shows as hover tooltip on program list badges | v6.0.0 |
 | 💰 **Google AdSense** | Monetize with AdSense — `render_ad_unit()` helper in `functions/ads.php`; 3 sizes: leaderboard (728×90), rectangle (300×250), responsive (auto); 8 placements across public pages; disabled by default (`GOOGLE_ADS_CLIENT = ''`) | v6.3.0 |
 | 🔵 **Google Admin UI** | Configure Google Analytics 4 + AdSense entirely from Admin › Settings › 🔵 Google — no SSH needed; settings stored in `config/google-config.json` (protected from HTTP access); same JSON-loader pattern as Telegram config | v6.4.0 |
-| 🖼️ **Event Pictures Upload** | Upload multiple photos per event from Admin › Events edit modal; PHP GD scale-to-fit (1200×900 px, no upscale, no crop, JPEG 85%); max 5 MB per file (JPG/PNG/GIF/WEBP); live upload progress bar (X/N Y%); thumbnail grid with × delete button; drag-and-drop reordering; click thumbnail to preview fullscreen (lightbox, keyboard nav); bulk select mode to delete multiple pictures at once; `gallery_template` dropdown (grid1/grid2/grid3/masonry); pictures sharded to `uploads/events/{event_id}/` | v7.0.0–v7.4.0 |
+| 🖼️ **Event Pictures Upload** | Upload multiple photos per event from Admin › Events edit modal; PHP GD scale-to-fit (1200×900 px, no upscale, no crop, JPEG 85%); max 5 MB per file (JPG/PNG/GIF/WEBP); live upload progress bar (X/N Y%); thumbnail grid with × delete button; drag-and-drop reordering; click thumbnail to preview fullscreen (lightbox, keyboard nav); bulk select mode to delete multiple pictures at once; `gallery_template` dropdown (grid1/grid2/grid3/masonry); pictures sharded to `uploads/events/{event_id}/` | v7.0.0–v7.4.1 |
 
 ### ⚡ Technical Highlights
 | Feature | Description | Since |
@@ -485,7 +485,7 @@ php migrate-add-artist-variants-table.php
 ```php
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 define('ADMIN_ALLOWED_IPS', [
-    '127.4.0.1',
+    '127.4.1.1',
     '192.168.1.0/24',  // Your office network
 ]);
 ```
@@ -870,7 +870,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 7.4.0
+**Current Version**: 7.4.1
 
 ---
 

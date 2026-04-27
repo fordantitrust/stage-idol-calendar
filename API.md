@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v7.4.0
+All API endpoints for Idol Stage Timetable v7.4.1
 
 ---
 
@@ -378,11 +378,11 @@ X-CSRF-Token: <token>
 
 **theme**: one of `sakura`, `ocean`, `forest`, `midnight`, `sunset`, `dark`, `gray` (or omit to use global setting)
 
-**gallery_template** *(v7.4.0)*: `"grid1"` (1 column) / `"grid2"` (2 columns) / `"grid3"` (3 columns, default) / `"masonry"` (CSS column-count layout)
+**gallery_template** *(v7.4.1)*: `"grid1"` (1 column) / `"grid2"` (2 columns) / `"grid3"` (3 columns, default) / `"masonry"` (CSS column-count layout)
 
 ---
 
-### Event Pictures Endpoints *(v7.4.0)*
+### Event Pictures Endpoints *(v7.4.1)*
 
 | Action | Method | Description |
 |--------|--------|-------------|
@@ -806,4 +806,4 @@ X-CSRF-Token: <token>
 
 ---
 
-*Idol Stage Timetable v7.4.0*
+*Idol Stage Timetable v7.4.1*

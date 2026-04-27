@@ -263,4 +263,4 @@ For all CLI migration scripts and their descriptions, see **[PROJECT-STRUCTURE.m
 
 ---
 
-*Idol Stage Timetable v7.4.0*
+*Idol Stage Timetable v7.4.1*

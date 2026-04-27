@@ -5,6 +5,16 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.4.1] - 2026-04-27
+
+### Fixed
+- **Admin program edit/duplicate showing wrong end date** — `toISOString()` converts Date to UTC before extracting the date portion, but `toTimeString()` uses local time; for Bangkok users (UTC+7), programs ending before 07:00 local time would display the end date as one day earlier than actual
+  - Added `localDateStr(d)` helper that uses `d.getFullYear()`, `d.getMonth()`, `d.getDate()` (local timezone) instead of `toISOString()`
+  - Fixed 4 locations: `openAddModal()` default date, `editEvent()`, `duplicateEvent()`, and ICS import preview edit form
+
+### Files Changed
+- `admin/index.php` — added `localDateStr()` helper; replaced all `date.toISOString().split('T')[0]` with `localDateStr(date)` in program form date population
+
 ## [7.4.0] - 2026-04-25
 
 ### Added

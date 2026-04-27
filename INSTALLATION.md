@@ -211,7 +211,7 @@ server {
 
     # Restrict internal directories to LAN/localhost
     location ~* ^/(config|functions|tests|tools)(/|$) {
-        allow 127.4.0.1;
+        allow 127.4.1.1;
         allow ::1;
         allow 192.168.0.0/16;
         allow 10.0.0.0/8;
@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '7.4.0'); // Change to force cache refresh
+define('APP_VERSION', '7.4.1'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -526,7 +526,7 @@ Edit [config/admin.php](config/admin.php):
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 
 define('ADMIN_ALLOWED_IPS', [
-    '127.4.0.1',           // Localhost
+    '127.4.1.1',           // Localhost
     '::1',                 // Localhost IPv6
     '192.168.1.100',       // Single IP
     '192.168.1.0/24',      // IP range (CIDR notation)

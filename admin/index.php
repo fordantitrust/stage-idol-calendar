@@ -3763,7 +3763,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('eventId').value = '';
 
             // Set default date to today
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = localDateStr(new Date());
             document.getElementById('eventDate').value = todayStr;
             document.getElementById('endDate').value = todayStr;
 
@@ -3798,9 +3798,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('title').value = decodeHtml(event.title);
                 document.getElementById('organizer').value = decodeHtml(event.organizer || '');
                 document.getElementById('location').value = decodeHtml(event.location || '');
-                document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('eventDate').value = localDateStr(startDate);
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
-                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = localDateStr(endDate);
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = decodeHtml(event.description || '');
                 if (window.artistTagInput) window.artistTagInput.setValue(decodeHtml(event.categories || ''));
@@ -3839,9 +3839,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('title').value = decodeHtml(event.title) + ' (Copy)';
                 document.getElementById('organizer').value = decodeHtml(event.organizer || '');
                 document.getElementById('location').value = decodeHtml(event.location || '');
-                document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('eventDate').value = localDateStr(startDate);
                 document.getElementById('startTime').value = startDate.toTimeString().substring(0, 5);
-                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = localDateStr(endDate);
                 document.getElementById('endTime').value = endDate.toTimeString().substring(0, 5);
                 document.getElementById('description').value = decodeHtml(event.description || '');
                 if (window.artistTagInput) window.artistTagInput.setValue(decodeHtml(event.categories || ''));
@@ -4010,6 +4010,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const txt = document.createElement('textarea');
             txt.innerHTML = str;
             return txt.value;
+        }
+
+        // Returns YYYY-MM-DD in local timezone. Avoids toISOString() which converts to UTC
+        // first and can shift the date by ±1 day for users outside UTC.
+        function localDateStr(d) {
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         }
 
         // ========================================
@@ -4184,11 +4190,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('location').value = decodeHtml(event.location || '');
 
             const startDate = new Date(event.start);
-            document.getElementById('eventDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('eventDate').value = localDateStr(startDate);
             document.getElementById('startTime').value = startDate.toTimeString().slice(0, 5);
 
             const endDate = new Date(event.end);
-            document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            document.getElementById('endDate').value = localDateStr(endDate);
             document.getElementById('endTime').value = endDate.toTimeString().slice(0, 5);
 
             document.getElementById('description').value = decodeHtml(event.description || '');
