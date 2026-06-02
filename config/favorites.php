@@ -23,8 +23,22 @@ define('FAVORITES_RATE_LIMIT',  10);           // new tokens per IP per window
 define('FAVORITES_RATE_WINDOW', 12 * 3600);    // 12-hour window
 
 // Rate-limit cache dir (shares existing cache/)
-define('FAVORITES_RL_DIR', dirname(__DIR__) . '/cache');
+define('FAVORITES_RL_DIR', dirname(__DIR__) . '/cache/ratelimit');
 
-// HMAC — run: php tools/generate-favorites-secret.php
-define('FAVORITES_HMAC_SECRET', 'REPLACE_WITH_GENERATED_SECRET');
+// HMAC secret — loaded from config/favorites-config.json, which is gitignored
+// (config/*-config.json) and HTTP-denied (config/.htaccess), so the secret never
+// lives in a tracked file. Generate/refresh with:
+//   php tools/generate-favorites-secret.php
+// Falls back to the placeholder below when the JSON is missing (unconfigured).
+$favoritesSecret     = 'REPLACE_WITH_GENERATED_SECRET';
+$favoritesConfigFile = __DIR__ . '/favorites-config.json';
+if (is_file($favoritesConfigFile)) {
+    $favCfg = @json_decode(file_get_contents($favoritesConfigFile), true);
+    if (is_array($favCfg) && !empty($favCfg['hmac_secret'])) {
+        $favoritesSecret = (string)$favCfg['hmac_secret'];
+    }
+}
+define('FAVORITES_HMAC_SECRET', $favoritesSecret);
+unset($favoritesSecret, $favoritesConfigFile, $favCfg);
+
 define('FAVORITES_HMAC_LENGTH', 12); // hex chars appended to UUID in URL

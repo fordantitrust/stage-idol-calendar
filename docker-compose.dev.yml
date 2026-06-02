@@ -12,10 +12,14 @@ services:
     ports:
       - "8000:80"
     volumes:
-      # Mount entire project for live development
+      # Mount the entire project for live development. This single mount also
+      # persists data/, config/, uploads/, and backups/ to the host, so the
+      # separate bind mounts used in docker-compose.yml are not needed here.
+      # The full mount also makes tests/ available: php tests/run-tests.php works.
       - .:/var/www/html
 
-      # Exclude cache from host (use container's cache)
+      # Anonymous volume so the container uses its own cache/ (favorites,
+      # ratelimit, logs, images) instead of the host copy — ephemeral in dev.
       - /var/www/html/cache
     environment:
       # PHP Development Configuration

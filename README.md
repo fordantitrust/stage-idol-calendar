@@ -140,7 +140,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🔒 **Security First** | XSS protection, CSRF tokens, rate limiting, IP whitelist, security headers | v1.1.0 |
 | 🔄 **Smart Caching** | Data version cache (10 min) · Credits cache (1 hr) · Feed static file cache (1 hr) · Query cache for event + artist pages (1 hr) · **Image PNG cache (1 hr)** — all auto-invalidated on admin writes | v1.1.0 |
 | 🐳 **Docker Support** | One-command deployment with Docker Compose | v1.1.0 |
-| 🧪 **Automated Tests** | Comprehensive test suite (26 suites, 13,231 tests), CI/CD with GitHub Actions (PHP 8.1-8.5) | v1.1.0 |
+| 🧪 **Automated Tests** | Comprehensive test suite (27 suites, 13,231 tests), CI/CD with GitHub Actions (PHP 8.1-8.5) including a Docker build + smoke-test job | v1.1.0 |
 | 🎪 **Multi-Event** | Support multiple events with per-event venue mode, theme, and caching | v1.2.0 |
 | ⚡ **DB Indexes** | Performance indexes for faster queries (2–5× speedup on large datasets) | v2.0.0 |
 | 🎤 **Artist Reuse** | `artists` + `program_artists` junction + `artist_variants` — single artist record reused across all events | v3.0.0 |
@@ -286,6 +286,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v16.3.0** | 2026-06-01 | **Artist profile links in Calendar view** — Calendar view's day panel + detail modal now render each artist name as a link to `/artist/{id}` (new tab); `index.php` adds an `artists` (`{id,name}`) field per event in `window.CALENDAR_EVENTS` from `$programArtistIdMap` (mirrors the list-view categories cell), `categories` kept as text fallback; `calArtistLinksHtml(ev)` helper in `js/common.js` (escapes via `escapeHtml()`, uses `BASE_PATH`); `.cal-artist-link` added to the day-panel click guard so tapping a link navigates instead of opening the modal; artists without a profile stay plain text — no schema/cache-shape change |
 | **v16.4.0** | 2026-06-01 | **Bulk-import artist social links from CSV/JSON (CLI tool)** — `tools/import-artist-socials.php <file.csv> [--dry-run] [--overwrite]` reads a header-row CSV (or `.json` array) and updates `artists.social_facebook/instagram/twitter/tiktok`; resolves each row by `artists.name` (exact) → `artist_variants` alias → `id` column (ambiguous names skipped + reported); validates http(s):// (mirrors `sanitize_social_url()`); blank cells leave existing values untouched by default, `--overwrite` replaces, `--dry-run` previews; case-insensitive header aliases + UTF-8 BOM (Excel-friendly); calls `invalidate_artist_query_cache()` + `invalidate_data_version_cache()` on ≥1 write; `tools/sample-artist-socials.csv` template |
 | **v16.5.0** | 2026-06-01 | **Cross-event section also references each artist's group** — the "Also appears in" section now matches not just the same `artist_id` but also each solo artist's parent group, so events where the artist's **group** performs (tagged as the group, not the member) are surfaced; the cross-event query in `index.php` `UNION`s each current-event artist's parent `group_id` into the `IN (...)` lookup and joins `artists` to select `artist_name` per row (group names resolve even when the group isn't in the current event); surfaced group appearances render as `.cross-event-artist-chip` links to `/artist/{group_id}`, deduped per event; solo→group only (no group→member expansion); no schema/migration/CSS change; reuses My Upcoming Programs' resolution logic |
+| **v16.5.2** | 2026-06-02 | **Security (LOW-5) — move Favorites HMAC secret out of the git-tracked config file** — a working-tree review (security audit revision 7) found the live `FAVORITES_HMAC_SECRET` written into the tracked `config/favorites.php` (not covered by the `config/*-config.json` `.gitignore` rule); verified never committed. Secret relocated to gitignored `config/favorites-config.json` (loaded like `config/telegram.php`); `tools/generate-favorites-secret.php` now writes that JSON directly with an overwrite guard. Re-verified all prior audit findings intact at v16.5.x; tests 13,231/13,231 |
 | **v16.5.1** | 2026-06-02 | **Docs — Help & How-to-Use coverage brought up to v16.5.0** — documentation-only release (no runtime/schema/API change; tests stay 13,231/13,231). Admin Help (TH+EN) Telegram section gains the `/tz [zone\|auto]` command (v16.1.1), `/notify on\|off` → `/notify on\|off\|summary` with all three modes (v16.2.0), an updated `/status`, and a new "Notification Modes & Timezone" subsection. How-to-Use adds two new sections — 🔴 **Live Now** (v16.1.0) and 🏛️ **All Venues** (`/venues` + `/venue/{id}`, v16.0.0/v16.0.1) — documents the My Favorites 📋 List / 📊 Timeline toggle (v15.8.0), adds `/tz` + `/notify summary` to the Telegram guide, and rewrites the FAQ offline answer to mention PWA Offline Cache (v15.7.0). New/updated i18n keys across TH/EN/JA in `js/translations.js` (`section25.*`, `section26.*`, `section17.myupcoming.timeline`, `section20.tz.*`, etc.) + 2 new TOC entries |
 
 ---
@@ -303,9 +304,10 @@ A beautiful, responsive event calendar system designed for idol performances and
 ### 📖 Reference
 | File | Description |
 |------|-------------|
-| [API.md](API.md) | All API endpoints with request/response examples (Public, Request, Admin) |
+| [API.md](API.md) | All API endpoints with request/response examples (Public, Favorites, Web Push, Telegram, Admin) |
 | [ICS_FORMAT.md](ICS_FORMAT.md) | ICS file format reference — fields, escaping, examples |
-| [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | File structure, DB schema, function list, **complete tools/ list** |
+| [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md) | File structure, DB schema, function list |
+| [tools/README.md](tools/README.md) | CLI utilities & migrations reference (all 42 scripts) |
 
 ### 🔒 Policy & Contributing
 | File | Description |
@@ -720,7 +722,8 @@ stage-idol-calendar/
 ├── api/             Public API (request.php)
 ├── admin/           Admin panel (login.php, index.php, api.php)
 ├── tools/           CLI migration scripts
-├── tests/           Automated tests (24 suites including TwoFactorAuthTest, Fts5Test, OrganizerRoleTest, and WebPushTest)
+├── cron/            CLI cron scripts (notifications + log rotation)
+├── tests/           Automated tests (27 suites, 13,231 tests)
 └── *.md             Documentation
 ```
 
@@ -786,7 +789,7 @@ For the complete tools list including all migration scripts and their descriptio
 ### Running Tests
 
 ```bash
-# Run all automated tests (25 suites, 985 cumulative)
+# Run all automated tests (27 suites, 13,231 cumulative)
 php tests/run-tests.php
 
 # Run specific suite
@@ -884,33 +887,38 @@ This project was originally created for **Idol Stage Event** to manage idol stag
 
 ### Automated Test Suite
 
-The project includes **automated unit tests** covering all critical functionality (24 suites):
+The project includes **13,231 automated unit tests across 27 suites** covering all critical functionality:
 
 **Test Suites** (cumulative count = tests reported when running that suite alone):
 - 🔒 **SecurityTest** (7) - Input sanitization, XSS protection, SQL injection prevention
 - 💾 **CacheTest** (17) - Cache creation, invalidation, TTL, fallback behavior
-- 🔐 **AdminAuthTest** (38) - Authentication, session management, timing attack resistance, DB auth, change password
-- 📋 **CreditsApiTest** (49) - Database CRUD operations, bulk operations
-- 🔗 **IntegrationTest** (100) - File structure, configuration, full workflows, API endpoints
-- 👤 **UserManagementTest** (119) - Role column schema, role helpers, user CRUD, permission checks
-- 🎨 **ThemeTest** (143) - Theme system, get_site_theme(), per-event theme, CSS files, admin API, public pages
-- 📝 **SiteSettingsTest** (157) - Site title: get_site_title(), cache read/write, fallbacks, admin API, public page injection
-- 📧 **EventEmailTest** (176) - events.email schema, CRUD, validation logic, ICS ORGANIZER fallback
-- 🏷️ **ProgramTypeTest** (211) - programs.program_type schema, CRUD, public API type filter, admin API, index.php UI, translations, admin v2.4.2 categories column
-- 🔔 **FeedTest** (291) - icsEscape(), icsFold() UTF-8 folding, CATEGORIES delimiter, ORGANIZER logic, ETag format, invalidate_data_version_cache(), feed.php RFC 5545/7986 compliance, static file cache, feed SUMMARY/header escaping
-- 🔴 **StreamUrlTest** (322) - stream_url schema, CRUD, public API, admin API, ICS import/export, XSS prevention
-- ⭐ **FavoritesTest** (406) - config constants, UUID v7 format/uniqueness, HMAC, slug build/parse/tamper resistance, file I/O (write→read roundtrip, sharded path), api/favorites.php actions, my-favorites.php solo/group split + sort, my.php mini calendar + day modal, translations 3-language coverage, common.js nav injection, artist.php follow/unfollow, .htaccess routing
-- 🌐 **TimezoneTest** (487) - events.timezone schema, migration idempotency, DEFAULT_TIMEZONE constant, get_event_timezone() priority logic, icsOffsetString() ±HHMM format, icsVtimezone() RFC 5545 VTIMEZONE block (STANDARD + DAYLIGHT auto-detection), UTC timestamp computation, DB CRUD, export.php TZID format, feed.php TZID format, index.php timezone injection, admin API timezone picker, translations.js keys, common.js initTimezoneDisplay(), CSS classes, setup.php integration
-- 🔔 **TelegramTest** (541) - Telegram helper functions, bot commands, notification logic, cron guards, favorites JSON fields
-- 📧 **EmailNotificationTest** (554) - Email notification config/helper/API/UI coverage plus Program/Event Requests empty-state checks
-- 🔐 **TwoFactorAuthTest** (563) - RFC 6238 TOTP vectors, Base32, otpauth URI, replay guard, backup codes, manual 2FA migration sources, schema flag, API/UI/i18n coverage
-- 🖼️ **ArtistPictureTest** (624) - Artist display/cover picture upload, GD resize, admin API, hover tooltip on program list
-- 🔍 **SeoTest** (687) - seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() all OG/Twitter/noindex scenarios, seo_render_json_ld() Unicode/empty-array, JSON-LD schema keys, source-level checks on all 8 modified public pages
-- 🖼️ **EventPicturesTest** (744) - event_pictures table/columns/indexes/CASCADE, events.gallery_template column, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list/getEvent), processAndSaveImage mode='fit', uploads/events directory/htaccess, setup.php integration, index.php gallery HTML + lightbox, admin/index.php picture section + template dropdown, CSS templates, translations
-- 🖼️ **EventCoverTest** (788) - event cover image schema, Cropper.js upload flow, CSRF header, fallback chain, admin API, listing cache keys
-- 🔍 **Fts5Test** (833) - FTS5 virtual tables (programs_fts/events_fts/artists_fts), trigger auto-sync (ai/au/ad), fts5_available() caching, fts5_escape(), fts5_rebuild_all(), graceful LIKE fallback, admin search integration, public search API (`action=search&q=`), 2-column results layout
+- 🔐 **AdminAuthTest** (52) - Authentication, session management, timing attack resistance, DB auth, login CSRF gate
+- 📋 **CreditsApiTest** (63) - Database CRUD operations, bulk operations
+- 🔗 **IntegrationTest** (121) - File structure, configuration, workflows, API endpoints, .htaccess/.gitignore guards
+- 👤 **UserManagementTest** (141) - Role schema, role helpers, user CRUD, permission checks
+- 🎨 **ThemeTest** (165) - Theme system (12 themes), get_site_theme(), per-event theme, CSS, admin API
+- 📝 **SiteSettingsTest** (179) - Site title, cache read/write, fallbacks, admin API, page injection
+- 📧 **EventEmailTest** (198) - events.email schema, CRUD, validation, ICS ORGANIZER fallback
+- 🏷️ **ProgramTypeTest** (233) - programs.program_type schema, CRUD, public API type filter, admin API, UI
+- 🔔 **FeedTest** (313) - icsEscape/icsFold, CATEGORIES, ETag, feed static cache, RFC 5545/7986 compliance
+- 🔴 **StreamUrlTest** (344) - stream_url schema, CRUD, public/admin API, ICS import/export, XSS prevention
+- ⭐ **FavoritesTest** (428) - UUID v7, HMAC slug, file I/O, api/favorites.php, my/my-favorites pages
+- 🌐 **TimezoneTest** (509) - events.timezone, get_event_timezone(), VTIMEZONE, UTC computation, TZID, UI
+- 🔔 **TelegramTest** (591) - Bot commands, notify modes (all/summary/off), /tz, group resolution, cron guards
+- 📧 **EmailNotificationTest** (604) - Email config/helper/API/UI + Program/Event Requests empty states
+- 🔐 **TwoFactorAuthTest** (613) - RFC 6238 TOTP, Base32, otpauth URI, replay guard, backup codes, schema flag
+- 👥 **OrganizerRoleTest** (616) - Organizer role scoping, artist-request flow, approve-to-artist refresh
+- 🖼️ **ArtistPictureTest** (677) - Artist display/cover picture upload, GD resize, admin API, hover tooltip
+- 🔍 **SeoTest** (740) - seo_full_url() CLI safety, seo_truncate(), OG/Twitter/noindex, JSON-LD schemas
+- 🖼️ **EventPicturesTest** (797) - event_pictures table/CASCADE, gallery_template, upload/reorder, lightbox, CSS templates
+- 🖼️ **EventCoverTest** (841) - cover image schema, Cropper.js flow, CSRF header, fallback chain, admin API
+- 🔍 **Fts5Test** (886) - FTS5 virtual tables + triggers, fts5_available() caching, LIKE fallback, search API
+- 📱 **WebPushTest** (959) - VAPID/RFC 8291 crypto, JWT ES256, encrypt/send, **SSRF endpoint allow-list**, SW events
+- 📴 **PwaOfflineTest** (1018) - SW cache strategies, CACHE_VERSION sync, offline.html (3 langs), sync-sw-version.php
+- 🏛️ **VenueTest** (1052) - venues + venue_variants, venue_resolve_canonical(), merge, is_online, /venue + /venues
+- 🔴 **LiveNowTest** (1067) - Live Now strip query, ISO-with-offset emission, live/soon classification, i18n
 
-**Run All Tests (24 suites):**
+**Run All Tests (27 suites):**
 ```bash
 php tests/run-tests.php
 ```

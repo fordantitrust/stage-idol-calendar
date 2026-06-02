@@ -5,6 +5,36 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [16.5.2] - 2026-06-02
+
+### Security (LOW-5) — Move Favorites HMAC secret out of the git-tracked config file
+
+A diff-based review of the working tree (security audit revision 7) found the live `FAVORITES_HMAC_SECRET` had been written directly into `config/favorites.php` — a **git-tracked** source file that is **not** covered by the `config/*-config.json` `.gitignore` rule. Committing it would have leaked the secret into history (same recurrence class as HIGH-1). The secret signs the favorites slug, so disclosure would let an attacker forge slugs and read/modify any user's follow list, viewer timezone, and push subscriptions. Verified the secret was **never committed** (`git log -S` finds it only in the working tree; `HEAD` still carried the placeholder), so there was no actual disclosure — severity **LOW**.
+
+- 🔐 **Secret relocated** — `FAVORITES_HMAC_SECRET` now lives in `config/favorites-config.json`, matched by the existing `config/*-config.json` `.gitignore` rule and HTTP-denied by the `config/.htaccess` deny-all (LOW-2). The tracked file no longer contains any secret.
+- 🔧 **Loader updated** — `config/favorites.php` loads `hmac_secret` from the JSON (mirroring `config/telegram.php`), falling back to the `REPLACE_WITH_GENERATED_SECRET` placeholder when the file is absent.
+- 🧰 **Generator hardened** — `tools/generate-favorites-secret.php` now writes the gitignored JSON directly (with an overwrite guard that refuses to clobber an existing secret), instead of instructing the operator to paste the secret into the tracked file — closing the recurrence path.
+- 📖 **Audit doc** — `docs/SECURITY_AUDIT_2026.md` updated to revision 7: re-verified all 7 prior findings (HIGH-1, MEDIUM-1/2, LOW-1→4) intact at v16.5.x, reviewed new released surface (v15.5.0→v16.5.1) with no findings, recorded and resolved LOW-5.
+- 🧪 tests **13,231/13,231 pass** (no regression; `FavoritesTest` 84/84 with secret loaded from JSON)
+
+**Files changed:**
+
+- `config/favorites.php`
+- `tools/generate-favorites-secret.php`
+- `docs/SECURITY_AUDIT_2026.md`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — no DB schema change. On existing installs the secret continues to load from the working-tree value until moved; create `config/favorites-config.json` with `{"hmac_secret": "<existing 64-hex>"}` (or re-run `php tools/generate-favorites-secret.php` for a fresh secret — note this invalidates all existing Favorites URLs). `config/favorites-config.json` is gitignored and must never be committed.
+
 ## [16.5.1] - 2026-06-02
 
 ### Docs — Help & How-to-Use coverage brought up to v16.5.0

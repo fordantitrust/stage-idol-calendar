@@ -3,7 +3,7 @@
 **Idol Stage Timetable** — Step-by-step workflows for common development, operational, and deployment tasks.
 
 Stack: **PHP 8.1+ / SQLite (PDO) / Apache / Vanilla JS**
-Current version: **v15.8.0** | DB: `data/calendar.db` | Tests: `php tests/run-tests.php` (25 suites, 985 cumulative)
+Current version: **v16.5.2** | DB: `data/calendar.db` | Tests: `php tests/run-tests.php` (27 suites, 13,231 cumulative)
 
 ---
 
@@ -172,32 +172,37 @@ php tests/run-tests.php FavoritesTest
 php tests/run-tests.php SecurityTest::testSanitizeString
 ```
 
-**Test Suites** (24 suites):
+**Test Suites** (27 suites — numbers are cumulative running totals):
 
-| Suite | Tests | Coverage |
-|-------|-------|----------|
+| Suite | Cumulative | Coverage |
+|-------|-----------|----------|
 | SecurityTest | 7 | XSS, SQL injection, input validation |
 | CacheTest | 17 | Cache TTL, invalidation, concurrency |
-| AdminAuthTest | 38 | Login, sessions, timing attacks |
-| CreditsApiTest | 49 | CRUD operations, bulk actions |
-| IntegrationTest | 100 | Workflows, API endpoints, multi-event |
-| UserManagementTest | 119 | Roles, permissions, user CRUD |
-| ThemeTest | 143 | Theme system, CSS, admin API |
-| SiteSettingsTest | 157 | Site title, settings, cache |
-| EventEmailTest | 176 | Event email field, ORGANIZER, ICS |
-| ProgramTypeTest | 211 | Program type system, filtering |
-| FeedTest | 291 | RFC 5545 ICS, escaping, caching |
-| StreamUrlTest | 322 | Stream URL, platform icons, ICS |
-| FavoritesTest | 406 | UUID v7, HMAC, favorites system |
-| TimezoneTest | 487 | Per-event timezone, UTC conversion |
-| TelegramTest | 54 | Bot commands, notification helpers |
-| EmailNotificationTest | 13 | Email notification config, request hooks, admin links, empty states |
-| TwoFactorAuthTest | 9 | TOTP 2FA, backup codes, schema flag, admin UI/API |
-| SeoTest | 63 | Meta tags, JSON-LD, canonical URLs |
-| ArtistPictureTest | 61 | Upload, crop, admin API |
-| EventPicturesTest | 57 | Gallery, lightbox, reorder |
-| Fts5Test | 45 | FTS5 search, fallback, triggers |
-| WebPushTest | 45 | VAPID crypto, push encrypt, manifest, service-worker, PWA icons |
+| AdminAuthTest | 52 | Login, sessions, timing attacks, login CSRF gate |
+| CreditsApiTest | 63 | CRUD operations, bulk actions |
+| IntegrationTest | 121 | Workflows, API, multi-event, .htaccess/.gitignore guards |
+| UserManagementTest | 141 | Roles, permissions, user CRUD |
+| ThemeTest | 165 | Theme system (12 themes), CSS, admin API |
+| SiteSettingsTest | 179 | Site title, settings, cache |
+| EventEmailTest | 198 | Event email field, ORGANIZER, ICS |
+| ProgramTypeTest | 233 | Program type system, filtering |
+| FeedTest | 313 | RFC 5545 ICS, escaping, caching |
+| StreamUrlTest | 344 | Stream URL, platform icons, ICS |
+| FavoritesTest | 428 | UUID v7, HMAC, favorites system |
+| TimezoneTest | 509 | Per-event timezone, UTC conversion |
+| TelegramTest | 591 | Bot commands, notify modes, /tz, group resolution |
+| EmailNotificationTest | 604 | Email config, request hooks, admin links, empty states |
+| TwoFactorAuthTest | 613 | TOTP 2FA, backup codes, schema flag, admin UI/API |
+| OrganizerRoleTest | 616 | Organizer scoping, artist-request flow |
+| ArtistPictureTest | 677 | Upload, crop, admin API, tooltip |
+| SeoTest | 740 | Meta tags, JSON-LD, canonical URLs |
+| EventPicturesTest | 797 | Gallery, lightbox, reorder |
+| EventCoverTest | 841 | Hero/card covers, Cropper.js, CSRF |
+| Fts5Test | 886 | FTS5 search, fallback, triggers |
+| WebPushTest | 959 | VAPID crypto, encrypt/send, SSRF allow-list |
+| PwaOfflineTest | 1018 | SW cache strategies, offline.html, sync-sw |
+| VenueTest | 1052 | venues + variants, merge, /venue portal |
+| LiveNowTest | 1067 | Live Now strip, live/soon classification |
 
 **Manual Testing** (Browser):
 ```
@@ -1087,6 +1092,8 @@ Test suite: 9361 → **9809 (+448)**. `WebPushTest` 35 → 68 (+33). `AdminAuthT
 
 ---
 
-**Last Updated**: v15.8.0 (2026-05-22)
+**Last Updated**: v16.5.2 (2026-06-02)
+
+> The release-history entries below are a historical log; the current version is shown at the top of this file.
 
 See also: [SKILL.md](SKILL.md), [CLAUDE.md](CLAUDE.md), [PROJECT-STRUCTURE.md](PROJECT-STRUCTURE.md)

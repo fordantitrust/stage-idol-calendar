@@ -1,6 +1,6 @@
 # Idol Stage Timetable - Dockerfile
-# PHP 8.1+ with Apache and SQLite support
-# Updated for v9.6.0
+# PHP 8.1 with Apache, SQLite, GD + fonts (server-side image export)
+# Updated for v16.5.2
 
 FROM php:8.1-apache
 
@@ -39,6 +39,7 @@ COPY . /var/www/html/
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/www/html/cache/images \
     && mkdir -p /var/www/html/cache/favorites \
+    && mkdir -p /var/www/html/cache/ratelimit \
     && mkdir -p /var/www/html/cache/logs \
     && mkdir -p /var/www/html/ics \
     && mkdir -p /var/www/html/backups \
@@ -50,13 +51,12 @@ RUN mkdir -p /var/www/html/cache/images \
     && chmod -R 777 /var/www/html/cache \
     && chmod -R 777 /var/www/html/uploads
 
-# Create database if ICS files exist
-RUN if [ -f /var/www/html/ics/*.ics ]; then \
-        cd /var/www/html/tools && \
-        php import-ics-to-sqlite.php && \
-        php migrate-add-requests-table.php && \
-        php migrate-add-credits-table.php; \
-    fi
+# Database initialization is handled at RUNTIME, not build time:
+#   - data/ is a mounted volume in docker-compose.yml, so anything created here
+#     at build time would be shadowed by the host mount anyway.
+#   - Run the Setup Wizard at http://<host>:8000/setup.php after first start to
+#     create the full schema (all tables + migrations) and import ICS files.
+#     See DOCKER.md → Production Deployment.
 
 # Set proper permissions for database
 RUN mkdir -p /var/www/html/data && \

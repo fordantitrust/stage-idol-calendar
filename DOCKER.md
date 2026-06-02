@@ -66,6 +66,15 @@ That's it! 🎉
 - **RAM**: 256 MB minimum
 - **Network**: Internet connection for initial image pull
 
+### What the image includes
+
+The provided `Dockerfile` builds on **`php:8.1-apache`** and installs everything the app needs out of the box:
+
+- **PDO SQLite** + `mod_rewrite` (clean URLs)
+- **GD + FreeType** — required for server-side PNG export (`image.php`)
+- **Fonts** — `fonts-thai-tlwg` (Thai), `fonts-noto-cjk` (Japanese/CJK), `fonts-unifont` (symbol fallback), so exported images render Thai/Japanese/symbol glyphs correctly with no extra setup
+- Pre-created writable dirs: `cache/{images,favorites,logs}`, `uploads/{site,artists,events}`, `ics`, `backups`
+
 ### Verify Installation
 
 ```bash
@@ -86,8 +95,8 @@ docker run hello-world
 ### Method 1: Using docker-compose.yml (Recommended)
 
 ```bash
-# 1. Prepare your ICS files
-mkdir -p ics data cache config
+# 1. Prepare host directories (persisted via bind mounts) + ICS files
+mkdir -p ics data cache config uploads backups
 cp your-events.ics ics/
 
 # 2. Build and start
@@ -119,6 +128,8 @@ docker run -d \
   -v $(pwd)/cache:/var/www/html/cache \
   -v $(pwd)/data:/var/www/html/data \
   -v $(pwd)/config:/var/www/html/config \
+  -v $(pwd)/uploads:/var/www/html/uploads \
+  -v $(pwd)/backups:/var/www/html/backups \
   idol-stage-calendar
 
 # Check logs
@@ -153,15 +164,18 @@ docker-compose up --build
 
 ### Run Tests in Container
 
+> **Note:** `.dockerignore` excludes `tests/` from the **production** image, so `php tests/run-tests.php` only works when the full project is bind-mounted — i.e. the development compose file (`docker-compose.dev.yml`) or `docker-compose up --build` with a `.:/var/www/html` mount. In a plain production image the `tests/` directory is absent.
+
 ```bash
-# Run all tests
-docker exec idol-stage-calendar php tests/run-tests.php
+# Run all tests (dev container with full project mounted) — 27 suites, 13,231 tests
+# Note: docker-compose.dev.yml names the container idol-stage-calendar-dev
+docker exec idol-stage-calendar-dev php tests/run-tests.php
 
 # Run specific test suite
-docker exec idol-stage-calendar php tests/run-tests.php SecurityTest
+docker exec idol-stage-calendar-dev php tests/run-tests.php SecurityTest
 
 # Run quick tests
-docker exec idol-stage-calendar sh quick-test.sh
+docker exec idol-stage-calendar-dev sh quick-test.sh
 ```
 
 ---
@@ -203,16 +217,26 @@ volumes:
   # ICS files (read-only)
   - ./ics:/var/www/html/ics:ro
 
-  # Cache (read-write)
+  # Cache (read-write) — also holds favorites/, ratelimit/, logs/, images/
   - ./cache:/var/www/html/cache
 
   # Database directory (read-write) — contains calendar.db + .setup_locked
   - ./data:/var/www/html/data
 
   # Config (read-write) — persists Admin UI runtime settings:
-  # google-config.json, telegram-config.json, email-config.json
+  # google-config.json, telegram-config.json, email-config.json,
+  # webpush-config.json, favorites-config.json
   - ./config:/var/www/html/config
+
+  # Uploaded images (read-write) — artist/event/site covers + galleries.
+  # Without this mount, uploaded images are LOST on every rebuild/recreate.
+  - ./uploads:/var/www/html/uploads
+
+  # Database backups created via Admin → Settings → Backup
+  - ./backups:/var/www/html/backups
 ```
+
+> **Important:** The default `docker-compose.yml` mounts `ics`, `cache`, `data`, and `config`. Add `./uploads` and `./backups` if you use the image-upload features (artist/event pictures, site covers) or in-app backups — otherwise those files live only inside the container and disappear when it is rebuilt.
 
 ---
 
@@ -231,6 +255,29 @@ Operational notes:
 mkdir -p config cache/logs
 docker-compose up -d --build
 ```
+
+---
+
+### Background Jobs (Cron) in Docker *(Telegram v5.0.0+, Web Push v15.0.0+)*
+
+The base image runs Apache only — it has **no cron daemon**. If you use Telegram or Web Push notifications, schedule the `cron/` scripts from the **host** crontab via `docker exec`. All scripts are CLI-only (HTTP blocked by `cron/.htaccess`).
+
+```cron
+# Notifications (run frequently — interval depends on your notify-before window)
+*/5  * * * *  docker exec idol-stage-calendar php cron/send-telegram-notifications.php   >> /var/log/idol-telegram.log 2>&1
+*/5  * * * *  docker exec idol-stage-calendar php cron/send-web-push-notifications.php    >> /var/log/idol-webpush.log 2>&1
+
+# Daily log rotation (7-day retention) + audit-log cleanup
+0 0 * * *  docker exec idol-stage-calendar php cron/rotate-telegram-logs.php
+0 0 * * *  docker exec idol-stage-calendar php cron/rotate-webpush-logs.php
+0 0 * * *  docker exec idol-stage-calendar php cron/rotate-email-logs.php
+0 0 * * *  docker exec idol-stage-calendar php cron/rotate-admin-audit-logs.php
+```
+
+Notes:
+- For **Web Push**, set **Site URL** (`WEBPUSH_SITE_URL`) and generate VAPID keys via Admin › Settings › Web Push so notification links and the icon/badge resolve to the public origin.
+- For **Telegram**, register the webhook after the container is reachable over HTTPS (Admin › Settings › Telegram, then `php tools/setup-telegram-webhook.php`).
+- Keep `./cache:/var/www/html/cache` mounted so notification logs and the favorites/subscription state persist.
 
 ---
 
@@ -311,26 +358,31 @@ Create `Dockerfile.production`:
 
 ```dockerfile
 # Stage 1: Builder
-FROM php:8.2-apache AS builder
+FROM php:8.1-apache AS builder
 
 RUN apt-get update && apt-get install -y \
-    libsqlite3-dev \
-    && docker-php-ext-install pdo pdo_sqlite
+    libsqlite3-dev libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_sqlite gd
 
 WORKDIR /app
 COPY . /app/
 
-# Import data
-RUN cd tools && \
-    php import-ics-to-sqlite.php && \
-    php migrate-add-requests-table.php && \
-    php migrate-add-credits-table.php
+# Initialize the database. Prefer the Setup Wizard at runtime, or build the full
+# schema here via setup.php's "Run All Migrations" path / the tools/ migrations
+# (see README.md — Option B: Manual CLI for the complete, current sequence).
+RUN cd tools && php import-ics-to-sqlite.php || true
 
 # Stage 2: Runtime
-FROM php:8.2-apache
+FROM php:8.1-apache
 
-RUN docker-php-ext-install pdo pdo_sqlite \
-    && a2enmod rewrite
+RUN apt-get update && apt-get install -y \
+    libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+    fonts-thai-tlwg fonts-noto-cjk fonts-unifont \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_sqlite gd \
+    && a2enmod rewrite && fc-cache -fv \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app /var/www/html/
 RUN chown -R www-data:www-data /var/www/html
@@ -338,6 +390,8 @@ RUN chown -R www-data:www-data /var/www/html
 EXPOSE 80
 CMD ["apache2-foreground"]
 ```
+
+> The default `Dockerfile` already does all of this in a single stage. Use a multi-stage build only if you want to keep build-time tooling out of the final image.
 
 Build:
 ```bash
@@ -431,14 +485,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Run the test suite against the source checkout, not the built image —
+      # tests/ is excluded by .dockerignore so it is NOT inside the production image.
+      - name: Run tests (on source)
+        run: docker run --rm -v "$PWD":/app -w /app php:8.1-cli php tests/run-tests.php
+
       - name: Build Docker image
         run: docker build -t idol-stage-calendar:latest .
 
-      - name: Test image
+      - name: Smoke-test image
         run: |
-          docker run -d --name test idol-stage-calendar:latest
+          docker run -d --name test -p 8000:80 idol-stage-calendar:latest
           sleep 5
-          docker exec test php tests/run-tests.php
+          curl -f http://localhost:8000/ || (docker logs test && exit 1)
           docker stop test
 
       # Optional: Push to Docker Hub
@@ -513,12 +572,11 @@ For v9.6.0 email notifications, do not bake `config/email-config.json` into cust
 # Copy database from container
 docker cp idol-stage-calendar:/var/www/html/data/calendar.db ./backup-$(date +%Y%m%d).db
 
-# Or use volume backup
-docker run --rm \
-  -v idol-stage-calendar_calendar-data:/data:ro \
-  -v $(pwd):/backup \
-  alpine tar czf /backup/backup.tar.gz /data
+# With the default bind mounts, just archive the host directories directly
+tar czf backup-$(date +%Y%m%d).tar.gz data/ config/ uploads/ ics/
 ```
+
+> The default `docker-compose.yml` uses **bind mounts** (`./data`, `./config`, `./uploads`, …), so your data already lives on the host — back up those folders directly. (The `calendar-data` / `cache-data` named volumes declared at the bottom of the compose file are not attached to the service by default.)
 
 ### Update Container
 
@@ -625,7 +683,7 @@ docker-compose logs -f
 # Shell access
 docker exec -it idol-stage-calendar bash
 
-# Run tests
+# Run tests (dev container only — tests/ is excluded from the production image)
 docker exec idol-stage-calendar php tests/run-tests.php
 
 # Backup

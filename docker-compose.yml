@@ -13,15 +13,23 @@ services:
       # Mount ICS files directory (for easy updates)
       - ./ics:/var/www/html/ics:ro
 
-      # Mount cache directory (for persistence)
+      # Mount cache directory (for persistence) — favorites/, ratelimit/, logs/, images/
       - ./cache:/var/www/html/cache
 
-      # Mount database (for persistence)
+      # Mount database (for persistence) — calendar.db + .setup_locked
       - ./data:/var/www/html/data
 
-      # Mount config for Admin UI runtime settings
-      # Required for Google/Telegram/Email JSON configs to persist after rebuilds.
+      # Mount config for Admin UI runtime settings — required so the
+      # google/telegram/email/webpush/favorites *-config.json files persist
+      # across rebuilds.
       - ./config:/var/www/html/config
+
+      # Uploaded images (artist/event/site covers + galleries).
+      # Without this mount, uploaded images are LOST on every rebuild/recreate.
+      - ./uploads:/var/www/html/uploads
+
+      # Database backups created via Admin → Settings → Backup
+      - ./backups:/var/www/html/backups
     environment:
       # PHP Configuration
       - PHP_MEMORY_LIMIT=256M
@@ -50,7 +58,6 @@ networks:
   idol-calendar-network:
     driver: bridge
 
-volumes:
-  # Named volumes for data persistence
-  calendar-data:
-  cache-data:
+# Note: this stack persists data via host bind mounts (./data, ./config,
+# ./uploads, ./backups, ./cache) declared above — no named volumes are used.
+# Back up those host directories directly.

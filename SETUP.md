@@ -80,9 +80,11 @@ Click **"Initialize Database"** to:
    - `credits` — Credits and references
    - `admin_users` — Admin user accounts
    - `contact_channels` — Contact channels (DB-driven)
-   - `artists` — Artist/group master records with display/cover pictures (reused across events)
+   - `admin_users` 2FA columns + `event_organizers` — organizer role assignment (v12.0.0+)
+   - `artists` — Artist/group master records with display/cover pictures + social links (reused across events)
    - `program_artists` — Many-to-many junction: programs ↔ artists
    - `artist_variants` — Alias/alternate names per artist (for ICS auto-linking)
+   - `venues`, `venue_variants` — Canonical venue dedup layer over `programs.location` (v16.0.0+)
    - `programs_fts`, `events_fts`, `artists_fts` — FTS5 full-text search virtual tables (v9.0.0+)
 3. Seed the default admin user (from `config/admin.php`)
 4. Seed a default event (slug: `default`) and **3 sample programs** so you can see the real layout immediately:
@@ -292,4 +294,4 @@ This adds `events.created_by_user_id`, creates `event_organizers`, and adds the 
 
 ---
 
-*Idol Stage Timetable v16.5.1*
+*Idol Stage Timetable v16.5.2*

@@ -6,22 +6,36 @@ Automated unit test suite for Stage Idol Calendar.
 
 ```
 tests/
-├── TestRunner.php           # Lightweight test framework
-├── SecurityTest.php         # Security functions (sanitization, XSS, etc.)
-├── CacheTest.php            # Cache system (data version, credits cache)
-├── AdminAuthTest.php        # Authentication & session management
-├── CreditsApiTest.php       # Credits database operations
-├── IntegrationTest.php      # Integration tests (config, workflow, API, multi-event)
-├── UserManagementTest.php   # User management & role-based access tests
-├── ThemeTest.php            # Theme system (get_site_theme, per-event theme, CSS files)
-├── SiteSettingsTest.php     # Site title system (get_site_title, cache, admin API)
-├── EventEmailTest.php       # Event email field (schema, CRUD, validation, ICS ORGANIZER)
-├── ProgramTypeTest.php      # Program type system (schema, CRUD, API filter, UI badges)
-├── FeedTest.php             # ICS feed (icsEscape, icsFold, CATEGORIES, ETag, cache)
-├── StreamUrlTest.php        # Stream URL field (schema, CRUD, admin badge, public UI)
+├── TestRunner.php            # Lightweight test framework (20 assertion methods)
+├── run-tests.php             # Main test runner (colored output + suite/method selector)
+├── SecurityTest.php          # Security functions (sanitization, XSS, etc.)
+├── CacheTest.php             # Cache system (data version, credits cache)
+├── AdminAuthTest.php         # Authentication, session, login CSRF gate
+├── CreditsApiTest.php        # Credits database operations
+├── IntegrationTest.php       # Config, workflow, API, multi-event, .htaccess/.gitignore guards
+├── UserManagementTest.php    # User management & role-based access
+├── ThemeTest.php             # Theme system (get_site_theme, per-event theme, CSS files)
+├── SiteSettingsTest.php      # Site title system (get_site_title, cache, admin API)
+├── EventEmailTest.php        # Event email field (schema, CRUD, validation, ICS ORGANIZER)
+├── ProgramTypeTest.php       # Program type system (schema, CRUD, API filter, UI badges)
+├── FeedTest.php              # ICS feed (icsEscape, icsFold, CATEGORIES, ETag, cache)
+├── StreamUrlTest.php         # Stream URL field (schema, CRUD, admin badge, public UI)
+├── FavoritesTest.php         # Anonymous favorites (UUID v7, HMAC slug, personal feeds)
+├── TimezoneTest.php          # Per-event timezone (UTC conversion, TZID, local display)
+├── TelegramTest.php          # Telegram bot commands, notify modes, /tz, group resolution
 ├── EmailNotificationTest.php # SMTP email notifications for Program/Event Requests
-├── run-tests.php            # Main test runner script
-└── README.md                # This file
+├── TwoFactorAuthTest.php     # TOTP 2FA (RFC 6238, backup codes, replay guard)
+├── OrganizerRoleTest.php     # Organizer role scoping + artist-request flow
+├── ArtistPictureTest.php     # Artist display/cover picture upload (GD), tooltip
+├── SeoTest.php               # SEO meta/OG/Twitter/JSON-LD + noindex
+├── EventPicturesTest.php     # Event gallery (table, templates, upload, lightbox)
+├── EventCoverTest.php        # Event hero/card cover images (Cropper.js, CSRF)
+├── Fts5Test.php              # FTS5 full-text search (virtual tables, triggers, fallback)
+├── WebPushTest.php           # Web Push (VAPID/RFC 8291 crypto, SSRF allow-list)
+├── PwaOfflineTest.php        # Service worker cache strategies, offline.html, sync-sw
+├── VenueTest.php             # Venues + venue_variants, merge, /venue + /venues portal
+├── LiveNowTest.php           # Live Now strip query + live/soon classification
+└── README.md                 # This file
 ```
 
 ## 🚀 Quick Start
@@ -47,7 +61,21 @@ php tests/run-tests.php EventEmailTest
 php tests/run-tests.php ProgramTypeTest
 php tests/run-tests.php FeedTest
 php tests/run-tests.php StreamUrlTest
+php tests/run-tests.php FavoritesTest
+php tests/run-tests.php TimezoneTest
+php tests/run-tests.php TelegramTest
 php tests/run-tests.php EmailNotificationTest
+php tests/run-tests.php TwoFactorAuthTest
+php tests/run-tests.php OrganizerRoleTest
+php tests/run-tests.php ArtistPictureTest
+php tests/run-tests.php SeoTest
+php tests/run-tests.php EventPicturesTest
+php tests/run-tests.php EventCoverTest
+php tests/run-tests.php Fts5Test
+php tests/run-tests.php WebPushTest
+php tests/run-tests.php PwaOfflineTest
+php tests/run-tests.php VenueTest
+php tests/run-tests.php LiveNowTest
 ```
 
 ### Run Specific Test Method
@@ -79,19 +107,14 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Credits cache expiration
 - ✅ Cache fallback on error
 
-### AdminAuthTest (38 tests)
-- ✅ Safe session start
-- ✅ Session idempotency
-- ✅ Session cookie parameters
-- ✅ Login success/failure
-- ✅ Timing attack resistance
-- ✅ Session data handling
-- ✅ Session timeout
-- ✅ Session activity update
-- ✅ Logout functionality
+### AdminAuthTest (35 unique / 52 cumulative)
+- ✅ Safe session start, idempotency, cookie parameters
+- ✅ Login success/failure, timing attack resistance
+- ✅ Session data handling, timeout, activity update, logout
 - ✅ Password hash verification
+- ✅ Login CSRF gate verified **before** rate-limit accounting + audit on failure (v15.5.0)
 
-### CreditsApiTest (49 tests)
+### CreditsApiTest (11 unique / 63 cumulative)
 - ✅ Database connection
 - ✅ Credits table schema
 - ✅ Insert credit
@@ -103,40 +126,41 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Display order sorting
 - ✅ Validation (title, description length)
 
-### IntegrationTest (100 tests)
+### IntegrationTest (58 unique / 121 cumulative)
 - ✅ Configuration validation
 - ✅ IcsParser functionality
 - ✅ Database operations (CRUD, bulk)
 - ✅ API endpoints (public + admin)
 - ✅ Request system workflow
-- ✅ Multi-event support (events_meta CRUD, filtering, URL routing)
+- ✅ Multi-event support (events CRUD, filtering, URL routing)
 - ✅ Convention management (create, update, delete, slug uniqueness)
 - ✅ Per-convention venue mode and cache scoping
+- ✅ `config/` + `tools/` `.htaccess` deny-all guards + `.gitignore` blocks `*.db`/`test-*.php` (v15.5.0)
 
-### UserManagementTest (119 tests)
+### UserManagementTest (20 unique / 141 cumulative)
 - ✅ Role column schema (exists, default value, valid values)
 - ✅ Role helper functions (get_admin_role, is_admin_role)
 - ✅ User CRUD operations (create, update, delete, validation)
 - ✅ Permission checks (admin-only actions, agent restrictions)
 - ✅ Safety guards (cannot delete self, last admin protection)
 
-### ThemeTest (24 unique tests / 143 cumulative)
+### ThemeTest (24 unique / 165 cumulative)
 - ✅ get_site_theme() function exists and returns correct values
 - ✅ Default fallback to 'dark' when no cache file exists (no event meta)
-- ✅ Reads all 7 valid themes from cache file
+- ✅ Reads all 12 valid themes from cache file (v5.5.0+)
 - ✅ Invalid/malformed/missing-key cache falls back to 'dark'
-- ✅ Theme CSS files exist on disk (ocean, forest, midnight, sunset, dark, gray)
+- ✅ Theme CSS files exist on disk (ocean, forest, midnight, sunset, dark, gray, crimson, teal, rose, amber, indigo)
 - ✅ Admin API has theme_get / theme_save cases + functions defined
-- ✅ saveThemeSetting() does not call undefined validate_csrf_token()
+- ✅ saveThemeSetting() uses verify_csrf_token()
 - ✅ Public pages have server-side theme link, no theme-switcher UI
 - ✅ Per-event theme overrides global theme
 - ✅ Null/empty/invalid event theme falls back to global theme
 - ✅ Null event + no global → 'dark' fallback
-- ✅ All 7 valid event themes work correctly
+- ✅ All 12 valid event themes work correctly
 - ✅ Admin API events_create/update handle theme field
 - ✅ migrate-add-theme-column.php script exists
 
-### SiteSettingsTest (14 unique tests / 157 cumulative)
+### SiteSettingsTest (14 unique / 179 cumulative)
 - ✅ get_site_title() function exists in functions/helpers.php
 - ✅ Default: no cache file → returns APP_NAME constant
 - ✅ Reads custom title from cache/site-settings.json
@@ -152,7 +176,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ saveTitleSetting() calls require_api_admin_role()
 - ✅ APP_NAME constant defined and non-empty
 
-### EventEmailTest (19 unique tests / 176 cumulative)
+### EventEmailTest (19 unique / 198 cumulative)
 - ✅ events table has email column (TEXT DEFAULT NULL)
 - ✅ email column is nullable (notnull=0)
 - ✅ Insert event with valid email → stored correctly
@@ -173,7 +197,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ migrate-add-event-email-column.php exists in tools/
 - ✅ Migration is idempotent (skips ALTER TABLE when column already present)
 
-### ProgramTypeTest (35 unique tests / 211 cumulative)
+### ProgramTypeTest (35 unique / 233 cumulative)
 - ✅ programs table has program_type column (TEXT DEFAULT NULL)
 - ✅ Migration idempotency (skips ALTER TABLE when column already present)
 - ✅ Insert program with type → stored correctly; NULL type → stored as NULL
@@ -187,7 +211,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ `table.type` translation key exists in all 3 languages (TH/EN/JA)
 - ✅ Admin Programs list shows Categories column (v2.4.2 change)
 
-### FeedTest (80 unique tests / 291 cumulative)
+### FeedTest (80 unique / 313 cumulative)
 - ✅ `icsEscape()` — backslash, semicolon, comma, newline, CR, Thai characters
 - ✅ `icsEscapeText()` — leaves commas unescaped (single-value TEXT properties)
 - ✅ `icsFold()` — 75-byte limit, UTF-8 multi-byte boundary, multi-fold lines
@@ -200,7 +224,7 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ feed.php RFC 5545/7986 source checks (X-WR-CALNAME, REFRESH-INTERVAL, etc.)
 - ✅ feed.php static cache read/write path
 
-### StreamUrlTest (31 unique tests / 322 cumulative)
+### StreamUrlTest (31 unique / 344 cumulative)
 - ✅ programs table has stream_url column (TEXT DEFAULT NULL)
 - ✅ Migration idempotency
 - ✅ Insert program with stream_url → stored correctly; NULL → stored as NULL
@@ -213,7 +237,26 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ ICS feed emits `URL:` property when stream_url set
 - ✅ `stream_url` validated to https?:// scheme; other schemes stored as NULL
 
-### EmailNotificationTest (13 unique tests / 554 cumulative)
+### FavoritesTest (84 unique / 428 cumulative)
+- ✅ Config constants, UUID v7 generation, HMAC slug build/parse (constant-time)
+- ✅ Slug tamper resistance, sharded file I/O, atomic write (tmp + rename)
+- ✅ Per-IP rate limiting; `api/favorites.php` create/get/add/remove/set_timezone
+- ✅ `my.php` / `my-favorites.php` rendering, mini calendar, Telegram unlink
+- ✅ `common.js` nav injection, artist.php follow/unfollow, `.htaccess` routing
+
+### TimezoneTest (81 unique / 509 cumulative)
+- ✅ `events.timezone` schema + migration idempotency; `DEFAULT_TIMEZONE` constant
+- ✅ `get_event_timezone()` priority logic; `icsOffsetString()`, `icsVtimezone()` VTIMEZONE block
+- ✅ UTC timestamp computation; export.php/feed.php `TZID=` format
+- ✅ index.php injection, admin API, translations + `common.js` local-time display
+
+### TelegramTest (82 unique / 591 cumulative)
+- ✅ Bot commands (`/start`, `/today`, `/week`, `/upcoming`, `/next`, `/artists`, `/lang`, `/mute`, `/status`)
+- ✅ `/tz [zone|auto]` viewer timezone (v16.1.1); `/notify on|off|summary` 3 modes (v16.2.0)
+- ✅ Helpers: mute/notify-mode state, group resolution (solo→parent group), event-list formatting
+- ✅ Webhook secret validation (fail-close on empty), cron gating
+
+### EmailNotificationTest (13 unique / 604 cumulative)
 - ✅ `config.php` loads `config/email.php` and `functions/email.php`
 - ✅ Default email configuration is disabled, uses SMTP port 587, and TLS
 - ✅ Recipient parser accepts comma/semicolon/newline-separated addresses, deduplicates, and drops invalid values
@@ -228,12 +271,52 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ Admin i18n includes Email settings labels/messages
 - ✅ Program Requests and Event Requests empty states render matching centered muted "No requests" rows
 
-### TwoFactorAuthTest (9 unique tests / 563 cumulative)
+### TwoFactorAuthTest (9 unique / 613 cumulative)
 - ✅ RFC 6238 TOTP vectors, Base32 helpers, otpauth URI, verify window, and replay rejection
 - ✅ One-time backup codes are hashed, consumed once, and not exposed as plaintext
 - ✅ Admin 2FA schema, manual migration sources, schema readiness file flag, API endpoints, login flow, UI controls, and i18n keys are covered
 
-**Total: 7857 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
+### OrganizerRoleTest (3 unique / 616 cumulative)
+- ✅ Organizer role scoping to assigned events
+- ✅ Artist-request submit flow + approve-to-artist UI refresh
+
+### ArtistPictureTest (61 unique / 677 cumulative)
+- ✅ `artists.display_picture` / `cover_picture` schema; GD center-crop resize
+- ✅ Admin API upload/delete; `/artist/{id}` banner + program-list hover tooltip
+
+### SeoTest (63 unique / 740 cumulative)
+- ✅ `seo_full_url()` CLI safety, `seo_truncate()` word boundary
+- ✅ `seo_render_meta()` OG/Twitter/noindex; `seo_render_json_ld()` Unicode; source checks on public pages
+
+### EventPicturesTest (57 unique / 797 cumulative)
+- ✅ `event_pictures` table/indexes/CASCADE; `events.gallery_template`
+- ✅ Admin API upload/delete/reorder/list; `processAndSaveImage()` mode='fit'; gallery + lightbox; CSS templates
+
+### EventCoverTest (44 unique / 841 cumulative)
+- ✅ `events.cover_image` / `cover_image_card` schema; Cropper.js flow; CSRF `X-CSRF-Token` header
+- ✅ Fallback chain; admin API; listing cache keys; migration idempotency
+
+### Fts5Test (45 unique / 886 cumulative)
+- ✅ FTS5 virtual tables (programs/events/artists) + 9 auto-sync triggers
+- ✅ `fts5_available()` caching, `fts5_search_*`, `fts5_rebuild_all()`, LIKE fallback, admin + public `action=search` API
+
+### WebPushTest (73 unique / 959 cumulative)
+- ✅ VAPID keygen (EC P-256), base64url, DER→raw sig, JWT ES256, encrypt/send
+- ✅ service-worker push + notificationclick; admin config API (private key never serialized)
+- ✅ **Endpoint allow-list** (FCM/Mozilla/Apple/WNS) + reject paths + dev-flag gate + defense-in-depth in `webpush_send()` (v15.5.0 MEDIUM-1 SSRF)
+
+### PwaOfflineTest (59 unique / 1018 cumulative)
+- ✅ service-worker fetch handler + 3 cache strategies; `CACHE_VERSION` ↔ `APP_VERSION` sync
+- ✅ PRECACHE_ASSETS, network-only routes, SWR + ETag/304, `offline.html` (3 langs), `sync-sw-version.php` CLI guard, `.htaccess` 2.4 + 2.2 fallback
+
+### VenueTest (34 unique / 1052 cumulative)
+- ✅ `venues` + `venue_variants` schema; `venue_resolve_canonical()`; merge; `is_online` flag
+- ✅ `/venue/{id}` + `/venues` portal; admin API; migration idempotency
+
+### LiveNowTest (15 unique / 1067 cumulative)
+- ✅ Live Now strip query; ISO-with-offset emission; live/soon classification across timezones; i18n keys
+
+**Total: 13,231 automated tests across 27 suites** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
 
 > **Note**: Test counts are cumulative — the runner uses `get_defined_functions()` which accumulates all previously-loaded test functions. The number shown per-suite = all test functions in memory at that point. Each suite contributes its unique functions; the grand total is the sum of all per-suite cumulative counts.
 
@@ -254,25 +337,35 @@ Testing: testSanitizeString... ✓ PASS
 
 SecurityTest              ✓ PASS (7 passed, 0 failed)
 CacheTest                 ✓ PASS (17 passed, 0 failed)
-AdminAuthTest             ✓ PASS (38 passed, 0 failed)
-CreditsApiTest            ✓ PASS (49 passed, 0 failed)
-IntegrationTest           ✓ PASS (100 passed, 0 failed)
-UserManagementTest        ✓ PASS (119 passed, 0 failed)
-ThemeTest                 ✓ PASS (143 passed, 0 failed)
-SiteSettingsTest          ✓ PASS (157 passed, 0 failed)
-EventEmailTest            ✓ PASS (176 passed, 0 failed)
-ProgramTypeTest           ✓ PASS (211 passed, 0 failed)
-FeedTest                  ✓ PASS (291 passed, 0 failed)
-StreamUrlTest             ✓ PASS (322 passed, 0 failed)
-...
-EmailNotificationTest     ✓ PASS (554 passed, 0 failed)
-TwoFactorAuthTest         ✓ PASS (563 passed, 0 failed)
-...
-Fts5Test                  ✓ PASS (833 passed, 0 failed)
+AdminAuthTest             ✓ PASS (52 passed, 0 failed)
+CreditsApiTest            ✓ PASS (63 passed, 0 failed)
+IntegrationTest           ✓ PASS (121 passed, 0 failed)
+UserManagementTest        ✓ PASS (141 passed, 0 failed)
+ThemeTest                 ✓ PASS (165 passed, 0 failed)
+SiteSettingsTest          ✓ PASS (179 passed, 0 failed)
+EventEmailTest            ✓ PASS (198 passed, 0 failed)
+ProgramTypeTest           ✓ PASS (233 passed, 0 failed)
+FeedTest                  ✓ PASS (313 passed, 0 failed)
+StreamUrlTest             ✓ PASS (344 passed, 0 failed)
+FavoritesTest             ✓ PASS (428 passed, 0 failed)
+TimezoneTest              ✓ PASS (509 passed, 0 failed)
+TelegramTest              ✓ PASS (591 passed, 0 failed)
+EmailNotificationTest     ✓ PASS (604 passed, 0 failed)
+TwoFactorAuthTest         ✓ PASS (613 passed, 0 failed)
+OrganizerRoleTest         ✓ PASS (616 passed, 0 failed)
+ArtistPictureTest         ✓ PASS (677 passed, 0 failed)
+SeoTest                   ✓ PASS (740 passed, 0 failed)
+EventPicturesTest         ✓ PASS (797 passed, 0 failed)
+EventCoverTest            ✓ PASS (841 passed, 0 failed)
+Fts5Test                  ✓ PASS (886 passed, 0 failed)
+WebPushTest               ✓ PASS (959 passed, 0 failed)
+PwaOfflineTest            ✓ PASS (1018 passed, 0 failed)
+VenueTest                 ✓ PASS (1052 passed, 0 failed)
+LiveNowTest               ✓ PASS (1067 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 7857 tests
-Passed: 7857
+Total: 13231 tests
+Passed: 13231
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 
@@ -282,7 +375,7 @@ Pass Rate: 100.0%
 ## 🔧 Requirements
 
 - PHP 8.1 or higher (tested on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
-- SQLite database (`calendar.db`) for database tests
+- SQLite database (`data/calendar.db`) for database tests
 - Write permissions on `cache/` directory
 
 ## 📝 Writing New Tests
@@ -397,7 +490,7 @@ Some tests depend on external resources (database, files, etc.):
 
 ```php
 function testDatabaseFeature($test) {
-    $dbPath = dirname(__DIR__) . '/calendar.db';
+    $dbPath = defined('DB_PATH') ? DB_PATH : dirname(__DIR__) . '/data/calendar.db';
 
     if (!file_exists($dbPath)) {
         echo " [SKIP: No database] ";

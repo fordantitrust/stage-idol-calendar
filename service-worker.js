@@ -5,7 +5,7 @@
 
 // ── Versioning ────────────────────────────────────────────────────────────────
 // CACHE_VERSION is kept in sync with APP_VERSION by sync-sw-version.php
-const CACHE_VERSION = '16.5.1';
+const CACHE_VERSION = '16.5.2';
 const STATIC_CACHE  = 'app-static-v' + CACHE_VERSION;
 const PAGES_CACHE   = 'app-pages-v'  + CACHE_VERSION;
 const API_CACHE     = 'app-api-v'    + CACHE_VERSION;

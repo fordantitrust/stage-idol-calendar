@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v16.5.1
+All API endpoints for Idol Stage Timetable v16.5.2
 
 ---
 
@@ -9,6 +9,9 @@ All API endpoints for Idol Stage Timetable v16.5.1
 - [Public API](#-public-api-apiphp)
 - [Request API](#-request-api-apirequestphp)
 - [Event Request API](#-event-request-api-apievent-requestphp)
+- [Favorites API](#-favorites-api-apifavoritesphp-v340)
+- [Web Push API](#-web-push-api-apipushphp-v1500)
+- [Telegram Webhook](#-telegram-webhook-apitelegramphp-v500)
 - [Admin API](#-admin-api-adminapiphp)
   - [Authentication](#authentication)
   - [Programs](#programs-endpoints)
@@ -20,6 +23,7 @@ All API endpoints for Idol Stage Timetable v16.5.1
   - [Event Cover Images](#event-cover-images-endpoints)
   - [Event Pictures](#event-pictures-endpoints-v700)
   - [Credits](#credits-endpoints)
+  - [Venues](#venues-endpoints-v1600)
   - [Backup/Restore](#backuprestore-endpoints)
   - [User Management](#user-management-endpoints-admin-only)
   - [Settings](#settings-endpoints)
@@ -29,6 +33,9 @@ All API endpoints for Idol Stage Timetable v16.5.1
   - [Artist Variants](#artist-variants-endpoints)
   - [Email Config](#email-config-endpoints)
   - [Google Config (Analytics + AdSense)](#google-config-endpoints)
+  - [Telegram Config](#telegram-config-endpoints-v500)
+  - [Web Push Config](#web-push-config-endpoints-v1500)
+  - [Log Viewers](#log-viewer-endpoints-admin-only)
   - [Account](#account-endpoint)
 
 ---
@@ -199,6 +206,121 @@ Response:
 
 ---
 
+## ⭐ Favorites API (`api/favorites.php`) *(v3.4.0)*
+
+Anonymous favorites — no login. Identity is an HMAC-signed slug (`{uuid-v7}-{hmac[:12]}`); the server validates it with `fav_parse_slug()` (constant-time `hash_equals`) before any read/write. Token creation is rate-limited per IP.
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/favorites.php?action=create` | POST | Create a new favorites token (rate-limited per IP) → returns `{slug, url}` |
+| `/api/favorites.php?action=get&slug=X` | GET | Get followed artist IDs; add `&details=1` for artist details |
+| `/api/favorites.php?action=add&slug=X` | POST | Follow an artist — body `{"artist_id": N}` |
+| `/api/favorites.php?action=remove&slug=X` | POST | Unfollow an artist — body `{"artist_id": N}` |
+| `/api/favorites.php?action=set_timezone&slug=X` | POST | Set the viewer timezone for notification display *(v16.1.1)* |
+| `/api/favorites.php?action=unlink_telegram&slug=X` | POST | Unlink the connected Telegram account |
+
+### Create
+
+```http
+POST /api/favorites.php?action=create
+```
+```json
+{ "slug": "0192f...-a1b2c3d4e5f6", "url": "/favorites/0192f...-a1b2c3d4e5f6" }
+```
+
+Returns `429` when the per-IP limit (`FAVORITES_RATE_LIMIT` per `FAVORITES_RATE_WINDOW`) is exceeded.
+
+### Add / Remove artist
+
+```http
+POST /api/favorites.php?action=add&slug=0192f...-a1b2c3d4e5f6
+Content-Type: application/json
+
+{ "artist_id": 42 }
+```
+
+`artist_id` is cast to int; invalid slug → `400`, missing token → `404`, exceeding `FAVORITES_MAX_ARTISTS` → `422`.
+
+### Set viewer timezone *(v16.1.1)*
+
+```http
+POST /api/favorites.php?action=set_timezone&slug=0192f...-a1b2c3d4e5f6
+Content-Type: application/json
+
+{ "tz": "Asia/Tokyo", "mode": "manual" }
+```
+
+- **tz** — IANA timezone; validated with `is_valid_timezone()` (`new DateTimeZone()`), invalid → `400`
+- **mode** — `manual` (sticky override), `auto` (clear override, adopt tz), or `sync` (passive browser capture; no-op when a manual override exists)
+
+---
+
+## 📱 Web Push API (`api/push.php`) *(v15.0.0)*
+
+Browser Web Push (VAPID + RFC 8291). Requires the same HMAC favorites slug. Subscription endpoints are validated against a **known-push-service allow-list** (`webpush_validate_endpoint()` — FCM/Mozilla/Apple/WNS only; IP literals and non-HTTPS rejected) at subscribe **and** send time (SSRF defense, audit MEDIUM-1).
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/push.php?action=subscribe` | POST | Register a push subscription for a slug |
+| `/api/push.php?action=unsubscribe` | POST | Remove a subscription by endpoint |
+| `/api/push.php?action=status` | GET | Check subscription status (`?slug=X&endpoint_hash=Y`) |
+
+### Subscribe
+
+```http
+POST /api/push.php?action=subscribe
+Content-Type: application/json
+
+{
+  "slug": "0192f...-a1b2c3d4e5f6",
+  "subscription": {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/...",
+    "keys": { "p256dh": "...", "auth": "..." }
+  },
+  "lang": "th",
+  "tz": "Asia/Tokyo"
+}
+```
+
+- Endpoint host not on the allow-list → `400` (`"Endpoint host not allowed. Only known push services are accepted."`)
+- `lang` allow-listed to `th`/`en`/`ja`; `tz` validated via `is_valid_timezone()`
+- A duplicate endpoint refreshes `lang` + `tz` (handles users who change device/timezone); oldest subscription is dropped past `WEBPUSH_MAX_SUBS_PER_TOKEN`
+- Response: `{ "success": true, "endpoint_hash": "<sha256[:16]>" }`
+
+### Unsubscribe / Status
+
+```http
+POST /api/push.php?action=unsubscribe
+Content-Type: application/json
+
+{ "slug": "0192f...-a1b2c3d4e5f6", "endpoint": "https://fcm.googleapis.com/fcm/send/..." }
+```
+
+```http
+GET /api/push.php?action=status&slug=0192f...-a1b2c3d4e5f6&endpoint_hash=abc123
+```
+```json
+{ "subscribed": true, "subscription_count": 2, "enabled": true }
+```
+
+---
+
+## 🤖 Telegram Webhook (`api/telegram.php`) *(v5.0.0)*
+
+Receives updates from Telegram's servers — **not** a public REST endpoint. Every request is verified against `X-Telegram-Bot-Api-Secret-Token`; `verify_telegram_request()` **fail-closes** (returns `false`) when `TELEGRAM_WEBHOOK_SECRET` is empty, so an unconfigured bot rejects all deliveries.
+
+```http
+POST /api/telegram.php
+X-Telegram-Bot-Api-Secret-Token: <secret>
+Content-Type: application/json
+
+{ "update_id": ..., "message": { ... } }
+```
+
+Supported bot commands (handled in-webhook): `/start {slug}` (link account), `/stop`, `/today`, `/tomorrow`, `/week`, `/upcoming [N]`, `/next`, `/artists`, `/lang th|en|ja`, `/tz [zone|auto]` *(v16.1.1)*, `/notify on|off|summary` *(v16.2.0)*, `/mute N`, `/status`. Register the webhook with `php tools/setup-telegram-webhook.php` after setting the bot token + secret in Admin › Settings › Telegram.
+
+---
+
 ## 🔐 Admin API (`admin/api.php`)
 
 ### Authentication
@@ -214,7 +336,7 @@ POST/PUT/DELETE requests must include the header:
 X-CSRF-Token: <token>
 ```
 
-Token is obtained from `generate_csrf_token()` — embedded in the Admin Panel HTML.
+Token is obtained from `csrf_token()` — embedded in the Admin Panel HTML and verified server-side with `verify_csrf_token()` (constant-time).
 
 ---
 
@@ -671,6 +793,49 @@ X-CSRF-Token: <token>
 
 ---
 
+### Venues Endpoints *(v16.0.0)*
+
+Canonical venue dedup layer over `programs.location`. **admin/agent** for management; **organizer** is limited to `venues_autocomplete` + `venues_list`.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `venues_list` | GET | List venues (with program/variant counts) |
+| `venues_get` | GET | Get a single venue (`?id=X`) |
+| `venues_create` | POST | Create a venue (`name`, `description`, `map_url`, `is_online`) |
+| `venues_update` | PUT | Update a venue (rename rewrites `programs.location`) |
+| `venues_delete` | DELETE | Delete a venue |
+| `venues_autocomplete` | GET | Canonical venue suggestions for the program form (`?q=`) |
+| `venues_variants_list` | GET | List variants for a venue (`?venue_id=X`) |
+| `venues_variants_create` | POST | Add an alias/variant to a venue |
+| `venues_variants_delete` | DELETE | Remove a variant (`?id=X`) |
+| `venues_merge` | POST | Merge venues into one canonical (others become variants; programs re-pointed) |
+
+#### Create Venue
+
+```http
+POST /admin/api.php?action=venues_create
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "name": "Main Hall", "description": "", "map_url": "", "is_online": 0 }
+```
+
+**is_online** *(v16.0.1)*: `1` flags an online platform (e.g. YouTube) — hidden from the `/venues` portal but still usable as a location.
+
+#### Merge Venues
+
+```http
+POST /admin/api.php?action=venues_merge
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{ "target_id": 3, "source_ids": [5, 8] }
+```
+
+The target stays canonical; source venue names become variants of the target and their programs are re-pointed. Invalidates venue + data-version + feed caches.
+
+---
+
 ### Backup/Restore Endpoints
 
 **admin role only** — not available to agent role
@@ -813,7 +978,7 @@ X-CSRF-Token: <token>
 { "theme": "ocean" }
 ```
 
-**theme**: `sakura` / `ocean` / `forest` / `midnight` / `sunset` / `dark` / `gray`
+**theme**: one of `sakura`, `ocean`, `forest`, `midnight`, `sunset`, `dark`, `gray`, `crimson`, `teal`, `rose`, `amber`, `indigo` (12 themes total, v5.5.0+)
 
 #### Save Disclaimer
 
@@ -907,6 +1072,9 @@ Manage artist/group master records. **admin/agent** for list; **admin role** for
 | `artists_delete` | DELETE | Delete an artist |
 | `artists_bulk_set_group` | POST | Assign multiple solo artists to a group |
 | `artists_bulk_import` | POST | Bulk import artists from a name list (up to 500) |
+| `artists_autocomplete` | GET | Artist suggestions for the program form (`?q=`, returns `id/name/is_group`); available to organizer too |
+| `artist_picture_upload` | POST | Upload display (400×400) or cover (1200×400) picture (multipart, GD center-crop) *(v6.0.0)* |
+| `artist_picture_delete` | POST | Delete a display/cover picture *(v6.0.0)* |
 
 #### Create Artist
 
@@ -1103,8 +1271,78 @@ X-CSRF-Token: <token>
 }
 ```
 
-> **Security**: `config/google-config.json` is protected from direct HTTP access by `config/.htaccess` (Deny from all for .json files).
+> **Security**: `config/google-config.json` is protected from direct HTTP access by `config/.htaccess` (`Require all denied` for every file under `config/`, v15.5.0 — see SECURITY audit LOW-2).
 > **Effect**: Changes take effect immediately on next page load — constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` are loaded at runtime from the JSON file.
+
+---
+
+### Telegram Config Endpoints *(v5.0.0)*
+
+Telegram bot settings stored in `config/telegram-config.json`. **admin role only**.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `telegram_config_get` | GET | Get bot config (token shown only to admin) |
+| `telegram_config_save` | POST | Save bot token/username/webhook secret + notify/summary settings |
+| `telegram_webhook_test` | POST | Test the configured webhook registration |
+
+```http
+POST /admin/api.php?action=telegram_config_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "bot_token": "123456:ABC...",
+  "bot_username": "MyIdolBot",
+  "webhook_secret": "<64-hex>",
+  "notify_before_minutes": 10,
+  "enabled": true
+}
+```
+
+> Setting `webhook_secret` to an empty string disables the webhook (`verify_telegram_request()` fail-closes). Re-register the webhook after changing the secret.
+
+---
+
+### Web Push Config Endpoints *(v15.0.0)*
+
+VAPID config stored in `config/webpush-config.json`. **admin role only**. The VAPID **private key is never returned** by the API.
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `webpush_config_get` | GET | Get Web Push config (private key omitted) |
+| `webpush_config_save` | POST | Save subject, site URL, notify-before minutes, enable toggle |
+| `webpush_vapid_generate` | POST | Generate a new VAPID keypair (returns public key only) |
+
+```http
+POST /admin/api.php?action=webpush_config_save
+Content-Type: application/json
+X-CSRF-Token: <token>
+
+{
+  "enabled": true,
+  "vapid_subject": "mailto:admin@example.com",
+  "site_url": "https://calendar.example.com",
+  "notify_before_minutes": 30
+}
+```
+
+> **Production note**: `config/webpush-config.json` must not contain `"allow_localhost": true` in production (dev SSRF exception). Set **Site URL** so notification links/icons resolve to the public origin.
+
+---
+
+### Log Viewer Endpoints (admin only)
+
+Read/download notification and audit logs from the Admin UI. **admin role only** — enforced both per-function (`require_api_admin_role()`) and at the dispatcher (`$adminOnlyActions`) since v15.5.0 (audit LOW-1).
+
+| Action | Method | Description |
+|--------|--------|-------------|
+| `telegram_log_get` / `telegram_log_download` | GET | View / download Telegram cron log (+ dated archives) |
+| `webpush_log_get` / `webpush_log_download` | GET | View / download Web Push cron log |
+| `email_log_get` / `email_log_download` | GET | View / download email delivery log |
+| `admin_audit_log_get` / `admin_audit_log_download` | GET | View / download the admin audit log (JSON Lines, secret-redacted) |
+
+`*_get` accepts an optional `&file=<filename>` (validated against a whitelist — no path traversal) to read a specific dated archive.
 
 ---
 
@@ -1177,27 +1415,35 @@ Approve rejects duplicate artist names at review time; submit also rejects names
 
 ## 🎯 Role-Based Access
 
-| Feature | admin | agent |
-|---------|-------|-------|
-| Programs (CRUD, bulk) | ✅ | ✅ |
-| Requests — Program (view, approve, reject) | ✅ | ✅ |
-| Requests — Event (view, approve, reject) | ✅ | ✅ |
-| ICS Import | ✅ | ✅ |
-| Credits (CRUD, bulk) | ✅ | ✅ |
-| Events/Conventions (CRUD) | ✅ | ✅ |
-| Event Cover Images (upload/delete hero/card/header) | ✅ | ✅ |
-| Event Pictures (upload/delete/reorder) | ✅ | ✅ |
-| User Management | ✅ | ❌ |
-| Backup/Restore | ✅ | ❌ |
-| Contact Channels (CRUD) | ✅ | ❌ |
-| Settings (title, theme, disclaimer) save | ✅ | ❌ |
-| Site Cover Image (upload/delete) | ✅ | ❌ |
-| Artist Variants (list, create, delete) | ✅ | ✅ |
-| Email Config (SMTP notifications) get/save/test | ✅ | ❌ |
-| Google Config (Analytics + AdSense) get/save | ✅ | ❌ |
-| Change own password | ✅ | ✅ |
-| Own 2FA setup/disable/backup codes | ✅ | ✅ |
-| Reset another user's 2FA | ✅ | ❌ |
+| Feature | admin | agent | organizer |
+|---------|-------|-------|-----------|
+| Programs (CRUD, bulk) | ✅ | ✅ | ✅ (assigned events only) |
+| Requests — Program (view, approve, reject) | ✅ | ✅ | ❌ |
+| Requests — Event (view, approve, reject) | ✅ | ✅ | ❌ |
+| Artist Requests — submit | ✅ | ✅ | ✅ |
+| Artist Requests — review (approve/reject) | ✅ | ✅ | ❌ |
+| ICS Import | ✅ | ✅ | ❌ |
+| Credits (CRUD, bulk) | ✅ | ✅ | ✅ (assigned events only) |
+| Events/Conventions (CRUD) | ✅ | ✅ | ✅ (assigned; cannot self-activate) |
+| Event activation | ✅ | ✅ | request only (`events_request_activate`) |
+| Event Cover Images (upload/delete hero/card/header) | ✅ | ✅ | ✅ (assigned events only) |
+| Event Pictures (upload/delete/reorder) | ✅ | ✅ | ✅ (assigned events only) |
+| Venues (CRUD, merge, variants) | ✅ | ✅ | ❌ (autocomplete/list only) |
+| Artists (CRUD) | ✅ | ✅ | ❌ (autocomplete + request only) |
+| Artist Variants (list, create, delete) | ✅ | ✅ | ❌ |
+| User Management | ✅ | ❌ | ❌ |
+| Event Organizer assignment | ✅ | ❌ | ❌ |
+| Backup/Restore | ✅ | ❌ | ❌ |
+| Contact Channels (CRUD) | ✅ | ❌ | ❌ |
+| Settings (title, theme, disclaimer) save | ✅ | ❌ | ❌ |
+| Site Cover Image (upload/delete) | ✅ | ❌ | ❌ |
+| Email Config (SMTP notifications) get/save/test | ✅ | ❌ | ❌ |
+| Google Config (Analytics + AdSense) get/save | ✅ | ❌ | ❌ |
+| Telegram / Web Push Config | ✅ | ❌ | ❌ |
+| Log Viewers (Telegram/Web Push/Email/Audit) | ✅ | ❌ | ❌ |
+| Change own password | ✅ | ✅ | ✅ |
+| Own 2FA setup/disable/backup codes | ✅ | ✅ | ✅ |
+| Reset another user's 2FA | ✅ | ❌ | ❌ |
 
 ---
 
@@ -1211,4 +1457,4 @@ Approve rejects duplicate artist names at review time; submit also rejects names
 
 ---
 
-*Idol Stage Timetable v16.5.1*
+*Idol Stage Timetable v16.5.2*

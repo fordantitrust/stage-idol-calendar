@@ -252,14 +252,14 @@ How did you test this?
 ```php
 <?php
 /**
- * Get events from database
+ * Get programs from database
  *
  * @param string $location Venue to filter by
- * @return array Array of events
+ * @return array Array of programs
  */
-function getEventsByLocation($location) {
+function getProgramsByLocation($location) {
     global $db;
-    $stmt = $db->prepare("SELECT * FROM events WHERE location = ?");
+    $stmt = $db->prepare("SELECT * FROM programs WHERE location = ?");
     $stmt->execute([$location]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -389,24 +389,25 @@ Before submitting PR, test:
 
 ### Automated Testing
 
-The project includes **637 automated tests** covering security, cache, authentication, database operations, user management, theme system, site settings, event email, and integration:
+The project includes **13,231 automated tests across 27 suites** covering security, cache, authentication, database operations, user management, themes, favorites, timezone, Telegram, Web Push, venues, FTS5 search, and more:
 
 ```bash
-# Run all tests
+# Run all tests (27 suites)
 php tests/run-tests.php
 
-# Run specific suite
-php tests/run-tests.php SecurityTest          # 7 tests
-php tests/run-tests.php CacheTest             # 17 tests
-php tests/run-tests.php AdminAuthTest         # 38 tests
-php tests/run-tests.php CreditsApiTest        # 49 tests
-php tests/run-tests.php IntegrationTest       # 97 tests
-php tests/run-tests.php UserManagementTest    # 116 tests
-php tests/run-tests.php ThemeTest             # 140 tests
-php tests/run-tests.php SiteSettingsTest      # 154 tests
+# Run a specific suite (numbers below are cumulative running totals)
+php tests/run-tests.php SecurityTest          # 7
+php tests/run-tests.php AdminAuthTest         # 52
+php tests/run-tests.php IntegrationTest       # 121
+php tests/run-tests.php FeedTest              # 313
+php tests/run-tests.php FavoritesTest         # 428
+php tests/run-tests.php TelegramTest          # 591
+php tests/run-tests.php WebPushTest           # 959
+php tests/run-tests.php VenueTest             # 1052
+php tests/run-tests.php LiveNowTest           # 1067
 ```
 
-All tests must pass before submitting a PR. See [tests/README.md](tests/README.md) for details.
+All 27 suites must pass on PHP 8.1–8.5 before submitting a PR. See [tests/README.md](tests/README.md) for the full list and per-suite coverage.
 
 ---
 
@@ -418,10 +419,13 @@ When contributing code, update relevant documentation:
 
 | Your Change | Update These Docs |
 |-------------|-------------------|
-| New feature | README.md, CHANGELOG.md |
-| API changes | README.md (API section) |
-| Configuration | INSTALLATION.md |
-| Database schema | SQLITE_MIGRATION.md |
+| New feature | README.md, CHANGELOG.md, CLAUDE.md |
+| API changes | API.md |
+| Configuration / install | INSTALLATION.md, SETUP.md |
+| Database schema | PROJECT-STRUCTURE.md (DB Schema section) |
+| New CLI tool / migration | tools/README.md |
+| New test suite | tests/README.md |
+| Version bump | run `php tools/update-version.php X.Y.Z` then `php sync-sw-version.php` |
 | Quick fix | CHANGELOG.md only |
 
 ### Documentation Standards
@@ -440,12 +444,12 @@ When contributing code, update relevant documentation:
 **DO NOT** open public issues for security vulnerabilities.
 
 Instead:
-1. Email security report to: [security contact email]
+1. Email security report to: annop@thaicyberpoint.com (or DM [@FordAntiTrust](https://x.com/FordAntiTrust))
 2. Include detailed description
 3. Provide steps to reproduce
 4. Suggest fix if possible
 
-We'll respond within 48 hours and work on a fix.
+We'll respond within 48 hours and work on a fix. See [SECURITY.md](SECURITY.md) for the full policy.
 
 ### Security Best Practices
 
@@ -465,7 +469,7 @@ When contributing code:
 
 - **GitHub Issues**: [Project Issues](https://github.com/fordantitrust/stage-idol-calendar/issues)
 - **Twitter**: [@FordAntiTrust](https://x.com/FordAntiTrust)
-- **Email**: [Insert contact email]
+- **Email**: annop@thaicyberpoint.com
 
 ---
 

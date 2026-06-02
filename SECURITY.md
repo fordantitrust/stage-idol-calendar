@@ -4,12 +4,10 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 9.6.x   | :white_check_mark: |
-| 9.5.x   | :white_check_mark: |
-| 9.4.x   | :white_check_mark: |
-| 9.3.x   | :white_check_mark: |
-| 9.x.x   | :white_check_mark: |
-| < 9.0   | :x:                |
+| 16.5.x  | :white_check_mark: |
+| 16.x.x  | :white_check_mark: |
+| 15.x.x  | :white_check_mark: |
+| < 15.0  | :x:                |
 
 ---
 
@@ -229,10 +227,10 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Session-based login
 - Optional IP whitelist
 
-✅ **Role-Based Access Control** (Added in v1.2.5, updated in v2.0.0)
-- Two roles: `admin` (full access) and `agent` (programs management only)
-- Defense in depth: Server-side HTML hiding + API-level role enforcement
-- Admin-only actions: user management, backup/restore, contact channels, settings
+✅ **Role-Based Access Control** (Added in v1.2.5, expanded to 3 roles in v12.0.0)
+- Three roles: `admin` (full access), `agent` (programs management), and `organizer` (scoped to assigned events only — see Organizer Role Authorization below)
+- Defense in depth: Server-side HTML hiding + API-level role enforcement (`$adminOnlyActions` dispatcher list + per-function `require_api_admin_role()`)
+- Admin-only actions: user management, backup/restore, contact channels, settings, and all log viewers/downloads (Telegram/Web Push/Email/Audit — see LOW-1)
 - Safety guards: Cannot delete self, cannot change own role, must keep 1+ active admin
 
 ✅ **Feed & URL Security** (Added in v2.6.x–v2.7.x)
@@ -252,7 +250,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - `ticket_url` on events uses the same validation pattern
 
 ✅ **Google Config Security** (Added in v9.1.0)
-- `config/google-config.json` stores GA4 ID and AdSense credentials; protected from HTTP access by `config/.htaccess` (`Deny from all` for `.json` files) — no key exposure via browser
+- `config/google-config.json` stores GA4 ID and AdSense credentials; protected from HTTP access by `config/.htaccess` (`Require all denied` for every file under `config/`, since v15.5.0 — see LOW-2) — no key exposure via browser
 - Google Analytics + AdSense settings edited exclusively through Admin UI (`analytics_config_get` / `analytics_config_save`); admin-role only; CSRF-protected
 - Constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` loaded at runtime from JSON — no credentials in committed PHP constants
 
@@ -262,11 +260,35 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Request notification bodies escape HTML user input, while plain-text bodies remain readable
 - Email delivery failures are logged to `cache/logs/email.log` and do not expose SMTP errors to public request submitters
 
+✅ **Admin Audit Log** (Added in v14.0.0)
+- `functions/audit.php` appends JSON Lines to `cache/logs/admin-audit-YYYY-MM-DD.log` with `FILE_APPEND | LOCK_EX`; the engine never throws
+- `audit_redact()` recursively strips sensitive keys (`password`, `password_hash`, `twofa_secret`, `twofa_backup_codes`, `csrf_token`, `smtp_password`, `telegram_bot_token`, `webhook_secret`, …) before persistence
+- Auth + write hooks across `functions/admin.php`, `admin/login.php`, `admin/api.php`, and the public request APIs record login/2FA/logout, CRUD, and rate-limit-blocked events
+- Viewer endpoint requires `admin` role; daily rotation cron (`cron/rotate-admin-audit-logs.php`) is CLI-only behind `cron/.htaccess` deny-all; UA capture bounded to 500 chars to prevent log injection
+
+✅ **Web Push Security** (Added in v15.0.0, hardened in v15.5.0)
+- VAPID + RFC 8291 `aes128gcm` implemented in-process with PHP/OpenSSL primitives; no third-party dependency
+- VAPID private key is never serialized to the client: `getWebPushConfig()` unsets `vapid_private_key_pem` before responding; key generation returns only the public key; admin-role + CSRF on all config endpoints
+- `curl` send sets `CURLOPT_SSL_VERIFYPEER => true` and does not follow redirects
+- **SSRF allow-list (MEDIUM-1):** `webpush_validate_endpoint()` accepts only known push services (FCM, Mozilla, Apple exact; `.notify.windows.com`, `.push.apple.com` suffix); HTTPS-only; IPv4/IPv6 literals rejected; enforced at subscribe time (`api/push.php`) **and** at send time (`webpush_send()` short-circuits `endpoint_not_allowed`), so pre-allow-list records are purged automatically by cron
+- Dev localhost exception is double-gated by `WEBPUSH_ALLOW_LOCALHOST=true` **and** `PRODUCTION_MODE=false` (inert in production)
+
+✅ **Admin Hardening** (Added in v15.5.0 — security audit revision 1–6)
+- **Login CSRF (MEDIUM-2):** `admin/login.php` verifies `$_POST['csrf_token']` **before** rate-limit accounting, so an attacker without a valid token cannot exhaust a legitimate user's per-IP login budget; CSRF failures are audit-logged (`error_code=csrf_invalid`)
+- **Log-viewer authorization (LOW-1):** `getTelegramLog()`, `getWebPushLog()`, `getEmailLog()` now require `admin` role (function-level + dispatcher-level `$adminOnlyActions`) — agents/organizers can no longer read notification logs
+- **Directory hardening (LOW-2 / LOW-3):** `config/.htaccess` and `tools/.htaccess` switched to `Require all denied` (Apache 2.4) with a 2.2 `Deny from all` fallback; all `Allow from` LAN CIDRs removed
+- **Secret hygiene (LOW-4):** `.gitignore` blocks `*.db`, `test-*.php`, `debug-*.php`; Telegram webhook secret retired (`webhook_secret=""`, `verify_telegram_request()` fail-closes on empty)
+
+✅ **Favorites Secret Management** (Hardened in v16.5.2 — security audit revision 7, LOW-5)
+- `FAVORITES_HMAC_SECRET` (signs the anonymous favorites slug) is loaded from `config/favorites-config.json`, which is gitignored (`config/*-config.json`) and HTTP-denied by `config/.htaccess` — never stored in a git-tracked source file
+- `config/favorites.php` falls back to a placeholder when the JSON is absent; `tools/generate-favorites-secret.php` writes the gitignored JSON directly with an overwrite guard, closing the recurrence path
+- Slug parsing uses a strict length check, regex, and `hash_equals()` (constant-time) HMAC comparison; favorites files are written atomically (`tmp + rename`) and rate-limited per IP under `flock(LOCK_EX)`
+
 ---
 
 ## Known Limitations
 
-### Current Version (v16.5.1)
+### Current Version (v16.5.2)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -325,7 +347,13 @@ Before going live:
 - [ ] Tested admin login
 - [ ] Tested rate limiting
 - [ ] Run automated tests: `php tests/run-tests.php`
-- [ ] Verify `config/google-config.json` is NOT committed with real credentials (add to `.gitignore`)
+- [ ] Verify `config/*-config.json` (google, email, telegram, webpush, favorites) are NOT committed — all are gitignored by `config/*-config.json`
+- [ ] Confirm `config/webpush-config.json` does NOT set `"allow_localhost": true` in production
+- [ ] Confirm `config/favorites-config.json` exists with a generated `hmac_secret` and is not tracked by git
+- [ ] Run required migrations: 2FA, organizer role, audit log, Web Push, venues
+- [ ] Schedule log-rotation cron jobs (Telegram, Web Push, Email, Admin Audit)
+- [ ] Verify direct HTTP access is blocked for `data/`, `cache/`, `backups/`, `ics/`, `cron/`, `config/`, and `tools/`
+- [ ] Lock setup with `data/.setup_locked` after install/maintenance
 - [ ] Updated contact information
 - [ ] Removed test data from database
 
@@ -347,11 +375,13 @@ If you discover a security issue:
 
 ## Additional Resources
 
+- [Security Audit Report 2026](docs/SECURITY_AUDIT_2026.md) — full findings + remediation history (revision 7, re-verified at v16.5.x; all items closed)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [PHP Security Best Practices](https://www.php.net/manual/en/security.php)
 - [SQLite Security](https://www.sqlite.org/security.html)
 
 ---
 
-**Last Updated:** 2026-05-07
-**Version:** 14.0.0
+**Last Updated:** 2026-06-02
+**Version:** 16.5.2
+**Latest Audit:** `docs/SECURITY_AUDIT_2026.md` revision 7 — ✅ all findings closed (HIGH-1, MEDIUM-1/2, LOW-1→5); full suite 13,231 / 13,231

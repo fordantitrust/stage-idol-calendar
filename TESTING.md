@@ -1540,12 +1540,13 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 
 **Steps**:
 1. Click "📸 Save as Image"
-2. Wait for html2canvas to load
+2. The PNG is generated server-side by PHP GD (`image.php`) and downloaded
 
 **Expected Result**:
 - ✅ PNG file downloaded
 - ✅ Contains visible calendar
 - ✅ Image quality good
+- ✅ Thai/Japanese text renders correctly (TrueType fonts), no boxes
 
 ---
 
@@ -2054,7 +2055,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v14.0.0
+**Version**: v16.5.2
 
 **Result**: Pass / Fail
 
@@ -2401,7 +2402,7 @@ _________________________________
 
 ### 16.1 Service Worker Activation
 
-**Test Case 16.5.1**: Service Worker registers and activates on a fresh load
+**Test Case 16.5.2**: Service Worker registers and activates on a fresh load
 
 **Steps**:
 1. Open the site in Chrome → DevTools › Application › Service Workers
@@ -2458,7 +2459,7 @@ _________________________________
 
 ### 16.5 Network-Only APIs Are Not Stale-Cached
 
-**Test Case 16.5.1**: Private APIs bypass cache when offline
+**Test Case 16.5.2**: Private APIs bypass cache when offline
 
 **Steps**:
 1. While online, perform actions that hit `/api/favorites?action=list`, `/api/push?action=status`, `/api/request?action=submit`
@@ -2539,7 +2540,7 @@ _________________________________
 **Expected Result**:
 - ✅ AdSense (`pagead2.googlesyndication.com`) requests do **not** show `(ServiceWorker)` tag
 - ✅ Google Analytics requests pass through
-- ✅ CDN-loaded libraries (qrcodejs, jsQR, Cropper, html2canvas) pass through
+- ✅ CDN-loaded libraries (qrcodejs, jsQR, Cropper.js) pass through
 
 ### 16.11 Synchronisation Script (sync-sw-version.php)
 

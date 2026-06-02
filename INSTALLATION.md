@@ -206,17 +206,8 @@ server {
 
     autoindex off;
 
-    # Block sensitive directories
-    location ~* ^/(data|cache|backups|ics)(/|$) { deny all; }
-
-    # Restrict internal directories to LAN/localhost
-    location ~* ^/(config|functions|tests|tools)(/|$) {
-        allow 129.1.0.1;
-        allow ::1;
-        allow 192.169.1.0/16;
-        allow 10.0.0.0/8;
-        deny all;
-    }
+    # Block sensitive directories outright (no HTTP caller should reach these)
+    location ~* ^/(data|cache|backups|ics|config|functions|tests|tools|cron)(/|$) { deny all; }
 
     # Block sensitive file types
     location ~* \.(db|sqlite|sqlite3)$ { deny all; }
@@ -367,7 +358,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '9.4.0'); // Change to force cache refresh
+define('APP_VERSION', '16.5.2'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -420,7 +411,7 @@ See [SETUP.md](SETUP.md) for detailed guide.
 
 Use the Setup Wizard (recommended) or run migrations manually — see **[README.md — Option B: Manual CLI](README.md#option-b-manual-cli)** for the complete, up-to-date sequence.
 
-This creates the database tables: `programs`, `events`, `program_requests`, `credits`, `admin_users`, `contact_channels`.
+This creates the database tables: `programs`, `events`, `program_requests`, `event_requests`, `artist_requests`, `credits`, `admin_users`, `event_organizers`, `contact_channels`, `artists`, `artist_variants`, `program_artists`, `venues`, `venue_variants`, `event_pictures`, and the FTS5 virtual tables (`programs_fts`, `events_fts`, `artists_fts`).
 
 For existing installs using Admin 2FA, run the v10.0.0+ migration manually:
 
@@ -453,10 +444,10 @@ define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 
 ### Admin Features
 
-**Events Tab**:
-- Create new events
-- Edit existing events
-- Delete events (single or bulk up to 100)
+**Programs Tab** (individual shows/performances):
+- Create new programs
+- Edit existing programs
+- Delete programs (single or bulk up to 100)
 - Bulk edit (venue, organizer, categories)
 - Search and filter
 - Pagination (20/50/100 per page)
@@ -472,16 +463,26 @@ define('ADMIN_PASSWORD_HASH', '$2y$10$...paste_generated_hash_here...');
 - Search, sort by display order
 - Pagination
 
-**Events Tab** (Conventions/Meta-Events):
-- Create, edit, delete events (conventions)
-- Configure name, slug, dates, venue mode, active status
+**Events Tab** (conventions/meta-events):
+- Create, edit, delete events
+- Configure name, slug, dates, venue mode, timezone, theme, cover images, active status
 - Per-event venue mode (multi/single/calendar)
+- Assign organizer users (admin role only)
 
 **Artists Tab** (admin role only):
 - View all artists with program counts and event appearances
 - Manage variant/alias names per artist via modal
+- Upload display/cover pictures; edit social links
 - Click artist name to open profile page (`/artist/{id}`)
 - Artist records are reused across events (74.7% reuse rate)
+
+**Venues Tab** (admin/agent — v16.0.0+):
+- Canonical venues with program/variant counts
+- Add/edit/merge venues; manage variants; flag online platforms
+- Public profiles at `/venue/{id}` and the `/venues` portal
+
+**Settings Tab** (sub-tabs):
+- Site (title/theme/covers), Contact, Users, Backup, Telegram, Web Push, Email, Google, Disclaimer, Audit Log
 
 **Requests Tab**:
 - View pending user requests
@@ -534,7 +535,7 @@ Edit [config/admin.php](config/admin.php):
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 
 define('ADMIN_ALLOWED_IPS', [
-    '129.1.0.1',           // Localhost
+    '127.0.0.1',           // Localhost
     '::1',                 // Localhost IPv6
     '192.168.1.100',       // Single IP
     '192.168.1.0/24',      // IP range (CIDR notation)
@@ -584,21 +585,22 @@ Configured headers:
 # PHP files
 chmod 644 *.php
 
-# Database
-chmod 600 calendar.db
+# Database (stored under data/)
+chmod 755 data/
+chmod 600 data/calendar.db
 
 # Directories
-chmod 755 ics/ admin/ api/ tools/ styles/ js/
+chmod 755 ics/ admin/ api/ cron/ tools/ styles/ js/
 
-# Cache directory (writable)
-chmod 755 cache/
+# Writable directories
+chmod 755 cache/ backups/ uploads/
 ```
 
 **Production**:
 ```bash
-# Make database read-only for web server
-chown root:www-data calendar.db
-chmod 640 calendar.db
+# Make database owned by the web server
+chown www-data:www-data data/calendar.db
+chmod 640 data/calendar.db
 ```
 
 ---
@@ -694,10 +696,10 @@ const translations = {
 **Problem**: "unable to open database file"
 
 **Solutions**:
-1. Check `calendar.db` exists
-2. Verify permissions: `chmod 644 calendar.db`
-3. Ensure parent directory is writable
-4. Re-run import script
+1. Check `data/calendar.db` exists
+2. Verify permissions: `chmod 600 data/calendar.db` and `chmod 755 data/`
+3. Ensure the `data/` directory is writable by the web server
+4. Re-run the Setup Wizard or `php tools/import-ics-to-sqlite.php`
 
 **Problem**: "database is locked"
 
@@ -705,7 +707,7 @@ const translations = {
 1. Close other connections to database
 2. Check for hung PHP processes
 3. Restart web server
-4. In worst case: delete `calendar.db` and re-import
+4. In worst case: restore from a backup (Admin → Settings → Backup) or re-import
 
 ### Cache Issues
 
@@ -719,13 +721,15 @@ const translations = {
 
 ### Image Export Fails
 
-**Problem**: "Save as Image" button not working
+**Problem**: "Save as Image" produces a broken or text-less PNG
+
+Since v3.3.0 the image is rendered **server-side with PHP GD** (`image.php`) — no html2canvas/CDN is involved.
 
 **Solutions**:
-1. Check internet connection (html2canvas loads from CDN)
-2. Disable browser popup blocker
-3. Check browser console for errors
-4. Try different browser
+1. Verify the GD extension is enabled: `php -m | grep -i gd`
+2. Ensure `cache/images/` exists and is writable by the web server
+3. For Thai/Japanese text, install TrueType fonts (see `fonts/README.md`) — without them, non-Latin glyphs may render as boxes
+4. Check the web server error log for GD/font errors
 
 ### Admin Login Issues
 
@@ -756,8 +760,8 @@ tail -f /var/log/apache2/error.log
 # Nginx
 tail -f /var/log/nginx/error.log
 
-# PHP-FPM
-tail -f /var/log/php7.4-fpm.log
+# PHP-FPM (adjust to your PHP version)
+tail -f /var/log/php8.1-fpm.log
 ```
 
 ---
@@ -778,10 +782,10 @@ opcache.revalidate_freq=2
 
 ```bash
 # Compact database
-sqlite3 calendar.db "VACUUM;"
+sqlite3 data/calendar.db "VACUUM;"
 
 # Analyze for query optimization
-sqlite3 calendar.db "ANALYZE;"
+sqlite3 data/calendar.db "ANALYZE;"
 ```
 
 ### Apache .htaccess
@@ -806,7 +810,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **automated unit tests** across 19 test suites for quality assurance:
+The project includes **automated unit tests** across 27 test suites (**13,231 cumulative tests**) for quality assurance:
 
 ```bash
 # Run all tests
@@ -828,10 +832,18 @@ php tests/run-tests.php StreamUrlTest
 php tests/run-tests.php FavoritesTest
 php tests/run-tests.php TimezoneTest
 php tests/run-tests.php TelegramTest
+php tests/run-tests.php EmailNotificationTest
+php tests/run-tests.php TwoFactorAuthTest
+php tests/run-tests.php OrganizerRoleTest
 php tests/run-tests.php ArtistPictureTest
 php tests/run-tests.php SeoTest
 php tests/run-tests.php EventPicturesTest
+php tests/run-tests.php EventCoverTest
 php tests/run-tests.php Fts5Test
+php tests/run-tests.php WebPushTest
+php tests/run-tests.php PwaOfflineTest
+php tests/run-tests.php VenueTest
+php tests/run-tests.php LiveNowTest
 ```
 
 ### Quick Pre-Commit Tests
@@ -847,31 +859,37 @@ chmod +x quick-test.sh
 
 ### Test Coverage
 
-| Suite | Tests | Focus Areas |
-|-------|-------|------------|
+| Suite | Cumulative | Focus Areas |
+|-------|-----------|------------|
 | **SecurityTest** | 7 | XSS protection, input sanitization, SQL injection prevention |
 | **CacheTest** | 17 | Cache creation, invalidation, TTL behavior, concurrency |
-| **AdminAuthTest** | 38 | Authentication, session management, password security, timing attacks |
-| **CreditsApiTest** | 49 | Database CRUD, bulk operations, validation |
-| **IntegrationTest** | 100 | Configuration validation, file structure, workflows, API endpoints, multi-event support |
-| **UserManagementTest** | 119 | Role column schema, role helpers, user CRUD, permission checks |
-| **ThemeTest** | 143 | Theme system, get_site_theme(), per-event theme, CSS files, admin API |
-| **SiteSettingsTest** | 157 | Site title, get_site_title(), cache, fallbacks, admin API, page injection |
-| **EventEmailTest** | 176 | Event email field, CRUD, validation logic, ICS ORGANIZER design |
-| **ProgramTypeTest** | 211 | Program type column, CRUD, API filter, admin UI, translations, clickable badges |
-| **FeedTest** | 291 | ICS escaping, line folding, CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986 compliance |
-| **StreamUrlTest** | 322 | Stream URL column, CRUD, admin badge, platform icons, ICS URL property |
-| **FavoritesTest** | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, localStorage persistence, artist profiles |
-| **TimezoneTest** | 473 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
-| **TelegramTest** | 541 | Telegram bot commands, mute/notify state, group resolution, helpers |
-| **ArtistPictureTest** | 602 | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
-| **SeoTest** | 665 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks |
-| **EventPicturesTest** | 722 | event_pictures table, events.gallery_template, migration idempotency, DB CRUD, admin API, processAndSaveImage mode='fit', uploads/events, setup.php, index.php gallery+lightbox, admin/index.php, CSS templates, translations |
-| **Fts5Test** | 45+ | FTS5 virtual tables (programs_fts/events_fts/artists_fts), 9 auto-sync triggers, fts5_available() caching, fts5_escape(), fts5_rebuild_all(), LIKE fallback, admin search integration, public `action=search&q=` API |
-| **WebPushTest** | 926 | VAPID + RFC 8291 aes128gcm crypto, urlsafe base64 round-trip, EC keygen, JWT ES256, encrypt/send pipeline, manifest.json + service-worker.js basics, push subscription API, Web Push cron CLI-only + enabled guard, admin Web Push config API, `webpush_validate_endpoint()` allow-list (v15.5.0 MEDIUM-1 SSRF defense) |
-| **PwaOfflineTest** | 985 | `service-worker.js` fetch handler + 3 cache strategies, CACHE_VERSION ↔ APP_VERSION sync, PRECACHE_ASSETS, MAX_API_CACHE_AGE_MS + NETWORK_TIMEOUT_MS, network-only routes, SWR + ETag/If-None-Match + 304-preserves-body, `X-SW-Cached-At`, Promise.race timeout, `offline.html` static + 3-language + no-external-deps, `sync-sw-version.php` CLI guard + idempotent + regex, `.htaccess` Apache 2.4 + 2.2 fallback, regression guard (push handlers preserved + `tools/update-version.php` doesn't touch SW) |
+| **AdminAuthTest** | 52 | Authentication, session, password security, timing attacks, login CSRF gate (v15.5.0) |
+| **CreditsApiTest** | 63 | Database CRUD, bulk operations, validation |
+| **IntegrationTest** | 121 | Config validation, file structure, workflows, API, multi-event, config/tools .htaccess + .gitignore guards |
+| **UserManagementTest** | 141 | Role column schema, role helpers, user CRUD, permission checks |
+| **ThemeTest** | 165 | Theme system, get_site_theme(), per-event theme, CSS files, admin API |
+| **SiteSettingsTest** | 179 | Site title, get_site_title(), cache, fallbacks, admin API, page injection |
+| **EventEmailTest** | 198 | Event email field, CRUD, validation logic, ICS ORGANIZER design |
+| **ProgramTypeTest** | 233 | Program type column, CRUD, API filter, admin UI, translations, clickable badges |
+| **FeedTest** | 313 | ICS escaping, line folding, CATEGORIES delimiter, ETag, feed cache, RFC 5545/7986 compliance |
+| **StreamUrlTest** | 344 | Stream URL column, CRUD, admin badge, platform icons, ICS URL property |
+| **FavoritesTest** | 428 | Anonymous favorites, UUID v7, HMAC, personal feeds, localStorage persistence, artist profiles |
+| **TimezoneTest** | 509 | Per-event timezone, UTC conversion, timezone badge, ICS TZID format, local time display |
+| **TelegramTest** | 591 | Telegram bot commands, notify modes (all/summary/off), `/tz`, mute, group resolution |
+| **EmailNotificationTest** | 604 | Email config/helper loading, subjects, admin URL base path, SMTP disabled guard, request email hooks |
+| **TwoFactorAuthTest** | 613 | RFC 6238 TOTP vectors, Base32, otpauth URI, replay guard, backup codes, manual migration, schema flag |
+| **OrganizerRoleTest** | 616 | Organizer role scoping, artist-request flow, approve-to-artist refresh |
+| **ArtistPictureTest** | 677 | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
+| **SeoTest** | 740 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks |
+| **EventPicturesTest** | 797 | event_pictures table, events.gallery_template, migration, DB CRUD, admin API, processAndSaveImage mode='fit', gallery+lightbox, CSS templates |
+| **EventCoverTest** | 841 | events.cover_image/cover_image_card, Cropper.js upload flow, CSRF X-CSRF-Token header, fallback chain, admin API, listing cache keys |
+| **Fts5Test** | 886 | FTS5 virtual tables (programs/events/artists_fts), 9 auto-sync triggers, fts5_available() caching, fts5_escape(), fts5_rebuild_all(), LIKE fallback, admin + public search API |
+| **WebPushTest** | 959 | VAPID + RFC 8291 aes128gcm crypto, base64url, EC keygen, JWT ES256, encrypt/send, service-worker basics, push subscription API, cron CLI guard, admin config API, `webpush_validate_endpoint()` allow-list (v15.5.0 MEDIUM-1 SSRF defense) |
+| **PwaOfflineTest** | 1018 | `service-worker.js` fetch handler + 3 cache strategies, CACHE_VERSION ↔ APP_VERSION sync, PRECACHE_ASSETS, network-only routes, SWR + ETag/304, `X-SW-Cached-At`, `offline.html` 3-language, `sync-sw-version.php` CLI guard, `.htaccess` 2.4 + 2.2 fallback |
+| **VenueTest** | 1052 | venues + venue_variants schema, venue_resolve_canonical(), merge, is_online flag, /venue/{id} + /venues portal, admin API, migration |
+| **LiveNowTest** | 1067 | Live Now strip query, ISO-with-offset emission, live/soon classification, i18n keys |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Total: 25 suites, **985 cumulative tests** (v16.0.0).
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. The per-suite number above is the running total through that suite. Total: **27 suites, 13,231 cumulative tests** (v16.5.2).
 
 ✅ **All tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
@@ -899,7 +917,7 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all tests pass (24 suites, 100% pass rate)
+- [ ] Verify all tests pass (27 suites, 13,231 tests, 100% pass rate)
 - [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
 - [ ] If using organizer accounts, run `php tools/migrate-add-organizer-role.php`

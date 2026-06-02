@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v16.5.1
+File and folder structure for Idol Stage Timetable v16.5.2
 
 ---
 
@@ -20,10 +20,16 @@ stage-idol-calendar/
 ├── 📦 cache/            Cache files
 ├── 🔌 api/              Public API endpoints
 ├── 🔐 admin/            Admin panel
+├── ⏰ cron/             CLI cron scripts (notifications + log rotation)
 ├── 🛠️  tools/            CLI migration tools
 ├── 🧪 tests/            Automated test suite
+├── 🖼️  uploads/          Admin-uploaded images (artists, events, site)
+├── 🎨 icon/             PWA icons (72/192/512)
+├── 🔤 fonts/            TrueType fonts for image export
 └── 📚 docs/*.md         Documentation
 ```
+
+> PWA assets live at the root: `manifest.json` / `manifest.php`, `service-worker.js`, `offline.html`, and `sync-sw-version.php` (CLI tool that keeps the service worker's `CACHE_VERSION` in sync with `APP_VERSION`).
 
 ---
 
@@ -38,8 +44,15 @@ stage-idol-calendar/
 | `export.php` | Export ICS handler — download .ics from filtered programs |
 | `feed.php` | Live ICS subscription feed — ETag, static file cache, RFC 5545/7986 |
 | `api.php` | Public API endpoint (programs, organizers, locations, events_list) |
-| `artist.php` | Artist Profile page — `/artist/{id}`; all programs grouped by event; group members, variants |
+| `artist.php` | Artist Profile page — `/artist/{id}`; all programs grouped by event; group members, variants, social links, follow button |
 | `artists.php` | Artist & Group Portal (`/artists`) — gradient group cards + solo grid, real-time search, tab filter |
+| `venue.php` | Venue Profile page — `/venue/{id}`; programs grouped by event (v16.0.0+) |
+| `venues.php` | All-Venues Portal — `/venues`; grid + search; hides online platforms (v16.0.0+) |
+| `my.php` | My Upcoming Programs — `/my/{slug}`; anonymous-favorites schedule (List + Timeline), mini calendar, Telegram/Web Push/QR controls, timezone picker (noindex) |
+| `my-favorites.php` | My Favorites — `/my-favorites/{slug}`; followed solo/group artists + unfollow + QR transfer (noindex) |
+| `my-feed.php` | Personal ICS feed — `/my/{slug}/feed`; upcoming programs for followed artists across events |
+| `connect.php` | Favorites Connect — `/connect`; camera QR scanner (jsQR) to receive a slug on a new device; scoped `Permissions-Policy: camera=(self)` |
+| `image.php` | Server-side PNG export (PHP GD) — theme-aware timetable image; cached to `cache/images/` |
 | `sitemap.php` | Dynamic XML Sitemap at `/sitemap.xml` (Apache rewrite) — static pages, active events, artist profiles; file-cached to `cache/sitemap.xml` (TTL 1 hr) |
 | `robots.php` | Dynamic `robots.txt` at `/robots.txt` (Apache rewrite) — injects `Sitemap:` URL from actual host; Disallows `/my/`, `/my-favorites/` |
 | `robots.txt` | Static fallback robots.txt (rewrite routes to `robots.php`) |
@@ -47,6 +60,10 @@ stage-idol-calendar/
 | `setup.php` | Setup Wizard — fresh install & maintenance (6 steps) |
 | `config.php` | Bootstrap — loads all config/ and functions/ |
 | `IcsParser.php` | ICS Parser class — parse .ics files → SQLite |
+| `manifest.json` / `manifest.php` | PWA Web App Manifest (name, icons, start_url, display) |
+| `service-worker.js` | PWA service worker — push + notificationclick + offline cache strategies; `CACHE_VERSION` synced to `APP_VERSION` |
+| `offline.html` | Offline fallback page (self-contained, 3 languages) |
+| `sync-sw-version.php` | CLI-only — syncs `CACHE_VERSION` in `service-worker.js` with `APP_VERSION` (run after `update-version.php`) |
 | `.htaccess` | Apache clean URL rewrite rules (removes .php extension) |
 | `nginx-clean-url.conf` | Nginx complete server config (clean URLs, directory restrictions, security headers) |
 
@@ -59,16 +76,21 @@ Configuration constants for the entire system, loaded via `config.php`
 | File | Defines | Purpose |
 |------|---------|---------|
 | `app.php` | `APP_VERSION`, `APP_NAME`, `PRODUCTION_MODE`, `VENUE_MODE`, `MULTI_EVENT_MODE`, `DEFAULT_EVENT_SLUG`, `DEFAULT_TIMEZONE` | App settings + cache busting + site title default |
-| `admin.php` | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `SESSION_TIMEOUT`, `ADMIN_IP_WHITELIST_ENABLED`, `ADMIN_ALLOWED_IPS` | Admin auth fallback + IP whitelist |
+| `admin.php` | `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `SESSION_TIMEOUT`, `ADMIN_IP_WHITELIST_ENABLED`, `ADMIN_ALLOWED_IPS`, `ADMIN_AUDIT_RETENTION_DAYS`, `ADMIN_AUDIT_LOG_DIR` | Admin auth fallback + IP whitelist + audit-log retention (v14.0.0+) |
 | `security.php` | Security rate limiting constants | Rate limiting config |
 | `database.php` | `DB_PATH` (`data/calendar.db`) | Database file path |
-| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s), `SITEMAP_CACHE_FILE`, `SITEMAP_CACHE_TTL` (3600s) | Cache TTL settings + ICS feed cache + sitemap cache |
-| `google.php` | `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_LEADERBOARD`, `GOOGLE_ADS_SLOT_RECTANGLE`, `GOOGLE_ADS_SLOT_RESPONSIVE` | Loads from `google-config.json`; constants kept for backward compatibility (replaces `analytics.php` in v6.4.1) |
-| `google-config.json` | JSON file with `ga_id`, `ads_client`, `ads_slot_*` | Runtime-editable Google config; protected from HTTP by `config/.htaccess` |
-| `favorites.php` | `FAV_SECRET`, `FAV_CACHE_DIR`, `FAV_CACHE_TTL` | Anonymous favorites HMAC secret + storage config |
-| `telegram.php` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_NOTIFY_BEFORE_MINUTES` | Loads from `telegram-config.json`; constants for telegram bot |
+| `cache.php` | `DATA_VERSION_CACHE_TTL` (600s), `CREDITS_CACHE_TTL` (3600s), `FEED_CACHE_DIR`, `FEED_CACHE_TTL` (3600s), `SITEMAP_CACHE_FILE`, `SITEMAP_CACHE_TTL` (3600s), `QUERY_CACHE_DIR`, `QUERY_CACHE_TTL`, `IMAGE_CACHE_DIR`, `IMAGE_CACHE_TTL` | Cache TTL settings + ICS feed cache + sitemap + query cache + image export cache |
+| `google.php` | `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` | Loads from `google-config.json`; constants kept for backward compatibility (replaces `analytics.php` in v6.4.1) |
+| `google-config.json` | JSON file with `ga_id`, `ads_client`, `ads_slot_*` | Runtime-editable Google config; gitignored (`config/*-config.json`) + HTTP-denied by `config/.htaccess` |
+| `favorites.php` | `FAVORITES_HMAC_SECRET`, `FAVORITES_HMAC_LENGTH`, `FAVORITES_DIR`, `FAVORITES_TTL`, `FAVORITES_RL_DIR`, `FAVORITES_MAX_ARTISTS`, `FAVORITES_RATE_LIMIT`, `FAVORITES_RATE_WINDOW` | Anonymous favorites storage + rate-limit config; **HMAC secret loaded from `favorites-config.json`** (v16.5.2), falls back to placeholder when absent |
+| `favorites-config.json` | JSON file with `hmac_secret` | Runtime favorites HMAC secret; gitignored + HTTP-denied; generated by `tools/generate-favorites-secret.php` (v16.5.2+) |
+| `telegram.php` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_NOTIFY_BEFORE_MINUTES`, `TELEGRAM_DAILY_SUMMARY_*`, `TELEGRAM_ENABLED` | Loads from `telegram-config.json`; constants for telegram bot |
+| `telegram-config.json` | JSON file with bot token/username/webhook secret + notify/summary settings | Runtime-editable via Admin UI; gitignored + HTTP-denied |
 | `email.php` | `EMAIL_ENABLED`, `EMAIL_SMTP_*`, `EMAIL_FROM_*`, `EMAIL_RECIPIENTS` | Loads SMTP notification settings from `email-config.json`; disabled by default |
-| `email-config.json` | JSON file with SMTP host/port/encryption, sender, recipients, enabled flag | Runtime-editable Email Notifications config; protected from HTTP by `config/.htaccess` |
+| `email-config.json` | JSON file with SMTP host/port/encryption, sender, recipients, enabled flag | Runtime-editable Email Notifications config; gitignored + HTTP-denied |
+| `webpush.php` | `WEBPUSH_ENABLED`, `WEBPUSH_VAPID_PUBLIC_KEY`, `WEBPUSH_VAPID_PRIVATE_KEY_PEM`, `WEBPUSH_VAPID_SUBJECT`, `WEBPUSH_SITE_URL`, `WEBPUSH_NOTIFY_BEFORE_MINUTES`, `WEBPUSH_MAX_SUBS_PER_TOKEN`, `WEBPUSH_ALLOW_LOCALHOST` | Loads Web Push (VAPID) config from `webpush-config.json` (v15.0.0+) |
+| `webpush-config.json` | JSON file with VAPID keys + subject + site URL + notify settings | Runtime Web Push config; gitignored + HTTP-denied; private key never exposed via API |
+| `.htaccess` | — | `Require all denied` (Apache 2.4) + 2.2 fallback — denies HTTP access to **every** file under `config/` (v15.5.0, LOW-2) |
 
 ---
 
@@ -78,16 +100,18 @@ Helper functions loaded via `config.php`
 
 | File | Key Functions | Purpose |
 |------|--------------|---------|
-| `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`, `get_event_timezone()` | General utilities + DB singleton + site title/theme + multi-event helpers + timezone |
+| `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`, `get_event_timezone()`, `is_valid_timezone()`, `get_site_cover_bg()`, `get_header_cover_bg()` | General utilities + DB singleton + site title/theme + multi-event helpers + timezone + cover images |
 | `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_feed_cache()`, `invalidate_sitemap_cache()`, `invalidate_query_cache()`, `invalidate_artist_query_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate (data version, credits, ICS feed, sitemap, query cache) |
 | `admin.php` | `admin_login()`, `admin_login_attempt()`, `admin_complete_twofa()`, `safe_session_start()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting + 2FA login flow |
 | `totp.php` | `totp_hotp()`, `totp_code()`, `totp_verify()`, `totp_otpauth_uri()`, `twofa_generate_backup_codes()`, `twofa_consume_backup_code()` | RFC 6238 TOTP + Base32 + one-time backup-code helpers for Admin 2FA |
-| `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `generate_csrf_token()`, `validate_csrf_token()` | XSS, CSRF, headers, IP whitelist |
+| `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `csrf_token()`, `verify_csrf_token()` | XSS, CSRF, headers, IP whitelist |
 | `ads.php` | `render_ad_unit(type)` | Google AdSense helper — renders leaderboard/rectangle/responsive ad units; no-op when `GOOGLE_ADS_CLIENT` is empty (v6.3.0+) |
 | `ics.php` | `icsLine()`, `icsFold()`, `icsEscape()`, `icsEscapeText()`, `icsVtimezone()`, `icsOffsetString()` | Shared ICS helpers for RFC 5545 compliant export and feed generation |
-| `telegram.php` | `send_telegram_message()`, `find_favorites_by_chat_id()`, `telegram_is_muted()`, `telegram_notify_is_enabled()`, `telegram_format_events_list()` | Telegram Bot API helpers + notification state |
+| `telegram.php` | `send_telegram_message()`, `find_favorites_by_chat_id()`, `telegram_get_notify_mode()`, `telegram_per_program_enabled()`, `telegram_is_muted()`, `telegram_format_notification()`, `telegram_format_events_list()` | Telegram Bot API helpers + notification state (3 notify modes: all/summary/off, v16.2.0) |
 | `email.php` | `email_send()`, `email_parse_recipients()`, `email_notify_program_request_created()`, `email_notify_event_request_created()` | Native SMTP email notification helpers for Program/Event Requests; logs to `cache/logs/email.log` |
-| `favorites.php` | `fav_create()`, `fav_load()`, `fav_save()`, `fav_build_slug()`, `fav_parse_slug()`, `fav_verify_slug()`, `fav_maybe_cleanup()` | Anonymous favorites: HMAC-signed slug, JSON file I/O, sharded storage |
+| `webpush.php` | `webpush_is_enabled()`, `webpush_generate_vapid_keys()`, `webpush_vapid_jwt()`, `webpush_encrypt()`, `webpush_send()`, `webpush_allowed_hosts()`, `webpush_validate_endpoint()`, `webpush_urlsafe_b64encode/decode()` | Web Push: VAPID + RFC 8291 aes128gcm crypto + SSRF endpoint allow-list (v15.0.0, hardened v15.5.0) |
+| `audit.php` | `audit_log()`, `audit_admin_success()`, `audit_admin_failure()`, `audit_read_recent()`, `audit_redact()`, `audit_api_context()` | File-based admin audit log (JSON Lines, secret redaction) → `cache/logs/admin-audit-YYYY-MM-DD.log` (v14.0.0+) |
+| `favorites.php` | `fav_generate_uuid_v7()`, `fav_build_slug()`, `fav_parse_slug()`, `fav_read()`, `fav_write()`, `fav_touch()`, `fav_check_rate_limit()`, `fav_maybe_cleanup()`, `fav_resolve_user_timezone()` | Anonymous favorites: HMAC-signed slug, atomic JSON I/O, sharded storage, per-IP rate limit |
 | `seo.php` | `seo_full_url()`, `seo_truncate()`, `seo_render_meta()`, `seo_render_json_ld()` | CLI-safe SEO helpers — meta description, Open Graph, Twitter Card, canonical URL, noindex, JSON-LD structured data (v6.5.0+) |
 | `search.php` | `fts5_available()`, `fts5_escape()`, `fts5_count_programs()`, `fts5_search_programs()`, `fts5_count_events()`, `fts5_search_events()`, `fts5_search_artists()`, `fts5_search_all()`, `fts5_rebuild_all()` | FTS5 full-text search across programs, events, artists; `unicode61` tokenizer; graceful LIKE fallback when FTS tables absent (v9.0.0+) |
 
@@ -127,12 +151,19 @@ Auto-created by the system
 | `sitemap.xml` | Static XML sitemap cache (served by `readfile()` on hit) | 1 hour |
 | `query_event_{id}.json` | Event page DB query results (programs, artists, venues, types) | 1 hour |
 | `query_artist_{id}.json` | Artist profile page DB query results | 1 hour |
-| `query_listing.json` | Homepage listing query cache (`$activeEvents` + `$listingCalData`) | 1 hour |
+| `query_listing.json` | Homepage listing query cache (`$activeEvents` + `$listingCalData` + `live_programs`) | 1 hour |
 | `query_portal.json` | Artists & Group Portal page query cache | 1 hour |
-| `logs/email.log` | Email notification delivery log | Persistent (append-only; rotate externally if needed) |
+| `query_venue_{id}.json` | Venue profile page query cache (v16.0.0+) | 1 hour |
+| `query_portal_venues.json` | All-Venues portal query cache (v16.0.0+) | 1 hour |
+| `favorites/{shard}/{token}.json` | Anonymous favorites data (sharded by last 3 hex of UUID) + `.ics` personal feed cache | 365 days (auto-touch) |
+| `ratelimit/fav_rl_*.json` | Favorites per-IP rate-limit counters (`FAVORITES_RL_DIR`, v16.5.2) | rolling window |
+| `logs/email.log` | Email notification delivery log (+ dated archives via rotation cron) | Persistent (rotated daily, 7-day retention) |
+| `logs/telegram-cron.log` | Telegram notification cron log (+ dated archives) | Rotated daily, 7-day retention |
+| `logs/webpush-cron.log` | Web Push notification cron log (+ dated archives) | Rotated daily, 7-day retention |
+| `logs/admin-audit-YYYY-MM-DD.log` | Admin audit log (JSON Lines, secret-redacted) | Retention `ADMIN_AUDIT_RETENTION_DAYS` (default 30) |
 | `login_attempts.json` | Login rate limiting data | 15 minutes |
 | `site-theme.json` | Global site theme setting | Persistent (changed by admin) |
-| `site-settings.json` | Site settings: `site_title`, `disclaimer_th/en/ja` | Persistent (changed by admin) |
+| `site-settings.json` | Site settings: `site_title`, `disclaimer_th/en/ja`, cover images | Persistent (changed by admin) |
 | `images/img_*.png` | Server-side image export PNG cache (theme-aware) | 1 hour |
 
 ---
@@ -145,6 +176,9 @@ Public API endpoints — no login required
 |------|---------|
 | `request.php` | Program request submission — submit add/modify request + programs listing (for modal) |
 | `event-request.php` | Event request submission — propose new events (add-only); rate-limited 10 req/hr/IP (v9.3.0+) |
+| `favorites.php` | Anonymous favorites API — `create` (rate-limited), `get`, `add`/`remove` artist, `set_timezone`, `unlink_telegram`; HMAC slug required (v3.4.0+) |
+| `push.php` | Web Push subscription API — `subscribe`/`unsubscribe`/`status`; SSRF endpoint allow-list; HMAC slug required (v15.0.0+) |
+| `telegram.php` | Telegram Bot webhook handler — `/start`, `/today`, `/tz`, `/notify`, etc.; `X-Telegram-Bot-Api-Secret-Token` verification (fail-closes when secret empty) (v5.0.0+) |
 
 See [API.md](API.md) for full endpoint documentation.
 
@@ -156,11 +190,31 @@ Admin panel — login required
 
 | File | Purpose |
 |------|---------|
-| `login.php` | Login page (rate limited: 5 attempts/15 min/IP) |
-| `index.php` | Admin dashboard — Tabs: Dashboard, Programs, Requests, Credits, Events, Artists, Import, Settings |
-| `api.php` | All CRUD API endpoints (requires session + CSRF token) |
+| `login.php` | Login page (CSRF-gated, rate limited: 5 attempts/15 min/IP); 2FA step when enabled |
+| `index.php` | Admin dashboard — Tabs: Dashboard, Programs, Requests, Credits, Events, Artists, Venues, Import, Settings (sub-tabs: Site/Contact/Users/Backup/Telegram/Web Push/Email/Google/Disclaimer/Audit Log) |
+| `api.php` | All CRUD API endpoints (requires session + CSRF token); `$adminOnlyActions` dispatcher gate for admin-role actions |
+| `help.php` / `help-en.php` | Admin help pages (Thai / English), role-aware |
+| `js/admin-i18n.js` | Bilingual Admin UI dictionary (TH/EN) + `adminT()` lookup |
 
 See [API.md](API.md) for admin endpoint documentation.
+
+---
+
+## ⏰ cron/
+
+CLI-only scripts (HTTP access blocked by `cron/.htaccess` deny-all). Schedule via crontab.
+
+| File | Purpose |
+|------|---------|
+| `send-telegram-notifications.php` | Per-program + daily-summary Telegram notifications; scans favorites shards; respects mute/notify-mode; idempotent (±7.5 min window) |
+| `send-web-push-notifications.php` | Per-program Web Push notifications; removes expired/HTTP-410/non-allow-listed subscriptions |
+| `rotate-telegram-logs.php` | Daily rotation + 7-day cleanup of `cache/logs/telegram-cron.log` |
+| `rotate-webpush-logs.php` | Daily rotation + 7-day cleanup of `cache/logs/webpush-cron.log` |
+| `rotate-email-logs.php` | Daily rotation + 7-day cleanup of `cache/logs/email.log` |
+| `rotate-admin-audit-logs.php` | Deletes `admin-audit-*.log` older than `ADMIN_AUDIT_RETENTION_DAYS` |
+| `.htaccess` | `Deny from all` — blocks HTTP access to all cron scripts |
+
+> Both notification crons use a read-modify-write under `LOCK_EX` (v15.6.1) to avoid clobbering each other's writes to the shared favorites JSON.
 
 ---
 
@@ -195,8 +249,15 @@ CLI scripts for developers — run via `php tools/script.php`
 | `migrate-add-artist-requests-table.php` | Create `artist_requests` table for organizer Artist Request workflow | ✅ |
 | `migrate-add-artist-social-columns.php` | Add `social_facebook/instagram/twitter/tiktok TEXT DEFAULT NULL` to `artists` | ✅ |
 | `migrate-add-ticket-url-column.php` | Add `ticket_url TEXT DEFAULT NULL` to `events` | ✅ |
-| `update-version.php` | Bump `APP_VERSION` across 9 files automatically | - |
-| `migrate-add-organizer-role.php` | Add organizer role ownership schema (`events.created_by_user_id`, `event_organizers`) | v12.0.0 |
+| `migrate-add-organizer-role.php` | Add organizer role ownership schema (`events.created_by_user_id`, `event_organizers`) (v12.0.0) | ✅ |
+| `migrate-add-venues-table.php` | Create `venues` + `venue_variants` tables; seed from `programs.location`; flag online platforms (v16.0.0) | ✅ |
+| `update-version.php` | Bump `APP_VERSION` across config/app.php + 8 doc files (run `sync-sw-version.php` after) | - |
+| `import-artist-socials.php` | CLI: bulk-import artist social links from CSV/JSON; match by name→variant→id; http(s)-only URLs; `--dry-run`/`--overwrite` (v16.4.0) | - |
+| `sample-artist-socials.csv` | UTF-8-BOM template for `import-artist-socials.php` | - |
+| `dedup-locations.sql` | SQL helper for venue dedup mapping (v16.0.0) | - |
+| `generate-favorites-secret.php` | Generate the Favorites HMAC secret → writes `config/favorites-config.json` (overwrite-guarded) (v16.5.2) | - |
+| `generate-pwa-icons.php` | Generate sakura-gradient PWA icons (72/192/512) into `icon/` (PHP GD) | - |
+| `setup-telegram-webhook.php` | Register the Telegram webhook URL with the Bot API | - |
 | `generate-password-hash.php` | Generate bcrypt password hash | |
 | `debug-parse.php` | Debug ICS file parsing | |
 | `test-parse.php` | Test ICS parser | |
@@ -207,7 +268,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 24 suites (cumulative runner), PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 27 suites (cumulative runner), PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Unique Tests | Cumulative | Coverage |
 |------|-------------|-----------|---------|
@@ -215,29 +276,33 @@ Automated test suite — 24 suites (cumulative runner), PHP 8.1/8.2/8.3/8.4/8.5
 | `run-tests.php` | — | — | Main runner + colored output + suite selector |
 | `SecurityTest.php` | 7 | 7 | XSS, null bytes, input sanitization, safe errors |
 | `CacheTest.php` | 10 | 17 | Cache TTL, hit/miss, invalidation, fallback on error |
-| `AdminAuthTest.php` | 21 | 38 | Session, login, timing attack resistance, DB auth |
-| `CreditsApiTest.php` | 11 | 49 | Credits CRUD, bulk delete, SQL injection prevention |
-| `IntegrationTest.php` | 51 | 100 | Config, file structure, workflows, API, multi-event |
-| `UserManagementTest.php` | 19 | 119 | Role schema, RBAC helpers, user CRUD, permission guards |
-| `ThemeTest.php` | 24 | 143 | Theme system, get_site_theme(), per-event theme, CSS files |
-| `SiteSettingsTest.php` | 14 | 157 | Site title: get_site_title(), cache, fallbacks, admin API |
-| `EventEmailTest.php` | 19 | 176 | events.email schema, CRUD, validation, ICS ORGANIZER |
-| `ProgramTypeTest.php` | 35 | 211 | program_type schema, CRUD, API filter, UI badges, translations |
-| `FeedTest.php` | 80 | 291 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
-| `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
-| `FavoritesTest.php` | 84 | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
-| `TimezoneTest.php` | 81 | 487 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
-| `TelegramTest.php` | 54 | 541 | Telegram bot commands, helpers, mute/notify state, group resolution |
-| `EmailNotificationTest.php` | 13 | 554 | Email config/helper loading, site-name subjects, admin URL base path, recipient parsing, SMTP disabled guard, defensive helper loading, request email hooks, Admin Email UI/API, Requests empty state |
-| `TwoFactorAuthTest.php` | 9 | 563 | RFC 6238 TOTP vectors, Base32, otpauth URI, replay guard, backup codes, manual 2FA migration sources, schema flag, API/UI/i18n |
-| `ArtistPictureTest.php` | 61 | 624 | Artist display/cover picture upload, GD resize, admin API, tooltip |
-| `SeoTest.php` | 63 | 687 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks on 8 public pages |
-| `EventPicturesTest.php` | 57 | 744 | event_pictures table/columns/indexes/CASCADE, events.gallery_template, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list), processAndSaveImage mode='fit', uploads/events dir/htaccess, setup.php, index.php gallery+lightbox, admin/index.php picture section+template dropdown, CSS templates, translations |
-| `EventCoverTest.php` | 44 | 788 | events.cover_image/cover_image_card schema, Cropper.js upload flow, CSRF X-CSRF-Token header, fallback chain, admin API, listing cache keys, migration idempotency |
-| `Fts5Test.php` | 45 | 833 | FTS5 virtual tables, triggers (ai/au/ad × 3 tables), fts5_available() caching, fts5_search_*, fts5_rebuild_all(), LIKE fallback, public API action=search, admin FTS integration |
-| `WebPushTest.php` | 45 | 882 | WEBPUSH_* constants, webpush_is_enabled(), base64url encode/decode, VAPID keygen (EC P-256, 87-char public key), JWT/encrypt/send functions, service-worker.js push+notificationclick, manifest.json, icons, admin API webpush_config_get/save/vapid_generate, api/push.php, cron CLI guard, admin-i18n.js + translations.js keys, config.php loading |
+| `AdminAuthTest.php` | 35 | 52 | Session, login, timing attack, DB auth, **login CSRF gate + order + audit (v15.5.0)** |
+| `CreditsApiTest.php` | 11 | 63 | Credits CRUD, bulk delete, SQL injection prevention |
+| `IntegrationTest.php` | 58 | 121 | Config, file structure, workflows, API, multi-event, **config/tools .htaccess + .gitignore guards (v15.5.0)** |
+| `UserManagementTest.php` | 20 | 141 | Role schema, RBAC helpers, user CRUD, permission guards |
+| `ThemeTest.php` | 24 | 165 | Theme system, get_site_theme(), per-event theme, CSS files |
+| `SiteSettingsTest.php` | 14 | 179 | Site title: get_site_title(), cache, fallbacks, admin API |
+| `EventEmailTest.php` | 19 | 198 | events.email schema, CRUD, validation, ICS ORGANIZER |
+| `ProgramTypeTest.php` | 35 | 233 | program_type schema, CRUD, API filter, UI badges, translations |
+| `FeedTest.php` | 80 | 313 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
+| `StreamUrlTest.php` | 31 | 344 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
+| `FavoritesTest.php` | 84 | 428 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
+| `TimezoneTest.php` | 81 | 509 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
+| `TelegramTest.php` | 82 | 591 | Telegram bot commands, helpers, mute/notify modes (all/summary/off), `/tz`, group resolution |
+| `EmailNotificationTest.php` | 13 | 604 | Email config/helper loading, site-name subjects, admin URL base path, recipient parsing, SMTP disabled guard, request email hooks, Admin Email UI/API, Requests empty state |
+| `TwoFactorAuthTest.php` | 9 | 613 | RFC 6238 TOTP vectors, Base32, otpauth URI, replay guard, backup codes, manual 2FA migration sources, schema flag, API/UI/i18n |
+| `OrganizerRoleTest.php` | 3 | 616 | Organizer role scoping, artist-request flow, approve-to-artist refresh |
+| `ArtistPictureTest.php` | 61 | 677 | Artist display/cover picture upload, GD resize, admin API, tooltip |
+| `SeoTest.php` | 63 | 740 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks on public pages |
+| `EventPicturesTest.php` | 57 | 797 | event_pictures table/columns/indexes/CASCADE, events.gallery_template, migration, DB CRUD, admin API (upload/delete/reorder/list), processAndSaveImage mode='fit', uploads dir/htaccess, gallery+lightbox, CSS templates |
+| `EventCoverTest.php` | 44 | 841 | events.cover_image/cover_image_card schema, Cropper.js upload flow, CSRF X-CSRF-Token header, fallback chain, admin API, listing cache keys, migration |
+| `Fts5Test.php` | 45 | 886 | FTS5 virtual tables, triggers (ai/au/ad × 3 tables), fts5_available() caching, fts5_search_*, fts5_rebuild_all(), LIKE fallback, public API action=search, admin FTS integration |
+| `WebPushTest.php` | 73 | 959 | WEBPUSH_* constants, base64url, VAPID keygen (EC P-256), JWT/encrypt/send, **endpoint allow-list (FCM/Mozilla/Apple/WNS) + reject paths + dev-flag gate + defense-in-depth in webpush_send() (v15.5.0)**, service-worker push+notificationclick, admin API, api/push.php (no FILTER_SANITIZE_URL) |
+| `PwaOfflineTest.php` | 59 | 1018 | service-worker cache strategies, CACHE_VERSION sync, PRECACHE_ASSETS, network-only routes, SWR + ETag/304, offline.html (3 langs), sync-sw-version.php CLI guard, .htaccess |
+| `VenueTest.php` | 34 | 1052 | venues + venue_variants schema, venue_resolve_canonical(), merge, is_online flag, /venue/{id} + /venues portal, admin API, migration |
+| `LiveNowTest.php` | 15 | 1067 | Live Now strip query, ISO-with-offset emission, live/soon classification, i18n keys |
 
-> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 9338.
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = **13,231** (27 suites).
 
 ```bash
 # Run all tests
@@ -399,7 +464,7 @@ Admin user credentials and roles.
 | `username` | TEXT | UNIQUE NOT NULL | Login username |
 | `password_hash` | TEXT | NOT NULL | Bcrypt password hash |
 | `display_name` | TEXT | | Display name in UI |
-| `role` | TEXT | NOT NULL DEFAULT `'admin'` | `'admin'` (full access) or `'agent'` (programs only) |
+| `role` | TEXT | NOT NULL DEFAULT `'admin'` | `'admin'` (full access), `'agent'` (programs only), or `'organizer'` (assigned events only, v12.0.0+) |
 | `twofa_enabled` | INTEGER | DEFAULT 0 | Optional TOTP 2FA enabled flag |
 | `twofa_secret` | TEXT | | Base32 TOTP secret (DB-managed users only) |
 | `twofa_backup_codes` | TEXT | | JSON array of hashed one-time recovery codes |
@@ -562,6 +627,53 @@ Alias/variant names for artists — used by ICS import to recognise alternate sp
 
 ---
 
+### Table: `venues`
+
+Canonical venue/location records — a dedup layer over `programs.location` (v16.0.0+). `programs.location` stays free text (no FK); this table drives autocomplete, auto-canonicalization on save/import, the admin Merge tool, and the public venue profile pages.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Venue ID |
+| `name` | TEXT | UNIQUE NOT NULL | Canonical venue name |
+| `description` | TEXT | DEFAULT NULL | Optional description |
+| `map_url` | TEXT | DEFAULT NULL | Optional map link |
+| `is_online` | INTEGER | DEFAULT 0 | `1` = online platform (hidden from `/venues` portal, v16.0.1) |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+> `venue_resolve_canonical()` in `admin/api.php` resolves `location` (exact → variant → auto-create) before binding on create/update/bulk-update/ICS-import. Profile at `/venue/{id}`; portal at `/venues`.
+
+---
+
+### Table: `venue_variants`
+
+Alias/variant names for venues — drives autocomplete + canonicalization (v16.0.0+).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Variant ID |
+| `venue_id` | INTEGER | FK → `venues.id` ON DELETE CASCADE | Owning venue |
+| `variant` | TEXT | NOT NULL | Alternate name / alias |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
+
+**Unique constraint**: `(venue_id, variant)`
+
+---
+
+### Table: `event_organizers`
+
+Maps organizer users to the events they may manage (v12.0.0+). Combined with `events.created_by_user_id` (audit-only).
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `event_id` | INTEGER | FK → `events.id` | Assigned event |
+| `user_id` | INTEGER | FK → `admin_users.id` | Organizer user |
+| `assigned_by` | INTEGER | FK → `admin_users.id` | Admin who assigned |
+| `assigned_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Assignment time |
+
+> Assignment endpoints (`event_organizers_list`, `event_organizers_update`) require `admin` role. Organizer access is scoped to assigned events only; unassignment immediately revokes access (creator reference does not grant permanent access).
+
+---
+
 ### FTS5 Virtual Tables *(v9.0.0+)*
 
 Full-text search virtual tables powered by SQLite FTS5 (`unicode61` tokenizer). Created by `tools/migrate-add-fts5.php`.
@@ -607,7 +719,10 @@ sqlite3 data/calendar.db
 
 # View all tables
 .tables
-# → programs, events, program_requests, credits, admin_users
+# → programs, events, program_requests, event_requests, artist_requests,
+#   credits, admin_users, event_organizers, contact_channels,
+#   artists, artist_variants, program_artists, venues, venue_variants,
+#   event_pictures, *_fts (FTS5 virtual tables)
 
 # Show table schema
 .schema programs
@@ -660,12 +775,24 @@ config.php (bootstrap)
     ├── config/security.php     → Rate limiting
     ├── config/database.php     → DB_PATH
     ├── config/cache.php        → Cache TTL constants
-    ├── config/email.php        → EMAIL_* SMTP notification constants
-    ├── functions/helpers.php   → get_db(), event helpers
-    ├── functions/cache.php     → Cache read/write
-    ├── functions/admin.php     → Auth + RBAC + rate limiting
+    ├── config/google.php       → GOOGLE_* (from google-config.json)
+    ├── config/email.php        → EMAIL_* SMTP (from email-config.json)
+    ├── config/telegram.php     → TELEGRAM_* (from telegram-config.json)
+    ├── config/webpush.php      → WEBPUSH_* VAPID (from webpush-config.json)
+    ├── config/favorites.php    → FAVORITES_* (HMAC from favorites-config.json)
+    ├── functions/helpers.php   → get_db(), event helpers, timezone
+    ├── functions/cache.php     → Cache read/write/invalidate
+    ├── functions/admin.php     → Auth + RBAC + rate limiting + 2FA flow
     ├── functions/totp.php      → Admin TOTP 2FA helpers
-    ├── functions/security.php  → Sanitize, CSRF, headers
+    ├── functions/security.php  → Sanitize, CSRF, headers, IP whitelist
+    ├── functions/audit.php     → Admin audit log (redacted JSON Lines)
+    ├── functions/seo.php       → Meta/OG/Twitter/JSON-LD
+    ├── functions/ics.php       → Shared ICS helpers
+    ├── functions/ads.php       → AdSense unit rendering
+    ├── functions/telegram.php  → Telegram Bot API + notify state
+    ├── functions/webpush.php   → Web Push VAPID/aes128gcm + SSRF allow-list
+    ├── functions/favorites.php → Anonymous favorites slug + storage
+    ├── functions/search.php    → FTS5 search
     └── functions/email.php     → Request email notifications
 
 index.php
@@ -693,4 +820,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v16.5.1*
+*Idol Stage Timetable v16.5.2*
