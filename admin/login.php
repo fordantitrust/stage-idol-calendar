@@ -23,25 +23,93 @@ if (is_logged_in()) {
     exit;
 }
 
+safe_session_start();
+$twofaPending = !empty($_SESSION['twofa_pending_user_id']) && intval($_SESSION['twofa_pending_expires'] ?? 0) >= time();
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // ── CSRF check (login CSRF defense) ──────────────────────────────────────
+    // Must come BEFORE rate-limit accounting so an attacker without a valid
+    // token cannot exhaust the per-IP login budget for a legitimate user.
+    $postedCsrf = (string)($_POST['csrf_token'] ?? '');
+    if (!verify_csrf_token($postedCsrf)) {
+        $error = 'login_csrf';
+        audit_api_context();
+        audit_log([
+            'action'         => 'login_blocked',
+            'outcome'        => 'blocked',
+            'error_code'     => 'csrf_invalid',
+            'actor_user_id'  => null,
+            'actor_username' => !empty($_POST['username']) ? (string)$_POST['username'] : null,
+            'actor_role'     => null,
+            'entity_type'    => 'session',
+            'entity_id'      => null,
+            'entity_label'   => null,
+        ]);
+    } else {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
+    $twofaCode = $_POST['twofa_code'] ?? '';
     $clientIp = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+    audit_api_context();
 
     $rateCheck = check_login_rate_limit($clientIp);
     if ($rateCheck['blocked']) {
         $waitMins = ceil($rateCheck['wait'] / 60);
         $error = "login_rate:{$waitMins}";
-    } elseif (admin_login($username, $password)) {
-        clear_login_attempts($clientIp);
-        header('Location: index.php');
-        exit;
-    } else {
+        // Audit login_blocked (actor unknown — pre-auth)
+        audit_log([
+            'action'         => 'login_blocked',
+            'outcome'        => 'blocked',
+            'error_code'     => 'rate_limited',
+            'actor_user_id'  => null,
+            'actor_username' => $username !== '' ? $username : null,
+            'actor_role'     => null,
+            'entity_type'    => 'session',
+            'entity_id'      => null,
+            'entity_label'   => $username !== '' ? $username : null,
+        ]);
+    } elseif ($twofaPending && $twofaCode !== '') {
+        // 2FA step — audit hooks are inside admin_complete_twofa() (functions/admin.php)
+        $result = admin_complete_twofa($twofaCode);
+        if (!empty($result['success'])) {
+            clear_login_attempts($clientIp);
+            header('Location: index.php');
+            exit;
+        }
         record_failed_login($clientIp);
-        $error = 'login_invalid';
+        $error = 'login_2fa_invalid';
+    } else {
+        // Password step — login_failure & twofa_required hooks are inside admin_login_attempt()
+        $result = admin_login_attempt($username, $password);
+        if (!empty($result['success'])) {
+            clear_login_attempts($clientIp);
+            // Audit login_success — session is set by admin_finalize_login() at this point
+            audit_log([
+                'action'         => 'login_success',
+                'outcome'        => 'success',
+                'actor_user_id'  => isset($_SESSION['admin_user_id']) ? (int)$_SESSION['admin_user_id'] : null,
+                'actor_username' => $_SESSION['admin_username'] ?? $username,
+                'actor_role'     => $_SESSION['admin_role'] ?? null,
+                'entity_type'    => 'session',
+                'entity_id'      => null,
+                'entity_label'   => $_SESSION['admin_username'] ?? $username,
+            ]);
+            header('Location: index.php');
+            exit;
+        }
+        if (!empty($result['twofa_required'])) {
+            $twofaPending = true;
+        } else {
+            record_failed_login($clientIp);
+            $error = 'login_invalid';
+        }
     }
+    } // end CSRF-valid branch
 }
+
+$twofaPending = !empty($_SESSION['twofa_pending_user_id']) && intval($_SESSION['twofa_pending_expires'] ?? 0) >= time();
 
 $csrfToken = csrf_token();
 ?>
@@ -206,6 +274,10 @@ $csrfToken = csrf_token();
             <div class="error-message" id="loginError">
                 <?php if ($error === 'login_invalid'): ?>
                     <span data-i18n="login.errInvalid">Username หรือ Password ไม่ถูกต้อง</span>
+                <?php elseif ($error === 'login_2fa_invalid'): ?>
+                    <span data-i18n="login.err2faInvalid">Authentication code ไม่ถูกต้อง</span>
+                <?php elseif ($error === 'login_csrf'): ?>
+                    <span data-i18n="login.errCsrf">Session หมดอายุ กรุณาโหลดหน้านี้ใหม่แล้วลองอีกครั้ง</span>
                 <?php elseif (strpos($error, 'login_rate:') === 0): ?>
                     <?php $waitMins = substr($error, strlen('login_rate:')); ?>
                     <span id="loginRateMsg" data-wait="<?php echo (int)$waitMins; ?>"></span>
@@ -216,6 +288,14 @@ $csrfToken = csrf_token();
         <form method="POST" action="">
             <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
 
+            <?php if ($twofaPending): ?>
+            <div class="form-group">
+                <label for="twofa_code" data-i18n="login.twofaCode">Authentication code</label>
+                <input type="text" id="twofa_code" name="twofa_code" inputmode="numeric" autocomplete="one-time-code" required autofocus>
+                <small style="display:block;margin-top:6px;color:#666" data-i18n="login.twofaHint">Enter the 6-digit code from your Authenticator app or a recovery code.</small>
+            </div>
+            <button type="submit" class="btn-login" data-i18n="login.twofaSubmit">Verify</button>
+            <?php else: ?>
             <div class="form-group">
                 <label for="username" data-i18n="login.username">Username</label>
                 <input type="text" id="username" name="username" required autofocus>
@@ -227,6 +307,7 @@ $csrfToken = csrf_token();
             </div>
 
             <button type="submit" class="btn-login" data-i18n="login.submit">เข้าสู่ระบบ</button>
+            <?php endif; ?>
         </form>
 
         <a href="../index.php" class="back-link" data-i18n="login.backToMain">&larr; กลับหน้าหลัก</a>

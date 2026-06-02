@@ -25,8 +25,17 @@ require_api_allowed_ip();
 // Authentication: Require login for all API access
 require_api_login();
 
+// Audit context — set request_id, IP, UA once per request
+audit_api_context();
+
 // CSRF Protection: Validate token for state-changing requests (POST, PUT, DELETE)
 require_csrf_token();
+
+// ── Helper: validate social/ticket URL (http/https only, or null) ─────────────
+function sanitize_social_url(string $raw): ?string {
+    $url = trim($raw);
+    return ($url !== '' && preg_match('/^https?:\/\//i', $url)) ? $url : null;
+}
 
 // Database connection
 $db = null;
@@ -39,6 +48,144 @@ try {
     exit;
 }
 
+function adminTwofaColumnsExist(PDO $db): bool {
+    $flagFile = dirname(DB_PATH) . '/.admin_2fa_columns_ready';
+    if (is_file($flagFile)) {
+        return true;
+    }
+
+    try {
+        $table = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='admin_users'")->fetch();
+        if (!$table) {
+            return false;
+        }
+        $columns = $db->query("PRAGMA table_info(admin_users)")->fetchAll(PDO::FETCH_COLUMN, 1);
+        foreach (['twofa_enabled', 'twofa_secret', 'twofa_backup_codes', 'twofa_confirmed_at', 'twofa_last_used_step'] as $name) {
+            if (!in_array($name, $columns, true)) {
+                return false;
+            }
+        }
+        @file_put_contents($flagFile, date('c'), LOCK_EX);
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+$adminTwofaColumnsExist = adminTwofaColumnsExist($db);
+
+function adminTableExists(PDO $db, string $table): bool {
+    $stmt = $db->prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = :name");
+    $stmt->execute([':name' => $table]);
+    return (bool)$stmt->fetchColumn();
+}
+
+function adminColumnExists(PDO $db, string $table, string $column): bool {
+    if (!adminTableExists($db, $table)) {
+        return false;
+    }
+    $columns = $db->query("PRAGMA table_info(" . $table . ")")->fetchAll(PDO::FETCH_COLUMN, 1);
+    return in_array($column, $columns, true);
+}
+
+function adminCountScalar(PDO $db, string $sql, array $params = []): int {
+    $stmt = $db->prepare($sql);
+    $stmt->execute($params);
+    return intval($stmt->fetchColumn() ?: 0);
+}
+
+function apiForbidden(string $message = 'Forbidden') {
+    http_response_code(403);
+    jsonResponse(false, null, $message);
+}
+
+function requireApiAdminOrAgentRole(): void {
+    if (!(is_admin_role() || is_agent_role())) {
+        apiForbidden('Admin or agent role required');
+    }
+}
+
+function requireApiOrganizerRole(): void {
+    if (!isOrganizerRequest()) {
+        apiForbidden('Organizer role required');
+    }
+}
+
+function isOrganizerRequest(): bool {
+    return function_exists('is_organizer_role') && is_organizer_role();
+}
+
+function organizerUserId(): ?int {
+    $userId = function_exists('current_admin_user_id') ? current_admin_user_id() : ($_SESSION['admin_user_id'] ?? null);
+    return $userId === null ? null : intval($userId);
+}
+
+function eventOrganizerSchemaReady(PDO $db): bool {
+    return adminTableExists($db, 'event_organizers') && adminColumnExists($db, 'events', 'created_by_user_id');
+}
+
+function organizerEventWhere(string $eventColumn = 'event_id'): string {
+    return "$eventColumn IN (SELECT event_id FROM event_organizers WHERE user_id = :organizer_user_id)";
+}
+
+function bindOrganizerUser(PDOStatement $stmt): void {
+    $stmt->bindValue(':organizer_user_id', organizerUserId() ?? 0, PDO::PARAM_INT);
+}
+
+function requireCanManageEventId(int $eventId): void {
+    if (!can_manage_event($eventId)) {
+        apiForbidden('You do not have permission to manage this event');
+    }
+}
+
+function requireCanManageProgramId(PDO $db, int $programId): void {
+    $stmt = $db->prepare("SELECT event_id FROM programs WHERE id = :id");
+    $stmt->execute([':id' => $programId]);
+    $eventId = $stmt->fetchColumn();
+    if ($eventId === false) {
+        jsonResponse(false, null, 'Event not found');
+    }
+    if (!$eventId || !can_manage_event((int)$eventId)) {
+        apiForbidden('You do not have permission to manage this program');
+    }
+}
+
+function requireCanManageProgramIds(PDO $db, array $ids): void {
+    if (!isOrganizerRequest()) {
+        return;
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $db->prepare("SELECT COUNT(*) FROM programs WHERE id IN ($placeholders) AND event_id IN (SELECT event_id FROM event_organizers WHERE user_id = ?)");
+    $stmt->execute(array_merge($ids, [organizerUserId() ?? 0]));
+    if (intval($stmt->fetchColumn()) !== count($ids)) {
+        apiForbidden('All selected programs must belong to events you manage');
+    }
+}
+
+function requireCanManageCreditId(PDO $db, int $creditId): void {
+    $stmt = $db->prepare("SELECT event_id FROM credits WHERE id = :id");
+    $stmt->execute([':id' => $creditId]);
+    $eventId = $stmt->fetchColumn();
+    if ($eventId === false) {
+        jsonResponse(false, null, 'Credit not found');
+    }
+    if (!$eventId || !can_manage_event((int)$eventId)) {
+        apiForbidden('You do not have permission to manage this credit');
+    }
+}
+
+function requireCanManageCreditIds(PDO $db, array $ids): void {
+    if (!isOrganizerRequest()) {
+        return;
+    }
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $db->prepare("SELECT COUNT(*) FROM credits WHERE id IN ($placeholders) AND event_id IN (SELECT event_id FROM event_organizers WHERE user_id = ?)");
+    $stmt->execute(array_merge($ids, [organizerUserId() ?? 0]));
+    if (intval($stmt->fetchColumn()) !== count($ids)) {
+        apiForbidden('All selected credits must belong to events you manage');
+    }
+}
+
 // Get action
 $action = $_GET['action'] ?? '';
 
@@ -47,13 +194,55 @@ $adminOnlyActions = [
     'backup_create', 'backup_list', 'backup_download',
     'backup_delete', 'backup_restore', 'backup_upload_restore',
     'users_list', 'users_get', 'users_create', 'users_update', 'users_delete',
+    'twofa_reset_user',
+    'event_organizers_list', 'event_organizers_update',
+    // Log viewers — defense in depth (functions also call require_api_admin_role)
+    'telegram_log_get', 'telegram_log_download',
+    'webpush_log_get', 'webpush_log_download',
+    'email_log_get', 'email_log_download',
+    'admin_audit_log_get', 'admin_audit_log_download',
 ];
 
 if (in_array($action, $adminOnlyActions)) {
     require_api_admin_role();
 }
 
+if (isOrganizerRequest()) {
+    $organizerAllowedActions = [
+        'dashboard_stats',
+        'programs_list', 'programs_get', 'programs_create', 'programs_update',
+        'programs_delete', 'programs_venues', 'programs_types',
+        'venues_autocomplete', 'venues_list',
+        'artists_autocomplete', 'artists_groups', 'artist_requests_create',
+        'programs_bulk_delete', 'programs_bulk_update',
+        'credits_list', 'credits_get', 'credits_create', 'credits_update',
+        'credits_delete', 'credits_bulk_delete',
+        'events_list', 'events_get', 'events_create', 'events_update', 'events_delete',
+        'events_request_activate',
+        'event_pictures_list', 'event_picture_upload', 'event_picture_delete',
+        'event_pictures_reorder',
+        'event_cover_upload', 'event_cover_delete',
+        'event_header_cover_upload', 'event_header_cover_delete',
+        'change_password',
+        'twofa_status', 'twofa_begin_setup', 'twofa_confirm_setup',
+        'twofa_disable', 'twofa_regenerate_backup_codes',
+    ];
+    if (!in_array($action, $organizerAllowedActions, true)) {
+        apiForbidden('Organizer role does not have access to this action');
+    }
+    $organizerAccountActions = [
+        'change_password', 'twofa_status', 'twofa_begin_setup', 'twofa_confirm_setup',
+        'twofa_disable', 'twofa_regenerate_backup_codes',
+    ];
+    if (!in_array($action, $organizerAccountActions, true) && !eventOrganizerSchemaReady($db)) {
+        jsonResponse(false, null, 'Organizer schema not ready. Run: php tools/migrate-add-organizer-role.php');
+    }
+}
+
 switch ($action) {
+    case 'dashboard_stats':
+        getDashboardStats();
+        break;
     case 'programs_list':
         listPrograms();
         break;
@@ -86,6 +275,31 @@ switch ($action) {
         break;
     case 'pending_count':
         getPendingCount();
+        break;
+    case 'artist_requests_list':
+        listArtistRequests();
+        break;
+    case 'artist_requests_create':
+        createArtistRequest();
+        break;
+    case 'artist_request_approve':
+        approveArtistRequest();
+        break;
+    case 'artist_request_reject':
+        rejectArtistRequest();
+        break;
+    // Event Requests CRUD
+    case 'event_requests_list':
+        listEventRequests();
+        break;
+    case 'event_request_approve':
+        approveEventRequest();
+        break;
+    case 'event_request_reject':
+        rejectEventRequest();
+        break;
+    case 'event_request_pending_count':
+        getEventRequestPendingCount();
         break;
     case 'upload_ics':
         uploadAndParseIcs();
@@ -133,9 +347,37 @@ switch ($action) {
     case 'events_delete':
         deleteEvent();
         break;
+    case 'events_request_activate':
+        requestActivateEvent();
+        break;
+    case 'event_organizers_list':
+        listEventOrganizers();
+        break;
+    case 'event_organizers_update':
+        updateEventOrganizers();
+        break;
     // Change Password
     case 'change_password':
         changeAdminPassword();
+        break;
+    // Two-factor authentication
+    case 'twofa_status':
+        getTwofaStatus();
+        break;
+    case 'twofa_begin_setup':
+        beginTwofaSetup();
+        break;
+    case 'twofa_confirm_setup':
+        confirmTwofaSetup();
+        break;
+    case 'twofa_disable':
+        disableTwofa();
+        break;
+    case 'twofa_regenerate_backup_codes':
+        regenerateTwofaBackupCodes();
+        break;
+    case 'twofa_reset_user':
+        resetUserTwofa();
         break;
     // User Management (admin only)
     case 'users_list':
@@ -184,6 +426,12 @@ switch ($action) {
     case 'title_save':
         saveTitleSetting();
         break;
+    case 'site_cover_bg_upload':
+        uploadSiteCoverBg();
+        break;
+    case 'site_cover_bg_delete':
+        deleteSiteCoverBg();
+        break;
     case 'disclaimer_get':
         getDisclaimerSetting();
         break;
@@ -196,6 +444,16 @@ switch ($action) {
         break;
     case 'analytics_config_save':
         saveAnalyticsConfig();
+        break;
+    // Email Config
+    case 'email_config_get':
+        getEmailConfig();
+        break;
+    case 'email_config_save':
+        saveEmailConfig();
+        break;
+    case 'email_test_send':
+        sendEmailTest();
         break;
     // Telegram Config
     case 'telegram_config_get':
@@ -215,6 +473,37 @@ switch ($action) {
         break;
     case 'telegram_log_download':
         downloadTelegramLog();
+        break;
+    // Web Push Config
+    case 'webpush_config_get':
+        getWebPushConfig();
+        break;
+    case 'webpush_config_save':
+        saveWebPushConfig();
+        break;
+    case 'webpush_vapid_generate':
+        generateWebPushVapidKeys();
+        break;
+    // Web Push Log
+    case 'webpush_log_get':
+        getWebPushLog();
+        break;
+    case 'webpush_log_download':
+        downloadWebPushLog();
+        break;
+    // Email Log
+    case 'email_log_get':
+        getEmailLog();
+        break;
+    case 'email_log_download':
+        downloadEmailLog();
+        break;
+    // Admin Audit Log
+    case 'admin_audit_log_get':
+        getAdminAuditLog();
+        break;
+    case 'admin_audit_log_download':
+        downloadAdminAuditLog();
         break;
     // Contact Channels
     case 'contact_channels_list':
@@ -281,14 +570,229 @@ switch ($action) {
     case 'event_pictures_reorder':
         reorderEventPictures();
         break;
+    case 'event_cover_upload':
+        uploadEventCover();
+        break;
+    case 'event_cover_delete':
+        deleteEventCover();
+        break;
+    case 'event_header_cover_upload':
+        uploadEventHeaderCover();
+        break;
+    case 'event_header_cover_delete':
+        deleteEventHeaderCover();
+        break;
     case 'artists_bulk_set_group':
         artistsBulkSetGroup();
         break;
     case 'artists_bulk_import':
         artistsBulkImport();
         break;
+    // Venues CRUD + variants + merge (v16.0.0)
+    case 'venues_list':
+        listVenues();
+        break;
+    case 'venues_autocomplete':
+        autocompleteVenues();
+        break;
+    case 'venues_get':
+        getVenue();
+        break;
+    case 'venues_create':
+        createVenue();
+        break;
+    case 'venues_update':
+        updateVenue();
+        break;
+    case 'venues_delete':
+        deleteVenue();
+        break;
+    case 'venues_variants_list':
+        listVenueVariants();
+        break;
+    case 'venues_variants_create':
+        createVenueVariant();
+        break;
+    case 'venues_variants_delete':
+        deleteVenueVariant();
+        break;
+    case 'venues_merge':
+        mergeVenues();
+        break;
     default:
         jsonResponse(false, null, 'Invalid action');
+}
+
+/**
+ * Dashboard analytics summary (read-only)
+ */
+function getDashboardStats() {
+    global $db, $adminTwofaColumnsExist;
+
+    $role      = $_SESSION['admin_role'] ?? 'agent';
+    $isAdmin   = $role === 'admin';
+    $isOrganizer = $role === 'organizer';
+    $today     = date('Y-m-d');
+    $next7Days = date('Y-m-d', strtotime('+7 days'));
+
+    try {
+        $hasEvents        = adminTableExists($db, 'events');
+        $hasPrograms      = adminTableExists($db, 'programs');
+        $hasCredits       = adminTableExists($db, 'credits');
+        $hasArtists       = adminTableExists($db, 'artists');
+        $hasProgRequests  = adminTableExists($db, 'program_requests');
+        $hasEventRequests = adminTableExists($db, 'event_requests');
+        $hasArtistRequests = adminTableExists($db, 'artist_requests');
+        $hasAdminUsers    = adminTableExists($db, 'admin_users');
+        $hasProgramEventId = adminColumnExists($db, 'programs', 'event_id');
+        $hasEventCover     = adminColumnExists($db, 'events', 'cover_image');
+        $hasEventCardCover = adminColumnExists($db, 'events', 'cover_image_card');
+        $hasEventHeader    = adminColumnExists($db, 'events', 'header_cover_image');
+        $hasEventTicket    = adminColumnExists($db, 'events', 'ticket_url');
+        $hasArtistPicture  = adminColumnExists($db, 'artists', 'display_picture');
+
+        $organizerEventSql = $isOrganizer ? "id IN (SELECT event_id FROM event_organizers WHERE user_id = :organizer_user_id)" : "1=1";
+        $organizerProgramSql = $isOrganizer ? "event_id IN (SELECT event_id FROM event_organizers WHERE user_id = :organizer_user_id)" : "1=1";
+        $organizerParams = $isOrganizer ? [':organizer_user_id' => organizerUserId() ?? 0] : [];
+
+        $events = [
+            'total'    => $hasEvents ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE $organizerEventSql", $organizerParams) : 0,
+            'active'   => $hasEvents ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE is_active = 1 AND $organizerEventSql", $organizerParams) : 0,
+            'upcoming' => $hasEvents ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE start_date IS NOT NULL AND DATE(start_date) >= :today AND $organizerEventSql", array_merge([':today' => $today], $organizerParams)) : 0,
+            'past'     => $hasEvents ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE COALESCE(DATE(end_date), DATE(start_date)) < :today AND $organizerEventSql", array_merge([':today' => $today], $organizerParams)) : 0,
+        ];
+
+        $programs = [
+            'total'      => $hasPrograms ? adminCountScalar($db, "SELECT COUNT(*) FROM programs WHERE $organizerProgramSql", $organizerParams) : 0,
+            'today'      => $hasPrograms ? adminCountScalar($db, "SELECT COUNT(*) FROM programs WHERE DATE(start) = :today AND $organizerProgramSql", array_merge([':today' => $today], $organizerParams)) : 0,
+            'next7_days' => $hasPrograms ? adminCountScalar($db, "SELECT COUNT(*) FROM programs WHERE DATE(start) BETWEEN :today AND :next7 AND $organizerProgramSql", array_merge([':today' => $today, ':next7' => $next7Days], $organizerParams)) : 0,
+        ];
+
+        $credits = [
+            'total' => $hasCredits ? adminCountScalar($db, "SELECT COUNT(*) FROM credits WHERE " . ($isOrganizer ? "event_id IN (SELECT event_id FROM event_organizers WHERE user_id = :organizer_user_id)" : "1=1"), $organizerParams) : 0,
+        ];
+
+        $artists = [
+            'total'   => ($hasArtists && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM artists") : 0,
+            'groups'  => ($hasArtists && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM artists WHERE is_group = 1") : 0,
+            'members' => ($hasArtists && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM artists WHERE is_group = 0") : 0,
+        ];
+
+        $programRequestStatus = [
+            'pending'  => ($hasProgRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM program_requests WHERE status = 'pending'") : 0,
+            'approved' => ($hasProgRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM program_requests WHERE status = 'approved'") : 0,
+            'rejected' => ($hasProgRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM program_requests WHERE status = 'rejected'") : 0,
+        ];
+
+        $eventRequestStatus = [
+            'pending'  => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'pending'") : 0,
+            'approved' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'approved'") : 0,
+            'rejected' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'rejected'") : 0,
+        ];
+
+        $eventGuestRequestStatus = [
+            'pending'  => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'pending' AND request_type != 'activate'") : 0,
+            'approved' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'approved' AND request_type != 'activate'") : 0,
+            'rejected' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'rejected' AND request_type != 'activate'") : 0,
+        ];
+
+        $eventActiveRequestStatus = [
+            'pending'  => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'pending' AND request_type = 'activate'") : 0,
+            'approved' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'approved' AND request_type = 'activate'") : 0,
+            'rejected' => ($hasEventRequests && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM event_requests WHERE status = 'rejected' AND request_type = 'activate'") : 0,
+        ];
+
+        $artistRequestParams = [];
+        $artistRequestWhere = "1=1";
+        if ($isOrganizer) {
+            $artistRequestWhere = "requester_user_id = :organizer_user_id";
+            $artistRequestParams[':organizer_user_id'] = organizerUserId() ?? 0;
+        }
+        $artistRequestStatus = [
+            'pending'  => $hasArtistRequests ? adminCountScalar($db, "SELECT COUNT(*) FROM artist_requests WHERE status = 'pending' AND $artistRequestWhere", $artistRequestParams) : 0,
+            'approved' => $hasArtistRequests ? adminCountScalar($db, "SELECT COUNT(*) FROM artist_requests WHERE status = 'approved' AND $artistRequestWhere", $artistRequestParams) : 0,
+            'rejected' => $hasArtistRequests ? adminCountScalar($db, "SELECT COUNT(*) FROM artist_requests WHERE status = 'rejected' AND $artistRequestWhere", $artistRequestParams) : 0,
+        ];
+
+        $upcomingEvents = [];
+        if ($hasEvents) {
+            $stmt = $db->prepare("
+                SELECT e.id, e.name, e.slug, e.start_date, e.end_date, e.is_active,
+                       " . ($hasPrograms && $hasProgramEventId ? "(SELECT COUNT(*) FROM programs p WHERE p.event_id = e.id)" : "0") . " AS program_count
+                FROM events e
+                WHERE e.start_date IS NOT NULL AND DATE(e.start_date) >= :today
+                  " . ($isOrganizer ? "AND e.id IN (SELECT event_id FROM event_organizers WHERE user_id = :organizer_user_id)" : "") . "
+                ORDER BY DATE(e.start_date) ASC, e.name ASC
+                LIMIT 6
+            ");
+            $params = [':today' => $today];
+            if ($isOrganizer) $params[':organizer_user_id'] = organizerUserId() ?? 0;
+            $stmt->execute($params);
+            $upcomingEvents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $programsByEvent = [];
+        if ($hasEvents) {
+            $stmt = $db->query("
+                SELECT e.id, e.name, e.slug, e.start_date, e.end_date, e.is_active,
+                       " . ($hasPrograms && $hasProgramEventId ? "(SELECT COUNT(*) FROM programs p WHERE p.event_id = e.id)" : "0") . " AS program_count
+                FROM events e
+                " . ($isOrganizer ? "WHERE e.id IN (SELECT event_id FROM event_organizers WHERE user_id = " . intval(organizerUserId() ?? 0) . ")" : "") . "
+                ORDER BY program_count DESC, DATE(e.start_date) DESC, e.name ASC
+                LIMIT 8
+            ");
+            $programsByEvent = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $contentHealth = [
+            'events_missing_cover'        => ($hasEvents && $hasEventCover) ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE COALESCE(TRIM(cover_image), '') = '' AND $organizerEventSql", $organizerParams) : 0,
+            'events_missing_card_cover'   => ($hasEvents && $hasEventCardCover) ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE COALESCE(TRIM(cover_image_card), '') = '' AND $organizerEventSql", $organizerParams) : 0,
+            'events_missing_header_cover' => ($hasEvents && $hasEventHeader) ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE COALESCE(TRIM(header_cover_image), '') = '' AND $organizerEventSql", $organizerParams) : 0,
+            'events_missing_ticket_url'   => ($hasEvents && $hasEventTicket) ? adminCountScalar($db, "SELECT COUNT(*) FROM events WHERE COALESCE(TRIM(ticket_url), '') = '' AND $organizerEventSql", $organizerParams) : 0,
+            'artists_missing_picture'     => ($hasArtists && $hasArtistPicture && !$isOrganizer) ? adminCountScalar($db, "SELECT COUNT(*) FROM artists WHERE COALESCE(TRIM(display_picture), '') = ''") : 0,
+        ];
+
+        $adminOnly = null;
+        if ($isAdmin) {
+            $adminOnly = [
+                'active_admin_users' => $hasAdminUsers ? adminCountScalar($db, "SELECT COUNT(*) FROM admin_users WHERE is_active = 1") : 0,
+                'twofa_enabled_users' => ($hasAdminUsers && $adminTwofaColumnsExist) ? adminCountScalar($db, "SELECT COUNT(*) FROM admin_users WHERE twofa_enabled = 1") : 0,
+            ];
+        }
+
+        jsonResponse(true, [
+            'site_title' => get_site_title(),
+            'app_version' => APP_VERSION,
+            'role' => $role,
+            'generated_at' => date('Y-m-d H:i:s'),
+            'timezone' => date_default_timezone_get(),
+            'kpis' => [
+                'events' => $events,
+                'programs' => $programs,
+                'credits' => $credits,
+                'artists' => $artists,
+                'requests' => [
+                    'pending_total' => $programRequestStatus['pending'] + $eventGuestRequestStatus['pending'] + $eventActiveRequestStatus['pending'] + $artistRequestStatus['pending'],
+                    'program_requests_pending' => $programRequestStatus['pending'],
+                    'event_requests_pending' => $eventGuestRequestStatus['pending'],
+                    'event_active_requests_pending' => $eventActiveRequestStatus['pending'],
+                    'artist_requests_pending' => $artistRequestStatus['pending'],
+                ],
+            ],
+            'upcoming_events' => $upcomingEvents,
+            'programs_by_event' => $programsByEvent,
+            'request_status' => [
+                'program_requests' => $programRequestStatus,
+                'event_requests' => $eventGuestRequestStatus,
+                'event_active_requests' => $eventActiveRequestStatus,
+                'artist_requests' => $artistRequestStatus,
+            ],
+            'content_health' => $contentHealth,
+            'admin_only' => $adminOnly,
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to load dashboard stats', $e->getMessage()));
+    }
 }
 
 /**
@@ -316,7 +820,219 @@ function changeAdminPassword() {
     }
 
     $result = change_admin_password($userId, $currentPassword, $newPassword);
+    if ($result['success']) {
+        audit_admin_success('change_password', 'user', (int)$userId, $_SESSION['admin_username'] ?? null);
+    } else {
+        audit_admin_failure('change_password', 'invalid_password', 'user', (int)$userId, $_SESSION['admin_username'] ?? null);
+    }
     jsonResponse($result['success'], null, $result['message']);
+}
+
+function currentDbAdminUser(PDO $db): ?array {
+    $userId = $_SESSION['admin_user_id'] ?? null;
+    if ($userId === null) {
+        return null;
+    }
+    $stmt = $db->prepare("SELECT * FROM admin_users WHERE id = :id AND is_active = 1");
+    $stmt->execute([':id' => $userId]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+function requireAdminTwofaSchema(): void {
+    global $adminTwofaColumnsExist;
+    if (!$adminTwofaColumnsExist) {
+        jsonResponse(false, null, 'Admin 2FA migration required. Run setup.php or php tools/migrate-add-admin-2fa-columns.php');
+    }
+}
+
+function verifyTwofaPassword(PDO $db, array $user, string $password): bool {
+    return $password !== '' && password_verify($password, $user['password_hash']);
+}
+
+function verifyTwofaCredential(PDO $db, array $user, string $credential): array {
+    $credential = trim($credential);
+    if (!admin_user_has_enabled_twofa($user)) {
+        return ['success' => false, 'message' => 'Two-factor authentication is not enabled'];
+    }
+
+    if (preg_match('/^\d{6}$/', $credential)) {
+        $check = totp_verify($user['twofa_secret'], $credential, null, 1, 30, 6, isset($user['twofa_last_used_step']) ? intval($user['twofa_last_used_step']) : null);
+        if (empty($check['valid'])) {
+            return ['success' => false, 'message' => 'Invalid authentication code'];
+        }
+        $stmt = $db->prepare("UPDATE admin_users SET twofa_last_used_step = :step, updated_at = :now WHERE id = :id");
+        $stmt->execute([':step' => $check['step'], ':now' => date('Y-m-d H:i:s'), ':id' => $user['id']]);
+        return ['success' => true, 'message' => 'Verified'];
+    }
+
+    $backup = twofa_consume_backup_code($user['twofa_backup_codes'] ?? '[]', $credential);
+    if (empty($backup['valid'])) {
+        return ['success' => false, 'message' => 'Invalid recovery code'];
+    }
+    $stmt = $db->prepare("UPDATE admin_users SET twofa_backup_codes = :codes, updated_at = :now WHERE id = :id");
+    $stmt->execute([':codes' => $backup['hashes_json'], ':now' => date('Y-m-d H:i:s'), ':id' => $user['id']]);
+    return ['success' => true, 'message' => 'Verified'];
+}
+
+function getTwofaStatus() {
+    global $db;
+    requireAdminTwofaSchema();
+
+    $user = currentDbAdminUser($db);
+    if (!$user) {
+        jsonResponse(true, ['managed' => false, 'enabled' => false, 'backup_codes_remaining' => 0]);
+        return;
+    }
+
+    $backup = json_decode((string)($user['twofa_backup_codes'] ?? '[]'), true);
+    jsonResponse(true, [
+        'managed' => true,
+        'enabled' => admin_user_has_enabled_twofa($user),
+        'confirmed_at' => $user['twofa_confirmed_at'] ?? null,
+        'backup_codes_remaining' => is_array($backup) ? count($backup) : 0,
+    ]);
+}
+
+function beginTwofaSetup() {
+    global $db;
+    requireAdminTwofaSchema();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonResponse(false, null, 'POST method required');
+
+    $user = currentDbAdminUser($db);
+    if (!$user) jsonResponse(false, null, '2FA requires database-managed user');
+    if (admin_user_has_enabled_twofa($user)) jsonResponse(false, null, '2FA is already enabled');
+
+    $secret = totp_generate_secret();
+    safe_session_start();
+    $_SESSION['twofa_setup_secret'] = $secret;
+    $_SESSION['twofa_setup_expires'] = time() + 600;
+
+    $issuer = function_exists('get_site_title') ? get_site_title() : (defined('APP_NAME') ? APP_NAME : 'Admin');
+    $account = $user['username'];
+    $otpauth = totp_otpauth_uri($issuer, $account, $secret);
+
+    jsonResponse(true, [
+        'secret' => $secret,
+        'otpauth_uri' => $otpauth,
+        'qr_text' => $otpauth,
+    ]);
+}
+
+function confirmTwofaSetup() {
+    global $db;
+    requireAdminTwofaSchema();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonResponse(false, null, 'POST method required');
+
+    $user = currentDbAdminUser($db);
+    if (!$user) jsonResponse(false, null, '2FA requires database-managed user');
+
+    safe_session_start();
+    $secret = $_SESSION['twofa_setup_secret'] ?? '';
+    $expires = intval($_SESSION['twofa_setup_expires'] ?? 0);
+    if ($secret === '' || $expires < time()) {
+        jsonResponse(false, null, '2FA setup expired. Start again.');
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $code = trim($input['code'] ?? '');
+    $check = totp_verify($secret, $code);
+    if (empty($check['valid'])) {
+        jsonResponse(false, null, 'Invalid authentication code');
+    }
+
+    $backupCodes = twofa_generate_backup_codes();
+    $now = date('Y-m-d H:i:s');
+    $stmt = $db->prepare("UPDATE admin_users
+        SET twofa_enabled = 1, twofa_secret = :secret, twofa_backup_codes = :backup,
+            twofa_confirmed_at = :now, twofa_last_used_step = :step, updated_at = :now2
+        WHERE id = :id");
+    $stmt->execute([
+        ':secret' => $secret,
+        ':backup' => twofa_hash_backup_codes($backupCodes),
+        ':now' => $now,
+        ':step' => $check['step'],
+        ':now2' => $now,
+        ':id' => $user['id'],
+    ]);
+    unset($_SESSION['twofa_setup_secret'], $_SESSION['twofa_setup_expires']);
+
+    audit_admin_success('twofa_setup', 'user', (int)$user['id'], $user['username'] ?? null);
+    jsonResponse(true, ['backup_codes' => $backupCodes], '2FA enabled successfully');
+}
+
+function disableTwofa() {
+    global $db;
+    requireAdminTwofaSchema();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonResponse(false, null, 'POST method required');
+
+    $user = currentDbAdminUser($db);
+    if (!$user) jsonResponse(false, null, '2FA requires database-managed user');
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    if (!verifyTwofaPassword($db, $user, $input['current_password'] ?? '')) {
+        jsonResponse(false, null, 'Current password is incorrect');
+    }
+    $verified = verifyTwofaCredential($db, $user, $input['code'] ?? '');
+    if (empty($verified['success'])) jsonResponse(false, null, $verified['message']);
+
+    $stmt = $db->prepare("UPDATE admin_users
+        SET twofa_enabled = 0, twofa_secret = NULL, twofa_backup_codes = NULL,
+            twofa_confirmed_at = NULL, twofa_last_used_step = NULL, updated_at = :now
+        WHERE id = :id");
+    $stmt->execute([':now' => date('Y-m-d H:i:s'), ':id' => $user['id']]);
+    audit_admin_success('twofa_disable', 'user', (int)$user['id'], $user['username'] ?? null);
+    jsonResponse(true, null, '2FA disabled successfully');
+}
+
+function regenerateTwofaBackupCodes() {
+    global $db;
+    requireAdminTwofaSchema();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonResponse(false, null, 'POST method required');
+
+    $user = currentDbAdminUser($db);
+    if (!$user) jsonResponse(false, null, '2FA requires database-managed user');
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    if (!verifyTwofaPassword($db, $user, $input['current_password'] ?? '')) {
+        jsonResponse(false, null, 'Current password is incorrect');
+    }
+    $verified = verifyTwofaCredential($db, $user, $input['code'] ?? '');
+    if (empty($verified['success'])) jsonResponse(false, null, $verified['message']);
+
+    $backupCodes = twofa_generate_backup_codes();
+    $stmt = $db->prepare("UPDATE admin_users SET twofa_backup_codes = :backup, updated_at = :now WHERE id = :id");
+    $stmt->execute([':backup' => twofa_hash_backup_codes($backupCodes), ':now' => date('Y-m-d H:i:s'), ':id' => $user['id']]);
+    audit_admin_success('twofa_regenerate_backup_codes', 'user', (int)$user['id'], $user['username'] ?? null);
+    jsonResponse(true, ['backup_codes' => $backupCodes], 'Backup codes regenerated');
+}
+
+function resetUserTwofa() {
+    global $db;
+    requireAdminTwofaSchema();
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') jsonResponse(false, null, 'POST method required');
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $id = intval($input['id'] ?? ($_GET['id'] ?? 0));
+    if (!$id) jsonResponse(false, null, 'User ID required');
+
+    $stmt = $db->prepare("UPDATE admin_users
+        SET twofa_enabled = 0, twofa_secret = NULL, twofa_backup_codes = NULL,
+            twofa_confirmed_at = NULL, twofa_last_used_step = NULL, updated_at = :now
+        WHERE id = :id");
+    $stmt->execute([':now' => date('Y-m-d H:i:s'), ':id' => $id]);
+    if ($stmt->rowCount() === 0) jsonResponse(false, null, 'User not found');
+    audit_log([
+        'action'        => 'twofa_reset_user',
+        'outcome'       => 'success',
+        'actor_user_id' => isset($_SESSION['admin_user_id']) ? (int)$_SESSION['admin_user_id'] : null,
+        'actor_username'=> $_SESSION['admin_username'] ?? null,
+        'actor_role'    => $_SESSION['admin_role'] ?? null,
+        'entity_type'   => 'user',
+        'entity_id'     => $id,
+        'entity_label'  => null,
+    ]);
+    jsonResponse(true, null, '2FA reset successfully');
 }
 
 /**
@@ -345,12 +1061,27 @@ function listPrograms() {
     $params = [];
 
     if ($eventId) {
+        if (isOrganizerRequest() && !can_manage_event($eventId)) {
+            apiForbidden('You do not have permission to view this event');
+        }
         $where[] = "event_id = :event_id";
         $params[':event_id'] = $eventId;
     }
 
-    if ($search) {
-        // Escape % and _ for LIKE operator to prevent wildcard injection
+    if (isOrganizerRequest()) {
+        $where[] = organizerEventWhere('event_id');
+        $params[':organizer_user_id'] = organizerUserId() ?? 0;
+    }
+
+    // FTS5 search: when ?search= present and FTS available, use MATCH
+    $ftsIds = null;
+    if ($search && mb_strlen($search) >= 3 && fts5_available($db)) {
+        $ftsRows = fts5_search_programs($db, $search, $eventId ?: null, 2000);
+        $ftsIds  = array_column($ftsRows, 'id');
+        if (empty($ftsIds)) $ftsIds = [-1]; // no results
+        $in = implode(',', array_map('intval', $ftsIds));
+        $where[] = "id IN ($in)";
+    } elseif ($search) {
         $searchEscaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
         $where[] = "(title LIKE :search ESCAPE '\\' OR organizer LIKE :search ESCAPE '\\' OR categories LIKE :search ESCAPE '\\')";
         $params[':search'] = '%' . $searchEscaped . '%';
@@ -389,7 +1120,8 @@ function listPrograms() {
 
         $stmt = $db->prepare($sql);
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+            $type = $key === ':organizer_user_id' ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $type);
         }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -439,6 +1171,9 @@ function getProgram() {
             jsonResponse(false, null, 'Event not found');
             return;
         }
+        if (isOrganizerRequest() && (empty($event['event_id']) || !can_manage_event((int)$event['event_id']))) {
+            apiForbidden('You do not have permission to view this program');
+        }
 
         // Escape HTML ในข้อมูลเพื่อป้องกัน XSS
         $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories', 'program_type', 'stream_url', 'uid'];
@@ -476,11 +1211,27 @@ function createProgram() {
 
     try {
         $eventId = isset($input['event_id']) ? intval($input['event_id']) : null;
+        if (isOrganizerRequest()) {
+            if (!$eventId) {
+                apiForbidden('Organizer programs must be assigned to an event');
+            }
+            requireCanManageEventId($eventId);
+        }
 
         $programType = isset($input['program_type']) && $input['program_type'] !== '' ? trim($input['program_type']) : null;
         $streamUrlRaw = isset($input['stream_url']) && $input['stream_url'] !== '' ? trim($input['stream_url']) : null;
         // Only allow http/https schemes to prevent javascript: URI XSS
         $streamUrl = ($streamUrlRaw !== null && preg_match('/^https?:\/\//i', $streamUrlRaw)) ? $streamUrlRaw : null;
+        if (isOrganizerRequest()) {
+            $missingArtists = missingProgramArtistReferences($db, $input['categories'] ?? '');
+            if ($missingArtists) {
+                jsonResponse(false, null, 'Organizer can only reference existing artists: ' . implode(', ', $missingArtists));
+                return;
+            }
+        }
+
+        // Normalise location to canonical venue name (auto-register new venues for admin/agent)
+        $canonLocation = venue_resolve_canonical($db, $input['location'] ?? '', !isOrganizerRequest());
 
         $stmt = $db->prepare("
             INSERT INTO programs (uid, title, start, end, location, organizer, description, categories, program_type, stream_url, event_id, created_at, updated_at)
@@ -492,7 +1243,7 @@ function createProgram() {
             ':title' => $input['title'],
             ':start' => $input['start'],
             ':end' => $input['end'],
-            ':location' => $input['location'] ?? '',
+            ':location' => $canonLocation,
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
@@ -505,14 +1256,17 @@ function createProgram() {
 
         $id = $db->lastInsertId();
 
-        syncProgramArtists($db, (int)$id, $input['categories'] ?? '');
+        syncProgramArtists($db, (int)$id, $input['categories'] ?? '', !isOrganizerRequest());
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        audit_admin_success('program_create', 'program', (int)$id, $input['title']);
         jsonResponse(true, ['id' => $id, 'uid' => $uid], 'Event created successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('program_create', 'database_error', 'program', null, $input['title'] ?? null);
         jsonResponse(false, null, safe_error_message('Failed to create event', $e->getMessage()));
     }
 }
@@ -546,7 +1300,16 @@ function updateProgram() {
     $now = date('Y-m-d H:i:s');
 
     try {
+        if (isOrganizerRequest()) {
+            requireCanManageProgramId($db, $id);
+        }
         $updateEventId = array_key_exists('event_id', $input) ? (isset($input['event_id']) ? intval($input['event_id']) : null) : null;
+        if (isOrganizerRequest()) {
+            if (!$updateEventId) {
+                apiForbidden('Organizer programs must stay assigned to an event');
+            }
+            requireCanManageEventId($updateEventId);
+        }
 
         $programType = array_key_exists('program_type', $input)
             ? (($input['program_type'] !== '' && $input['program_type'] !== null) ? trim($input['program_type']) : null)
@@ -556,6 +1319,16 @@ function updateProgram() {
             : null;
         // Only allow http/https schemes to prevent javascript: URI XSS
         $streamUrl = ($streamUrlRaw !== null && preg_match('/^https?:\/\//i', $streamUrlRaw)) ? $streamUrlRaw : null;
+        if (isOrganizerRequest()) {
+            $missingArtists = missingProgramArtistReferences($db, $input['categories'] ?? '');
+            if ($missingArtists) {
+                jsonResponse(false, null, 'Organizer can only reference existing artists: ' . implode(', ', $missingArtists));
+                return;
+            }
+        }
+
+        // Normalise location to canonical venue name (auto-register new venues for admin/agent)
+        $canonLocation = venue_resolve_canonical($db, $input['location'] ?? '', !isOrganizerRequest());
 
         $stmt = $db->prepare("
             UPDATE programs
@@ -578,7 +1351,7 @@ function updateProgram() {
             ':title' => $input['title'],
             ':start' => $input['start'],
             ':end' => $input['end'],
-            ':location' => $input['location'] ?? '',
+            ':location' => $canonLocation,
             ':organizer' => $input['organizer'] ?? '',
             ':description' => $input['description'] ?? '',
             ':categories' => $input['categories'] ?? '',
@@ -593,14 +1366,17 @@ function updateProgram() {
             return;
         }
 
-        syncProgramArtists($db, $id, $input['categories'] ?? '');
+        syncProgramArtists($db, $id, $input['categories'] ?? '', !isOrganizerRequest());
 
         invalidate_data_version_cache();
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        audit_admin_success('program_update', 'program', $id, $input['title']);
         jsonResponse(true, ['id' => $id], 'Event updated successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('program_update', 'database_error', 'program', $id, $input['title'] ?? null);
         jsonResponse(false, null, safe_error_message('Failed to update event', $e->getMessage()));
     }
 }
@@ -624,6 +1400,9 @@ function deleteProgram() {
     }
 
     try {
+        if (isOrganizerRequest()) {
+            requireCanManageProgramId($db, $id);
+        }
         $stmt = $db->prepare("DELETE FROM programs WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
@@ -636,8 +1415,11 @@ function deleteProgram() {
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        audit_admin_success('program_delete', 'program', $id, null);
         jsonResponse(true, null, 'Event deleted successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('program_delete', 'database_error', 'program', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to delete event', $e->getMessage()));
     }
 }
@@ -677,6 +1459,7 @@ function bulkDeletePrograms() {
     }
 
     try {
+        requireCanManageProgramIds($db, $ids);
         $db->beginTransaction();
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -692,6 +1475,8 @@ function bulkDeletePrograms() {
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        audit_admin_success('program_bulk_delete', 'program', null, null, ['count' => $deletedCount, 'ids' => array_values($ids)]);
         jsonResponse(true, [
             'deleted_count' => $deletedCount,
             'failed_count' => $failedCount,
@@ -700,6 +1485,7 @@ function bulkDeletePrograms() {
 
     } catch (PDOException $e) {
         $db->rollBack();
+        audit_admin_failure('program_bulk_delete', 'database_error', 'program', null, null);
         jsonResponse(false, null, safe_error_message('Failed to delete events', $e->getMessage()));
     }
 }
@@ -748,6 +1534,7 @@ function bulkUpdatePrograms() {
     }
 
     try {
+        requireCanManageProgramIds($db, $ids);
         $db->beginTransaction();
 
         // Build dynamic UPDATE
@@ -756,7 +1543,7 @@ function bulkUpdatePrograms() {
 
         if ($location !== null) {
             $setClauses[] = "location = :location";
-            $params[':location'] = trim($location);
+            $params[':location'] = venue_resolve_canonical($db, $location, !isOrganizerRequest());
         }
 
         if ($organizer !== null) {
@@ -807,6 +1594,8 @@ function bulkUpdatePrograms() {
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        audit_admin_success('program_bulk_update', 'program', null, null, ['count' => $updatedCount, 'ids' => array_values($ids)]);
         jsonResponse(true, [
             'updated_count' => $updatedCount,
             'failed_count' => $failedCount,
@@ -815,6 +1604,7 @@ function bulkUpdatePrograms() {
 
     } catch (PDOException $e) {
         $db->rollBack();
+        audit_admin_failure('program_bulk_update', 'database_error', 'program', null, null);
         jsonResponse(false, null, safe_error_message('Failed to update events', $e->getMessage()));
     }
 }
@@ -826,12 +1616,14 @@ function getVenues() {
     global $db;
 
     try {
-        $stmt = $db->query("
+        $sql = "
             SELECT DISTINCT location
             FROM programs
             WHERE location IS NOT NULL AND location != ''
             ORDER BY location ASC
-        ");
+        ";
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
 
         $venues = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -851,12 +1643,18 @@ function getTypes() {
     global $db;
 
     try {
-        $stmt = $db->query("
+        $sql = "
             SELECT DISTINCT program_type
             FROM programs
             WHERE program_type IS NOT NULL AND program_type != ''
+            " . (isOrganizerRequest() ? "AND " . organizerEventWhere('event_id') : "") . "
             ORDER BY program_type ASC
-        ");
+        ";
+        $stmt = $db->prepare($sql);
+        if (isOrganizerRequest()) {
+            bindOrganizerUser($stmt);
+        }
+        $stmt->execute();
 
         $types = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -976,9 +1774,11 @@ function approveRequest() {
         $stmt->execute([':id' => $id, ':note' => mb_substr(trim($input['admin_note'] ?? ''), 0, 500), ':now' => $now, ':by' => $_SESSION['admin_username'] ?? 'admin']);
 
         $db->commit();
+        audit_admin_success('program_request_approve', 'program_request', $id, null, ['program_id' => $programId]);
         jsonResponse(true, ['program_id' => $programId], 'Approved');
     } catch (PDOException $e) {
         $db->rollBack();
+        audit_admin_failure('program_request_approve', 'database_error', 'program_request', $id, null);
         jsonResponse(false, null, 'Failed');
     }
 }
@@ -999,20 +1799,501 @@ function rejectRequest() {
         $stmt = $db->prepare("UPDATE program_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by, updated_at = :now WHERE id = :id AND status = 'pending'");
         $stmt->execute([':id' => $id, ':note' => mb_substr(trim($input['admin_note'] ?? ''), 0, 500), ':now' => date('Y-m-d H:i:s'), ':by' => $_SESSION['admin_username'] ?? 'admin']);
         if ($stmt->rowCount() === 0) jsonResponse(false, null, 'Not found or processed');
+        audit_admin_success('program_request_reject', 'program_request', $id, null);
         jsonResponse(true, null, 'Rejected');
     } catch (PDOException $e) {
+        audit_admin_failure('program_request_reject', 'database_error', 'program_request', $id, null);
         jsonResponse(false, null, 'Failed');
     }
 }
 
 /**
- * Get pending count
+ * Get pending count (program_requests + event_requests)
  */
 function getPendingCount() {
     global $db;
     try {
-        $stmt = $db->query("SELECT COUNT(*) as count FROM program_requests WHERE status = 'pending'");
-        jsonResponse(true, ['count' => intval($stmt->fetch(PDO::FETCH_ASSOC)['count'])]);
+        $progCount = intval($db->query("SELECT COUNT(*) FROM program_requests WHERE status = 'pending'")->fetchColumn());
+        $evReqCount = 0;
+        $evActiveReqCount = 0;
+        $artistReqCount = 0;
+        $evReqTable = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='event_requests'")->fetch();
+        if ($evReqTable) {
+            $evReqCount = intval($db->query("SELECT COUNT(*) FROM event_requests WHERE status = 'pending' AND request_type != 'activate'")->fetchColumn());
+            $evActiveReqCount = intval($db->query("SELECT COUNT(*) FROM event_requests WHERE status = 'pending' AND request_type = 'activate'")->fetchColumn());
+        }
+        $artistReqTable = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='artist_requests'")->fetch();
+        if ($artistReqTable) {
+            $artistReqCount = intval($db->query("SELECT COUNT(*) FROM artist_requests WHERE status = 'pending'")->fetchColumn());
+        }
+        jsonResponse(true, [
+            'count' => $progCount + $evReqCount + $evActiveReqCount + $artistReqCount,
+            'program_requests' => $progCount,
+            'event_requests' => $evReqCount,
+            'event_active_requests' => $evActiveReqCount,
+            'artist_requests' => $artistReqCount,
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, 'Failed');
+    }
+}
+
+function requireArtistRequestsTable(PDO $db): void {
+    if (!adminTableExists($db, 'artist_requests')) {
+        jsonResponse(false, null, 'artist_requests table not found. Run: php tools/migrate-add-artist-requests-table.php');
+    }
+}
+
+function normalizeArtistRequestInput(PDO $db, array $input): array {
+    $name = trim($input['name'] ?? '');
+    if ($name === '') {
+        jsonResponse(false, null, 'Name is required');
+    }
+    if (mb_strlen($name) > 200) {
+        jsonResponse(false, null, 'Name is too long (max 200 characters)');
+    }
+
+    $isGroup = empty($input['is_group']) ? 0 : 1;
+    $groupId = isset($input['group_id']) && $input['group_id'] !== '' ? intval($input['group_id']) : null;
+    if ($isGroup) {
+        $groupId = null;
+    }
+
+    if ($groupId !== null) {
+        $groupStmt = $db->prepare("SELECT id FROM artists WHERE id = :id AND is_group = 1");
+        $groupStmt->execute([':id' => $groupId]);
+        if (!$groupStmt->fetchColumn()) {
+            jsonResponse(false, null, 'Selected group was not found');
+        }
+    }
+
+    return [
+        'name' => $name,
+        'is_group' => $isGroup,
+        'group_id' => $groupId,
+        'social_facebook' => sanitize_social_url($input['social_facebook'] ?? ''),
+        'social_instagram' => sanitize_social_url($input['social_instagram'] ?? ''),
+        'social_twitter' => sanitize_social_url($input['social_twitter'] ?? ''),
+        'social_tiktok' => sanitize_social_url($input['social_tiktok'] ?? ''),
+    ];
+}
+
+function artistNameExists(PDO $db, string $name): bool {
+    $stmt = $db->prepare("SELECT id FROM artists WHERE LOWER(name) = LOWER(:name) LIMIT 1");
+    $stmt->execute([':name' => $name]);
+    return (bool)$stmt->fetchColumn();
+}
+
+function listArtistRequests() {
+    global $db;
+    requireApiAdminOrAgentRole();
+    requireArtistRequestsTable($db);
+
+    $status = $_GET['status'] ?? 'all';
+    $page = max(1, intval($_GET['page'] ?? 1));
+    $limit = 20;
+    $offset = ($page - 1) * $limit;
+
+    $where = "1=1";
+    $params = [];
+    if ($status !== 'all' && in_array($status, ['pending', 'approved', 'rejected'], true)) {
+        $where .= " AND ar.status = :status";
+        $params[':status'] = $status;
+    }
+
+    try {
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM artist_requests ar WHERE $where");
+        $countStmt->execute($params);
+        $total = intval($countStmt->fetchColumn());
+
+        $sql = "SELECT ar.*, g.name AS group_name
+                FROM artist_requests ar
+                LEFT JOIN artists g ON g.id = ar.group_id
+                WHERE $where
+                ORDER BY ar.created_at DESC
+                LIMIT :limit OFFSET :offset";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = array_map(function($row) {
+            return escapeOutputData($row, [
+                'name', 'group_name', 'social_facebook', 'social_instagram', 'social_twitter',
+                'social_tiktok', 'requester_name', 'requester_email', 'admin_note', 'reviewed_by',
+            ]);
+        }, $rows);
+
+        jsonResponse(true, [
+            'requests' => $rows,
+            'pagination' => [
+                'page' => $page,
+                'total' => $total,
+                'totalPages' => max(1, (int)ceil($total / $limit)),
+            ],
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch artist requests', $e->getMessage()));
+    }
+}
+
+function createArtistRequest() {
+    global $db;
+    requireApiOrganizerRole();
+    requireArtistRequestsTable($db);
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $data = normalizeArtistRequestInput($db, $input);
+    if (artistNameExists($db, $data['name'])) {
+        jsonResponse(false, null, 'Artist name already exists');
+    }
+
+    try {
+        $pending = $db->prepare("SELECT id FROM artist_requests WHERE LOWER(name) = LOWER(:name) AND status = 'pending' LIMIT 1");
+        $pending->execute([':name' => $data['name']]);
+        if ($pending->fetchColumn()) {
+            jsonResponse(false, null, 'Artist request is already pending');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $stmt = $db->prepare("
+            INSERT INTO artist_requests (
+                name, is_group, group_id, social_facebook, social_instagram, social_twitter, social_tiktok,
+                requester_user_id, requester_name, requester_email, created_at, updated_at
+            ) VALUES (
+                :name, :is_group, :group_id, :social_facebook, :social_instagram, :social_twitter, :social_tiktok,
+                :requester_user_id, :requester_name, :requester_email, :created_at, :updated_at
+            )
+        ");
+        $stmt->execute([
+            ':name' => $data['name'],
+            ':is_group' => $data['is_group'],
+            ':group_id' => $data['group_id'],
+            ':social_facebook' => $data['social_facebook'],
+            ':social_instagram' => $data['social_instagram'],
+            ':social_twitter' => $data['social_twitter'],
+            ':social_tiktok' => $data['social_tiktok'],
+            ':requester_user_id' => organizerUserId(),
+            ':requester_name' => $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'organizer',
+            ':requester_email' => null,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+
+        $newId = (int)$db->lastInsertId();
+        audit_admin_success('artist_request_create', 'artist_request', $newId, $data['name']);
+        jsonResponse(true, ['id' => $newId], 'Artist request submitted');
+    } catch (PDOException $e) {
+        audit_admin_failure('artist_request_create', 'database_error', 'artist_request', null, $data['name'] ?? null);
+        jsonResponse(false, null, safe_error_message('Failed to submit artist request', $e->getMessage()));
+    }
+}
+
+function approveArtistRequest() {
+    global $db;
+    requireApiAdminOrAgentRole();
+    requireArtistRequestsTable($db);
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT required');
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'ID required');
+    }
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $adminNote = mb_substr(trim($input['admin_note'] ?? ''), 0, 1000) ?: null;
+
+    try {
+        $db->beginTransaction();
+
+        $stmt = $db->prepare("SELECT * FROM artist_requests WHERE id = :id AND status = 'pending'");
+        $stmt->execute([':id' => $id]);
+        $req = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$req) {
+            $db->rollBack();
+            jsonResponse(false, null, 'Request not found or already reviewed');
+        }
+        if (artistNameExists($db, $req['name'])) {
+            $db->rollBack();
+            jsonResponse(false, null, 'Artist name already exists');
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $insert = $db->prepare("
+            INSERT INTO artists (name, is_group, group_id,
+                social_facebook, social_instagram, social_twitter, social_tiktok,
+                created_at, updated_at)
+            VALUES (:name, :is_group, :group_id,
+                :social_facebook, :social_instagram, :social_twitter, :social_tiktok,
+                :created_at, :updated_at)
+        ");
+        $insert->execute([
+            ':name' => $req['name'],
+            ':is_group' => (int)$req['is_group'],
+            ':group_id' => !empty($req['is_group']) ? null : ($req['group_id'] ?: null),
+            ':social_facebook' => $req['social_facebook'],
+            ':social_instagram' => $req['social_instagram'],
+            ':social_twitter' => $req['social_twitter'],
+            ':social_tiktok' => $req['social_tiktok'],
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $artistId = (int)$db->lastInsertId();
+
+        $update = $db->prepare("UPDATE artist_requests SET status = 'approved', admin_note = :note, reviewed_at = :now, reviewed_by = :by, updated_at = :now2 WHERE id = :id");
+        $update->execute([
+            ':note' => $adminNote,
+            ':now' => $now,
+            ':by' => $_SESSION['admin_username'] ?? 'admin',
+            ':now2' => $now,
+            ':id' => $id,
+        ]);
+
+        $db->commit();
+        invalidate_data_version_cache();
+        invalidate_artist_query_cache();
+        invalidate_sitemap_cache();
+        audit_admin_success('artist_request_approve', 'artist_request', $id, $req['name'] ?? null, ['artist_id' => $artistId]);
+        jsonResponse(true, ['artist_id' => $artistId], 'Approved');
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        audit_admin_failure('artist_request_approve', 'database_error', 'artist_request', $id, null);
+        jsonResponse(false, null, safe_error_message('Failed to approve artist request', $e->getMessage()));
+    }
+}
+
+function rejectArtistRequest() {
+    global $db;
+    requireApiAdminOrAgentRole();
+    requireArtistRequestsTable($db);
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+        jsonResponse(false, null, 'PUT required');
+    }
+
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) {
+        jsonResponse(false, null, 'ID required');
+    }
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $adminNote = mb_substr(trim($input['admin_note'] ?? ''), 0, 1000) ?: null;
+
+    try {
+        $stmt = $db->prepare("UPDATE artist_requests SET status = 'rejected', admin_note = :note, reviewed_at = :now, reviewed_by = :by, updated_at = :now2 WHERE id = :id AND status = 'pending'");
+        $stmt->execute([
+            ':id' => $id,
+            ':note' => $adminNote,
+            ':now' => date('Y-m-d H:i:s'),
+            ':by' => $_SESSION['admin_username'] ?? 'admin',
+            ':now2' => date('Y-m-d H:i:s'),
+        ]);
+        if ($stmt->rowCount() === 0) {
+            jsonResponse(false, null, 'Request not found or already reviewed');
+        }
+        audit_admin_success('artist_request_reject', 'artist_request', $id, null);
+        jsonResponse(true, null, 'Rejected');
+    } catch (PDOException $e) {
+        audit_admin_failure('artist_request_reject', 'database_error', 'artist_request', $id, null);
+        jsonResponse(false, null, safe_error_message('Failed to reject artist request', $e->getMessage()));
+    }
+}
+
+/**
+ * List event requests with pagination + status filter
+ */
+function listEventRequests() {
+    global $db;
+    $status   = $_GET['status'] ?? 'all';
+    $requestGroup = $_GET['request_group'] ?? 'all';
+    $page     = max(1, intval($_GET['page'] ?? 1));
+    $pageSize = 20;
+    $offset   = ($page - 1) * $pageSize;
+
+    $where  = "1=1";
+    $params = [];
+    if ($requestGroup === 'guest') {
+        $where .= " AND er.request_type != 'activate'";
+    } elseif ($requestGroup === 'active') {
+        $where .= " AND er.request_type = 'activate'";
+    }
+    if ($status !== 'all') {
+        $where  .= " AND er.status = :status";
+        $params[':status'] = $status;
+    }
+
+    try {
+        // Verify table exists
+        $chk = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='event_requests'")->fetch();
+        if (!$chk) {
+            jsonResponse(true, ['requests' => [], 'pagination' => ['total' => 0, 'page' => 1, 'pageSize' => $pageSize, 'totalPages' => 0]]);
+        }
+
+        $countSql = "SELECT COUNT(*) FROM event_requests er WHERE $where";
+        $countStmt = $db->prepare($countSql);
+        $countStmt->execute($params);
+        $total = intval($countStmt->fetchColumn());
+
+        $sql = "SELECT er.*, e.name AS existing_event_name
+                FROM event_requests er
+                LEFT JOIN events e ON e.id = er.event_id
+                WHERE $where
+                ORDER BY er.created_at DESC
+                LIMIT :limit OFFSET :offset";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $v) $stmt->bindValue($k, $v);
+        $stmt->bindValue(':limit',  $pageSize, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset,   PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        jsonResponse(true, [
+            'requests'   => $rows,
+            'pagination' => [
+                'total'      => $total,
+                'page'       => $page,
+                'pageSize'   => $pageSize,
+                'totalPages' => max(1, ceil($total / $pageSize)),
+            ],
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, 'Failed to fetch event requests');
+    }
+}
+
+/**
+ * Approve an event request
+ * - type=add: INSERT new event with auto slug
+ * - type=modify: UPDATE non-empty fields on the existing event
+ * - type=activate: set the existing event active
+ */
+function approveEventRequest() {
+    global $db;
+    requireApiAdminOrAgentRole();
+
+    $id    = intval($_GET['id'] ?? 0);
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $adminNote = mb_substr(trim($input['admin_note'] ?? ''), 0, 1000) ?: null;
+
+    if (!$id) jsonResponse(false, null, 'Invalid ID');
+
+    try {
+        $stmt = $db->prepare("SELECT * FROM event_requests WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $req = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$req) jsonResponse(false, null, 'Request not found');
+        if ($req['status'] !== 'pending') jsonResponse(false, null, 'Request already reviewed');
+
+        $now = date('Y-m-d H:i:s');
+        $reviewer = $_SESSION['admin_username'] ?? 'admin';
+
+        if ($req['request_type'] === 'add') {
+            // Generate unique slug from name
+            $baseName  = !empty($req['name']) ? $req['name'] : 'event';
+            $slug      = preg_replace('/[^a-z0-9]+/', '-', strtolower($baseName));
+            $slug      = trim($slug, '-') ?: 'event';
+            $slug     .= '-' . substr(uniqid(), -6);
+
+            $ins = $db->prepare("INSERT INTO events (slug, name, description, start_date, end_date, is_active, venue_mode, created_at, updated_at)
+                                  VALUES (:slug, :name, :desc, :start, :end, :is_active, 'multi', :now, :now2)");
+            $ins->execute([
+                ':slug'      => $slug,
+                ':name'      => $req['name'] ?? $baseName,
+                ':desc'      => $req['description'] ?? null,
+                ':start'     => $req['start_date'] ?? null,
+                ':end'       => $req['end_date'] ?? null,
+                ':is_active' => 0,
+                ':now'       => $now,
+                ':now2'      => $now,
+            ]);
+            invalidate_query_cache(null);
+
+        } elseif ($req['request_type'] === 'modify' && !empty($req['event_id'])) {
+            $sets   = [];
+            $params = [':id' => $req['event_id'], ':now' => $now];
+            if (!empty($req['name']))        { $sets[] = "name = :name";        $params[':name']  = $req['name']; }
+            if (!empty($req['description'])) { $sets[] = "description = :desc"; $params[':desc']  = $req['description']; }
+            if (!empty($req['start_date']))  { $sets[] = "start_date = :start"; $params[':start'] = $req['start_date']; }
+            if (!empty($req['end_date']))    { $sets[] = "end_date = :end";     $params[':end']   = $req['end_date']; }
+
+            if (!empty($sets)) {
+                $sets[] = "updated_at = :now";
+                $upd = $db->prepare("UPDATE events SET " . implode(', ', $sets) . " WHERE id = :id");
+                $upd->execute($params);
+                invalidate_query_cache(intval($req['event_id']));
+            }
+        } elseif ($req['request_type'] === 'activate' && !empty($req['event_id'])) {
+            $updEvent = $db->prepare("UPDATE events SET is_active = 1, updated_at = :now WHERE id = :id");
+            $updEvent->execute([':now' => $now, ':id' => (int)$req['event_id']]);
+            invalidate_query_cache((int)$req['event_id']);
+            invalidate_sitemap_cache();
+        }
+
+        $upd = $db->prepare("UPDATE event_requests SET status='approved', admin_note=:note, reviewed_at=:now, reviewed_by=:by, updated_at=:now2 WHERE id=:id");
+        $upd->execute([':note' => $adminNote, ':now' => $now, ':by' => $reviewer, ':now2' => $now, ':id' => $id]);
+
+        audit_admin_success('event_request_approve', 'event_request', $id, $req['name'] ?? null, ['request_type' => $req['request_type'] ?? null]);
+        jsonResponse(true, null, 'Approved');
+    } catch (PDOException $e) {
+        audit_admin_failure('event_request_approve', 'database_error', 'event_request', $id, null);
+        jsonResponse(false, null, 'Failed to approve');
+    }
+}
+
+/**
+ * Reject an event request
+ */
+function rejectEventRequest() {
+    global $db;
+    requireApiAdminOrAgentRole();
+
+    $id    = intval($_GET['id'] ?? 0);
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $adminNote = mb_substr(trim($input['admin_note'] ?? ''), 0, 1000) ?: null;
+
+    if (!$id) jsonResponse(false, null, 'Invalid ID');
+
+    try {
+        $stmt = $db->prepare("SELECT id, status FROM event_requests WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $req = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$req) jsonResponse(false, null, 'Request not found');
+        if ($req['status'] !== 'pending') jsonResponse(false, null, 'Request already reviewed');
+
+        $now = date('Y-m-d H:i:s');
+        $reviewer = $_SESSION['admin_username'] ?? 'admin';
+        $upd = $db->prepare("UPDATE event_requests SET status='rejected', admin_note=:note, reviewed_at=:now, reviewed_by=:by, updated_at=:now2 WHERE id=:id");
+        $upd->execute([':note' => $adminNote, ':now' => $now, ':by' => $reviewer, ':now2' => $now, ':id' => $id]);
+
+        audit_admin_success('event_request_reject', 'event_request', $id, null);
+        jsonResponse(true, null, 'Rejected');
+    } catch (PDOException $e) {
+        audit_admin_failure('event_request_reject', 'database_error', 'event_request', $id, null);
+        jsonResponse(false, null, 'Failed to reject');
+    }
+}
+
+/**
+ * Get pending count for event_requests only
+ */
+function getEventRequestPendingCount() {
+    global $db;
+    try {
+        $chk = $db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='event_requests'")->fetch();
+        if (!$chk) { jsonResponse(true, ['count' => 0]); }
+        $count = intval($db->query("SELECT COUNT(*) FROM event_requests WHERE status='pending'")->fetchColumn());
+        jsonResponse(true, ['count' => $count]);
     } catch (PDOException $e) {
         jsonResponse(false, null, 'Failed');
     }
@@ -1297,7 +2578,7 @@ function confirmIcsImport() {
                     ':title' => $event['title'],
                     ':start' => $event['start'],
                     ':end' => $event['end'],
-                    ':location' => $event['location'] ?? '',
+                    ':location' => venue_resolve_canonical($db, $event['location'] ?? '', true),
                     ':organizer' => $event['organizer'] ?? '',
                     ':description' => $event['description'] ?? '',
                     ':categories' => $event['categories'] ?? '',
@@ -1454,6 +2735,12 @@ function confirmIcsImport() {
         invalidate_feed_cache();
         invalidate_query_cache();
         invalidate_artist_query_cache();
+        invalidate_venue_query_cache();
+        fts5_rebuild_all($db); // rebuild FTS index after bulk import
+        audit_admin_success('ics_import_confirm', 'program', null, null, [
+            'affected_count'     => $stats['inserted'] + $stats['updated'],
+            'affected_breakdown' => ['inserted' => $stats['inserted'], 'updated' => $stats['updated'], 'skipped' => $stats['skipped']],
+        ]);
         jsonResponse(true, [
             'saved_filename' => $savedFilename,
             'stats' => $stats,
@@ -1462,6 +2749,7 @@ function confirmIcsImport() {
 
     } catch (Exception $e) {
         $db->rollBack();
+        audit_admin_failure('ics_import_confirm', 'database_error', 'program', null, null);
         jsonResponse(false, null, 'Import failed: ' . $e->getMessage());
     }
 }
@@ -1478,7 +2766,7 @@ function confirmIcsImport() {
  * @param int $programId
  * @param string $categories  Comma-separated category string from the programs table
  */
-function syncProgramArtists(PDO $db, int $programId, string $categories): void {
+function syncProgramArtists(PDO $db, int $programId, string $categories, bool $allowCreate = true): void {
     // Check program_artists table exists (v3.0.0+)
     $hasPATable = (bool)$db->query(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='program_artists'"
@@ -1521,8 +2809,9 @@ function syncProgramArtists(PDO $db, int $programId, string $categories): void {
                 $artistId = $variantIdMap[$catLower];
             }
 
-            // 3) auto-create new artist if still not found
-            if (!$artistId) {
+            // 3) auto-create new artist if still not found.
+            // Organizer users may reference existing artists only.
+            if (!$artistId && $allowCreate) {
                 $now = date('Y-m-d H:i:s');
                 $db->prepare('INSERT INTO artists (name, is_group, created_at, updated_at) VALUES (?, 0, ?, ?)')
                    ->execute([$catRaw, $now, $now]);
@@ -1537,6 +2826,511 @@ function syncProgramArtists(PDO $db, int $programId, string $categories): void {
         if ($nameCache[$catLower]) {
             $insertLink->execute([$programId, $nameCache[$catLower]]);
         }
+    }
+}
+
+/**
+ * Resolve a raw location string to its canonical venue name.
+ * Mirror of the artist canonicalisation in syncProgramArtists():
+ *   1) exact name match (case-insensitive) in venues  → canonical name
+ *   2) variant lookup (case-insensitive) in venue_variants → owning venue name
+ *   3) not found + $allowCreate → INSERT a new venue, return its name
+ *   4) tables missing / not found → return the raw value unchanged (graceful)
+ *
+ * Used before binding programs.location on create/update/bulk/ICS import so that
+ * known aliases auto-normalise and brand-new venues self-register.
+ *
+ * @return string canonical location string (may equal the raw input)
+ */
+function venue_resolve_canonical(PDO $db, string $rawLocation, bool $allowCreate = true): string {
+    $raw = trim($rawLocation);
+    if ($raw === '') return '';
+
+    // venues table must exist (v16.0.0+)
+    $hasVenues = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='venues'"
+    )->fetch();
+    if (!$hasVenues) return $raw;
+
+    // 1) exact name match (case-insensitive)
+    $s = $db->prepare('SELECT name FROM venues WHERE LOWER(name) = LOWER(?)');
+    $s->execute([$raw]);
+    $name = $s->fetchColumn();
+    if ($name) return $name;
+
+    // 2) variant lookup
+    $hasVariants = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='venue_variants'"
+    )->fetch();
+    if ($hasVariants) {
+        $sv = $db->prepare('
+            SELECT v.name FROM venue_variants vv
+            JOIN venues v ON v.id = vv.venue_id
+            WHERE LOWER(vv.variant) = LOWER(?)
+            LIMIT 1
+        ');
+        $sv->execute([$raw]);
+        $vname = $sv->fetchColumn();
+        if ($vname) return $vname;
+    }
+
+    // 3) auto-create new venue
+    if ($allowCreate) {
+        $now = date('Y-m-d H:i:s');
+        $ins = $db->prepare('INSERT OR IGNORE INTO venues (name, created_at, updated_at) VALUES (?, ?, ?)');
+        $ins->execute([$raw, $now, $now]);
+    }
+
+    // 4) return raw (canonical now == raw)
+    return $raw;
+}
+
+// ============================================================================
+// VENUES API FUNCTIONS (v16.0.0)
+// ============================================================================
+
+/** Guard: ensure venues table exists, else JSON error. */
+function _venuesTableReady(PDO $db): bool {
+    return (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='venues'"
+    )->fetch();
+}
+
+/**
+ * List venues with pagination, search, sort + program_count + variant_count
+ */
+function listVenues() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+    if (!_venuesTableReady($db)) {
+        jsonResponse(false, null, 'venues table not found. Run: php tools/migrate-add-venues-table.php');
+        return;
+    }
+
+    $page   = max(1, intval($_GET['page'] ?? 1));
+    $limit  = max(1, min(100, intval($_GET['limit'] ?? 50)));
+    $offset = ($page - 1) * $limit;
+    $search = substr($_GET['search'] ?? '', 0, 200);
+
+    $allowedSort = ['id', 'name', 'created_at', 'program_count'];
+    $sortColumn  = in_array($_GET['sort'] ?? '', $allowedSort) ? $_GET['sort'] : 'name';
+    $sortOrder   = ($_GET['order'] ?? 'asc') === 'desc' ? 'DESC' : 'ASC';
+
+    $where = [];
+    $params = [];
+    if ($search !== '') {
+        $escaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
+        $where[] = "v.name LIKE :search ESCAPE '\\'";
+        $params[':search'] = '%' . $escaped . '%';
+    }
+    $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    try {
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM venues v $whereClause");
+        $countStmt->execute($params);
+        $total = (int)$countStmt->fetchColumn();
+
+        $hasVariants = (bool)$db->query(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='venue_variants'"
+        )->fetch();
+        $variantCountExpr = $hasVariants
+            ? "(SELECT COUNT(*) FROM venue_variants vv WHERE vv.venue_id = v.id)"
+            : "0";
+
+        // program_count: programs whose location = name OR matches one of this venue's variants
+        $programCountExpr = $hasVariants
+            ? "(SELECT COUNT(*) FROM programs p
+                 WHERE p.location = v.name
+                    OR p.location IN (SELECT vv2.variant FROM venue_variants vv2 WHERE vv2.venue_id = v.id))"
+            : "(SELECT COUNT(*) FROM programs p WHERE p.location = v.name)";
+
+        $orderExpr = $sortColumn === 'program_count' ? $programCountExpr : "v.$sortColumn";
+
+        $hasIsOnline = in_array('is_online', $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1), true);
+        $isOnlineExpr = $hasIsOnline ? 'v.is_online' : '0 AS is_online';
+        $sql = "SELECT v.id, v.name, v.description, v.map_url, v.created_at,
+                       $isOnlineExpr,
+                       $variantCountExpr AS variant_count,
+                       $programCountExpr AS program_count
+                FROM venues v
+                $whereClause
+                ORDER BY $orderExpr $sortOrder
+                LIMIT :limit OFFSET :offset";
+        $stmt = $db->prepare($sql);
+        foreach ($params as $k => $vv) $stmt->bindValue($k, $vv);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $venues = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $venues = array_map(fn($v) => escapeOutputData($v, ['name', 'description', 'map_url']), $venues);
+
+        jsonResponse(true, [
+            'venues'     => $venues,
+            'pagination' => [
+                'page' => $page, 'limit' => $limit, 'total' => $total,
+                'totalPages' => (int)ceil($total / $limit),
+            ],
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch venues', $e->getMessage()));
+    }
+}
+
+/** Lightweight venue autocomplete (id, name) matching name OR variant */
+function autocompleteVenues() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+    if (!_venuesTableReady($db)) { jsonResponse(true, []); return; }
+
+    $q = substr(trim($_GET['q'] ?? ''), 0, 200);
+    try {
+        if ($q === '') {
+            $stmt = $db->query("SELECT id, name FROM venues ORDER BY name ASC LIMIT 50");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $escaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $q);
+            $stmt = $db->prepare("
+                SELECT DISTINCT v.id, v.name
+                FROM venues v
+                LEFT JOIN venue_variants vv ON vv.venue_id = v.id
+                WHERE v.name LIKE :q ESCAPE '\\' OR vv.variant LIKE :q ESCAPE '\\'
+                ORDER BY v.name ASC LIMIT 20
+            ");
+            $stmt->execute([':q' => '%' . $escaped . '%']);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+        $data = array_map(fn($r) => ['id' => (int)$r['id'], 'name' => $r['name']], $rows);
+        jsonResponse(true, $data);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Autocomplete failed', $e->getMessage()));
+    }
+}
+
+/** Get single venue by ID (with variants) */
+function getVenue() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') { jsonResponse(false, null, 'GET method required'); return; }
+    if (!_venuesTableReady($db)) { jsonResponse(false, null, 'venues table not found'); return; }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) { jsonResponse(false, null, 'Valid venue ID required'); return; }
+
+    try {
+        $hasIsOnline = in_array('is_online', $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1), true);
+        $cols = "id, name, description, map_url, created_at" . ($hasIsOnline ? ", is_online" : "");
+        $stmt = $db->prepare("SELECT $cols FROM venues WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $venue = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$venue) { jsonResponse(false, null, 'Venue not found'); return; }
+        if (!$hasIsOnline) $venue['is_online'] = 0;
+        $venue = escapeOutputData($venue, ['name', 'description', 'map_url']);
+        jsonResponse(true, $venue);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch venue', $e->getMessage()));
+    }
+}
+
+/** Create new venue */
+function createVenue() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { jsonResponse(false, null, 'POST method required'); return; }
+    if (!_venuesTableReady($db)) { jsonResponse(false, null, 'venues table not found. Run: php tools/migrate-add-venues-table.php'); return; }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $name  = trim($input['name'] ?? '');
+    if ($name === '') { jsonResponse(false, null, 'Name is required'); return; }
+    if (mb_strlen($name, 'UTF-8') > 300) { jsonResponse(false, null, 'Name is too long (max 300 characters)'); return; }
+    $description = trim($input['description'] ?? '');
+    $mapUrlRaw   = trim($input['map_url'] ?? '');
+    $mapUrl      = ($mapUrlRaw !== '' && preg_match('/^https?:\/\//i', $mapUrlRaw)) ? $mapUrlRaw : null;
+    $isOnline    = !empty($input['is_online']) ? 1 : 0;
+
+    try {
+        $hasIsOnline = in_array('is_online', $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1), true);
+        $now  = date('Y-m-d H:i:s');
+        if ($hasIsOnline) {
+            $stmt = $db->prepare("INSERT INTO venues (name, description, map_url, is_online, created_at, updated_at)
+                                  VALUES (:name, :description, :map_url, :is_online, :now, :now2)");
+            $stmt->execute([
+                ':name' => $name,
+                ':description' => $description !== '' ? $description : null,
+                ':map_url' => $mapUrl,
+                ':is_online' => $isOnline,
+                ':now' => $now, ':now2' => $now,
+            ]);
+        } else {
+            $stmt = $db->prepare("INSERT INTO venues (name, description, map_url, created_at, updated_at)
+                                  VALUES (:name, :description, :map_url, :now, :now2)");
+            $stmt->execute([
+                ':name' => $name,
+                ':description' => $description !== '' ? $description : null,
+                ':map_url' => $mapUrl,
+                ':now' => $now, ':now2' => $now,
+            ]);
+        }
+        $id = (int)$db->lastInsertId();
+        invalidate_venue_query_cache();
+        invalidate_query_cache();
+        audit_admin_success('venue_create', 'venue', $id, $name);
+        jsonResponse(true, ['id' => $id], 'Venue created successfully');
+    } catch (PDOException $e) {
+        if (strpos($e->getMessage(), 'UNIQUE') !== false) {
+            jsonResponse(false, null, 'Venue name already exists');
+        } else {
+            audit_admin_failure('venue_create', 'database_error', 'venue', null, $name);
+            jsonResponse(false, null, safe_error_message('Failed to create venue', $e->getMessage()));
+        }
+    }
+}
+
+/** Update venue (rename also rewrites programs.location for consistency) */
+function updateVenue() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'PUT') { jsonResponse(false, null, 'PUT method required'); return; }
+    if (!_venuesTableReady($db)) { jsonResponse(false, null, 'venues table not found'); return; }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) { jsonResponse(false, null, 'Valid venue ID required'); return; }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    $name  = trim($input['name'] ?? '');
+    if ($name === '') { jsonResponse(false, null, 'Name is required'); return; }
+    if (mb_strlen($name, 'UTF-8') > 300) { jsonResponse(false, null, 'Name is too long (max 300 characters)'); return; }
+    $description = trim($input['description'] ?? '');
+    $mapUrlRaw   = trim($input['map_url'] ?? '');
+    $mapUrl      = ($mapUrlRaw !== '' && preg_match('/^https?:\/\//i', $mapUrlRaw)) ? $mapUrlRaw : null;
+    $isOnline    = !empty($input['is_online']) ? 1 : 0;
+
+    try {
+        $hasIsOnline = in_array('is_online', $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1), true);
+        // Old name (to rewrite programs.location on rename)
+        $s = $db->prepare("SELECT name FROM venues WHERE id = :id");
+        $s->execute([':id' => $id]);
+        $oldName = $s->fetchColumn();
+        if ($oldName === false) { jsonResponse(false, null, 'Venue not found'); return; }
+
+        $db->beginTransaction();
+        if ($hasIsOnline) {
+            $stmt = $db->prepare("UPDATE venues SET name = :name, description = :description, map_url = :map_url,
+                                  is_online = :is_online, updated_at = :now WHERE id = :id");
+            $stmt->execute([
+                ':name' => $name,
+                ':description' => $description !== '' ? $description : null,
+                ':map_url' => $mapUrl,
+                ':is_online' => $isOnline,
+                ':now' => date('Y-m-d H:i:s'),
+                ':id' => $id,
+            ]);
+        } else {
+            $stmt = $db->prepare("UPDATE venues SET name = :name, description = :description, map_url = :map_url,
+                                  updated_at = :now WHERE id = :id");
+            $stmt->execute([
+                ':name' => $name,
+                ':description' => $description !== '' ? $description : null,
+                ':map_url' => $mapUrl,
+                ':now' => date('Y-m-d H:i:s'),
+                ':id' => $id,
+            ]);
+        }
+        // Rename → rewrite programs.location from old → new
+        $rewritten = 0;
+        if ($oldName !== $name) {
+            $up = $db->prepare("UPDATE programs SET location = :new WHERE location = :old");
+            $up->execute([':new' => $name, ':old' => $oldName]);
+            $rewritten = $up->rowCount();
+        }
+        $db->commit();
+
+        invalidate_venue_query_cache();
+        invalidate_query_cache();
+        if ($rewritten > 0) { invalidate_data_version_cache(); invalidate_feed_cache(); }
+        audit_admin_success('venue_update', 'venue', $id, $name);
+        jsonResponse(true, ['rewritten_programs' => $rewritten], 'Venue updated successfully');
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        if (strpos($e->getMessage(), 'UNIQUE') !== false) {
+            jsonResponse(false, null, 'Venue name already exists');
+        } else {
+            audit_admin_failure('venue_update', 'database_error', 'venue', $id, $name);
+            jsonResponse(false, null, safe_error_message('Failed to update venue', $e->getMessage()));
+        }
+    }
+}
+
+/** Delete venue (variants cascade; programs.location text is left untouched) */
+function deleteVenue() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') { jsonResponse(false, null, 'DELETE method required'); return; }
+    if (!_venuesTableReady($db)) { jsonResponse(false, null, 'venues table not found'); return; }
+
+    $id = intval($_GET['id'] ?? 0);
+    if ($id <= 0) { jsonResponse(false, null, 'Valid venue ID required'); return; }
+
+    try {
+        $stmt = $db->prepare("DELETE FROM venues WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        if ($stmt->rowCount() === 0) { jsonResponse(false, null, 'Venue not found'); return; }
+        invalidate_venue_query_cache();
+        invalidate_query_cache();
+        audit_admin_success('venue_delete', 'venue', $id, null);
+        jsonResponse(true, null, 'Venue deleted successfully');
+    } catch (PDOException $e) {
+        audit_admin_failure('venue_delete', 'database_error', 'venue', $id, null);
+        jsonResponse(false, null, safe_error_message('Failed to delete venue', $e->getMessage()));
+    }
+}
+
+/** List variants for a venue */
+function listVenueVariants() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') { jsonResponse(false, null, 'GET method required'); return; }
+    $venueId = intval($_GET['venue_id'] ?? 0);
+    if (!$venueId) { jsonResponse(false, null, 'venue_id required'); return; }
+    try {
+        $stmt = $db->prepare("SELECT id, variant, created_at FROM venue_variants WHERE venue_id = ? ORDER BY variant ASC");
+        $stmt->execute([$venueId]);
+        $variants = array_map(fn($v) => escapeOutputData($v, ['variant']), $stmt->fetchAll(PDO::FETCH_ASSOC));
+        jsonResponse(true, ['variants' => $variants]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to fetch variants', $e->getMessage()));
+    }
+}
+
+/** Add a variant to a venue */
+function createVenueVariant() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { jsonResponse(false, null, 'POST method required'); return; }
+    $body    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $venueId = intval($body['venue_id'] ?? 0);
+    $variant = trim($body['variant'] ?? '');
+    if (!$venueId) { jsonResponse(false, null, 'venue_id required'); return; }
+    if ($variant === '') { jsonResponse(false, null, 'variant cannot be empty'); return; }
+    if (mb_strlen($variant, 'UTF-8') > 300) { jsonResponse(false, null, 'variant too long (max 300 characters)'); return; }
+
+    try {
+        $check = $db->prepare("SELECT id FROM venues WHERE id = ?");
+        $check->execute([$venueId]);
+        if (!$check->fetch()) { jsonResponse(false, null, 'Venue not found'); return; }
+        if (!$db->query("SELECT name FROM sqlite_master WHERE type='table' AND name='venue_variants'")->fetch()) {
+            jsonResponse(false, null, 'venue_variants table not found. Run: php tools/migrate-add-venues-table.php');
+            return;
+        }
+        $stmt = $db->prepare("INSERT OR IGNORE INTO venue_variants (venue_id, variant) VALUES (?, ?)");
+        $stmt->execute([$venueId, $variant]);
+        $newId = $db->lastInsertId();
+        if (!$newId) { jsonResponse(false, null, 'Variant already exists for this venue'); return; }
+        invalidate_venue_query_cache();
+        jsonResponse(true, ['id' => (int)$newId, 'variant' => $variant], 'Variant added');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to create variant', $e->getMessage()));
+    }
+}
+
+/** Delete a venue variant */
+function deleteVenueVariant() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'DELETE') { jsonResponse(false, null, 'DELETE method required'); return; }
+    $id = intval($_GET['id'] ?? 0);
+    if (!$id) { jsonResponse(false, null, 'id required'); return; }
+    try {
+        $stmt = $db->prepare("DELETE FROM venue_variants WHERE id = ?");
+        $stmt->execute([$id]);
+        if ($stmt->rowCount() === 0) { jsonResponse(false, null, 'Variant not found'); return; }
+        invalidate_venue_query_cache();
+        jsonResponse(true, null, 'Variant deleted');
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to delete variant', $e->getMessage()));
+    }
+}
+
+/**
+ * Merge source venues into a target venue.
+ * Body: { target_id: int, source_ids: [int,...] }
+ * - rewrite programs.location (source name + each source variant) → target name
+ * - move source variants → target; add each source name as a target variant
+ * - delete source venues (cascade removes leftover variants)
+ */
+function mergeVenues() {
+    global $db;
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { jsonResponse(false, null, 'POST method required'); return; }
+    if (!_venuesTableReady($db)) { jsonResponse(false, null, 'venues table not found'); return; }
+
+    $input    = json_decode(file_get_contents('php://input'), true) ?? [];
+    $targetId = intval($input['target_id'] ?? 0);
+    $sourceIds = $input['source_ids'] ?? [];
+    if ($targetId <= 0) { jsonResponse(false, null, 'target_id required'); return; }
+    if (!is_array($sourceIds) || empty($sourceIds)) { jsonResponse(false, null, 'source_ids required'); return; }
+    $sourceIds = array_values(array_filter(array_map('intval', $sourceIds), fn($i) => $i > 0 && $i !== $targetId));
+    if (empty($sourceIds)) { jsonResponse(false, null, 'No valid source venue IDs (cannot merge a venue into itself)'); return; }
+    if (count($sourceIds) > 100) { jsonResponse(false, null, 'Too many source venues (max 100)'); return; }
+
+    try {
+        $ts = $db->prepare("SELECT name FROM venues WHERE id = :id");
+        $ts->execute([':id' => $targetId]);
+        $targetName = $ts->fetchColumn();
+        if ($targetName === false) { jsonResponse(false, null, 'Target venue not found'); return; }
+
+        $db->beginTransaction();
+
+        $getName     = $db->prepare("SELECT name FROM venues WHERE id = :id");
+        $getVariants = $db->prepare("SELECT variant FROM venue_variants WHERE venue_id = :id");
+        $rewriteLoc  = $db->prepare("UPDATE programs SET location = :new WHERE location = :old");
+        $moveVariant = $db->prepare("UPDATE OR IGNORE venue_variants SET venue_id = :tid WHERE venue_id = :sid");
+        $addVariant  = $db->prepare("INSERT OR IGNORE INTO venue_variants (venue_id, variant) VALUES (:tid, :variant)");
+        $delVenue    = $db->prepare("DELETE FROM venues WHERE id = :id");
+
+        $rewritten = 0;
+        foreach ($sourceIds as $sid) {
+            $getName->execute([':id' => $sid]);
+            $sourceName = $getName->fetchColumn();
+            if ($sourceName === false) continue;
+
+            // rewrite programs.location: source name → target name
+            $rewriteLoc->execute([':new' => $targetName, ':old' => $sourceName]);
+            $rewritten += $rewriteLoc->rowCount();
+
+            // rewrite programs.location for each variant of the source → target name
+            $getVariants->execute([':id' => $sid]);
+            $srcVariants = $getVariants->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($srcVariants as $sv) {
+                $rewriteLoc->execute([':new' => $targetName, ':old' => $sv]);
+                $rewritten += $rewriteLoc->rowCount();
+            }
+
+            // move source variants → target (ignore dup), then add source name as target variant
+            $moveVariant->execute([':tid' => $targetId, ':sid' => $sid]);
+            if ($sourceName !== $targetName) {
+                $addVariant->execute([':tid' => $targetId, ':variant' => $sourceName]);
+            }
+
+            // delete source venue (cascade removes any leftover variants)
+            $delVenue->execute([':id' => $sid]);
+        }
+
+        $db->commit();
+
+        invalidate_venue_query_cache();
+        invalidate_query_cache();
+        invalidate_data_version_cache();
+        invalidate_feed_cache();
+        audit_admin_success('venue_merge', 'venue', $targetId, $targetName, [
+            'source_ids' => $sourceIds, 'rewritten_programs' => $rewritten,
+        ]);
+        jsonResponse(true, [
+            'target_id' => $targetId,
+            'merged_count' => count($sourceIds),
+            'rewritten_programs' => $rewritten,
+        ], 'Venues merged successfully');
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) $db->rollBack();
+        audit_admin_failure('venue_merge', 'database_error', 'venue', $targetId, null);
+        jsonResponse(false, null, safe_error_message('Failed to merge venues', $e->getMessage()));
     }
 }
 
@@ -1598,8 +3392,16 @@ function listCredits() {
         $params = [];
 
         if ($eventId) {
-            $where[] = "(event_id IS NULL OR event_id = :event_id)";
+            if (isOrganizerRequest() && !can_manage_event($eventId)) {
+                apiForbidden('You do not have permission to view this event');
+            }
+            $where[] = isOrganizerRequest() ? "event_id = :event_id" : "(event_id IS NULL OR event_id = :event_id)";
             $params[':event_id'] = $eventId;
+        }
+
+        if (isOrganizerRequest()) {
+            $where[] = organizerEventWhere('event_id');
+            $params[':organizer_user_id'] = organizerUserId() ?? 0;
         }
 
         if ($search) {
@@ -1621,7 +3423,8 @@ function listCredits() {
         $sql = "SELECT * FROM credits $whereClause ORDER BY $sortColumn $sortOrder LIMIT :limit OFFSET :offset";
         $stmt = $db->prepare($sql);
         foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value);
+            $type = $key === ':organizer_user_id' ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($key, $value, $type);
         }
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -1678,6 +3481,9 @@ function getCredit() {
             jsonResponse(false, null, 'Credit not found');
             return;
         }
+        if (isOrganizerRequest() && (empty($credit['event_id']) || !can_manage_event((int)$credit['event_id']))) {
+            apiForbidden('You do not have permission to view this credit');
+        }
 
         $fieldsToEscape = ['title', 'link', 'description'];
         $credit = escapeOutputData($credit, $fieldsToEscape);
@@ -1725,6 +3531,12 @@ function createCredit() {
     }
 
     try {
+        if (isOrganizerRequest()) {
+            if (!$creditEventId) {
+                apiForbidden('Organizer credits must be assigned to an event');
+            }
+            requireCanManageEventId($creditEventId);
+        }
         $now = date('Y-m-d H:i:s');
 
         $stmt = $db->prepare("
@@ -1747,9 +3559,11 @@ function createCredit() {
         // Invalidate cache
         invalidate_credits_cache($creditEventId);
 
+        audit_admin_success('credit_create', 'credit', (int)$id, $title);
         jsonResponse(true, ['id' => $id], 'Credit created successfully');
 
     } catch (PDOException $e) {
+        audit_admin_failure('credit_create', 'database_error', 'credit', null, $title ?? null);
         jsonResponse(false, null, safe_error_message('Failed to create credit', $e->getMessage()));
     }
 }
@@ -1796,6 +3610,13 @@ function updateCredit() {
     }
 
     try {
+        if (isOrganizerRequest()) {
+            requireCanManageCreditId($db, $id);
+            if (!$creditEventId) {
+                apiForbidden('Organizer credits must stay assigned to an event');
+            }
+            requireCanManageEventId($creditEventId);
+        }
         $stmt = $db->prepare("
             UPDATE credits
             SET title = :title,
@@ -1825,9 +3646,11 @@ function updateCredit() {
         // Invalidate cache
         invalidate_credits_cache($creditEventId);
 
+        audit_admin_success('credit_update', 'credit', $id, $title);
         jsonResponse(true, null, 'Credit updated successfully');
 
     } catch (PDOException $e) {
+        audit_admin_failure('credit_update', 'database_error', 'credit', $id, $title ?? null);
         jsonResponse(false, null, safe_error_message('Failed to update credit', $e->getMessage()));
     }
 }
@@ -1850,6 +3673,9 @@ function deleteCredit() {
     }
 
     try {
+        if (isOrganizerRequest()) {
+            requireCanManageCreditId($db, $id);
+        }
         $stmt = $db->prepare("DELETE FROM credits WHERE id = :id");
         $stmt->execute([':id' => $id]);
 
@@ -1861,9 +3687,11 @@ function deleteCredit() {
         // Invalidate cache
         invalidate_credits_cache();
 
+        audit_admin_success('credit_delete', 'credit', $id, null);
         jsonResponse(true, null, 'Credit deleted successfully');
 
     } catch (PDOException $e) {
+        audit_admin_failure('credit_delete', 'database_error', 'credit', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to delete credit', $e->getMessage()));
     }
 }
@@ -1903,6 +3731,7 @@ function bulkDeleteCredits() {
     }
 
     try {
+        requireCanManageCreditIds($db, $ids);
         $db->beginTransaction();
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -1917,6 +3746,7 @@ function bulkDeleteCredits() {
         // Invalidate cache
         invalidate_credits_cache();
 
+        audit_admin_success('credit_bulk_delete', 'credit', null, null, ['count' => $deletedCount, 'ids' => array_values($ids)]);
         jsonResponse(true, [
             'deleted_count' => $deletedCount,
             'failed_count' => $failedCount,
@@ -1925,6 +3755,7 @@ function bulkDeleteCredits() {
 
     } catch (PDOException $e) {
         $db->rollBack();
+        audit_admin_failure('credit_bulk_delete', 'database_error', 'credit', null, null);
         jsonResponse(false, null, safe_error_message('Failed to delete credits', $e->getMessage()));
     }
 }
@@ -1966,7 +3797,11 @@ function listEvents() {
         $whereClauses = [];
         $params = [];
 
-        if ($search) {
+        if ($search && mb_strlen($search) >= 3 && fts5_available($db)) {
+            $ftsRows = fts5_search_events($db, $search, 2000);
+            $ids     = array_column($ftsRows, 'id') ?: [-1];
+            $whereClauses[] = 'e.id IN (' . implode(',', array_map('intval', $ids)) . ')';
+        } elseif ($search) {
             $searchTerm = '%' . str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search) . '%';
             $whereClauses[] = "(name LIKE :search ESCAPE '\\' OR slug LIKE :search ESCAPE '\\' OR description LIKE :search ESCAPE '\\')";
             $params[':search'] = $searchTerm;
@@ -1992,10 +3827,15 @@ function listEvents() {
             $params[':date_to'] = $dateTo;
         }
 
+        if (isOrganizerRequest()) {
+            $whereClauses[] = organizerEventWhere('e.id');
+            $params[':organizer_user_id'] = organizerUserId() ?? 0;
+        }
+
         $whereSQL = !empty($whereClauses) ? ' WHERE ' . implode(' AND ', $whereClauses) : '';
 
         // COUNT query first for pagination total
-        $countQuery = "SELECT COUNT(*) as total FROM events" . $whereSQL;
+        $countQuery = "SELECT COUNT(*) as total FROM events e" . $whereSQL;
         $countStmt = $db->prepare($countQuery);
         $countStmt->execute($params);
         $total = intval($countStmt->fetch(PDO::FETCH_ASSOC)['total']);
@@ -2020,7 +3860,8 @@ function listEvents() {
         $dataStmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $dataStmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         foreach ($params as $key => $val) {
-            $dataStmt->bindValue($key, $val);
+            $type = $key === ':organizer_user_id' ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $dataStmt->bindValue($key, $val, $type);
         }
         $dataStmt->execute();
         $events = $dataStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -2069,6 +3910,9 @@ function getEvent() {
             jsonResponse(false, null, 'Event meta not found');
             return;
         }
+        if (isOrganizerRequest()) {
+            requireCanManageEventId($id);
+        }
 
         $fieldsToEscape = ['name', 'slug', 'description'];
         $meta = escapeOutputData($meta, $fieldsToEscape);
@@ -2114,6 +3958,9 @@ function createEvent() {
     $endDate = $input['end_date'] ?? null;
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+    if (isOrganizerRequest()) {
+        $isActive = 0;
+    }
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $galleryTemplate = in_array($input['gallery_template'] ?? '', $validTemplates) ? $input['gallery_template'] : 'grid3';
     $emailRaw = trim($input['email'] ?? '');
@@ -2123,8 +3970,15 @@ function createEvent() {
     if ($timezoneRaw !== '') {
         try { new DateTimeZone($timezoneRaw); $timezone = $timezoneRaw; } catch (Exception $e) {}
     }
+    $ticketUrl = sanitize_social_url($input['ticket_url'] ?? '');
 
     try {
+        if (isOrganizerRequest() && !eventOrganizerSchemaReady($db)) {
+            jsonResponse(false, null, 'Organizer schema not ready. Run: php tools/migrate-add-organizer-role.php');
+            return;
+        }
+        $creatorUserId = organizerUserId();
+        $hasCreatedBy = adminColumnExists($db, 'events', 'created_by_user_id');
         // Check unique slug
         $check = $db->prepare("SELECT id FROM events WHERE slug = :slug");
         $check->execute([':slug' => $slug]);
@@ -2134,11 +3988,9 @@ function createEvent() {
         }
 
         $now = date('Y-m-d H:i:s');
-        $stmt = $db->prepare("
-            INSERT INTO events (slug, name, description, start_date, end_date, venue_mode, is_active, theme, gallery_template, email, timezone, created_at, updated_at)
-            VALUES (:slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :gallery_template, :email, :timezone, :now, :now2)
-        ");
-        $stmt->execute([
+        $columns = "slug, name, description, start_date, end_date, venue_mode, is_active, theme, gallery_template, email, timezone, ticket_url, created_at, updated_at";
+        $values = ":slug, :name, :description, :start_date, :end_date, :venue_mode, :is_active, :theme, :gallery_template, :email, :timezone, :ticket_url, :now, :now2";
+        $params = [
             ':slug' => $slug,
             ':name' => $name,
             ':description' => $description,
@@ -2150,14 +4002,36 @@ function createEvent() {
             ':gallery_template' => $galleryTemplate,
             ':email' => $email,
             ':timezone' => $timezone,
+            ':ticket_url' => $ticketUrl,
             ':now' => $now,
             ':now2' => $now
-        ]);
+        ];
+        if ($hasCreatedBy) {
+            $columns .= ", created_by_user_id";
+            $values .= ", :created_by_user_id";
+            $params[':created_by_user_id'] = $creatorUserId;
+        }
+
+        $stmt = $db->prepare("INSERT INTO events ($columns) VALUES ($values)");
+        $stmt->execute($params);
+        $newEventId = (int)$db->lastInsertId();
+
+        if (isOrganizerRequest()) {
+            $assign = $db->prepare("INSERT OR IGNORE INTO event_organizers (event_id, user_id, assigned_by, assigned_at) VALUES (:event_id, :user_id, :assigned_by, :assigned_at)");
+            $assign->execute([
+                ':event_id' => $newEventId,
+                ':user_id' => $creatorUserId,
+                ':assigned_by' => $creatorUserId,
+                ':assigned_at' => $now,
+            ]);
+        }
 
         invalidate_query_cache();
         invalidate_sitemap_cache();
-        jsonResponse(true, ['id' => $db->lastInsertId()], 'Convention created successfully');
+        audit_admin_success('event_create', 'event', $newEventId, $name);
+        jsonResponse(true, ['id' => $newEventId], 'Convention created successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('event_create', 'database_error', 'event', null, $name ?? null);
         jsonResponse(false, null, safe_error_message('Failed to create convention', $e->getMessage()));
     }
 }
@@ -2195,6 +4069,20 @@ function updateEvent() {
     $endDate = $input['end_date'] ?? null;
     $venueMode = in_array($input['venue_mode'] ?? '', ['multi', 'single', 'calendar']) ? $input['venue_mode'] : 'multi';
     $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($id);
+        $current = $db->prepare("SELECT is_active FROM events WHERE id = :id");
+        $current->execute([':id' => $id]);
+        $currentActive = $current->fetchColumn();
+        if ($currentActive === false) {
+            jsonResponse(false, null, 'Event meta not found');
+            return;
+        }
+        if (!$currentActive && $isActive) {
+            apiForbidden('Organizer role cannot activate events. Submit an active request instead.');
+        }
+        $isActive = intval($currentActive);
+    }
     $theme = (isset($input['theme']) && in_array($input['theme'], $validThemes)) ? $input['theme'] : null;
     $galleryTemplate = in_array($input['gallery_template'] ?? '', $validTemplates) ? $input['gallery_template'] : 'grid3';
     $emailRaw = trim($input['email'] ?? '');
@@ -2204,6 +4092,7 @@ function updateEvent() {
     if ($timezoneRaw !== '') {
         try { new DateTimeZone($timezoneRaw); $timezone = $timezoneRaw; } catch (Exception $e) {}
     }
+    $ticketUrl = sanitize_social_url($input['ticket_url'] ?? '');
 
     try {
         // Check slug uniqueness (exclude self)
@@ -2220,7 +4109,7 @@ function updateEvent() {
                 start_date = :start_date, end_date = :end_date,
                 venue_mode = :venue_mode, is_active = :is_active,
                 theme = :theme, gallery_template = :gallery_template,
-                email = :email, timezone = :timezone,
+                email = :email, timezone = :timezone, ticket_url = :ticket_url,
                 updated_at = :updated_at
             WHERE id = :id
         ");
@@ -2236,6 +4125,7 @@ function updateEvent() {
             ':gallery_template' => $galleryTemplate,
             ':email' => $email,
             ':timezone' => $timezone,
+            ':ticket_url' => $ticketUrl,
             ':updated_at' => date('Y-m-d H:i:s'),
             ':id' => $id
         ]);
@@ -2247,8 +4137,10 @@ function updateEvent() {
 
         invalidate_query_cache();
         invalidate_sitemap_cache();
+        audit_admin_success('event_update', 'event', $id, $name);
         jsonResponse(true, ['id' => $id], 'Convention updated successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('event_update', 'database_error', 'event', $id, $name ?? null);
         jsonResponse(false, null, safe_error_message('Failed to update convention', $e->getMessage()));
     }
 }
@@ -2271,6 +4163,9 @@ function deleteEvent() {
     }
 
     try {
+        if (isOrganizerRequest()) {
+            requireCanManageEventId($id);
+        }
         // Check if there are programs linked to this event
         $countStmt = $db->prepare("SELECT COUNT(*) as count FROM programs WHERE event_id = :id");
         $countStmt->execute([':id' => $id]);
@@ -2291,9 +4186,236 @@ function deleteEvent() {
 
         invalidate_query_cache();
         invalidate_sitemap_cache();
+        audit_admin_success('event_delete', 'event', $id, null);
         jsonResponse(true, null, 'Convention deleted successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('event_delete', 'database_error', 'event', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to delete convention', $e->getMessage()));
+    }
+}
+
+function missingProgramArtistReferences(PDO $db, string $categories): array {
+    $names = array_values(array_filter(array_map('trim', explode(',', $categories)), fn($name) => $name !== ''));
+    if (!$names) return [];
+
+    $hasVTable = (bool)$db->query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='artist_variants'"
+    )->fetch();
+
+    $missing = [];
+    $seen = [];
+    foreach ($names as $name) {
+        $key = mb_strtolower($name, 'UTF-8');
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
+
+        $stmt = $db->prepare('SELECT id FROM artists WHERE LOWER(name) = LOWER(?) LIMIT 1');
+        $stmt->execute([$name]);
+        if ($stmt->fetchColumn()) continue;
+
+        if ($hasVTable) {
+            $stmt = $db->prepare('SELECT artist_id FROM artist_variants WHERE LOWER(variant) = LOWER(?) LIMIT 1');
+            $stmt->execute([$name]);
+            if ($stmt->fetchColumn()) continue;
+        }
+
+        $missing[] = $name;
+    }
+
+    return $missing;
+}
+
+function requestActivateEvent() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    if (!isOrganizerRequest()) {
+        jsonResponse(false, null, 'Only organizer users need to request event activation');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $eventId = intval($input['event_id'] ?? ($_GET['event_id'] ?? 0));
+    $note = mb_substr(trim($input['note'] ?? ''), 0, 1000) ?: null;
+
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    requireCanManageEventId($eventId);
+
+    try {
+        if (!adminTableExists($db, 'event_requests')) {
+            jsonResponse(false, null, 'event_requests table not found. Run setup.php migrations.');
+            return;
+        }
+
+        $eventStmt = $db->prepare("SELECT id, name, description, start_date, end_date, is_active FROM events WHERE id = :id");
+        $eventStmt->execute([':id' => $eventId]);
+        $event = $eventStmt->fetch(PDO::FETCH_ASSOC);
+        if (!$event) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+        if ((int)$event['is_active'] === 1) {
+            jsonResponse(false, null, 'Event is already active');
+            return;
+        }
+
+        $pending = $db->prepare("SELECT id FROM event_requests WHERE request_type = 'activate' AND event_id = :event_id AND status = 'pending' LIMIT 1");
+        $pending->execute([':event_id' => $eventId]);
+        if ($pending->fetchColumn()) {
+            jsonResponse(false, null, 'Activation request is already pending');
+            return;
+        }
+
+        $now = date('Y-m-d H:i:s');
+        $requesterName = $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'Organizer';
+        $stmt = $db->prepare("
+            INSERT INTO event_requests (request_type, event_id, name, description, start_date, end_date, requester_name, requester_email, note, created_at, updated_at)
+            VALUES ('activate', :event_id, :name, :description, :start_date, :end_date, :requester_name, NULL, :note, :created_at, :updated_at)
+        ");
+        $stmt->execute([
+            ':event_id' => $eventId,
+            ':name' => $event['name'],
+            ':description' => $event['description'],
+            ':start_date' => $event['start_date'],
+            ':end_date' => $event['end_date'],
+            ':requester_name' => $requesterName,
+            ':note' => $note,
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+
+        $newReqId = (int)$db->lastInsertId();
+        audit_admin_success('event_request_activate', 'event', $eventId, $event['name'] ?? null, ['request_id' => $newReqId]);
+        jsonResponse(true, ['id' => $newReqId], 'Activation request submitted');
+    } catch (PDOException $e) {
+        audit_admin_failure('event_request_activate', 'database_error', 'event', $eventId, null);
+        jsonResponse(false, null, safe_error_message('Failed to submit activation request', $e->getMessage()));
+    }
+}
+
+function listEventOrganizers() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+        jsonResponse(false, null, 'GET method required');
+        return;
+    }
+
+    $eventId = intval($_GET['event_id'] ?? 0);
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
+
+    try {
+        if (!eventOrganizerSchemaReady($db)) {
+            jsonResponse(false, null, 'Organizer schema not ready. Run: php tools/migrate-add-organizer-role.php');
+            return;
+        }
+
+        $event = $db->prepare("SELECT id FROM events WHERE id = :id");
+        $event->execute([':id' => $eventId]);
+        if (!$event->fetchColumn()) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+
+        $users = $db->query("SELECT id, username, display_name, role, is_active FROM admin_users WHERE role = 'organizer' AND is_active = 1 ORDER BY display_name ASC, username ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $assignedStmt = $db->prepare("
+            SELECT eo.user_id, eo.assigned_by, eo.assigned_at, au.username, au.display_name
+            FROM event_organizers eo
+            JOIN admin_users au ON au.id = eo.user_id
+            WHERE eo.event_id = :event_id
+            ORDER BY au.display_name ASC, au.username ASC
+        ");
+        $assignedStmt->execute([':event_id' => $eventId]);
+
+        jsonResponse(true, [
+            'organizers' => array_map(fn($u) => escapeOutputData($u, ['username', 'display_name']), $users),
+            'assigned' => array_map(fn($u) => escapeOutputData($u, ['username', 'display_name']), $assignedStmt->fetchAll(PDO::FETCH_ASSOC)),
+        ]);
+    } catch (PDOException $e) {
+        jsonResponse(false, null, safe_error_message('Failed to load event organizers', $e->getMessage()));
+    }
+}
+
+function updateEventOrganizers() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $eventId = intval($input['event_id'] ?? 0);
+    $userIds = $input['user_ids'] ?? ($input['organizer_ids'] ?? []);
+
+    if ($eventId <= 0 || !is_array($userIds)) {
+        jsonResponse(false, null, 'event_id and user_ids array are required');
+        return;
+    }
+
+    $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), fn($id) => $id > 0)));
+
+    try {
+        if (!eventOrganizerSchemaReady($db)) {
+            jsonResponse(false, null, 'Organizer schema not ready. Run: php tools/migrate-add-organizer-role.php');
+            return;
+        }
+
+        $event = $db->prepare("SELECT id FROM events WHERE id = :id");
+        $event->execute([':id' => $eventId]);
+        if (!$event->fetchColumn()) {
+            jsonResponse(false, null, 'Event not found');
+            return;
+        }
+
+        if (!empty($userIds)) {
+            $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+            $validStmt = $db->prepare("SELECT id FROM admin_users WHERE id IN ($placeholders) AND role = 'organizer' AND is_active = 1");
+            $validStmt->execute($userIds);
+            $validIds = array_map('intval', $validStmt->fetchAll(PDO::FETCH_COLUMN));
+            sort($validIds);
+            $requested = $userIds;
+            sort($requested);
+            if ($validIds !== $requested) {
+                jsonResponse(false, null, 'All assigned users must be active organizer users');
+                return;
+            }
+        }
+
+        $db->beginTransaction();
+        $db->prepare("DELETE FROM event_organizers WHERE event_id = :event_id")->execute([':event_id' => $eventId]);
+        $insert = $db->prepare("INSERT OR IGNORE INTO event_organizers (event_id, user_id, assigned_by, assigned_at) VALUES (:event_id, :user_id, :assigned_by, :assigned_at)");
+        $now = date('Y-m-d H:i:s');
+        $assignedBy = organizerUserId();
+        foreach ($userIds as $userId) {
+            $insert->execute([
+                ':event_id' => $eventId,
+                ':user_id' => $userId,
+                ':assigned_by' => $assignedBy,
+                ':assigned_at' => $now,
+            ]);
+        }
+        $db->commit();
+
+        jsonResponse(true, ['event_id' => $eventId, 'assigned_count' => count($userIds)], 'Event organizers updated');
+    } catch (PDOException $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        jsonResponse(false, null, safe_error_message('Failed to update event organizers', $e->getMessage()));
     }
 }
 
@@ -2305,10 +4427,13 @@ function deleteEvent() {
  * List all admin users
  */
 function listUsers() {
-    global $db;
+    global $db, $adminTwofaColumnsExist;
 
     try {
-        $stmt = $db->query("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at FROM admin_users ORDER BY id ASC");
+        $twofaSelect = $adminTwofaColumnsExist
+            ? 'twofa_enabled, twofa_confirmed_at'
+            : '0 AS twofa_enabled, NULL AS twofa_confirmed_at';
+        $stmt = $db->query("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at, {$twofaSelect} FROM admin_users ORDER BY id ASC");
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $fieldsToEscape = ['username', 'display_name'];
@@ -2326,7 +4451,7 @@ function listUsers() {
  * Get single user by ID
  */
 function getUser() {
-    global $db;
+    global $db, $adminTwofaColumnsExist;
 
     $id = intval($_GET['id'] ?? 0);
     if (!$id) {
@@ -2335,7 +4460,10 @@ function getUser() {
     }
 
     try {
-        $stmt = $db->prepare("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at FROM admin_users WHERE id = :id");
+        $twofaSelect = $adminTwofaColumnsExist
+            ? 'twofa_enabled, twofa_confirmed_at'
+            : '0 AS twofa_enabled, NULL AS twofa_confirmed_at';
+        $stmt = $db->prepare("SELECT id, username, display_name, role, is_active, created_at, updated_at, last_login_at, {$twofaSelect} FROM admin_users WHERE id = :id");
         $stmt->execute([':id' => $id]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -2393,8 +4521,8 @@ function createUser() {
         return;
     }
 
-    if (!in_array($role, ['admin', 'agent'])) {
-        jsonResponse(false, null, 'Invalid role. Must be admin or agent');
+    if (!in_array($role, ['admin', 'agent', 'organizer'])) {
+        jsonResponse(false, null, 'Invalid role. Must be admin, agent, or organizer');
         return;
     }
 
@@ -2429,8 +4557,11 @@ function createUser() {
             ':updated_at' => $now,
         ]);
 
-        jsonResponse(true, ['id' => $db->lastInsertId()], 'User created successfully');
+        $newUserId = (int)$db->lastInsertId();
+        audit_admin_success('user_create', 'user', $newUserId, $username, ['role' => $role]);
+        jsonResponse(true, ['id' => $newUserId], 'User created successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('user_create', 'database_error', 'user', null, $username ?? null);
         jsonResponse(false, null, safe_error_message('Failed to create user', $e->getMessage()));
     }
 }
@@ -2460,8 +4591,8 @@ function updateUser() {
     $newPassword = $input['password'] ?? '';
 
     // Validation
-    if (!in_array($role, ['admin', 'agent'])) {
-        jsonResponse(false, null, 'Invalid role. Must be admin or agent');
+    if (!in_array($role, ['admin', 'agent', 'organizer'])) {
+        jsonResponse(false, null, 'Invalid role. Must be admin, agent, or organizer');
         return;
     }
 
@@ -2535,8 +4666,10 @@ function updateUser() {
             ]);
         }
 
+        audit_admin_success('user_update', 'user', $id, $displayName ?: null, ['role' => $role]);
         jsonResponse(true, ['id' => $id], 'User updated successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('user_update', 'database_error', 'user', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to update user', $e->getMessage()));
     }
 }
@@ -2592,8 +4725,10 @@ function deleteUser() {
             return;
         }
 
+        audit_admin_success('user_delete', 'user', $id, $userData['role'] ?? null);
         jsonResponse(true, null, 'User deleted successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('user_delete', 'database_error', 'user', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to delete user', $e->getMessage()));
     }
 }
@@ -2663,10 +4798,12 @@ function createBackup() {
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     if (!$success) {
+        audit_admin_failure('backup_create', 'io_error', 'backup', null, null);
         jsonResponse(false, null, 'Failed to create backup');
         return;
     }
 
+    audit_admin_success('backup_create', 'backup', null, $backupFilename, ['size' => filesize($backupPath)]);
     jsonResponse(true, [
         'filename' => $backupFilename,
         'size' => filesize($backupPath),
@@ -2731,6 +4868,7 @@ function downloadBackup() {
     header('Cache-Control: no-cache, must-revalidate');
     header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
 
+    audit_admin_success('backup_download', 'backup', null, $filename);
     readfile($filePath);
     exit;
 }
@@ -2756,10 +4894,12 @@ function deleteBackupFile() {
     }
 
     if (!unlink($filePath)) {
+        audit_admin_failure('backup_delete', 'io_error', 'backup', null, $filename);
         jsonResponse(false, null, 'Failed to delete backup file');
         return;
     }
 
+    audit_admin_success('backup_delete', 'backup', null, $filename);
     jsonResponse(true, null, 'Backup deleted successfully');
 }
 
@@ -2822,6 +4962,7 @@ function restoreBackup() {
 
     // Copy backup to database
     if (!copy($backupPath, $dbPath)) {
+        audit_admin_failure('backup_restore', 'io_error', 'backup', null, $filename);
         jsonResponse(false, null, 'Failed to restore database');
         return;
     }
@@ -2829,6 +4970,7 @@ function restoreBackup() {
     // Invalidate all caches
     invalidate_all_caches();
 
+    audit_admin_success('backup_restore', 'backup', null, $filename, ['auto_backup' => $autoBackupName]);
     jsonResponse(true, [
         'restored_from' => $filename,
         'auto_backup' => $autoBackupName
@@ -2888,6 +5030,7 @@ function uploadAndRestoreBackup() {
 
     // Move uploaded file to database location
     if (!move_uploaded_file($file['tmp_name'], $dbPath)) {
+        audit_admin_failure('backup_upload_restore', 'io_error', 'backup', null, $file['name'] ?? null);
         jsonResponse(false, null, 'Failed to restore database');
         return;
     }
@@ -2895,6 +5038,7 @@ function uploadAndRestoreBackup() {
     // Invalidate all caches
     invalidate_all_caches();
 
+    audit_admin_success('backup_upload_restore', 'backup', null, $file['name'] ?? null, ['auto_backup' => $autoBackupName]);
     jsonResponse(true, [
         'auto_backup' => $autoBackupName
     ], 'Database restored from uploaded file. Auto-backup created: ' . $autoBackupName);
@@ -2939,8 +5083,10 @@ function saveThemeSetting() {
     if (!is_dir($cacheDir)) mkdir($cacheDir, 0755, true);
     $ok = file_put_contents($themeFile, json_encode(['theme' => $theme, 'updated_at' => time()]));
     if ($ok !== false) {
+        audit_admin_success('settings_update', 'settings', null, 'theme', ['value' => $theme]);
         jsonResponse(true, ['theme' => $theme], 'Theme saved');
     } else {
+        audit_admin_failure('settings_update', 'io_error', 'settings', null, 'theme');
         jsonResponse(false, null, 'Failed to save theme setting');
     }
 }
@@ -2949,11 +5095,16 @@ function getTitleSetting() {
     require_api_admin_role();
     $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
     $title = defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable';
+    $coverBg = '';
     if (file_exists($settingsFile)) {
         $data = json_decode(file_get_contents($settingsFile), true);
         if (!empty($data['site_title'])) $title = $data['site_title'];
+        if (!empty($data['site_cover_bg'])) $coverBg = $data['site_cover_bg'];
     }
-    jsonResponse(true, ['site_title' => htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')]);
+    jsonResponse(true, [
+        'site_title'    => htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+        'site_cover_bg' => $coverBg,
+    ]);
 }
 
 function saveTitleSetting() {
@@ -2976,8 +5127,10 @@ function saveTitleSetting() {
     $existing['updated_at'] = time();
     $ok = file_put_contents($settingsFile, json_encode($existing));
     if ($ok !== false) {
+        audit_admin_success('settings_update', 'settings', null, 'title');
         jsonResponse(true, ['site_title' => $title], 'Title saved');
     } else {
+        audit_admin_failure('settings_update', 'io_error', 'settings', null, 'title');
         jsonResponse(false, null, 'Failed to save title setting');
     }
 }
@@ -3011,10 +5164,92 @@ function saveDisclaimerSetting() {
     $existing['updated_at'] = time();
     $ok = file_put_contents($settingsFile, json_encode($existing), LOCK_EX);
     if ($ok !== false) {
+        audit_admin_success('settings_update', 'settings', null, 'disclaimer');
         jsonResponse(true, null, 'Disclaimer saved');
     } else {
+        audit_admin_failure('settings_update', 'io_error', 'settings', null, 'disclaimer');
         jsonResponse(false, null, 'Failed to save disclaimer');
     }
+}
+
+// =============================================================================
+// SITE COVER BACKGROUND IMAGE
+// =============================================================================
+
+function uploadSiteCoverBg() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    if (empty($_FILES['cover_bg']) || $_FILES['cover_bg']['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'No file uploaded');
+        return;
+    }
+    $file = $_FILES['cover_bg'];
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(false, null, 'File too large (max 5 MB)');
+        return;
+    }
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if (!$imgInfo) {
+        jsonResponse(false, null, 'Invalid image file');
+        return;
+    }
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($imgInfo['mime'], $allowedMimes)) {
+        jsonResponse(false, null, 'Unsupported image type');
+        return;
+    }
+    $imgType = $imgInfo[2];
+
+    $uploadDir = dirname(__DIR__) . '/uploads/site/';
+    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+
+    $destFilename = 'cover_bg_' . uniqid() . '.jpg';
+    $destPath     = $uploadDir . $destFilename;
+    $relativePath = 'uploads/site/' . $destFilename;
+
+    if (!processAndSaveImage($file['tmp_name'], $destPath, 1920, 480, $imgType, 'fit')) {
+        jsonResponse(false, null, 'Failed to process image');
+        return;
+    }
+
+    // Delete old file if any
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $existing = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    if (!empty($existing['site_cover_bg'])) {
+        $oldPath = dirname(__DIR__) . '/' . ltrim($existing['site_cover_bg'], '/');
+        if (file_exists($oldPath)) @unlink($oldPath);
+    }
+
+    $existing['site_cover_bg'] = $relativePath;
+    $existing['updated_at']    = time();
+    if (file_put_contents($settingsFile, json_encode($existing)) === false) {
+        jsonResponse(false, null, 'Failed to save settings');
+        return;
+    }
+
+    jsonResponse(true, ['path' => $relativePath], 'Cover background saved');
+}
+
+function deleteSiteCoverBg() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    $existing = file_exists($settingsFile) ? (json_decode(file_get_contents($settingsFile), true) ?? []) : [];
+    if (!empty($existing['site_cover_bg'])) {
+        $oldPath = dirname(__DIR__) . '/' . ltrim($existing['site_cover_bg'], '/');
+        if (file_exists($oldPath)) @unlink($oldPath);
+    }
+    $existing['site_cover_bg'] = '';
+    $existing['updated_at']    = time();
+    file_put_contents($settingsFile, json_encode($existing));
+    audit_admin_success('site_cover_delete', 'settings', null, 'site_cover_bg');
+    jsonResponse(true, null, 'Cover background deleted');
 }
 
 // =============================================================================
@@ -3085,10 +5320,185 @@ function saveAnalyticsConfig() {
 
     $ok = file_put_contents($configFile, json_encode($existing, JSON_PRETTY_PRINT), LOCK_EX);
     if ($ok !== false) {
+        audit_admin_success('config_update', 'config', null, 'analytics');
         jsonResponse(true, null, 'Analytics settings saved');
     } else {
+        audit_admin_failure('config_update', 'io_error', 'config', null, 'analytics');
         jsonResponse(false, null, 'Failed to save analytics settings');
     }
+}
+
+// =============================================================================
+// EMAIL CONFIG
+// =============================================================================
+
+function ensureEmailHelpersLoaded(): void {
+    if (!function_exists('email_parse_recipients') || !function_exists('email_send')) {
+        $emailHelper = __DIR__ . '/../functions/email.php';
+        if (is_file($emailHelper)) {
+            require_once $emailHelper;
+        }
+    }
+
+    if (!function_exists('email_parse_recipients') || !function_exists('email_send')) {
+        jsonResponse(false, null, 'Email helper is not available. Please deploy functions/email.php and config.php from v9.6.0.');
+    }
+}
+
+function emailConfigDefaults(): array {
+    $siteName = function_exists('email_site_name')
+        ? email_site_name()
+        : (defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable');
+
+    return [
+        'enabled' => false,
+        'smtp_host' => '',
+        'smtp_port' => 587,
+        'smtp_encryption' => 'tls',
+        'smtp_username' => '',
+        'smtp_password' => '',
+        'from_email' => '',
+        'from_name' => $siteName,
+        'recipients' => '',
+        'updated_at' => '',
+    ];
+}
+
+function getEmailConfig() {
+    require_api_admin_role();
+    ensureEmailHelpersLoaded();
+    $configFile = __DIR__ . '/../config/email-config.json';
+    $default = emailConfigDefaults();
+
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true);
+        if (is_array($config)) {
+            $config = array_merge($default, $config);
+        } else {
+            $config = $default;
+        }
+    } else {
+        $config = $default;
+    }
+
+    foreach (['smtp_host', 'smtp_username', 'smtp_password', 'from_email', 'from_name', 'recipients'] as $field) {
+        if (isset($config[$field]) && is_string($config[$field])) {
+            $config[$field] = htmlspecialchars($config[$field], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }
+    }
+
+    jsonResponse(true, $config);
+}
+
+function normalizeEmailConfigInput(array $input, array $existing = []): array {
+    ensureEmailHelpersLoaded();
+
+    $encryption = strtolower(trim($input['smtp_encryption'] ?? ($existing['smtp_encryption'] ?? 'tls')));
+    if (!in_array($encryption, ['tls', 'ssl', 'none'], true)) {
+        $encryption = 'tls';
+    }
+
+    $port = intval($input['smtp_port'] ?? ($existing['smtp_port'] ?? 587));
+    if ($port <= 0 || $port > 65535) {
+        $port = 587;
+    }
+
+    $fromEmail = trim($input['from_email'] ?? ($existing['from_email'] ?? ''));
+    $recipients = trim($input['recipients'] ?? ($existing['recipients'] ?? ''));
+    $smtpHost = trim($input['smtp_host'] ?? ($existing['smtp_host'] ?? ''));
+
+    if (($input['enabled'] ?? false) && $smtpHost === '') {
+        jsonResponse(false, null, 'SMTP host is required');
+    }
+
+    if (($input['enabled'] ?? false) && !filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+        jsonResponse(false, null, 'Valid from email is required');
+    }
+
+    if (($input['enabled'] ?? false) && empty(email_parse_recipients($recipients))) {
+        jsonResponse(false, null, 'At least one valid recipient email is required');
+    }
+
+    return [
+        'enabled' => (bool)($input['enabled'] ?? false),
+        'smtp_host' => $smtpHost,
+        'smtp_port' => $port,
+        'smtp_encryption' => $encryption,
+        'smtp_username' => trim($input['smtp_username'] ?? ($existing['smtp_username'] ?? '')),
+        'smtp_password' => (string)($input['smtp_password'] ?? ($existing['smtp_password'] ?? '')),
+        'from_email' => $fromEmail,
+        'from_name' => mb_substr(trim($input['from_name'] ?? ($existing['from_name'] ?? email_site_name())), 0, 100),
+        'recipients' => $recipients,
+        'updated_at' => date('c'),
+    ];
+}
+
+function saveEmailConfig() {
+    require_api_admin_role();
+    ensureEmailHelpersLoaded();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        jsonResponse(false, null, 'Invalid JSON');
+        return;
+    }
+
+    $configFile = __DIR__ . '/../config/email-config.json';
+    $existing = file_exists($configFile) ? (json_decode(file_get_contents($configFile), true) ?? []) : [];
+    $config = normalizeEmailConfigInput($input, $existing);
+
+    $ok = file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    if ($ok !== false) {
+        audit_admin_success('config_update', 'config', null, 'email');
+        jsonResponse(true, null, 'Email settings saved');
+    }
+
+    audit_admin_failure('config_update', 'io_error', 'config', null, 'email');
+    jsonResponse(false, null, 'Failed to save email settings');
+}
+
+function sendEmailTest() {
+    require_api_admin_role();
+    ensureEmailHelpersLoaded();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        jsonResponse(false, null, 'Invalid JSON');
+        return;
+    }
+
+    $configFile = __DIR__ . '/../config/email-config.json';
+    $existing = file_exists($configFile) ? (json_decode(file_get_contents($configFile), true) ?? []) : [];
+    $config = normalizeEmailConfigInput(array_merge($input, ['enabled' => true]), $existing);
+    $recipients = email_parse_recipients($config['recipients']);
+    $siteName = email_site_name();
+
+    $html = '<p>Email notification test from <strong>' . email_escape($siteName) . '</strong>.</p>';
+    $text = 'Email notification test from ' . $siteName . '.';
+    $ok = email_send('[' . $siteName . '] Email Notification Test', $html, $text, [
+        'smtp_host' => $config['smtp_host'],
+        'smtp_port' => $config['smtp_port'],
+        'smtp_encryption' => $config['smtp_encryption'],
+        'smtp_username' => $config['smtp_username'],
+        'smtp_password' => $config['smtp_password'],
+        'from_email' => $config['from_email'],
+        'from_name' => $config['from_name'],
+        'recipients' => $recipients,
+        'force' => true,
+    ]);
+
+    if ($ok) {
+        jsonResponse(true, null, 'Test email sent');
+    }
+    jsonResponse(false, null, 'Test email failed. Check cache/logs/email.log');
 }
 
 // =============================================================================
@@ -3174,8 +5584,10 @@ function saveTelegramConfig() {
     // Write config file
     $ok = file_put_contents($configFile, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
     if ($ok !== false) {
+        audit_admin_success('config_update', 'config', null, 'telegram');
         jsonResponse(true, $existing, 'Telegram config saved');
     } else {
+        audit_admin_failure('config_update', 'io_error', 'config', null, 'telegram');
         jsonResponse(false, null, 'Failed to save telegram config');
     }
 }
@@ -3378,6 +5790,7 @@ function registerTelegramWebhook() {
 
 function getTelegramLog() {
     require_login();
+    require_api_admin_role();
     // GET endpoint - no CSRF token needed
 
     $logDir = __DIR__ . '/../cache/logs';
@@ -3476,6 +5889,374 @@ function downloadTelegramLog() {
     }
 
     // Send file for download
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $requestedFile . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Expires: Sat, 26 Jul 1997 05:00:00 GMT');
+
+    readfile($filePath);
+    exit;
+}
+
+// =============================================================================
+// WEB PUSH LOG VIEWER
+// =============================================================================
+
+function getWebPushLog() {
+    require_login();
+    require_api_admin_role();
+    $logDir = __DIR__ . '/../cache/logs';
+    $files  = [];
+
+    if (file_exists($logDir . '/webpush-cron.log')) {
+        $files[] = ['key' => 'current', 'label' => 'webpush-cron.log (current)', 'path' => $logDir . '/webpush-cron.log'];
+    }
+    $archives = glob($logDir . '/webpush-cron-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].log') ?: [];
+    if (!empty($archives)) {
+        rsort($archives);
+        foreach ($archives as $f) {
+            $basename = basename($f);
+            $files[] = ['key' => $basename, 'label' => $basename, 'path' => $f];
+        }
+    }
+
+    $requestedKey = get_sanitized_param('file', '');
+    $selectedPath = null;
+    foreach ($files as $f) {
+        if ($f['key'] === $requestedKey) { $selectedPath = $f['path']; break; }
+    }
+    if (!$selectedPath && !empty($files)) {
+        $selectedPath = $files[0]['path'];
+        $requestedKey = $files[0]['key'];
+    }
+
+    $content = ''; $totalLines = 0;
+    if ($selectedPath && file_exists($selectedPath)) {
+        $lines      = @file($selectedPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $totalLines = count($lines);
+        $content    = implode("\n", array_slice($lines, -500));
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success'       => true,
+        'files'         => array_map(fn($f) => ['key' => $f['key'], 'label' => $f['label']], $files),
+        'selected'      => $requestedKey,
+        'content'       => $content,
+        'total_lines'   => $totalLines,
+        'showing_lines' => min($totalLines, 500),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function downloadWebPushLog() {
+    require_login();
+    require_api_admin_role();
+    $logDir        = __DIR__ . '/../cache/logs';
+    $requestedFile = get_sanitized_param('file', 'webpush-cron.log');
+    $isValid = $requestedFile === 'webpush-cron.log' ||
+               preg_match('/^webpush-cron-\d{4}-\d{2}-\d{2}\.log$/', $requestedFile);
+    if (!$isValid) { jsonResponse(false, null, 'Invalid filename'); return; }
+    $filePath = $logDir . '/' . $requestedFile;
+    if (!file_exists($filePath)) { jsonResponse(false, null, 'Log file not found'); return; }
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $requestedFile . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: no-cache, must-revalidate');
+    readfile($filePath);
+    exit;
+}
+
+// =============================================================================
+// EMAIL LOG VIEWER
+// =============================================================================
+
+function getEmailLog() {
+    require_login();
+    require_api_admin_role();
+    $logDir = __DIR__ . '/../cache/logs';
+    $files  = [];
+
+    if (file_exists($logDir . '/email.log')) {
+        $files[] = ['key' => 'current', 'label' => 'email.log (current)', 'path' => $logDir . '/email.log'];
+    }
+    $archives = glob($logDir . '/email-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].log') ?: [];
+    if (!empty($archives)) {
+        rsort($archives);
+        foreach ($archives as $f) {
+            $basename = basename($f);
+            $files[] = ['key' => $basename, 'label' => $basename, 'path' => $f];
+        }
+    }
+
+    $requestedKey = get_sanitized_param('file', '');
+    $selectedPath = null;
+    foreach ($files as $f) {
+        if ($f['key'] === $requestedKey) { $selectedPath = $f['path']; break; }
+    }
+    if (!$selectedPath && !empty($files)) {
+        $selectedPath = $files[0]['path'];
+        $requestedKey = $files[0]['key'];
+    }
+
+    $content = ''; $totalLines = 0;
+    if ($selectedPath && file_exists($selectedPath)) {
+        $lines      = @file($selectedPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $totalLines = count($lines);
+        $content    = implode("\n", array_slice($lines, -500));
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success'       => true,
+        'files'         => array_map(fn($f) => ['key' => $f['key'], 'label' => $f['label']], $files),
+        'selected'      => $requestedKey,
+        'content'       => $content,
+        'total_lines'   => $totalLines,
+        'showing_lines' => min($totalLines, 500),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function downloadEmailLog() {
+    require_login();
+    require_api_admin_role();
+    $logDir        = __DIR__ . '/../cache/logs';
+    $requestedFile = get_sanitized_param('file', 'email.log');
+    $isValid = $requestedFile === 'email.log' ||
+               preg_match('/^email-\d{4}-\d{2}-\d{2}\.log$/', $requestedFile);
+    if (!$isValid) { jsonResponse(false, null, 'Invalid filename'); return; }
+    $filePath = $logDir . '/' . $requestedFile;
+    if (!file_exists($filePath)) { jsonResponse(false, null, 'Log file not found'); return; }
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $requestedFile . '"');
+    header('Content-Length: ' . filesize($filePath));
+    header('Cache-Control: no-cache, must-revalidate');
+    readfile($filePath);
+    exit;
+}
+
+// =============================================================================
+// WEB PUSH CONFIG
+// =============================================================================
+
+function getWebPushConfig() {
+    require_api_admin_role();
+
+    $configFile = __DIR__ . '/../config/webpush-config.json';
+    $default = [
+        'enabled'               => false,
+        'vapid_public_key'      => '',
+        'vapid_subject'         => 'mailto:admin@stageidol.local',
+        'site_url'              => '',
+        'notify_before_minutes' => 60,
+        'max_subs_per_token'    => 5,
+        'updated_at'            => null,
+    ];
+
+    if (file_exists($configFile)) {
+        $config = json_decode(file_get_contents($configFile), true);
+        if (is_array($config)) {
+            // Never expose private key to admin UI
+            unset($config['vapid_private_key_pem']);
+            $config = array_merge($default, $config);
+            $config['vapid_public_key']  = htmlspecialchars($config['vapid_public_key'] ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $config['vapid_subject']     = htmlspecialchars($config['vapid_subject']     ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $config['site_url']          = htmlspecialchars($config['site_url']          ?? '',  ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $config['has_private_key']   = !empty($config['vapid_public_key']);
+            jsonResponse(true, $config);
+            return;
+        }
+    }
+
+    $default['has_private_key'] = false;
+    jsonResponse(true, $default);
+}
+
+function saveWebPushConfig() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    $input      = json_decode(file_get_contents('php://input'), true) ?? [];
+    $configFile = __DIR__ . '/../config/webpush-config.json';
+    $configDir  = dirname($configFile);
+
+    if (!is_dir($configDir)) {
+        mkdir($configDir, 0755, true);
+    }
+
+    $existing = [];
+    if (file_exists($configFile)) {
+        $existing = json_decode(file_get_contents($configFile), true) ?? [];
+    }
+
+    $existing['enabled']               = (bool)($input['enabled']               ?? false);
+    $existing['vapid_subject']         = trim($input['vapid_subject']             ?? 'mailto:admin@stageidol.local');
+    $existing['site_url']              = rtrim(trim($input['site_url']            ?? ''), '/');
+    $existing['notify_before_minutes'] = max(5, min(1440, intval($input['notify_before_minutes'] ?? 60)));
+    $existing['max_subs_per_token']    = max(1, min(20,   intval($input['max_subs_per_token']    ?? 5)));
+    $existing['updated_at']            = date('c');
+
+    // Validate subject format
+    if (!preg_match('/^(mailto:.+|https?:\/\/.+)$/', $existing['vapid_subject'])) {
+        jsonResponse(false, null, 'vapid_subject must start with mailto: or https://');
+        return;
+    }
+
+    // Validate site_url (optional but must be http/https if provided)
+    if (!empty($existing['site_url']) && !preg_match('/^https?:\/\/.+/', $existing['site_url'])) {
+        jsonResponse(false, null, 'site_url must start with http:// or https://');
+        return;
+    }
+
+    $json = json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (file_put_contents($configFile, $json, LOCK_EX) === false) {
+        audit_admin_failure('config_update', 'io_error', 'config', null, 'webpush');
+        jsonResponse(false, null, 'Failed to save Web Push config');
+        return;
+    }
+
+    audit_log([
+        'action'        => 'config_update',
+        'outcome'       => 'success',
+        'actor_user_id' => isset($_SESSION['admin_user_id']) ? (int)$_SESSION['admin_user_id'] : null,
+        'actor_name'    => $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'admin',
+        'entity_type'   => 'config',
+        'entity_id'     => null,
+        'entity_name'   => 'webpush',
+    ]);
+    jsonResponse(true, null, 'Web Push config saved');
+}
+
+function generateWebPushVapidKeys() {
+    require_api_admin_role();
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST required');
+        return;
+    }
+
+    if (!function_exists('webpush_generate_vapid_keys')) {
+        jsonResponse(false, null, 'Web Push functions not loaded');
+        return;
+    }
+
+    $keys = webpush_generate_vapid_keys();
+    if (!$keys) {
+        jsonResponse(false, null, 'Failed to generate VAPID keys. OpenSSL EC P-256 support required.');
+        return;
+    }
+
+    $configFile = __DIR__ . '/../config/webpush-config.json';
+    $configDir  = dirname($configFile);
+    if (!is_dir($configDir)) {
+        mkdir($configDir, 0755, true);
+    }
+
+    $existing = [];
+    if (file_exists($configFile)) {
+        $existing = json_decode(file_get_contents($configFile), true) ?? [];
+    }
+
+    $existing['vapid_public_key']     = $keys['public_key'];
+    $existing['vapid_private_key_pem'] = $keys['private_key_pem'];
+    $existing['updated_at']           = date('c');
+
+    $json = json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (file_put_contents($configFile, $json, LOCK_EX) === false) {
+        jsonResponse(false, null, 'Failed to save VAPID keys');
+        return;
+    }
+
+    audit_log([
+        'action'        => 'config_update',
+        'outcome'       => 'success',
+        'actor_user_id' => isset($_SESSION['admin_user_id']) ? (int)$_SESSION['admin_user_id'] : null,
+        'actor_name'    => $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'admin',
+        'entity_type'   => 'config',
+        'entity_id'     => null,
+        'entity_name'   => 'webpush_vapid_keys',
+    ]);
+
+    // Return public key only (never expose private key)
+    jsonResponse(true, ['vapid_public_key' => $keys['public_key']], 'VAPID keys generated');
+}
+
+// =============================================================================
+// ADMIN AUDIT LOG VIEWER
+// =============================================================================
+
+function getAdminAuditLog() {
+    require_api_admin_role();
+    // GET endpoint - no CSRF needed
+
+    $logDir = _audit_log_dir();
+    $files  = [];
+
+    // Dated log files, newest first
+    $archived = glob($logDir . '/admin-audit-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].log') ?: [];
+    if (!empty($archived)) {
+        rsort($archived);
+        foreach ($archived as $f) {
+            $basename = basename($f);
+            $files[] = ['key' => $basename, 'label' => $basename, 'path' => $f];
+        }
+    }
+
+    // Determine which file to read
+    $requestedKey = get_sanitized_param('file', '');
+    $selectedPath = null;
+    foreach ($files as $f) {
+        if ($f['key'] === $requestedKey) { $selectedPath = $f['path']; break; }
+    }
+    if (!$selectedPath && !empty($files)) {
+        $selectedPath = $files[0]['path'];
+        $requestedKey = $files[0]['key'];
+    }
+
+    $content    = '';
+    $totalLines = 0;
+    if ($selectedPath && file_exists($selectedPath)) {
+        $lines      = @file($selectedPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $totalLines = count($lines);
+        $lastLines  = array_slice($lines, -500);
+        $content    = implode("\n", $lastLines);
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success'       => true,
+        'files'         => array_map(fn($f) => ['key' => $f['key'], 'label' => $f['label']], $files),
+        'selected'      => $requestedKey,
+        'content'       => $content,
+        'total_lines'   => $totalLines,
+        'showing_lines' => min($totalLines, 500),
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function downloadAdminAuditLog() {
+    require_api_admin_role();
+    // GET endpoint
+
+    $logDir       = _audit_log_dir();
+    $requestedFile = get_sanitized_param('file', '');
+
+    // Only allow admin-audit-YYYY-MM-DD.log
+    if (!preg_match('/^admin-audit-\d{4}-\d{2}-\d{2}\.log$/', $requestedFile)) {
+        jsonResponse(false, null, 'Invalid filename');
+        return;
+    }
+
+    $filePath = $logDir . '/' . $requestedFile;
+    if (!file_exists($filePath)) {
+        jsonResponse(false, null, 'Log file not found');
+        return;
+    }
+
     header('Content-Type: text/plain; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $requestedFile . '"');
     header('Content-Length: ' . filesize($filePath));
@@ -3628,7 +6409,11 @@ function listArtists() {
     $where  = [];
     $params = [];
 
-    if ($search !== '') {
+    if ($search !== '' && mb_strlen($search) >= 3 && fts5_available($db)) {
+        $ftsRows = fts5_search_artists($db, $search, 2000);
+        $ids     = array_column($ftsRows, 'id') ?: [-1];
+        $where[] = 'a.id IN (' . implode(',', array_map('intval', $ids)) . ')';
+    } elseif ($search !== '') {
         $searchEscaped = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $search);
         $where[]       = "a.name LIKE :search ESCAPE '\\'";
         $params[':search'] = '%' . $searchEscaped . '%';
@@ -3748,6 +6533,7 @@ function getArtist() {
         $stmt = $db->prepare("
             SELECT a.id, a.name, a.is_group, a.group_id,
                    a.display_picture, a.cover_picture,
+                   a.social_facebook, a.social_instagram, a.social_twitter, a.social_tiktok,
                    g.name AS group_name
             FROM artists a
             LEFT JOIN artists g ON a.group_id = g.id
@@ -3761,7 +6547,8 @@ function getArtist() {
             return;
         }
 
-        $artist = escapeOutputData($artist, ['name', 'group_name', 'display_picture', 'cover_picture']);
+        $artist = escapeOutputData($artist, ['name', 'group_name', 'display_picture', 'cover_picture',
+            'social_facebook', 'social_instagram', 'social_twitter', 'social_tiktok']);
         jsonResponse(true, $artist);
     } catch (PDOException $e) {
         jsonResponse(false, null, safe_error_message('Failed to fetch artist', $e->getMessage()));
@@ -3799,29 +6586,44 @@ function createArtist() {
         $groupId = null;
     }
 
+    $socialFacebook  = sanitize_social_url($input['social_facebook'] ?? '');
+    $socialInstagram = sanitize_social_url($input['social_instagram'] ?? '');
+    $socialTwitter   = sanitize_social_url($input['social_twitter'] ?? '');
+    $socialTiktok    = sanitize_social_url($input['social_tiktok'] ?? '');
+
     try {
         $now  = date('Y-m-d H:i:s');
         $stmt = $db->prepare("
-            INSERT INTO artists (name, is_group, group_id, created_at, updated_at)
-            VALUES (:name, :is_group, :group_id, :created_at, :updated_at)
+            INSERT INTO artists (name, is_group, group_id,
+                social_facebook, social_instagram, social_twitter, social_tiktok,
+                created_at, updated_at)
+            VALUES (:name, :is_group, :group_id,
+                :social_facebook, :social_instagram, :social_twitter, :social_tiktok,
+                :created_at, :updated_at)
         ");
         $stmt->execute([
-            ':name'       => $name,
-            ':is_group'   => $isGroup,
-            ':group_id'   => $groupId,
-            ':created_at' => $now,
-            ':updated_at' => $now,
+            ':name'            => $name,
+            ':is_group'        => $isGroup,
+            ':group_id'        => $groupId,
+            ':social_facebook' => $socialFacebook,
+            ':social_instagram'=> $socialInstagram,
+            ':social_twitter'  => $socialTwitter,
+            ':social_tiktok'   => $socialTiktok,
+            ':created_at'      => $now,
+            ':updated_at'      => $now,
         ]);
 
-        $id = $db->lastInsertId();
+        $id = (int)$db->lastInsertId();
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
         invalidate_sitemap_cache();
+        audit_admin_success('artist_create', 'artist', $id, $name);
         jsonResponse(true, ['id' => $id], 'Artist created successfully');
     } catch (PDOException $e) {
         if (strpos($e->getMessage(), 'UNIQUE') !== false) {
             jsonResponse(false, null, 'Artist name already exists');
         } else {
+            audit_admin_failure('artist_create', 'database_error', 'artist', null, $name);
             jsonResponse(false, null, safe_error_message('Failed to create artist', $e->getMessage()));
         }
     }
@@ -3869,18 +6671,30 @@ function updateArtist() {
         return;
     }
 
+    $socialFacebook  = sanitize_social_url($input['social_facebook'] ?? '');
+    $socialInstagram = sanitize_social_url($input['social_instagram'] ?? '');
+    $socialTwitter   = sanitize_social_url($input['social_twitter'] ?? '');
+    $socialTiktok    = sanitize_social_url($input['social_tiktok'] ?? '');
+
     try {
         $stmt = $db->prepare("
             UPDATE artists
-            SET name = :name, is_group = :is_group, group_id = :group_id, updated_at = :updated_at
+            SET name = :name, is_group = :is_group, group_id = :group_id,
+                social_facebook = :social_facebook, social_instagram = :social_instagram,
+                social_twitter = :social_twitter, social_tiktok = :social_tiktok,
+                updated_at = :updated_at
             WHERE id = :id
         ");
         $stmt->execute([
-            ':name'       => $name,
-            ':is_group'   => $isGroup,
-            ':group_id'   => $groupId,
-            ':updated_at' => date('Y-m-d H:i:s'),
-            ':id'         => $id,
+            ':name'            => $name,
+            ':is_group'        => $isGroup,
+            ':group_id'        => $groupId,
+            ':social_facebook' => $socialFacebook,
+            ':social_instagram'=> $socialInstagram,
+            ':social_twitter'  => $socialTwitter,
+            ':social_tiktok'   => $socialTiktok,
+            ':updated_at'      => date('Y-m-d H:i:s'),
+            ':id'              => $id,
         ]);
 
         if ($stmt->rowCount() === 0) {
@@ -3891,11 +6705,13 @@ function updateArtist() {
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
         invalidate_sitemap_cache();
+        audit_admin_success('artist_update', 'artist', $id, $name);
         jsonResponse(true, null, 'Artist updated successfully');
     } catch (PDOException $e) {
         if (strpos($e->getMessage(), 'UNIQUE') !== false) {
             jsonResponse(false, null, 'Artist name already exists');
         } else {
+            audit_admin_failure('artist_update', 'database_error', 'artist', $id, $name);
             jsonResponse(false, null, safe_error_message('Failed to update artist', $e->getMessage()));
         }
     }
@@ -3940,8 +6756,10 @@ function deleteArtist() {
         invalidate_data_version_cache();
         invalidate_artist_query_cache();
         invalidate_sitemap_cache();
+        audit_admin_success('artist_delete', 'artist', $id, null);
         jsonResponse(true, null, 'Artist deleted successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('artist_delete', 'database_error', 'artist', $id, null);
         jsonResponse(false, null, safe_error_message('Failed to delete artist', $e->getMessage()));
     }
 }
@@ -4141,6 +6959,310 @@ function processAndSaveArtistImage(string $srcPath, string $destPath, int $targe
     return processAndSaveImage($srcPath, $destPath, $targetW, $targetH, $imgType, 'crop');
 }
 
+// =============================================================================
+// EVENT COVER IMAGE (Hero Carousel / Card 16:9)
+// =============================================================================
+
+/**
+ * Upload a cover image for an event (pre-cropped by Cropper.js on client).
+ * POST multipart/form-data: file "cover", GET params event_id, cover_type (hero|card)
+ *   hero → cover_image      (16:9, 1600×900)
+ *   card → cover_image_card (4:3,   800×600)
+ */
+function uploadEventCover() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $eventId   = intval($_GET['event_id'] ?? 0);
+    $coverType = in_array($_GET['cover_type'] ?? '', ['hero', 'card']) ? $_GET['cover_type'] : 'hero';
+
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
+
+    $dbCol    = $coverType === 'card' ? 'cover_image_card' : 'cover_image';
+    $maxW     = $coverType === 'card' ? 800  : 1600;
+    $maxH     = $coverType === 'card' ? 600  : 900;
+    $prefix   = $coverType === 'card' ? 'card_' : 'cover_';
+
+    $chk = $db->prepare("SELECT id, cover_image, cover_image_card FROM events WHERE id = :id");
+    $chk->execute([':id' => $eventId]);
+    $existingEvent = $chk->fetch(PDO::FETCH_ASSOC);
+    if (!$existingEvent) {
+        jsonResponse(false, null, 'Event not found');
+        return;
+    }
+
+    if (!isset($_FILES['cover']) || $_FILES['cover']['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'File upload error');
+        return;
+    }
+
+    $file = $_FILES['cover'];
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(false, null, 'File exceeds 5 MB limit');
+        return;
+    }
+
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if (!$imgInfo) {
+        jsonResponse(false, null, 'Invalid image file');
+        return;
+    }
+
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($imgInfo['mime'], $allowedMimes)) {
+        jsonResponse(false, null, 'Unsupported image type');
+        return;
+    }
+
+    if (!extension_loaded('gd')) {
+        jsonResponse(false, null, 'GD extension not available');
+        return;
+    }
+
+    $imgType    = $imgInfo[2];
+    $uploadsDir = dirname(__DIR__) . '/uploads/events/' . $eventId;
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0755, true);
+    }
+
+    $filename = $prefix . uniqid() . '.jpg';
+    $destPath = $uploadsDir . '/' . $filename;
+    $relPath  = 'uploads/events/' . $eventId . '/' . $filename;
+
+    if (!processAndSaveImage($file['tmp_name'], $destPath, $maxW, $maxH, $imgType, 'fit')) {
+        jsonResponse(false, null, 'Failed to process image');
+        return;
+    }
+
+    try {
+        $oldCover = $existingEvent[$dbCol] ?? '';
+        if ($oldCover) {
+            $oldPath = dirname(__DIR__) . '/' . $oldCover;
+            if (file_exists($oldPath)) @unlink($oldPath);
+        }
+
+        $upd = $db->prepare("UPDATE events SET {$dbCol} = :path WHERE id = :id");
+        $upd->execute([':path' => $relPath, ':id' => $eventId]);
+
+        invalidate_query_cache($eventId);
+
+        jsonResponse(true, ['path' => $relPath, 'cover_type' => $coverType], 'Cover image uploaded');
+    } catch (PDOException $e) {
+        @unlink($destPath);
+        jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Delete a cover image for an event.
+ * POST JSON: { event_id, cover_type }  cover_type = hero|card
+ */
+function deleteEventCover() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input     = json_decode(file_get_contents('php://input'), true);
+    $eventId   = intval($input['event_id'] ?? 0);
+    $coverType = in_array($input['cover_type'] ?? '', ['hero', 'card']) ? $input['cover_type'] : 'hero';
+
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
+
+    $dbCol = $coverType === 'card' ? 'cover_image_card' : 'cover_image';
+
+    $chk = $db->prepare("SELECT id, cover_image, cover_image_card FROM events WHERE id = :id");
+    $chk->execute([':id' => $eventId]);
+    $row = $chk->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        jsonResponse(false, null, 'Event not found');
+        return;
+    }
+
+    $oldCover = $row[$dbCol] ?? '';
+    if ($oldCover) {
+        $oldPath = dirname(__DIR__) . '/' . $oldCover;
+        if (file_exists($oldPath)) @unlink($oldPath);
+    }
+
+    try {
+        $upd = $db->prepare("UPDATE events SET {$dbCol} = NULL WHERE id = :id");
+        $upd->execute([':id' => $eventId]);
+
+        invalidate_query_cache($eventId);
+
+        audit_admin_success('event_cover_delete', 'event', $eventId, null, ['cover_type' => $coverType]);
+        jsonResponse(true, null, 'Cover image deleted');
+    } catch (PDOException $e) {
+        audit_admin_failure('event_cover_delete', 'database_error', 'event', $eventId, null);
+        jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+    }
+}
+
+// =============================================================================
+// EVENT HEADER COVER IMAGE (Banner 4:1, 1920×480)
+// =============================================================================
+
+/**
+ * Upload a header cover image for an event (pre-cropped 4:1 by Cropper.js on client).
+ * POST multipart/form-data: file "cover", GET param event_id
+ * Stores to uploads/events/{event_id}/hdr_{uniqid}.jpg → events.header_cover_image
+ */
+function uploadEventHeaderCover() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $eventId = intval($_GET['event_id'] ?? 0);
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
+
+    $chk = $db->prepare("SELECT id, header_cover_image FROM events WHERE id = :id");
+    $chk->execute([':id' => $eventId]);
+    $existingEvent = $chk->fetch(PDO::FETCH_ASSOC);
+    if (!$existingEvent) {
+        jsonResponse(false, null, 'Event not found');
+        return;
+    }
+
+    if (!isset($_FILES['cover']) || $_FILES['cover']['error'] !== UPLOAD_ERR_OK) {
+        jsonResponse(false, null, 'File upload error');
+        return;
+    }
+
+    $file = $_FILES['cover'];
+    if ($file['size'] > 5 * 1024 * 1024) {
+        jsonResponse(false, null, 'File exceeds 5 MB limit');
+        return;
+    }
+
+    $imgInfo = @getimagesize($file['tmp_name']);
+    if (!$imgInfo) {
+        jsonResponse(false, null, 'Invalid image file');
+        return;
+    }
+
+    $allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!in_array($imgInfo['mime'], $allowedMimes)) {
+        jsonResponse(false, null, 'Unsupported image type');
+        return;
+    }
+
+    if (!extension_loaded('gd')) {
+        jsonResponse(false, null, 'GD extension not available');
+        return;
+    }
+
+    $imgType    = $imgInfo[2];
+    $uploadsDir = dirname(__DIR__) . '/uploads/events/' . $eventId;
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0755, true);
+    }
+
+    $filename = 'hdr_' . uniqid() . '.jpg';
+    $destPath = $uploadsDir . '/' . $filename;
+    $relPath  = 'uploads/events/' . $eventId . '/' . $filename;
+
+    if (!processAndSaveImage($file['tmp_name'], $destPath, 1920, 480, $imgType, 'fit')) {
+        jsonResponse(false, null, 'Failed to process image');
+        return;
+    }
+
+    try {
+        $oldCover = $existingEvent['header_cover_image'] ?? '';
+        if ($oldCover) {
+            $oldPath = dirname(__DIR__) . '/' . $oldCover;
+            if (file_exists($oldPath)) @unlink($oldPath);
+        }
+
+        $upd = $db->prepare("UPDATE events SET header_cover_image = :path WHERE id = :id");
+        $upd->execute([':path' => $relPath, ':id' => $eventId]);
+
+        invalidate_query_cache($eventId);
+
+        jsonResponse(true, ['path' => $relPath], 'Header cover uploaded');
+    } catch (PDOException $e) {
+        @unlink($destPath);
+        jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Delete a header cover image for an event.
+ * POST JSON: { event_id }
+ */
+function deleteEventHeaderCover() {
+    global $db;
+
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        jsonResponse(false, null, 'POST method required');
+        return;
+    }
+
+    $input   = json_decode(file_get_contents('php://input'), true);
+    $eventId = intval($input['event_id'] ?? 0);
+    if ($eventId <= 0) {
+        jsonResponse(false, null, 'Valid event_id required');
+        return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
+
+    $chk = $db->prepare("SELECT id, header_cover_image FROM events WHERE id = :id");
+    $chk->execute([':id' => $eventId]);
+    $row = $chk->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        jsonResponse(false, null, 'Event not found');
+        return;
+    }
+
+    $oldCover = $row['header_cover_image'] ?? '';
+    if ($oldCover) {
+        $oldPath = dirname(__DIR__) . '/' . $oldCover;
+        if (file_exists($oldPath)) @unlink($oldPath);
+    }
+
+    try {
+        $upd = $db->prepare("UPDATE events SET header_cover_image = NULL WHERE id = :id");
+        $upd->execute([':id' => $eventId]);
+
+        invalidate_query_cache($eventId);
+
+        audit_admin_success('event_header_cover_delete', 'event', $eventId, null);
+        jsonResponse(true, null, 'Header cover deleted');
+    } catch (PDOException $e) {
+        audit_admin_failure('event_header_cover_delete', 'database_error', 'event', $eventId, null);
+        jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+    }
+}
+
 /**
  * Delete display_picture or cover_picture for an artist
  * POST JSON: { artist_id, picture_type }
@@ -4191,8 +7313,10 @@ function deleteArtistPicture() {
 
         invalidate_artist_query_cache();
         invalidate_query_cache();
+        audit_admin_success('artist_picture_delete', 'artist', $artistId, null, ['picture_type' => $pictureType]);
         jsonResponse(true, null, 'Picture deleted successfully');
     } catch (PDOException $e) {
+        audit_admin_failure('artist_picture_delete', 'database_error', 'artist', $artistId, null);
         jsonResponse(false, null, safe_error_message('Failed to delete picture', $e->getMessage()));
     }
 }
@@ -4212,6 +7336,9 @@ function listEventPictures() {
     if ($eventId <= 0) {
         jsonResponse(false, null, 'Valid event_id required');
         return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
     }
 
     try {
@@ -4251,6 +7378,9 @@ function uploadEventPicture() {
     if ($eventId <= 0) {
         jsonResponse(false, null, 'Valid event_id required');
         return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
     }
 
     // Verify event exists
@@ -4350,6 +7480,9 @@ function deleteEventPicture() {
         jsonResponse(false, null, 'Valid id and event_id required');
         return;
     }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
+    }
 
     try {
         $stmtGet = $db->prepare("SELECT filename FROM event_pictures WHERE id = :id AND event_id = :eid");
@@ -4371,8 +7504,10 @@ function deleteEventPicture() {
         }
 
         invalidate_query_cache($eventId);
+        audit_admin_success('event_picture_delete', 'event', $eventId, null, ['picture_id' => $picId]);
         jsonResponse(true, null, 'Picture deleted');
     } catch (PDOException $e) {
+        audit_admin_failure('event_picture_delete', 'database_error', 'event', $eventId, null);
         jsonResponse(false, null, safe_error_message('Failed to delete picture', $e->getMessage()));
     }
 }
@@ -4396,6 +7531,9 @@ function reorderEventPictures() {
     if ($eventId <= 0 || !is_array($order) || empty($order)) {
         jsonResponse(false, null, 'Valid event_id and order array required');
         return;
+    }
+    if (isOrganizerRequest()) {
+        requireCanManageEventId($eventId);
     }
 
     // Validate all IDs belong to this event

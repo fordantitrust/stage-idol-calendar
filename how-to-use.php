@@ -13,6 +13,8 @@ $eventMeta = get_event_by_slug($eventSlug);
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
     <title>วิธีการใช้งาน - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <?php seo_render_meta([
         'description' => 'วิธีการใช้งาน ' . get_site_title()
@@ -42,10 +44,11 @@ $eventMeta = get_event_by_slug($eventSlug);
     <?php if ($siteTheme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
     <?php endif; ?>
+    <?php $headerCoverBg = get_header_cover_bg(); ?>
 </head>
 <body>
     <div class="container">
-        <header>
+        <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars(get_base_path() . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
             <div class="header-top-left">
                 <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="หน้าแรก">
                     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -82,6 +85,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <ol class="toc-list">
                     <li><a href="#s-overview" data-i18n="section1.title">🎯 ภาพรวม</a></li>
                     <li><a href="#s-event-picker" data-i18n="section14.title">🎪 การเลือก Event</a></li>
+                    <li><a href="#s-live-now" data-i18n="section25.title">🔴 Live Now (กำลังแสดงตอนนี้)</a></li>
                     <li><a href="#s-homepage-cal" data-i18n="section18.title">📅 ปฏิทินกิจกรรมบนหน้าแรก</a></li>
                     <li><a href="#s-filtering" data-i18n="section2.title">🔍 การกรองข้อมูล</a></li>
                     <li><a href="#s-date-jump" data-i18n="section9.title">📅 กระโดดไปวันที่</a></li>
@@ -91,12 +95,17 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li><a href="#s-calendar-view" data-i18n="section11.title">📅 มุมมองปฏิทินรายเดือน (Calendar View)</a></li>
                     <li><a href="#s-export" data-i18n="section3.title">💾 การบันทึกและส่งออก</a></li>
                     <li><a href="#s-artist-portal" data-i18n="section19.title">🎤 รายการศิลปินทั้งหมด</a></li>
+                    <li><a href="#s-venue-portal" data-i18n="section26.title">🏛️ สถานที่ทั้งหมด</a></li>
                     <li><a href="#s-artist-profile" data-i18n="section12.title">👤 หน้าโปรไฟล์ศิลปิน</a></li>
                     <li><a href="#s-artist-feed" data-i18n="section15.title">🔔 Subscribe Feed ศิลปิน</a></li>
                     <li><a href="#s-favorites" data-i18n="section17.title">⭐ My Favorites & My Upcoming Programs</a></li>
+                    <li><a href="#s-connect" data-i18n="section24.title">🔗 ย้าย Favorites ไปยัง PWA / อุปกรณ์อื่น</a></li>
                     <li><a href="#s-telegram" data-i18n="section20.title">🔔 Telegram Notifications</a></li>
+                    <li><a href="#s-webpush" data-i18n="section23.title">📱 Web Push Notifications</a></li>
+                    <li><a href="#s-credits" data-i18n="section21.title">📋 แหล่งข้อมูลอ้างอิง</a></li>
                     <li><a href="#s-past-events" data-i18n="section13.title">🗂️ งานที่จบแล้ว</a></li>
                     <li><a href="#s-request" data-i18n="section8.title">📝 แจ้งเพิ่ม/แก้ไข Program</a></li>
+                    <li><a href="#s-event-request" data-i18n="section22.title">🗓️ แจ้งเพิ่มงาน (Event)</a></li>
                     <li><a href="#s-language" data-i18n="section4.title">🌍 การเปลี่ยนภาษา</a></li>
                     <li><a href="#s-mobile" data-i18n="section5.title">📱 การใช้งานบนมือถือ</a></li>
                     <li><a href="#s-faq" data-i18n="section6.title">❓ คำถามที่พบบ่อย</a></li>
@@ -119,6 +128,21 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <div class="feature-box">
                     <strong data-i18n="section14.tip">💡 เคล็ดลับ:</strong>
                     <span data-i18n="section14.tipText">กดนอก modal หรือกด ✕ เพื่อปิด — สามารถเข้าถึง event ที่ต้องการได้จากทุกหน้า</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-live-now">
+                <h2 data-i18n="section25.title">🔴 Live Now (กำลังแสดงตอนนี้)</h2>
+                <p data-i18n="section25.desc">บนสุดของหน้าแรก (รายการงาน) จะมีแถบ "Live Now" แสดง program ที่กำลังแสดงอยู่ตอนนี้ และที่กำลังจะเริ่มเร็วๆ นี้ รวมข้ามทุกงานที่ active</p>
+                <ul>
+                    <li data-i18n="section25.feature1"><strong>🔴 กำลังแสดง</strong> — program ที่กำลังดำเนินอยู่ขณะนี้ พร้อมเวลานับถอยหลังว่าเหลืออีกกี่นาที</li>
+                    <li data-i18n="section25.feature2"><strong>⏭️ กำลังจะเริ่ม</strong> — program ที่จะเริ่มภายใน 60 นาที</li>
+                    <li data-i18n="section25.feature3">แต่ละแถวแสดงชื่อ/ศิลปิน, 📍 สถานที่, ชื่องาน และปุ่ม 🔴 ดู Live เมื่อมีลิงก์ stream — คลิกแถวเพื่อไปหน้าตารางของงานนั้น</li>
+                    <li data-i18n="section25.feature4">แถบนี้อัปเดตอัตโนมัติทุก 30 วินาที และคำนวณสถานะตามนาฬิกาของเครื่องคุณ (ถูกต้องแม้งานอยู่คนละ timezone)</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section25.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section25.noteText">แถบจะซ่อนตัวเองเมื่อไม่มี program ใดกำลังแสดงหรือกำลังจะเริ่ม</span>
                 </div>
             </div>
 
@@ -147,7 +171,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <span data-i18n="section2.filter1.tipText">คุณสามารถเลือกหลายศิลปินพร้อมกันได้</span>
                 </div>
 
-                <h3 data-i18n="section2.filter2.title">2. กรองตามเวที</h3>
+                <h3 data-i18n="section2.filter2.title">2. กรองตามสถานที่</h3>
                 <p data-i18n="section2.filter2.desc">เลือกเวทีที่คุณต้องการดูกิจกรรม เช่น Fan Meeting Hall, Common Stage เป็นต้น</p>
 
                 <h3 data-i18n="section2.filter3.title">3. กรองตามประเภท</h3>
@@ -164,7 +188,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </ul>
 
                 <h3 data-i18n="section2.selectedTags.title">5. ดูรายการที่เลือก</h3>
-                <p data-i18n="section2.selectedTags.desc">เมื่อเลือกศิลปินหรือเวทีแล้ว จะแสดงเป็น tag ด้านบน checkbox list</p>
+                <p data-i18n="section2.selectedTags.desc">เมื่อเลือกศิลปินหรือสถานที่แล้ว จะแสดงเป็น tag ด้านบน checkbox list</p>
                 <div class="feature-box">
                     <strong data-i18n="section2.selectedTags.tip">💡 เคล็ดลับ:</strong>
                     <span data-i18n="section2.selectedTags.tipText">กดปุ่ม ✕ ที่ tag เพื่อลบออกและ reload หน้าอัตโนมัติ</span>
@@ -223,7 +247,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <span data-i18n="section7.toggle">ใช้ Toggle Switch ด้านล่างปุ่มค้นหาเพื่อสลับมุมมอง</span>
                 </div>
                 <ul>
-                    <li data-i18n="section7.feature1">แสดงหลายเวทีพร้อมกัน เห็นช่วงเวลาซ้อนทับได้ง่าย</li>
+                    <li data-i18n="section7.feature1">แสดงหลายสถานที่พร้อมกัน เห็นช่วงเวลาซ้อนทับได้ง่าย</li>
                     <li data-i18n="section7.feature2">คลิกที่แถบ program เพื่อดูรายละเอียด</li>
                     <li data-i18n="section7.feature3">ระบบจะจำมุมมองที่คุณเลือกไว้</li>
                 </ul>
@@ -257,7 +281,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <p data-i18n="section3.calendar.desc">ดาวน์โหลดไฟล์ .ics เพื่อเพิ่มกิจกรรมเข้าในปฏิทินของคุณ (Google Calendar, Apple Calendar, Outlook)</p>
                 <p data-i18n="section3.calendar.steps"><strong>วิธีการ:</strong></p>
                 <ul>
-                    <li data-i18n="section3.calendar.step1">เลือกศิลปินและเวทีที่ต้องการ</li>
+                    <li data-i18n="section3.calendar.step1">เลือกศิลปินและสถานที่ที่ต้องการ</li>
                     <li data-i18n="section3.calendar.step2">กดปุ่ม "📅 Export to Calendar"</li>
                     <li data-i18n="section3.calendar.step3">เปิดไฟล์ .ics ที่ดาวน์โหลดมา</li>
                     <li data-i18n="section3.calendar.step4">เลือกปฏิทินที่ต้องการเพิ่มเข้าไป</li>
@@ -276,7 +300,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </ul>
                 <div class="feature-box">
                     <strong data-i18n="section3.subscribe.note">💡 หมายเหตุ:</strong>
-                    <span data-i18n="section3.subscribe.noteText">URL ที่ Subscribe จะรวม filter ปัจจุบัน (ศิลปิน/เวที/ประเภท) เข้าไปด้วย — Subscribe ก่อนจะได้ filter ที่ต้องการ</span>
+                    <span data-i18n="section3.subscribe.noteText">URL ที่ Subscribe จะรวม filter ปัจจุบัน (ศิลปิน/สถานที่/ประเภท) เข้าไปด้วย — Subscribe ก่อนจะได้ filter ที่ต้องการ</span>
                 </div>
             </div>
 
@@ -299,6 +323,17 @@ $eventMeta = get_event_by_slug($eventSlug);
                     <li data-i18n="section19.search.feature1">ช่องค้นหาด้านบนกรองทั้งชื่อกลุ่ม, ชื่อสมาชิกในกลุ่ม และชื่อศิลปินเดี่ยวแบบ realtime</li>
                     <li data-i18n="section19.search.feature2">แท็บ "กลุ่ม/วง" และ "ศิลปินเดี่ยว" ใช้สลับมุมมองได้</li>
                     <li data-i18n="section19.search.feature3">สมาชิกที่ตรงกับคำค้นหาจะ highlight สีเหลืองใน card ของกลุ่ม</li>
+                </ul>
+            </div>
+
+            <div class="section" id="s-venue-portal">
+                <h2 data-i18n="section26.title">🏛️ สถานที่ทั้งหมด</h2>
+                <p data-i18n="section26.desc">หน้า <strong>/venues</strong> รวบรวมสถานที่/เวทีทั้งหมดไว้ในที่เดียว เข้าถึงได้จากเมนู "🏛️ สถานที่" บนหน้าแรก</p>
+                <ul>
+                    <li data-i18n="section26.feature1">แสดงเป็น grid พร้อมจำนวน programs ของแต่ละสถานที่ — มีช่องค้นหากรองแบบ realtime</li>
+                    <li data-i18n="section26.feature2">กดสถานที่เพื่อเปิดหน้าโปรไฟล์ <strong>/venue/{id}</strong> แสดง programs ทั้งหมดของสถานที่นั้น จัดกลุ่มตามงาน</li>
+                    <li data-i18n="section26.feature3">ชื่อสถานที่ในตารางรายการ program ก็คลิกได้เช่นกัน — พาไปหน้าโปรไฟล์สถานที่โดยตรง</li>
+                    <li data-i18n="section26.feature4">แพลตฟอร์มออนไลน์ (YouTube, X Spaces ฯลฯ) จะมี badge 🌐 Online และไม่แสดงใน portal grid</li>
                 </ul>
             </div>
 
@@ -349,6 +384,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <p data-i18n="section17.myupcoming.desc">แสดง programs ที่กำลังจะมาถึงจากศิลปินที่ติดตาม จัดกลุ่มตามวันที่ อัปเดตอัตโนมัติเมื่อ Admin เพิ่มข้อมูล</p>
                 <ul>
                     <li data-i18n="section17.myupcoming.group">ถ้าศิลปินที่ติดตามอยู่ในวง/กลุ่ม — programs ที่แสดงในนามวงนั้นจะถูกรวมแสดงให้อัตโนมัติ โดยไม่ต้อง follow วงแยก</li>
+                    <li data-i18n="section17.myupcoming.timeline">มีปุ่มสลับ <strong>📋 List / 📊 Timeline</strong> — มุมมอง Timeline แสดงเป็น Gantt chart รายวัน ช่วยให้เห็นช่วงเวลาที่ programs ของหลายงานทับซ้อนกัน (มี badge 🔴 เตือนเมื่อมี event ทับกัน); แกนเวลาใช้ timezone ของคุณ</li>
                 </ul>
 
                 <h3 data-i18n="section17.cal.title">📅 Mini Calendar View</h3>
@@ -371,6 +407,29 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <div class="feature-box">
                     <strong data-i18n="section17.nav.tip">💡 ทางลัด:</strong>
                     <span data-i18n="section17.nav.tipText">เมื่อติดตามศิลปินแล้ว ปุ่ม ⭐ และ 📅 จะปรากฏที่มุมซ้ายบนทุกหน้า เพื่อกลับไปหน้า Favorites ได้ตลอดเวลา</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-connect">
+                <h2 data-i18n="section24.title">🔗 ย้าย Favorites ไปยัง PWA / อุปกรณ์อื่น</h2>
+                <p data-i18n="section24.desc">หากมี Favorites อยู่แล้วบน browser หนึ่ง แต่ต้องการใช้งานบน PWA (iOS Home Screen App) หรืออุปกรณ์อื่น สามารถย้ายได้ด้วย QR Code โดยไม่ต้องสร้าง Favorites ใหม่</p>
+
+                <h3 data-i18n="section24.source.title">1. บนอุปกรณ์ต้นทาง (ที่มี Favorites อยู่แล้ว)</h3>
+                <ol>
+                    <li data-i18n="section24.source.step1">เปิดหน้า My Upcoming Programs (📅) หรือ My Favorites (⭐)</li>
+                    <li data-i18n="section24.source.step2">กดปุ่ม "🔗 ย้าย Favorites ไปยังอุปกรณ์อื่น / PWA" เพื่อแสดง QR Code</li>
+                    <li data-i18n="section24.source.step3">ทิ้งหน้านี้ไว้บนหน้าจอ อย่าปิด</li>
+                </ol>
+
+                <h3 data-i18n="section24.dest.title">2. บนอุปกรณ์ปลายทาง (PWA หรือ browser ใหม่)</h3>
+                <ol>
+                    <li data-i18n="section24.dest.step1">เปิด PWA หรือ browser — กดปุ่ม 🔗 ที่มุมซ้ายบน (แสดงเมื่อยังไม่มี Favorites)</li>
+                    <li data-i18n="section24.dest.step2">กดปุ่ม "📷 เปิดกล้องสแกน" อนุญาตสิทธิ์กล้อง แล้วสแกน QR Code บนหน้าจออุปกรณ์ต้นทาง</li>
+                    <li data-i18n="section24.dest.step3">ระบบตรวจสอบ QR อัตโนมัติและพาไปหน้า My Upcoming Programs — ปุ่ม ⭐ 📅 จะปรากฏทันที</li>
+                </ol>
+
+                <div class="feature-box">
+                    <span data-i18n="section24.tip">💡 หากกล้องไม่พร้อมใช้: Copy URL จากหน้า My Upcoming Programs แล้วไปที่ /connect → วาง URL ในช่อง "วาง URL" ด้านล่างแทน</span>
                 </div>
             </div>
 
@@ -398,7 +457,12 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <ul>
                     <li data-i18n="section20.notifications.perprogram"><strong>📢 ต่อ Program</strong> — ส่งแจ้งเตือน 60 นาทีก่อนเริ่ม program (ปรับได้ผ่าน Admin)</li>
                     <li data-i18n="section20.notifications.daily"><strong>📅 Daily Summary</strong> — ส่งสรุม programs ของวันทั้งหมด เวลา 9:00-9:30 น.</li>
+                    <li data-i18n="section20.notifications.summary"><strong>🔧 เลือกเฉพาะ Daily Summary ได้</strong> — ใช้ <code>/notify summary</code> เพื่อรับเฉพาะสรุปรายวัน ปิดแจ้งเตือนต่อ program</li>
                 </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section20.tz.title">🌐 เวลาตาม timezone ของคุณ:</strong>
+                    <span data-i18n="section20.tz.text">การแจ้งเตือนแสดงเวลาท้องถิ่นของงาน พร้อมเวลาท้องถิ่นของคุณในวงเล็บ เช่น <code>18:00 (19:00 Asia/Tokyo)</code> เมื่อ timezone ต่างกัน; ตั้ง timezone เองด้วย <code>/tz Asia/Tokyo</code> หรือกลับเป็นอัตโนมัติด้วย <code>/tz auto</code></span>
+                </div>
 
                 <h3 data-i18n="section20.commands.title">4. คำสั่งดูตาราง</h3>
                 <ul>
@@ -416,9 +480,10 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <h3 data-i18n="section20.controls.title">5. ควบคุมการแจ้งเตือน</h3>
                 <ul>
                     <li><code>/lang th|en|ja</code> — <span data-i18n="section20.controls.lang">เปลี่ยนภาษาแจ้งเตือนใน bot โดยตรง</span></li>
+                    <li><code>/tz [zone|auto]</code> — <span data-i18n="section20.controls.tz">ดู/ตั้ง timezone ที่ใช้แสดงเวลา (/tz Asia/Tokyo หรือ /tz auto)</span></li>
                     <li><code>/mute N</code> — <span data-i18n="section20.controls.mute">หยุดรับแจ้งเตือน N ชั่วโมง (1–72)</span></li>
-                    <li><code>/notify on|off</code> — <span data-i18n="section20.controls.notify">เปิด/ปิดการแจ้งเตือน</span></li>
-                    <li><code>/status</code> — <span data-i18n="section20.controls.status">ดูสถานะ (ศิลปิน, ภาษา, on/off, mute)</span></li>
+                    <li><code>/notify on|off|summary</code> — <span data-i18n="section20.controls.notify">on = ต่อ program + สรุปรายวัน, summary = สรุปรายวันอย่างเดียว, off = ปิดทั้งหมด</span></li>
+                    <li><code>/status</code> — <span data-i18n="section20.controls.status">ดูสถานะ (ศิลปิน, ภาษา, timezone, โหมดแจ้งเตือน, mute)</span></li>
                 </ul>
 
                 <div class="feature-box">
@@ -427,11 +492,56 @@ $eventMeta = get_event_by_slug($eventSlug);
                 </div>
             </div>
 
+            <div class="section" id="s-webpush">
+                <h2 data-i18n="section23.title">📱 Web Push Notifications</h2>
+                <p data-i18n="section23.desc">รับแจ้งเตือนจากบราวเซอร์โดยตรง ไม่ต้องใช้ Telegram หรือ app เพิ่มเติม รองรับ Chrome, Firefox, Edge และ Safari 16.4+</p>
+
+                <h3 data-i18n="section23.subscribe.title">1. Subscribe การแจ้งเตือน</h3>
+                <ol>
+                    <li data-i18n="section23.subscribe.step1">ไปที่หน้า "My Upcoming Programs" (📅) แล้วหาส่วน "🔔 Web Push Notifications"</li>
+                    <li data-i18n="section23.subscribe.step2">กดปุ่ม "🔔 Subscribe" — บราวเซอร์จะขอ permission การแจ้งเตือน</li>
+                    <li data-i18n="section23.subscribe.step3">กด "Allow" เพื่ออนุญาต — จะเห็นสถานะเปลี่ยนเป็น "รับการแจ้งเตือนแล้ว"</li>
+                </ol>
+
+                <h3 data-i18n="section23.how.title">2. วิธีรับการแจ้งเตือน</h3>
+                <ul>
+                    <li data-i18n="section23.how.feature1">ระบบจะส่งแจ้งเตือนล่วงหน้าก่อน program เริ่ม N นาที (ตั้งค่าโดย Admin)</li>
+                    <li data-i18n="section23.how.feature2">การแจ้งเตือนแสดงชื่อ program, เวลาเริ่ม และสถานที่จัดงาน</li>
+                    <li data-i18n="section23.how.feature3">คลิกการแจ้งเตือน → เปิดหน้า event โดยตรง</li>
+                    <li data-i18n="section23.how.feature4">ใช้ได้ทั้งบน desktop และ mobile (Android/iOS 16.4+)</li>
+                </ul>
+
+                <h3 data-i18n="section23.manage.title">3. จัดการการแจ้งเตือน</h3>
+                <ul>
+                    <li data-i18n="section23.manage.unsubscribe">กดปุ่ม "🔕 Unsubscribe" ในหน้า My Upcoming Programs เพื่อยกเลิกการแจ้งเตือน</li>
+                    <li data-i18n="section23.manage.browser">ยกเลิกได้ผ่านการตั้งค่าของบราวเซอร์ (Settings → Notifications)</li>
+                </ul>
+
+                <div class="feature-box">
+                    <strong data-i18n="section23.tip.title">💡 เคล็ดลับ:</strong>
+                    <span data-i18n="section23.tip.text">Web Push ทำงานได้แม้ไม่ได้เปิดหน้าเว็บอยู่ ตราบใดที่บราวเซอร์ทำงานอยู่เบื้องหลัง — เหมาะสำหรับผู้ใช้ที่ไม่มี Telegram</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-credits">
+                <h2 data-i18n="section21.title">📋 แหล่งข้อมูลอ้างอิง</h2>
+                <p data-i18n="section21.desc">ในแต่ละหน้า event ส่วน "แหล่งข้อมูลอ้างอิง" จะแสดงที่ด้านล่างของหน้าอัตโนมัติ (ถัดจากส่วน "งานอื่นที่เกี่ยวข้องกับศิลปิน") — ไม่ต้องไปหน้าแยกต่างหาก</p>
+                <ul>
+                    <li data-i18n="section21.feature1">แต่ละรายการแสดง ชื่อแหล่งข้อมูล, คำอธิบาย, และลิงก์ภายนอก (ถ้ามี)</li>
+                    <li data-i18n="section21.feature2">กดลิงก์เพื่อเปิดแหล่งข้อมูลในแท็บใหม่</li>
+                    <li data-i18n="section21.feature3">ส่วนนี้จะแสดงเฉพาะเมื่อมีการตั้งค่า credits สำหรับ event นั้น</li>
+                </ul>
+                <div class="feature-box">
+                    <strong data-i18n="section21.note">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section21.noteText">หน้า /credits ยังสามารถเข้าถึงได้จาก footer — แสดง credits ของทุก event รวมกัน จัดกลุ่มตาม event</span>
+                </div>
+            </div>
+
             <div class="section" id="s-past-events">
                 <h2 data-i18n="section13.title">🗂️ งานที่จบแล้ว</h2>
                 <p data-i18n="section13.desc">กดปุ่ม "ดูงานที่จบแล้ว" ที่ด้านล่างหน้ารายการ events เพื่อดู events ทั้งหมดที่สิ้นสุดแล้ว</p>
                 <ul>
-                    <li data-i18n="section13.feature1">แสดงรายการงานที่จบแล้วแบบ pagination 5 รายการต่อหน้า</li>
+                    <li data-i18n="section13.feature1">แสดงรายการงานที่จบแล้วแบบ pagination 20 รายการต่อหน้า</li>
                     <li data-i18n="section13.feature2">กดปุ่ม "📋 ดูตารางเวลา" เพื่อเปิดตาราง program ของงานนั้น</li>
                 </ul>
             </div>
@@ -449,6 +559,16 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <div class="feature-box">
                     <strong data-i18n="section8.note.title">💡 หมายเหตุ:</strong>
                     <span data-i18n="section8.note.text">คำขอของคุณจะถูกส่งไปให้ Admin ตรวจสอบก่อนจะแสดงในระบบ</span>
+                </div>
+            </div>
+
+            <div class="section" id="s-event-request">
+                <h2 data-i18n="section22.title">🗓️ แจ้งเพิ่มงาน (Event)</h2>
+                <p data-i18n="section22.desc">กดปุ่ม <strong>"📝 แจ้งเพิ่มงาน"</strong> ในแถบ navigation ด้านบน (แสดงเฉพาะหน้ารายการงาน) แล้วกรอกชื่องาน, วันที่เริ่ม-สิ้นสุด, คำอธิบาย และข้อมูลผู้แจ้ง</p>
+
+                <div class="feature-box">
+                    <strong data-i18n="section22.note.title">💡 หมายเหตุ:</strong>
+                    <span data-i18n="section22.note.text">คำขอจะถูกส่งให้ Admin ตรวจสอบ — Admin อนุมัติแล้วค่อยสร้างข้อมูลงาน งานใหม่จะเริ่มต้นในสถานะ inactive และต้องให้ Admin เปิดใช้งานเอง</span>
                 </div>
             </div>
 
@@ -480,7 +600,7 @@ $eventMeta = get_event_by_slug($eventSlug);
                 <p data-i18n="section6.a1">A: ข้อมูลจะอัปเดตเมื่อมีการเปลี่ยนแปลงตารางจากทางผู้จัดงาน กรุณาตรวจสอบเวอร์ชันที่มุมซ้ายบน</p>
 
                 <h3 data-i18n="section6.q2">Q: สามารถใช้งานออฟไลน์ได้หรือไม่?</h3>
-                <p data-i18n="section6.a2">A: แนะนำให้บันทึกเป็นรูปภาพหรือส่งออกไปยังปฏิทินเพื่อดูออฟไลน์</p>
+                <p data-i18n="section6.a2">A: เว็บรองรับ PWA Offline Cache — หน้าที่เคยเปิดตอนออนไลน์แล้วจะเปิดซ้ำได้แม้ไม่มีเน็ต (ติดตั้งเป็นแอปผ่าน "Add to Home Screen" เพื่อประสบการณ์ที่ดีที่สุด); สำหรับข้อมูลที่ต้องดูแน่ๆ แนะนำให้บันทึกเป็นรูปภาพหรือ Subscribe ปฏิทินไว้</p>
 
                 <h3 data-i18n="section6.q3">Q: พบข้อมูลผิดพลาดต้องทำอย่างไร?</h3>
                 <p data-i18n="section6.a3">A: กรุณาแจ้งผ่านหน้า <a href="<?php echo event_url('contact.php'); ?>" style="color: #667eea; text-decoration: none; font-weight: 600;">ติดต่อเรา</a></p>

@@ -12,8 +12,9 @@ if (FAVORITES_HMAC_SECRET === 'REPLACE_WITH_GENERATED_SECRET') {
     exit('Favorites not configured.');
 }
 
-$siteTitle = get_site_title();
-$theme     = get_site_theme();
+$siteTitle     = get_site_title();
+$theme         = get_site_theme();
+$headerCoverBg = get_header_cover_bg();
 
 $rawSlug = $_GET['slug'] ?? '';
 $parsed  = $rawSlug ? fav_parse_slug($rawSlug) : null;
@@ -81,6 +82,8 @@ foreach ($artistIds as $aid) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?= get_base_path() ?>/manifest.json">
     <title>My Favorites - <?= htmlspecialchars($siteTitle) ?></title>
     <?php seo_render_meta(['noindex' => true]); ?>
     <link rel="stylesheet" href="<?= asset_url('styles/common.css') ?>">
@@ -156,11 +159,88 @@ foreach ($artistIds as $aid) {
             .fav-url-row { flex-direction:column; }
             .fav-url-input { width:100%; }
         }
+
+        /* ── Action Chip Bar (Transfer) ─────────────────────────────────── */
+        .fav-actions-bar {
+            display:flex; gap:8px; margin-bottom:20px;
+        }
+        .fav-action-chip {
+            flex:1 1 0; min-width:0;
+            display:flex; align-items:center; justify-content:center;
+            gap:6px; padding:10px 12px;
+            background:#fff;
+            border:1px solid #f0e0ea;
+            border-radius:10px;
+            cursor:pointer;
+            font-size:.88rem; font-weight:500;
+            color:#666;
+            transition:all .15s;
+        }
+        .fav-action-chip:hover {
+            border-color:var(--sakura-medium,#f48fb1);
+            background:var(--sakura-bg-soft,#fff8fa);
+            color:var(--sakura-deep,#C2185B);
+        }
+        .fav-action-chip .chip-icon { font-size:1.05em; flex-shrink:0; line-height:1; }
+        .fav-action-chip .chip-label {
+            flex:0 1 auto; min-width:0;
+            overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        }
+        @media (max-width:480px) {
+            .fav-action-chip { padding:9px 8px; font-size:.82rem; }
+        }
+        @media (max-width:360px) {
+            .fav-action-chip .chip-label { display:none; }
+            .fav-action-chip { padding:11px 8px; }
+            .fav-action-chip .chip-icon { font-size:1.15em; }
+        }
+
+        /* ── Modal (shared pattern) ─────────────────────────────────────── */
+        .req-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.5);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 2000; padding: 20px; box-sizing: border-box;
+        }
+        .req-modal {
+            background: #fff; border-radius: 12px;
+            width: 100%; max-width: 600px; max-height: 90vh;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            box-shadow: 0 15px 50px rgba(0,0,0,.3);
+        }
+        .req-modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px;
+            background: var(--sakura-gradient, linear-gradient(135deg,#FFB7C5,#E91E63));
+            color: #fff; flex-shrink: 0;
+        }
+        .req-modal-header h2 { margin: 0; font-size: 1.1rem; }
+        .req-close {
+            background: none; border: none; color: #fff;
+            font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 0 4px;
+        }
+        .req-modal-body { padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
+
+        /* ── QR Transfer (inside modal) ─────────────────────────────────── */
+        .fav-qr-desc { margin: 0 0 10px; font-size: .88rem; color: #555; }
+        .fav-qr-container {
+            display: inline-block; padding: 8px;
+            background: #fff; border-radius: 8px;
+            border: 1px solid var(--sakura-light, #FFB7C5);
+            margin-bottom: 10px;
+        }
+        .fav-transfer-steps {
+            font-size: .85rem; color: #555;
+            margin: 0; padding-left: 1.2rem; line-height: 1.9;
+        }
+        .fav-qr-loading, .fav-qr-error { font-size: .88rem; color: #888; padding: 8px 0; display: block; }
     </style>
 </head>
 <body>
 <div class="container">
-    <header>
+    <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars(get_base_path() . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
         <div class="header-top-left">
             <a href="<?= get_base_path() ?>/" class="home-icon-btn" title="หน้าแรก">
                 <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -216,6 +296,33 @@ foreach ($artistIds as $aid) {
                 <input type="text" readonly id="favMyFavUrl" class="fav-url-input"
                        value="<?= htmlspecialchars($myFavUrl) ?>" onclick="this.select()">
                 <button class="btn" onclick="copyMyFavUrl()" id="copyMyFavBtn" data-i18n="fav.copyUrl">📋 Copy URL</button>
+            </div>
+        </div>
+
+        <!-- Action Chip Bar -->
+        <div class="fav-actions-bar">
+            <button class="fav-action-chip" id="qrChip" type="button" onclick="openQrTransferModal()">
+                <span class="chip-icon">🔗</span>
+                <span class="chip-label" data-i18n="actions.qrTransfer">QR Transfer</span>
+            </button>
+        </div>
+
+        <!-- QR Transfer Modal -->
+        <div id="qrTransferModal" class="req-modal-overlay" style="display:none;">
+            <div class="req-modal" style="max-width:380px;">
+                <div class="req-modal-header">
+                    <h2 data-i18n="transfer.modalTitle">🔗 ย้าย Favorites ไปยังอุปกรณ์อื่น</h2>
+                    <button onclick="closeQrTransferModal()" class="req-close">&times;</button>
+                </div>
+                <div class="req-modal-body" style="text-align:center;">
+                    <p class="fav-qr-desc" data-i18n="transfer.desc">แสดง QR Code นี้บนหน้าจอนี้ แล้วสแกนจากอุปกรณ์ปลายทาง (เช่น PWA บนมือถือ)</p>
+                    <div id="qrCodeContainer" class="fav-qr-container"></div>
+                    <ol class="fav-transfer-steps" style="text-align:left;">
+                        <li data-i18n="transfer.step1">บนอุปกรณ์ปลายทาง: เปิด PWA หรือ browser</li>
+                        <li data-i18n="transfer.step2">กดปุ่ม 🔗 ในหัวเว็บ → เปิดกล้องสแกน QR Code นี้</li>
+                        <li data-i18n="transfer.step3">Favorites ของคุณจะถูกบันทึกในอุปกรณ์ปลายทางทันที</li>
+                    </ol>
+                </div>
             </div>
         </div>
 
@@ -386,6 +493,47 @@ function copyMyFavUrl() {
             setTimeout(function() { btn.textContent = orig; }, 2000);
         }
     }).catch(function() { input.select(); document.execCommand('copy'); });
+}
+
+// ── QR Transfer ───────────────────────────────────────────────────────────────
+const QR_DASHBOARD_URL = <?= json_encode($dashUrl) ?>;
+
+function openQrTransferModal() {
+    const modal = document.getElementById('qrTransferModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    if (!document.getElementById('qrCodeContainer').innerHTML) {
+        loadQrCode();
+    }
+}
+
+function closeQrTransferModal() {
+    const modal = document.getElementById('qrTransferModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function loadQrCode() {
+    const container = document.getElementById('qrCodeContainer');
+    container.innerHTML = '<span class="fav-qr-loading">⏳ กำลังสร้าง QR Code...</span>';
+    if (window.QRCode) { renderQrCode(container); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.onload = function () { renderQrCode(container); };
+    script.onerror = function () {
+        container.innerHTML = '<span class="fav-qr-error">❌ โหลด QR ไม่สำเร็จ กรุณาลองใหม่</span>';
+    };
+    document.head.appendChild(script);
+}
+
+function renderQrCode(container) {
+    container.innerHTML = '';
+    new QRCode(container, {
+        text: QR_DASHBOARD_URL,
+        width: 200, height: 200,
+        colorDark: '#C2185B',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+    });
 }
 
 // ── Unfollow ──────────────────────────────────────────────────────────────────

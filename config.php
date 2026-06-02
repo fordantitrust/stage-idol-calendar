@@ -35,6 +35,8 @@ require_once __DIR__ . '/config/database.php';    // Database configuration
 require_once __DIR__ . '/config/cache.php';       // Cache settings
 require_once __DIR__ . '/config/favorites.php';   // Favorites system
 require_once __DIR__ . '/config/telegram.php';    // Telegram bot settings
+require_once __DIR__ . '/config/email.php';       // Email notification settings
+require_once __DIR__ . '/config/webpush.php';     // Web Push (PWA) settings
 
 // =============================================================================
 // LOAD HELPER FUNCTIONS
@@ -44,7 +46,12 @@ require_once __DIR__ . '/functions/helpers.php';   // General helpers
 require_once __DIR__ . '/functions/ads.php';       // Google Ads helper
 require_once __DIR__ . '/functions/cache.php';     // Cache functions
 require_once __DIR__ . '/functions/security.php';  // Security functions
+require_once __DIR__ . '/functions/totp.php';      // TOTP / 2FA functions
 require_once __DIR__ . '/functions/admin.php';     // Admin functions
+require_once __DIR__ . '/functions/audit.php';     // Admin audit log (v14.0.0)
 require_once __DIR__ . '/functions/favorites.php'; // Favorites system
 require_once __DIR__ . '/functions/telegram.php';  // Telegram bot functions
+require_once __DIR__ . '/functions/email.php';     // Email notification functions
 require_once __DIR__ . '/functions/seo.php';       // SEO meta helpers
+require_once __DIR__ . '/functions/search.php';    // FTS5 full-text search
+require_once __DIR__ . '/functions/webpush.php';   // Web Push VAPID + encryption

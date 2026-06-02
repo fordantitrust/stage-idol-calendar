@@ -19,8 +19,9 @@ services:
       # Mount database (for persistence)
       - ./data:/var/www/html/data
 
-      # Mount config for easy updates (optional - uncomment if needed)
-      # - ./config:/var/www/html/config:ro
+      # Mount config for Admin UI runtime settings
+      # Required for Google/Telegram/Email JSON configs to persist after rebuilds.
+      - ./config:/var/www/html/config
     environment:
       # PHP Configuration
       - PHP_MEMORY_LIMIT=256M

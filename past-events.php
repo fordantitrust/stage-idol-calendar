@@ -6,8 +6,9 @@
 require_once 'config.php';
 send_security_headers();
 
-$siteTitle = get_site_title();
-$theme     = get_site_theme();
+$siteTitle     = get_site_title();
+$theme         = get_site_theme();
+$headerCoverBg = get_header_cover_bg();
 
 // Fetch past events (end_date < today, is_active = 1, not default slug)
 $pastEvents = [];
@@ -32,12 +33,26 @@ try {
 }
 
 $today      = date('Y-m-d');
-$perPage    = 5;
+$perPage    = 20;
 $totalItems = count($pastEvents);
 $totalPages = max(1, (int)ceil($totalItems / $perPage));
 $currentPage = max(1, min($totalPages, (int)($_GET['page'] ?? 1)));
 $pagedEvents = array_slice($pastEvents, ($currentPage - 1) * $perPage, $perPage);
 $baseUrl    = get_base_path() . '/past-events';
+
+$fallbackCovers = [];
+if (!empty($pagedEvents)) {
+    try {
+        $dbCover = new PDO('sqlite:' . DB_PATH);
+        $dbCover->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $ids = implode(',', array_map('intval', array_column($pagedEvents, 'id')));
+        $stmtCover = $dbCover->query("SELECT event_id, filename FROM event_pictures WHERE event_id IN ($ids) GROUP BY event_id ORDER BY display_order ASC, id ASC");
+        foreach ($stmtCover->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $fallbackCovers[intval($row['event_id'])] = $row['filename'];
+        }
+        $stmtCover->closeCursor(); $stmtCover = null; $dbCover = null;
+    } catch (PDOException $e) {}
+}
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -46,6 +61,8 @@ $baseUrl    = get_base_path() . '/past-events';
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php seo_render_meta([
         'description' => 'อีเวนต์ที่ผ่านมาของ ' . $siteTitle,
@@ -73,7 +90,7 @@ $baseUrl    = get_base_path() . '/past-events';
 </head>
 <body class="theme-<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container">
-    <header>
+    <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars(get_base_path() . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
         <div class="header-top-left">
             <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="หน้าแรก">
                 <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -112,51 +129,34 @@ $baseUrl    = get_base_path() . '/past-events';
                 <h2 data-i18n="listing.noPastEvents">ยังไม่มีงานที่จบแล้ว</h2>
             </div>
         <?php else: ?>
-            <div class="program-cards">
-                <?php foreach ($pagedEvents as $ev): ?>
-                <?php
+            <div class="events-grid">
+                <?php foreach ($pagedEvents as $ev):
+                    $evId         = intval($ev['id']);
                     $evStart      = $ev['start_date'] ?? null;
-                    $evEnd        = $ev['end_date'] ?? $evStart;
+                    $evEnd        = $ev['end_date']   ?? $evStart;
                     $displayStart = $evStart ? date('d/m/Y', strtotime($evStart)) : '-';
                     $displayEnd   = $evEnd   ? date('d/m/Y', strtotime($evEnd))   : '-';
-                    $evMetaId     = intval($ev['id']);
-                    $evDataVersion = get_data_version($evMetaId);
-                    $evCredits    = get_cached_credits($evMetaId);
+                    $fallback     = $fallbackCovers[$evId] ?? null;
+                    $cardCoverImg = !empty($ev['cover_image_card'])
+                        ? $ev['cover_image_card']
+                        : get_event_cover_image($ev, $fallback);
+                    $evUrl = htmlspecialchars(event_url('index.php', $ev['slug']));
                 ?>
-                <div class="program-card">
-                    <div class="program-card-header">
-                        <h4 class="program-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
-                        <div class="program-card-dates">
+                <a class="event-card" href="<?php echo $evUrl; ?>">
+                    <div class="event-card-cover<?php echo $cardCoverImg ? '' : ' event-card-cover-gradient'; ?>"
+                         <?php if ($cardCoverImg): ?>style="background-image: url('<?php echo htmlspecialchars(get_base_path() . '/' . $cardCoverImg); ?>')"<?php endif; ?>>
+                        <span class="event-card-badge past" data-i18n="listing.past">จบแล้ว</span>
+                    </div>
+                    <div class="event-card-body">
+                        <h4 class="event-card-name"><?php echo htmlspecialchars($ev['name']); ?></h4>
+                        <div class="event-card-date">
                             📅 <?php echo $displayStart; ?><?php if ($displayStart !== $displayEnd): ?> – <?php echo $displayEnd; ?><?php endif; ?>
                         </div>
+                        <?php if (!empty($ev['description'])): ?>
+                        <div class="event-card-description"><?php echo nl2br(htmlspecialchars($ev['description'])); ?></div>
+                        <?php endif; ?>
                     </div>
-                    <div class="program-card-body">
-                        <div class="program-card-content">
-                            <span class="program-card-badge past" data-i18n="listing.past">จบแล้ว</span>
-
-                            <?php if (!empty($ev['description'])): ?>
-                            <div class="program-card-description">
-                                <?php echo nl2br(htmlspecialchars($ev['description'])); ?>
-                            </div>
-                            <?php endif; ?>
-
-                            <div class="program-card-meta">
-                                <span class="program-card-meta-item" title="Data Version">
-                                    🔄 <?php echo $evDataVersion; ?>
-                                </span>
-                                <?php if (!empty($evCredits)): ?>
-                                <a href="<?php echo event_url('credits.php', $ev['slug']); ?>" class="program-card-meta-item program-card-meta-link" data-i18n="listing.credits">
-                                    📋 Credits (<?php echo count($evCredits); ?>)
-                                </a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <a href="<?php echo event_url('index.php', $ev['slug']); ?>" class="program-card-link" data-i18n="listing.viewSchedule">
-                            📋 ดูตารางเวลา
-                        </a>
-                    </div>
-                </div>
+                </a>
                 <?php endforeach; ?>
             </div>
 
@@ -166,8 +166,7 @@ $baseUrl    = get_base_path() . '/past-events';
                     <a href="<?php echo $baseUrl . '?page=' . ($currentPage - 1); ?>" data-i18n="listing.pagePrev">←</a>
                 <?php endif; ?>
                 <?php for ($p = 1; $p <= $totalPages; $p++):
-                    if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 1):
-                ?>
+                    if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 1): ?>
                     <?php if ($p === $currentPage): ?>
                         <span class="current"><?php echo $p; ?></span>
                     <?php else: ?>
@@ -228,16 +227,14 @@ window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;
         '</div>';
     document.body.appendChild(overlay);
 
-    function openModal(card) {
-        var nameEl  = card.querySelector('.program-card-name');
-        var datesEl = card.querySelector('.program-card-dates');
-        var badgeEl = card.querySelector('.program-card-badge');
-        var descEl  = card.querySelector('.program-card-description');
-        var metaEl  = card.querySelector('.program-card-meta');
-        var linkEl  = card.querySelector('.program-card-link');
+    function openEventCardModal(card) {
+        var nameEl  = card.querySelector('.event-card-name');
+        var dateEl  = card.querySelector('.event-card-date');
+        var badgeEl = card.querySelector('.event-card-badge');
+        var descEl  = card.querySelector('.event-card-description');
 
-        overlay.querySelector('.event-modal-name').textContent  = nameEl  ? nameEl.textContent.trim()  : '';
-        overlay.querySelector('.event-modal-dates').textContent = datesEl ? datesEl.textContent.trim() : '';
+        overlay.querySelector('.event-modal-name').textContent  = nameEl ? nameEl.textContent.trim() : '';
+        overlay.querySelector('.event-modal-dates').textContent = dateEl ? dateEl.textContent.trim() : '';
 
         var modalBadge = overlay.querySelector('.event-modal-badge');
         if (badgeEl) {
@@ -252,30 +249,20 @@ window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;
 
         var modalDesc = overlay.querySelector('.event-modal-description');
         if (descEl) {
-            modalDesc.innerHTML     = descEl.innerHTML;
+            modalDesc.innerHTML             = descEl.innerHTML;
             modalDesc.style.webkitLineClamp = 'unset';
-            modalDesc.style.display = 'block';
-            modalDesc.style.overflow = 'visible';
+            modalDesc.style.display         = 'block';
+            modalDesc.style.overflow        = 'visible';
         } else {
             modalDesc.style.display = 'none';
         }
 
-        var modalMeta = overlay.querySelector('.event-modal-meta');
-        if (metaEl && metaEl.children.length) {
-            modalMeta.innerHTML     = metaEl.innerHTML;
-            modalMeta.style.display = '';
-        } else {
-            modalMeta.style.display = 'none';
-        }
+        overlay.querySelector('.event-modal-meta').style.display = 'none';
 
         var modalLink = overlay.querySelector('.event-modal-link');
-        if (linkEl) {
-            modalLink.href        = linkEl.getAttribute('href');
-            modalLink.textContent = linkEl.textContent.trim();
-            modalLink.style.display = '';
-        } else {
-            modalLink.style.display = 'none';
-        }
+        modalLink.href        = card.getAttribute('href');
+        modalLink.textContent = '📋 ดูตารางเวลา';
+        modalLink.style.display = '';
 
         overlay.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -286,19 +273,27 @@ window.SITE_TITLE = <?php echo json_encode(get_site_title()); ?>;
         document.body.style.overflow = '';
     }
 
-    document.querySelectorAll('.program-card-description').forEach(function (desc) {
-        var card = desc.closest('.program-card');
+    document.querySelectorAll('.event-card-description').forEach(function (desc) {
+        var card = desc.closest('.event-card');
         if (!card) return;
-        desc.addEventListener('click', function () { openModal(card); });
+        desc.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openEventCardModal(card);
+        });
         if (desc.scrollHeight > desc.clientHeight + 2) {
             var btn = document.createElement('button');
             btn.type      = 'button';
             btn.className = 'program-card-readmore';
             btn.setAttribute('data-i18n', 'listing.readMore');
-            btn.textContent = (window.translations && window.translations[window.currentLang || 'th'])
-                ? (window.translations[window.currentLang || 'th']['listing.readMore'] || '▼ อ่านเพิ่มเติม')
+            btn.textContent = (typeof translations !== 'undefined' && translations[window.currentLang || 'th'])
+                ? (translations[window.currentLang || 'th']['listing.readMore'] || '▼ อ่านเพิ่มเติม')
                 : '▼ อ่านเพิ่มเติม';
-            btn.addEventListener('click', function (e) { e.stopPropagation(); openModal(card); });
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openEventCardModal(card);
+            });
             desc.insertAdjacentElement('afterend', btn);
         }
     });

@@ -9,7 +9,7 @@ require_allowed_ip();
 require_login();
 
 $adminUsername = $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'Admin';
-$adminRole = $_SESSION['admin_role'] ?? 'admin';
+$adminRole = get_admin_role();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -138,6 +138,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         /* Badge role */
         .badge-admin { display: inline-block; background: #2563eb; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
         .badge-agent { display: inline-block; background: #7c3aed; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+        .badge-organizer { display: inline-block; background: #059669; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+        body.role-agent .admin-only,
+        body.role-agent .admin-organizer-only,
+        body.role-agent .organizer-only,
+        body.role-organizer .admin-only,
+        body.role-organizer .admin-agent-only,
+        body.role-organizer .non-organizer-only,
+        body.role-admin .organizer-only { display: none !important; }
 
         /* Step boxes */
         .steps { counter-reset: step; padding-left: 0; list-style: none; }
@@ -291,7 +299,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
     </style>
 </head>
-<body>
+<body class="role-<?php echo htmlspecialchars($adminRole, ENT_QUOTES, 'UTF-8'); ?>">
 <div class="admin-container">
 
     <!-- Header -->
@@ -318,20 +326,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div class="mobile-toc-menu" id="mobileTocMenu">
             <a href="#overview">System Overview</a>
             <a href="#login">Login &amp; Security</a>
+            <a href="#login-2fa">↳ 2FA / TOTP</a>
             <a href="#header">Header &amp; Account</a>
             <a href="#programs">Tab: Programs</a>
             <a href="#events">Tab: Events</a>
             <a href="#events-gallery">↳ Event Pictures Gallery</a>
-            <a href="#requests">Tab: Requests</a>
+            <a href="#requests" class="non-organizer-only">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
-            <a href="#import">Tab: Import</a>
-            <a href="#import-type">↳ Program Type</a>
+            <a href="#import" class="non-organizer-only">Tab: Import</a>
+            <a href="#import-type" class="non-organizer-only">↳ Program Type</a>
+            <a href="#artists" class="admin-organizer-only">Tab: Artists</a>
             <a href="#feed">Feed / Subscribe</a>
-            <a href="#telegram">Telegram Notifications</a>
-            <a href="#users">Tab: Users</a>
-            <a href="#backup">Tab: Backup</a>
-            <a href="#settings">Tab: Settings</a>
-            <a href="#contact">Tab: Contact</a>
+            <a href="#telegram" class="admin-only">Telegram Notifications</a>
+            <a href="#webpush" class="admin-only">Web Push (PWA)</a>
+            <a href="#audit-log" class="admin-only">Admin Audit Log</a>
+            <a href="#users" class="admin-only">Tab: Users</a>
+            <a href="#backup" class="admin-only">Tab: Backup</a>
+            <a href="#settings" class="admin-only">Tab: Settings</a>
+            <a href="#contact" class="admin-only">Tab: Contact</a>
             <a href="#roles">User Roles</a>
             <a href="#tips">Tips &amp; FAQ</a>
         </div>
@@ -345,6 +357,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <ul>
                 <li><a href="#overview">System Overview</a></li>
                 <li><a href="#login">Login &amp; Security</a></li>
+                <li><a href="#login-2fa">2FA / TOTP</a></li>
                 <li><a href="#header">Header &amp; Account</a></li>
                 <li><a href="#programs">Tab: Programs</a>
                     <ul class="toc-sub">
@@ -361,25 +374,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#events-timezone">Timezone</a></li>
                     </ul>
                 </li>
-                <li><a href="#requests">Tab: Requests</a></li>
+                <li class="non-organizer-only"><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import</a>
+                <li class="non-organizer-only"><a href="#import">Tab: Import</a>
                     <ul class="toc-sub">
                         <li><a href="#import-type">Program Type</a></li>
                     </ul>
                 </li>
-                <li><a href="#artists">Tab: Artists</a></li>
+                <li class="admin-organizer-only"><a href="#artists">Tab: Artists</a></li>
                 <li><a href="#feed">Feed / Subscribe</a>
                     <ul class="toc-sub">
                         <li><a href="#feed-event">Event Feed</a></li>
                         <li><a href="#feed-artist">Artist Feed</a></li>
                     </ul>
                 </li>
-                <li><a href="#telegram">Telegram Notifications</a></li>
-                <li><a href="#users">Tab: Users</a></li>
-                <li><a href="#backup">Tab: Backup</a></li>
-                <li><a href="#settings">Tab: Settings</a></li>
-                <li><a href="#contact">Tab: Contact</a></li>
+                <li class="admin-only"><a href="#telegram">Telegram Notifications</a></li>
+                <li class="admin-only"><a href="#webpush">Web Push (PWA)</a></li>
+                <li class="admin-only"><a href="#audit-log">Admin Audit Log</a></li>
+                <li class="admin-only"><a href="#users">Tab: Users</a></li>
+                <li class="admin-only"><a href="#backup">Tab: Backup</a></li>
+                <li class="admin-only"><a href="#settings">Tab: Settings</a></li>
+                <li class="admin-only"><a href="#contact">Tab: Contact</a></li>
                 <li><a href="#roles">User Roles</a></li>
                 <li><a href="#tips">Tips &amp; FAQ</a></li>
             </ul>
@@ -396,22 +411,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     on the website — Programs (individual performances), Events (conventions/shows),
                     user-submitted Requests, Credits, and database Backups.
                 </p>
-                <p>The Admin Panel has <strong>9 main tabs</strong>:</p>
+                <p>The Admin Panel shows tabs according to the logged-in role (updated through <strong>v12.3.3</strong>):</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
                     <span class="tab-chip">🎵 Programs</span>
                     <span class="tab-chip">🎪 Events</span>
-                    <span class="tab-chip">📝 Requests</span>
+                    <span class="tab-chip non-organizer-only">📝 Requests</span>
                     <span class="tab-chip">✨ Credits</span>
-                    <span class="tab-chip">📤 Import</span>
-                    <span class="tab-chip">🎤 Artists</span>
-                    <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">✉️ Contact <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip non-organizer-only">📤 Import</span>
+                    <span class="tab-chip admin-organizer-only">🎤 Artists <span class="badge-organizer">organizer request</span></span>
+                    <span class="tab-chip admin-only">👤 Users <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">💾 Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">⚙️ Settings <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">✉️ Contact <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>The <strong>👤 Users</strong>, <strong>💾 Backup</strong>, <strong>⚙️ Settings</strong>, and <strong>✉️ Contact</strong> tabs are only visible to users with the <strong>admin</strong> role.</div>
+                    <div>This page automatically hides topics that the current role cannot use: admins see everything, agents see operational and review tools, and organizers see only their own Events / Programs / Credits / Artist request workflow.</div>
                 </div>
             </section>
 
@@ -424,8 +439,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <ol class="steps">
                     <li>Enter your <strong>Username</strong> and <strong>Password</strong></li>
                     <li>Click <strong>Login</strong></li>
+                    <li>If 2FA is enabled for your account, enter the 6-digit Authenticator code or a recovery code</li>
                     <li>You will be redirected to the Admin Dashboard</li>
                 </ol>
+
+                <h3 id="login-2fa">🔐 2FA / TOTP <span class="badge-version">v10.0.0</span></h3>
+                <p>The system supports RFC 6238 TOTP 2FA for database-managed users in <code>admin_users</code>. Fallback users from <code>config/admin.php</code> remain password-only for backward compatibility.</p>
+                <table class="help-table">
+                    <thead><tr><th>Topic</th><th>Details</th></tr></thead>
+                    <tbody>
+                        <tr><td>Code format</td><td>6-digit codes that rotate every 30 seconds; compatible with Google Authenticator, Microsoft Authenticator, 1Password, Authy, and similar apps</td></tr>
+                        <tr><td>Recovery</td><td>One-time backup codes are generated when enabling 2FA and can be regenerated later</td></tr>
+                        <tr><td>Replay protection</td><td>A TOTP code already accepted for the same time step is rejected</td></tr>
+                        <tr><td>Migration <span class="badge-version">v10.1.0</span></td><td>Add the 2FA columns through <code>setup.php</code> or <code>php tools/migrate-add-admin-2fa-columns.php</code>; the API does not auto-migrate and uses <code>data/.admin_2fa_columns_ready</code> after confirming the schema</td></tr>
+                        <tr><td>Rate limit</td><td>Wrong 2FA or recovery codes count toward the login rate limit</td></tr>
+                    </tbody>
+                </table>
 
                 <h3>Security Restrictions</h3>
                 <table class="help-table">
@@ -450,9 +479,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <table class="help-table">
                     <thead><tr><th>Element</th><th>Function</th></tr></thead>
                     <tbody>
-                        <tr><td>Username &amp; Role</td><td>Shows the currently logged-in user and their role (admin / agent)</td></tr>
-                        <tr><td>v5.1.1 (Version Badge)</td><td>Displays the current app version (from APP_VERSION constant) — useful for checking the version while using Admin</td></tr>
-                        <tr><td>🔑 Change Password</td><td>Change your own password (only shown for database-managed users)</td></tr>
+                        <tr><td>Username &amp; Role</td><td>Shows the currently logged-in user and their role (admin / agent / organizer)</td></tr>
+                        <tr><td>Version Badge</td><td>Displays the current app version, e.g. <code>v<?php echo htmlspecialchars(APP_VERSION); ?></code> (from the APP_VERSION constant) — useful for checking the version while using Admin</td></tr>
+                        <tr><td>🔑 Change Password</td><td>Change your own password and manage 2FA (only shown for database-managed users)</td></tr>
                         <tr><td>📖 Help</td><td>Opens this help page</td></tr>
                         <tr><td>← Home</td><td>Return to the public-facing website</td></tr>
                         <tr><td>Logout</td><td>End your session and return to the login page</td></tr>
@@ -467,6 +496,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>Re-enter the new password in <em>Confirm New Password</em></li>
                     <li>Click <strong>Change Password</strong></li>
                 </ol>
+
+                <h3>Enabling 2FA <span class="badge-version">v10.0.0</span></h3>
+                <ol class="steps">
+                    <li>Click <strong>🔑 Change Password</strong> in the header</li>
+                    <li>In <strong>Two-Factor Authentication</strong>, click <strong>Enable 2FA</strong></li>
+                    <li>Scan the QR code or copy the manual key into your Authenticator app</li>
+                    <li>Enter the 6-digit code to confirm, then save the backup codes shown by the system</li>
+                </ol>
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>Backup codes are shown once. If you lose your Authenticator device, use a backup code or ask another admin to reset 2FA from the Users tab.</div>
+                </div>
             </section>
 
             <!-- Programs Tab -->
@@ -506,7 +547,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Date <span style="color:red">*</span></td><td>Date of the performance</td></tr>
                         <tr><td>Start Time / End Time <span style="color:red">*</span></td><td>Time in HH:MM format</td></tr>
                         <tr><td>Description</td><td>Optional additional details</td></tr>
-                        <tr><td>Artist / Group</td><td>Artists associated with this program — type a name and press <kbd>Enter</kbd> or <kbd>,</kbd> to add a chip; click <code>×</code> to remove; autocomplete pulls from the Artists table (🎤 = solo, 🎵 = group); a new artist name not yet in the system will be created automatically when you click <strong>Save</strong></td></tr>
+                        <tr><td>Artist / Group</td><td>Artists associated with this program — autocomplete pulls from the Artists table (🎤 = solo, 🎵 = group); admin/agent users may type a new name to create an artist automatically on save, while organizers must select an existing artist from autocomplete</td></tr>
                         <tr><td>Program Type</td><td>Type of program, e.g. <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (optional, supports autocomplete from existing types)</td></tr>
                         <tr><td>Live Stream URL</td><td>URL of the live stream (YouTube, X/Twitter, TikTok, etc.) — must begin with <code>https://</code>; any other value is silently ignored; once set, the public page displays a platform icon and a <strong>🔴 Join Live</strong> button; the ICS feed includes a <code>URL:</code> property for calendar apps</td></tr>
                     </tbody>
@@ -574,9 +615,36 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Venue Mode</td><td><strong>multi</strong> = multiple venues (shows venue filter, Gantt view) | <strong>single</strong> = single venue | <strong>calendar</strong> = monthly calendar</td></tr>
                         <tr><td>Theme</td><td>Color theme specific to this event (if not set, falls back to the global theme from Settings)</td></tr>
                         <tr><td>Gallery Layout</td><td>Layout for the event's photo gallery: <strong>grid3</strong> (3 columns, default) | <strong>grid2</strong> | <strong>grid1</strong> | <strong>masonry</strong></td></tr>
+                        <tr><td>Cover Image (Hero) <span class="badge-version">v8.0.0</span></td><td>Hero-ratio cover image at 16:9 (recommended 1600×900 px) — displayed in the Hero Carousel on the homepage; Cropper.js is used to crop before upload</td></tr>
+                        <tr><td>Cover Image (Card) <span class="badge-version">v8.0.0</span></td><td>Card-ratio cover image at 4:3 (recommended 800×600 px) — displayed in event cards on the listing page; Fallback chain: Cover Image (Hero) → event pictures → gradient</td></tr>
+                        <tr><td>Header Cover Image <span class="badge-version">v9.2.0</span></td><td>Banner image at 4:1 ratio (recommended 1920×480 px) — displayed as the header background on that event's pages; takes priority over the site-wide Header Cover</td></tr>
                         <tr><td>Active</td><td>Toggle visibility of this event on the public website</td></tr>
                     </tbody>
                 </table>
+
+                <h3 id="events-cover">🖼️ Cover Images <span class="badge-version">v8.0.0</span></h3>
+                <p>Each Event has two separate cover images (Hero + Card) and one Header Cover, all independent:</p>
+                <table class="help-table">
+                    <thead><tr><th>Type</th><th>Ratio</th><th>Recommended Size</th><th>Used In</th></tr></thead>
+                    <tbody>
+                        <tr><td>Cover Image (Hero)</td><td>16:9</td><td>1600×900 px</td><td>Hero Carousel on homepage; Social OG image</td></tr>
+                        <tr><td>Cover Image (Card)</td><td>4:3</td><td>800×600 px</td><td>Event cards on the listing page</td></tr>
+                        <tr><td>Header Cover Image</td><td>4:1</td><td>1920×480 px</td><td>Header background on that event's pages</td></tr>
+                    </tbody>
+                </table>
+                <h4>How to Upload a Cover Image</h4>
+                <ol>
+                    <li>Admin → <strong>Events</strong> tab → click ✏️ to edit an event</li>
+                    <li>Scroll down to the <strong>Cover Images</strong> section</li>
+                    <li>Click <strong>📸 Upload Hero</strong>, <strong>📸 Upload Card</strong>, or <strong>📸 Upload Header</strong></li>
+                    <li>Select a file — a Cropper.js window opens with the correct aspect ratio frame</li>
+                    <li>Adjust the crop area → click <strong>✅ Crop &amp; Upload</strong></li>
+                    <li>The new image is shown in preview immediately; click 🗑️ to remove an existing image</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The CSRF token is sent via the <code>X-CSRF-Token</code> HTTP header automatically — no extra steps needed.</div>
+                </div>
 
                 <h3>Venue Mode: Calendar</h3>
                 <p>When set to <strong>calendar</strong>, the event page displays a monthly calendar instead of a list or timeline:</p>
@@ -769,40 +837,75 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Requests Tab -->
-            <section class="help-section" id="requests">
+            <section class="help-section non-organizer-only" id="requests">
                 <h2>📝 Tab: Requests</h2>
                 <p>
-                    <strong>Requests</strong> are submissions from public users asking to
-                    <span style="color:#4caf50;font-weight:600;">add a new Program</span> or
-                    <span style="color:#2196f3;font-weight:600;">modify an existing Program</span>.
+                    <strong>Requests</strong> are submissions from public users and organizers. They are split into four groups:
                 </p>
+                <ul>
+                    <li><strong>📝 Program Requests</strong> — ask to add a new Program or modify an existing one</li>
+                    <li><strong>🗓️ Event Requests</strong> — ask to add a new Event or modify an existing one <span class="badge-version">v9.3.0</span></li>
+                    <li><strong>🟡 Event Active Requests</strong> — organizers request activation for assigned events <span class="badge-version">v12.1.0</span></li>
+                    <li><strong>🎤 Artist Request</strong> — organizers request a new artist for admin/agent review <span class="badge-version">v12.3.0</span></li>
+                </ul>
+
+                <h3>Sub-tabs in Requests</h3>
+                <p>The Requests tab has four sub-tabs toggled by the buttons at the top of the section:</p>
+                <table class="help-table">
+                    <thead><tr><th>Sub-tab</th><th>Content</th></tr></thead>
+                    <tbody>
+                        <tr><td>📝 <strong>Program Requests</strong></td><td>Requests to add / modify Programs; Approve → auto-creates or updates the Program</td></tr>
+                        <tr><td>🗓️ <strong>Event Requests (Guest)</strong></td><td>Requests to add / modify Events from public users; Approve → auto-creates an inactive Event or updates event data</td></tr>
+                        <tr><td>🟡 <strong>Event Active Requests (Organizer)</strong></td><td>Activation requests from organizers; Approve → sets <code>is_active=1</code> on the existing event</td></tr>
+                        <tr><td>🎤 <strong>Artist Request</strong></td><td>New artist requests from organizers; Approve → creates an <code>artists</code> record, refreshes the Artist list, and shows the created <code>artist_id</code> <span class="badge-version">v12.3.2</span></td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The red badge on the "Requests" tab shows the combined count of <strong>pending Program + Guest Event + Active Event + Artist Requests</strong>.</div>
+                </div>
 
                 <h3>Request Statuses</h3>
                 <table class="help-table">
                     <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
                     <tbody>
                         <tr><td><span style="background:#ff9800;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">pending</span></td><td>Waiting for review — no action taken yet</td></tr>
-                        <tr><td><span style="background:#4caf50;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">approved</span></td><td>Approved — the program has been created or updated automatically</td></tr>
+                        <tr><td><span style="background:#4caf50;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">approved</span></td><td>Approved — the item has been created or updated automatically</td></tr>
                         <tr><td><span style="background:#f44336;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">rejected</span></td><td>Rejected by an admin</td></tr>
                     </tbody>
                 </table>
 
-                <h3>Approving / Rejecting a Request</h3>
+                <h3>Approving / Rejecting a Program Request</h3>
                 <ol class="steps">
-                    <li>Click the <strong>👁️ View</strong> button on the request you want to review</li>
+                    <li>Click the <strong>📝 Program Requests</strong> sub-tab</li>
+                    <li>Click <strong>👁️ View</strong> on the request you want to review</li>
                     <li>Check the modal: request type, program data, and submitter information</li>
                     <li>For modification requests, a <strong>Comparison View</strong> shows the original vs. proposed changes side by side</li>
                     <li>Click <strong>✅ Approve</strong> to accept and auto-create/update the Program, or <strong>❌ Reject</strong> to decline</li>
+                    <li>Optionally add an <strong>Admin Note</strong> before confirming</li>
                 </ol>
 
-                <div class="callout callout-info">
-                    <span class="callout-icon">ℹ️</span>
-                    <div>The number of <strong>pending</strong> requests is shown as a red badge on the "Requests" tab to alert you to new items.</div>
+                <h3>Approving / Rejecting an Event Request <span class="badge-version">v9.3.0</span></h3>
+                <ol class="steps">
+                    <li>Click the <strong>🗓️ Event Requests</strong> sub-tab</li>
+                    <li>Click <strong>👁️ View</strong> on the request you want to review</li>
+                    <li>Check the details: request type (add/modify), event name, description, dates, and submitter information</li>
+                    <li>Click <strong>✅ Approve</strong> — the system will:
+                        <ul>
+                            <li><strong>type = add</strong>: Automatically create a new Event (status = <strong>inactive</strong> — you must activate it manually from the Events tab)</li>
+                            <li><strong>type = modify</strong>: Update the specified event's non-empty fields</li>
+                        </ul>
+                    </li>
+                    <li>Or click <strong>❌ Reject</strong> and optionally add an Admin Note</li>
+                </ol>
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>Events created by approving an Event Request are always <strong>inactive</strong> — go to the <strong>Events</strong> tab to activate them so they appear on the public website.</div>
                 </div>
 
                 <h3>Filtering Requests</h3>
                 <ul>
-                    <li><strong>Event Filter</strong>: Show requests for a specific event</li>
+                    <li><strong>Event Filter</strong>: Show requests for a specific event (Program Requests only)</li>
                     <li><strong>Status Filter</strong>: View requests by status (pending, approved, rejected, or all)</li>
                 </ul>
             </section>
@@ -837,7 +940,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Import ICS Tab -->
-            <section class="help-section" id="import">
+            <section class="help-section non-organizer-only" id="import">
                 <h2>📤 Tab: Import</h2>
                 <p>
                     Import Programs from an <strong>.ics</strong> file (iCalendar format).
@@ -894,9 +997,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Artists Tab -->
-            <section class="help-section" id="artists">
+            <section class="help-section admin-organizer-only" id="artists">
                 <h2>🎤 Tab: Artists</h2>
                 <p>Manage all artists in the system. Artists can appear in programs across multiple events (Artist Reuse System).</p>
+                <div class="callout callout-info organizer-only">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>For organizer users, the Artists tab is for submitting <strong>Request new artist</strong> only. The request goes to admin/agent review before a real artist record is created. <span class="badge-version">v12.3.0</span></div>
+                </div>
+                <div class="organizer-only">
+                    <h3>How to Request a New Artist</h3>
+                    <ol class="steps">
+                        <li>Open the <strong>🎤 Artists</strong> tab or click <strong>Request New Artist</strong> from the Dashboard</li>
+                        <li>Fill in the artist name, solo/group type, group membership, and related details</li>
+                        <li>Submit the request; the system creates an item under <strong>Requests → Artist Request</strong></li>
+                        <li>Wait for admin/agent approval; after approval the artist is created and can be used in Programs</li>
+                    </ol>
+                    <div class="callout callout-warn">
+                        <span class="callout-icon">⚠️</span>
+                        <div>Organizers cannot create or edit the Artists database directly. In the Program form, organizers must select artists from the existing autocomplete list.</div>
+                    </div>
+                </div>
+                <div class="admin-only">
 
                 <h3>Artist Fields</h3>
                 <table class="help-table">
@@ -978,6 +1099,46 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">ℹ️</span>
                     <div>Artists created through the Program form will appear in this Artists tab automatically. You can add Variants or assign a group membership at any time afterwards.</div>
                 </div>
+                </div>
+            </section>
+
+            <!-- Venues Tab -->
+            <section class="help-section admin-only" id="venues">
+                <h2>🏛️ Tab: Venues <span class="badge-version">v16.0.0</span></h2>
+                <p>Manage a canonical list of venues to remove duplicate <code>location</code> values — similar to Artists, but each program has exactly one venue (location stays text, no FK).</p>
+
+                <h3>Automatic behaviour</h3>
+                <ul>
+                    <li>When adding/editing a Program or importing ICS, the location is <strong>normalised</strong>: if it matches a venue's canonical name or an alternate name it is rewritten to the canonical form; if unknown, a new venue is auto-registered.</li>
+                    <li>The Program form's venue autocomplete now pulls canonical names from the Venues table instead of DISTINCT location.</li>
+                </ul>
+
+                <h3>Alternate names (Variants)</h3>
+                <ul>
+                    <li>Click <strong>Variants</strong> on a venue row to add/remove aliases.</li>
+                    <li>Aliases let differently-spelled ICS imports map to a single venue.</li>
+                </ul>
+
+                <h3>Merge (combine duplicate venues)</h3>
+                <ol class="steps">
+                    <li>Tick the checkboxes for the venues to combine (≥2) → click <strong>🔀 Merge Selected</strong>.</li>
+                    <li>Pick the canonical venue to keep — the rest become alternate names.</li>
+                    <li>Confirm: all matching <code>programs.location</code> (including each source's variants) are rewritten to the canonical name, then the duplicate venues are deleted.</li>
+                </ol>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>Renaming a venue (Edit) also rewrites the <code>programs.location</code> values that used the old name.</div>
+                </div>
+
+                <h3>Public pages</h3>
+                <ul>
+                    <li>The venue name in the table links to <code>/venue/{id}</code> (programs at that venue across events).</li>
+                    <li><code>/venues</code> lists all venues, reachable from the "🏛️ สถานที่ / Venues" homepage nav link.</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>First-time setup: run <code>php tools/migrate-add-venues-table.php</code> or Setup → Run All Migrations (seeds venues from existing locations + variants from the earlier dedup).</div>
+                </div>
             </section>
 
             <!-- Feed / Subscribe -->
@@ -1019,7 +1180,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Telegram Notifications -->
-            <section class="help-section" id="telegram">
+            <section class="help-section admin-only" id="telegram">
                 <h2>🔔 Telegram Notifications</h2>
                 <p>Send push notifications to Telegram when programs from followed artists are about to start. Users link their Telegram account via deep-link and receive automatic reminders N minutes before each program.</p>
 
@@ -1062,13 +1223,30 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <h3>User Commands</h3>
                 <table class="help-table">
-                    <thead><tr><th>Command</th><th>Function</th><th>Who Can Use</th></tr></thead>
+                    <thead><tr><th>Command</th><th>Function</th></tr></thead>
                     <tbody>
-                        <tr><td><code>/start {slug}</code></td><td>Link Telegram account to favorites. User receives confirmation message.</td><td>Anyone messaging the bot</td></tr>
-                        <tr><td><code>/stop</code></td><td>Unlink Telegram account. User will stop receiving notifications.</td><td>Linked users</td></tr>
-                        <tr><td><code>/upcoming</code></td><td>Display next 5 upcoming programs from followed artists.</td><td>Linked users</td></tr>
+                        <tr><td><code>/start {slug}</code></td><td>Link Telegram account to favorites; select notification language via inline keyboard (TH/EN/JA)</td></tr>
+                        <tr><td><code>/stop</code></td><td>Unlink the Telegram account — stops all notifications</td></tr>
+                        <tr><td><code>/today</code></td><td>Show today's events with program counts (condensed format)</td></tr>
+                        <tr><td><code>/tomorrow</code></td><td>Show tomorrow's events with program counts</td></tr>
+                        <tr><td><code>/week</code></td><td>Show the next 7 days grouped by day</td></tr>
+                        <tr><td><code>/upcoming [N]</code></td><td>Show next N upcoming programs (default 3, max 10)</td></tr>
+                        <tr><td><code>/next</code></td><td>Alias for <code>/upcoming 1</code> — the very next program</td></tr>
+                        <tr><td><code>/artists</code></td><td>List all followed artists (A–Z)</td></tr>
+                        <tr><td><code>/lang th|en|ja</code></td><td>Change the bot's notification language</td></tr>
+                        <tr><td><code>/tz [zone|auto]</code></td><td><span class="badge-version">v16.1.1</span> Show or set the timezone used for notification times. <code>/tz Asia/Tokyo</code> sets a manual override; <code>/tz auto</code> reverts to automatic</td></tr>
+                        <tr><td><code>/mute N</code></td><td>Silence notifications for N hours (1–72)</td></tr>
+                        <tr><td><code>/notify on|off|summary</code></td><td><span class="badge-version">v16.2.0</span> Notification mode: <code>on</code> = per-program + daily summary (default), <code>summary</code> = daily summary only, <code>off</code> = disable all</td></tr>
+                        <tr><td><code>/status</code></td><td>Show account status: artist count, language, effective timezone, notify mode, mute expiry</td></tr>
                     </tbody>
                 </table>
+
+                <h3>Notification Modes &amp; Timezone</h3>
+                <ul>
+                    <li><strong>Per-program</strong> — sent N minutes before each followed program starts (<code>TELEGRAM_NOTIFY_BEFORE_MINUTES</code>).</li>
+                    <li><strong>Daily summary</strong> — sent once each morning (09:00–09:30) listing the day's programs grouped by event.</li>
+                    <li><strong>Notification times use the user's timezone</strong> <span class="badge-version">v16.1.1</span> — the message shows the event-local time with the user's local time in parentheses, e.g. <code>18:00 (19:00 Asia/Tokyo)</code>, when the event timezone differs from the recipient's. Users control their timezone with <code>/tz</code>.</li>
+                </ul>
 
                 <h3>Troubleshooting</h3>
                 <table class="help-table">
@@ -1092,8 +1270,146 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </div>
             </section>
 
+            <!-- Web Push Notifications (PWA) -->
+            <section class="help-section admin-only" id="webpush">
+                <h2>📱 Web Push Notifications (PWA)</h2>
+                <p>Delivers <strong>browser push notifications</strong> directly to users without requiring Telegram or any additional app. Supports Chrome, Firefox, Edge, and Safari 16.4+ on both desktop and mobile. Users click "Subscribe" on the <code>/my/{slug}</code> page and receive notifications N minutes before a program starts. The same system also enables PWA installation (Add to Home Screen).</p>
+
+                <h3>How It Works</h3>
+                <ol class="steps">
+                    <li><strong>User subscribes:</strong> On <code>/my/{slug}</code> → browser requests permission → subscription (endpoint + encryption keys) is saved to the user's favorites JSON file</li>
+                    <li><strong>Cron job runs every 15 minutes:</strong> Scans all users with active push subscriptions and finds programs within the notification window</li>
+                    <li><strong>Push notification sent:</strong> Payload encrypted per RFC 8291 (aes128gcm) + VAPID JWT, then HTTP-POSTed to the browser's push service (FCM/Mozilla/Apple)</li>
+                    <li><strong>Service Worker displays it:</strong> <code>service-worker.js</code> receives the push event and calls <code>showNotification()</code>; clicking the notification opens the event page</li>
+                </ol>
+
+                <h3>Initial Setup</h3>
+                <ol class="steps">
+                    <li>Go to <strong>Settings → 📱 Web Push</strong></li>
+                    <li>Click <strong>Generate VAPID Keys</strong> to create a new EC P-256 key pair (one-time only)</li>
+                    <li>Enter a <strong>Subject</strong> — the admin contact email, e.g. <code>mailto:admin@example.com</code></li>
+                    <li>Enter the <strong>Site URL</strong> — the full URL of your site including subdirectory, no trailing slash (e.g. <code>https://example.com/stage-idol-calendar</code>); used to build links in notifications</li>
+                    <li>Set <strong>Notify Before (minutes)</strong> as needed (default: 60 minutes)</li>
+                    <li>Toggle <strong>Enable Web Push</strong> on and click Save</li>
+                    <li>Add the cron job shown in the Settings page</li>
+                    <li>Run <code>php tools/generate-pwa-icons.php</code> once to create the PWA icons (72/192/512 px)</li>
+                </ol>
+
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div><strong>Important:</strong> VAPID keys must be generated <strong>once only</strong>. Regenerating keys after users have subscribed will invalidate all existing subscriptions immediately (browsers receive HTTP 410 Gone on the next push attempt).</div>
+                </div>
+
+                <h3>Setup Requirements</h3>
+                <table class="help-table">
+                    <thead><tr><th>Component</th><th>Details</th></tr></thead>
+                    <tbody>
+                        <tr><td>VAPID Keys</td><td>EC P-256 key pair generated via Admin UI (Generate VAPID Keys button)</td></tr>
+                        <tr><td>HTTPS</td><td>Service Workers require HTTPS (localhost is an exception)</td></tr>
+                        <tr><td>Configuration</td><td><code>config/webpush-config.json</code> with VAPID keys, subject, settings (written by Admin UI)</td></tr>
+                        <tr><td>Cron Job</td><td>Server cron to run <code>cron/send-web-push-notifications.php</code> every 15 minutes</td></tr>
+                        <tr><td>PWA Icons</td><td><code>icon/icon-72.png</code>, <code>icon-192.png</code>, <code>icon-512.png</code> (generated by <code>php tools/generate-pwa-icons.php</code>)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Configuration (Admin UI)</h3>
+                <table class="help-table">
+                    <thead><tr><th>Setting</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Enable Web Push</strong></td><td>Master on/off switch for Web Push (requires VAPID keys to be set first)</td></tr>
+                        <tr><td><strong>VAPID Public Key</strong></td><td>Displays the base64url public key (87 chars) — sent to the browser during subscription</td></tr>
+                        <tr><td><strong>VAPID Subject</strong></td><td>Admin contact as <code>mailto:...</code> or a URL; used in the VAPID JWT authorization header</td></tr>
+                        <tr><td><strong>Site URL</strong></td><td>Full URL of the website including subdirectory, no trailing slash (e.g. <code>https://example.com/stage-idol-calendar</code>) — used to build notification links and icon URLs</td></tr>
+                        <tr><td><strong>Notify Before (minutes)</strong></td><td>Minutes before program start to send notification (default: 60)</td></tr>
+                        <tr><td><strong>Max Subscriptions per Token</strong></td><td>Maximum number of subscriptions per favorites token (default: 5)</td></tr>
+                        <tr><td><strong>Generate VAPID Keys</strong></td><td>Creates a new key pair (first-time only — regenerating invalidates all existing subscriptions)</td></tr>
+                        <tr><td><strong>Test Push</strong></td><td>Sends a test notification to the most recent subscription in an active favorites file</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Cron Job Setup</h3>
+                <pre><code># Run every 15 minutes (recommended)
+*/15 * * * * php /path/to/cron/send-web-push-notifications.php >> /path/to/cache/logs/webpush-cron.log 2&gt;&amp;1
+
+# Daily log rotation at midnight (keeps 7 days)
+0 0 * * * php /path/to/cron/rotate-webpush-logs.php >> /path/to/cache/logs/rotate-cron.log 2&gt;&amp;1</code></pre>
+                <p>Logs are written to <code>cache/logs/webpush-cron.log</code>. Size-based rotation kicks in automatically at 10 MB; daily rotation via <code>cron/rotate-webpush-logs.php</code> archives to dated files and deletes logs older than 7 days.</p>
+
+                <h3>Key Files</h3>
+                <table class="help-table">
+                    <thead><tr><th>File</th><th>Purpose</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>service-worker.js</code></td><td>Service Worker that receives push events and shows notifications; scope <code>/</code></td></tr>
+                        <tr><td><code>manifest.json</code></td><td>Web App Manifest — name, icons, theme_color; enables the browser's "Add to Home Screen" prompt</td></tr>
+                        <tr><td><code>icons/</code></td><td>PNG icons in 3 sizes (72/192/512 px); generated by <code>php tools/generate-pwa-icons.php</code></td></tr>
+                        <tr><td><code>api/push.php</code></td><td>Public API: subscribe / unsubscribe / status (requires HMAC-signed favorites slug)</td></tr>
+                        <tr><td><code>config/webpush-config.json</code></td><td>VAPID keys + settings (HTTP-protected by <code>config/.htaccess</code> — never exposed)</td></tr>
+                        <tr><td><code>functions/webpush.php</code></td><td>Crypto core: VAPID JWT (ES256), RFC 8291 aes128gcm encryption, key generation</td></tr>
+                        <tr><td><code>cron/send-web-push-notifications.php</code></td><td>Cron script that sends notifications (CLI-only, exits cleanly if Web Push is disabled)</td></tr>
+                        <tr><td><code>tools/generate-pwa-icons.php</code></td><td>Generates sakura-gradient PNG icons using PHP GD</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Troubleshooting</h3>
+                <table class="help-table">
+                    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+                    <tbody>
+                        <tr><td>Subscribe button not shown on /my page</td><td>Check that <code>WEBPUSH_ENABLED=true</code> and VAPID Public Key is non-empty in config</td></tr>
+                        <tr><td>Browser does not ask for permission</td><td>Verify the site is served over HTTPS (Service Workers require HTTPS) and <code>service-worker.js</code> exists at root</td></tr>
+                        <tr><td>No notifications being sent</td><td>Check cron is running. Test manually: <code>php cron/send-web-push-notifications.php</code></td></tr>
+                        <tr><td>HTTP 410 from push service</td><td>Subscription has expired — the cron automatically removes it on the next run</td></tr>
+                        <tr><td>Duplicate notifications</td><td>System has an idempotent ±7.5-minute window; check server clock is synchronized</td></tr>
+                        <tr><td>VAPID key generation fails (Windows)</td><td>Ensure the OpenSSL extension is enabled in php.ini and that <code>webpush_openssl_ec_config()</code> can locate <code>openssl.cnf</code></td></tr>
+                    </tbody>
+                </table>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div><strong>Browser Support:</strong> Chrome 42+, Firefox 44+, Edge 17+, Samsung Internet 4+ support Web Push fully. Safari requires iOS 16.4+ / macOS Ventura+ and the user must have added the site to their Home Screen before push notifications work (Safari does not support Web Push on regular web pages).</div>
+                </div>
+            </section>
+
+            <!-- Admin Audit Log -->
+            <section class="help-section admin-only" id="audit-log">
+                <h2>🔎 Admin Audit Log <span class="badge-admin">admin only</span></h2>
+                <p>Records all admin actions as JSON Lines files — one file per day (<code>cache/logs/admin-audit-YYYY-MM-DD.log</code>), retained for 30 days.</p>
+
+                <h3>Events Recorded</h3>
+                <ul>
+                    <li><strong>Auth</strong> — login_success, login_failure, login_blocked, logout, twofa_success, twofa_failure, twofa_backup_used</li>
+                    <li><strong>Programs/Events/Artists/Credits/Users</strong> — create, update, delete, bulk_delete</li>
+                    <li><strong>Backup</strong> — backup_create, backup_download, backup_delete, backup_restore, backup_upload_restore</li>
+                    <li><strong>Settings</strong> — settings_update (theme, title, disclaimer), site_cover_delete</li>
+                    <li><strong>Config</strong> — config_update (telegram, email, analytics)</li>
+                    <li><strong>Password/2FA</strong> — change_password, twofa_setup, twofa_disable, twofa_regenerate_backup_codes, twofa_reset</li>
+                </ul>
+
+                <h3>Viewing the Audit Log</h3>
+                <ol>
+                    <li>Go to <strong>Settings → 🔎 Audit Log</strong></li>
+                    <li>Choose a date from the dropdown (newest first)</li>
+                    <li>Use the <em>Filter</em> field to narrow results by action / actor / outcome / entity</li>
+                    <li>Click <em>Download</em> to get the full log file</li>
+                </ol>
+
+                <h3>Log Record Format (JSON Lines)</h3>
+                <ul>
+                    <li><code>ts</code> — timestamp (Asia/Bangkok)</li>
+                    <li><code>request_id</code> — unique ID for the HTTP request</li>
+                    <li><code>action</code> — event name, e.g. <code>program_create</code></li>
+                    <li><code>outcome</code> — <code>success</code> / <code>failure</code> / <code>blocked</code></li>
+                    <li><code>actor_user_id</code>, <code>actor_username</code>, <code>actor_role</code></li>
+                    <li><code>ip</code>, <code>ua</code> — IP address and User-Agent</li>
+                    <li><code>entity_type</code>, <code>entity_id</code>, <code>entity_label</code></li>
+                    <li><code>metadata</code> — extra detail (changed values, counts, etc.)</li>
+                </ul>
+
+                <h3>Log Rotation (Cron)</h3>
+                <pre><code>0 0 * * * php /path/to/cron/rotate-admin-audit-logs.php >> /path/to/cache/logs/rotate-cron.log 2&gt;&amp;1</code></pre>
+            </section>
+
             <!-- Users Tab -->
-            <section class="help-section" id="users">
+            <section class="help-section admin-only" id="users">
                 <h2>👤 Tab: Users <span class="badge-admin">admin only</span></h2>
                 <p>Manage all Admin accounts. Only users with the <strong>admin</strong> role can access this tab.</p>
 
@@ -1104,10 +1420,19 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Username <span style="color:red">*</span></td><td>Login name (letters, numbers, <code>_</code>, <code>-</code>, <code>.</code> only)</td></tr>
                         <tr><td>Display Name</td><td>The name shown in the admin header</td></tr>
                         <tr><td>Password</td><td>Minimum 8 characters. Leave blank when editing to keep the existing password.</td></tr>
-                        <tr><td>Role</td><td><strong>admin</strong> = full access to all tabs | <strong>agent</strong> = Programs management only</td></tr>
+                        <tr><td>Role</td><td><strong>admin</strong> = full access to all tabs | <strong>agent</strong> = operational and request review tools | <strong>organizer</strong> = assigned-event access only</td></tr>
+                        <tr><td>2FA <span class="badge-version">v10.0.0</span></td><td>Shows Two-Factor Authentication status for the account; if enabled, an admin can reset it for account recovery</td></tr>
                         <tr><td>Active</td><td>Enable / disable the account (inactive users cannot log in)</td></tr>
                     </tbody>
                 </table>
+
+                <h3>Resetting a User's 2FA <span class="badge-version">v10.0.0</span></h3>
+                <ol class="steps">
+                    <li>Go to <strong>Settings → Users</strong></li>
+                    <li>Check the <strong>2FA</strong> column to see whether the account has 2FA enabled</li>
+                    <li>Click <strong>Reset 2FA</strong> on the target user's row</li>
+                    <li>The user must set up 2FA again after their next login</li>
+                </ol>
 
                 <h3>Lockout Prevention Rules</h3>
                 <ul>
@@ -1121,12 +1446,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>
                         Users created through the Admin UI are stored in the SQLite database.<br>
                         If the <code>admin_users</code> table does not exist, the system falls back to the credentials in <code>config/admin.php</code>.
+                        2FA is available only for users stored in <code>admin_users</code>.
                     </div>
                 </div>
             </section>
 
             <!-- Backup Tab -->
-            <section class="help-section" id="backup">
+            <section class="help-section admin-only" id="backup">
                 <h2>💾 Tab: Backup <span class="badge-admin">admin only</span></h2>
                 <p>Back up and restore the entire SQLite database.</p>
 
@@ -1167,21 +1493,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Settings Tab -->
-            <section class="help-section" id="settings">
+            <section class="help-section admin-only" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>The Settings tab organizes configuration with 7 sub-tabs for <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Google Services</strong>, and <strong>Disclaimer</strong>. Only users with the <strong>admin</strong> role can access this tab.</p>
+                <p>The Settings tab organizes configuration with 9 sub-tabs for <strong>Site</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Email Notifications</strong>, <strong>Google Services</strong>, <strong>Web Push (PWA)</strong>, and <strong>Disclaimer</strong>. Only users with the <strong>admin</strong> role can access this tab.</p>
 
                 <h3>📝 Settings Sub-tabs (v6.4.0+)</h3>
-                <p>The Settings tab is organized into 7 sub-tabs for easy navigation:</p>
+                <p>The Settings tab is organized into 9 sub-tabs for easy navigation:</p>
                 <table class="help-table">
                     <thead><tr><th>Sub-tab</th><th>Function</th><th>Category</th></tr></thead>
                     <tbody>
-                        <tr><td>📝 <strong>Site</strong></td><td>Configure Site Title, Site Theme</td><td>Global settings</td></tr>
+                        <tr><td>📝 <strong>Site</strong></td><td>Configure Site Title, Site Theme, Site-wide Header Cover Image</td><td>Global settings</td></tr>
                         <tr><td>✉️ <strong>Contact</strong></td><td>Manage Contact Channels for the website</td><td>Contact information</td></tr>
-                        <tr><td>👤 <strong>Users</strong></td><td>Manage Admin Users, permissions (Admin/Agent)</td><td>User management</td></tr>
+                        <tr><td>👤 <strong>Users</strong></td><td>Manage Admin Users, permissions (Admin/Agent/Organizer)</td><td>User management</td></tr>
                         <tr><td>💾 <strong>Backup</strong></td><td>Backup/Restore database</td><td>Database management</td></tr>
                         <tr><td>🤖 <strong>Telegram</strong></td><td>Configure Telegram Bot, Notifications</td><td>Telegram integration</td></tr>
+                        <tr><td>📧 <strong>Email</strong></td><td>Configure SMTP and send test emails for new request notifications</td><td>Email notifications</td></tr>
                         <tr><td>🔵 <strong>Google</strong></td><td>Configure Google Analytics (GA4) and Google AdSense</td><td>Monetization &amp; tracking</td></tr>
+                        <tr><td>📱 <strong>Web Push</strong></td><td>Configure VAPID keys, send browser push notifications, PWA icons</td><td>Web Push notifications</td></tr>
                         <tr><td>⚠️ <strong>Disclaimer</strong></td><td>Configure Disclaimer (TH/EN/JA)</td><td>Legal content</td></tr>
                     </tbody>
                 </table>
@@ -1260,6 +1588,32 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>Set a per-event theme in the <strong>🎪 Events</strong> tab → click <strong>➕ Add Event</strong> or the <strong>✏️</strong> edit button → <strong>Theme</strong> field</div>
                 </div>
 
+                <h3>🖼️ Site-wide Header Cover Image <span class="badge-version">v9.2.0</span></h3>
+                <p>
+                    Upload a <strong>4:1</strong> banner image (recommended 1920×480 px) to use as the <code>&lt;header&gt;</code> background
+                    on all public pages automatically. If an individual Event has its own Header Cover Image set, the event's image takes priority.
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>Priority</th><th>Header Source</th></tr></thead>
+                    <tbody>
+                        <tr><td>1 (highest)</td><td>Per-event Header Cover Image (set in Events tab)</td></tr>
+                        <tr><td>2</td><td>Site-wide Header Cover (set here, in Settings → Site)</td></tr>
+                        <tr><td>3 (fallback)</td><td>Theme gradient (no image)</td></tr>
+                    </tbody>
+                </table>
+                <h4>How to Upload the Site-wide Header Cover</h4>
+                <ol class="steps">
+                    <li>Click the <strong>⚙️ Settings</strong> tab → <strong>📝 Site</strong> sub-tab</li>
+                    <li>Scroll down to the <strong>Header Cover Background</strong> section</li>
+                    <li>Click <strong>📸 Upload Cover</strong> → select an image file</li>
+                    <li>The Cropper.js window opens with a 4:1 frame — adjust the crop and click <strong>✅ Crop &amp; Upload</strong></li>
+                    <li>The image is applied to all pages that do not have a per-event Header Cover immediately</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>The image is saved in <code>uploads/site/</code> and its URL is stored in <code>cache/site-settings.json</code>. Click 🗑️ to remove the image and revert to the gradient fallback.</div>
+                </div>
+
                 <h3>🔵 Google Services (v6.3.0–6.4.0)</h3>
                 <p>
                     Configure <strong>Google Analytics</strong> and <strong>Google AdSense</strong> directly from the Admin UI —
@@ -1332,7 +1686,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Contact Tab -->
-            <section class="help-section" id="contact">
+            <section class="help-section admin-only" id="contact">
                 <h2>✉️ Tab: Contact <span class="badge-admin">admin only</span></h2>
                 <p>Manage the <strong>contact channels</strong> displayed on the public Contact page — e.g. Twitter/X, Line, Email. Data is stored in SQLite; no code changes required.</p>
 
@@ -1375,19 +1729,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Roles -->
             <section class="help-section" id="roles">
                 <h2>🛡️ User Roles</h2>
-                <p>The system has 2 roles:</p>
+                <p>The system has 3 roles:</p>
                 <table class="help-table">
-                    <thead><tr><th>Feature</th><th><span class="badge-admin">admin</span></th><th><span class="badge-agent">agent</span></th></tr></thead>
+                    <thead><tr><th>Feature</th><th><span class="badge-admin">admin</span></th><th><span class="badge-agent">agent</span></th><th><span class="badge-organizer">organizer</span></th></tr></thead>
                     <tbody>
-                        <tr><td>Programs (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Events (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Requests (view / approve / reject)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Credits (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Programs (CRUD)</td><td>✅</td><td>✅</td><td>✅ assigned events only</td></tr>
+                        <tr><td>Events (CRUD)</td><td>✅</td><td>✅</td><td>✅ own events / request activation</td></tr>
+                        <tr><td>Requests (view / approve / reject)</td><td>✅</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Credits (CRUD)</td><td>✅</td><td>✅</td><td>✅ related events only</td></tr>
+                        <tr><td>Artists</td><td>✅ CRUD</td><td>❌</td><td>✅ submit artist requests</td></tr>
+                        <tr><td>Import ICS</td><td>✅</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Manage own 2FA</td><td>✅</td><td>✅</td><td>✅</td></tr>
+                        <tr><td>Reset another user's 2FA</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Backup / Restore</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>

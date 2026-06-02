@@ -4,11 +4,12 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 6.4.x   | :white_check_mark: |
-| 6.3.x   | :white_check_mark: |
-| 6.2.x   | :white_check_mark: |
-| 6.x.x   | :white_check_mark: |
-| < 6.0   | :x:                |
+| 9.6.x   | :white_check_mark: |
+| 9.5.x   | :white_check_mark: |
+| 9.4.x   | :white_check_mark: |
+| 9.3.x   | :white_check_mark: |
+| 9.x.x   | :white_check_mark: |
+| < 9.0   | :x:                |
 
 ---
 
@@ -56,7 +57,7 @@ In `config/admin.php`:
 ```php
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 define('ADMIN_ALLOWED_IPS', [
-    '127.4.1.1',           // localhost
+    '129.1.0.1',           // localhost
     '192.168.1.100',       // your office IP
     '192.168.1.0/24',      // your office network
 ]);
@@ -245,16 +246,27 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Path disclosure: public API error responses return generic messages; no server paths or PDO details
 - Concurrent cache write: `LOCK_EX` flag in `file_put_contents()` for all cache file writes
 
-✅ **Google Config Security** (Added in v7.4.1)
+✅ **Social URL Validation** (Added in v9.5.0)
+- `sanitize_social_url()` in `admin/api.php` validates all artist social link fields (`social_facebook`, `social_instagram`, `social_twitter`, `social_tiktok`)
+- Accepts only `http://` and `https://` schemes — rejects `javascript:`, `data:`, and other dangerous schemes preventing stored XSS
+- `ticket_url` on events uses the same validation pattern
+
+✅ **Google Config Security** (Added in v9.1.0)
 - `config/google-config.json` stores GA4 ID and AdSense credentials; protected from HTTP access by `config/.htaccess` (`Deny from all` for `.json` files) — no key exposure via browser
 - Google Analytics + AdSense settings edited exclusively through Admin UI (`analytics_config_get` / `analytics_config_save`); admin-role only; CSRF-protected
 - Constants `GOOGLE_ANALYTICS_ID`, `GOOGLE_ADS_CLIENT`, `GOOGLE_ADS_SLOT_*` loaded at runtime from JSON — no credentials in committed PHP constants
+
+✅ **Email Config Security** (Added in v9.6.0)
+- `config/email-config.json` stores SMTP notification settings and is protected from direct HTTP access by `config/.htaccess`
+- Email settings are edited through Admin UI only (`email_config_get`, `email_config_save`, `email_test_send`); admin-role only and CSRF-protected
+- Request notification bodies escape HTML user input, while plain-text bodies remain readable
+- Email delivery failures are logged to `cache/logs/email.log` and do not expose SMTP errors to public request submitters
 
 ---
 
 ## Known Limitations
 
-### Current Version (v7.4.1)
+### Current Version (v16.5.1)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -277,9 +289,22 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - Optional IP restriction for admin panel
 - Supports single IP, CIDR notation, and IPv6
 
-⚠️ **Two-Factor Authentication**
-- Not yet implemented
-- Recommended for high-security deployments
+✅ **Two-Factor Authentication** (Implemented in v10.0.0)
+- Optional per-user TOTP 2FA for DB-managed admin users (`admin_users`)
+- RFC 6238 compatible 6-digit codes with 30-second period and ±1 step verification window
+- TOTP replay prevention via `twofa_last_used_step`
+- One-time backup codes are stored as password hashes and consumed after use
+- Config fallback users remain password-only for backward compatibility
+- Since v10.1.0, 2FA schema migration is manual through `setup.php` or `php tools/migrate-add-admin-2fa-columns.php`; the Admin API caches confirmed schema readiness in `data/.admin_2fa_columns_ready`
+
+✅ **Organizer Role Authorization** (Implemented in v12.2.0)
+- Organizer users can manage only events listed in `event_organizers`
+- `events.created_by_user_id` is audit-only and does not grant permanent access after unassignment
+- Admin-only assignment endpoints require `admin` role and CSRF protection
+- Organizer users are denied at the API layer for Requests, Event Request review actions, ICS Import, Artists, Users, Backup/Restore, Settings/config/contact, Email/Telegram/Analytics config, cross-user 2FA reset, and direct event activation
+- Organizer activation flow requires a pending `event_requests.request_type='activate'` record; only admin/agent approval can set `events.is_active=1`
+- Organizer Program artist references are autocomplete-only; API validation rejects artist names that do not already exist as `artists.name` or `artist_variants.variant`
+- Since v12.3.0, organizer users can submit `artist_requests_create`; this creates a pending request only and never writes directly to `artists`. Admin/agent approval performs duplicate-name checks before creating the artist record.
 
 ---
 
@@ -293,6 +318,8 @@ Before going live:
 - [ ] Configured HTTPS
 - [ ] Set proper file permissions
 - [ ] Enabled IP whitelist (if applicable) in `config/admin.php`
+- [ ] Enabled 2FA for DB-managed admin users where required
+- [ ] Ran organizer migration if using organizer accounts: `php tools/migrate-add-organizer-role.php`
 - [ ] Configured backups
 - [ ] Reviewed security headers
 - [ ] Tested admin login
@@ -326,5 +353,5 @@ If you discover a security issue:
 
 ---
 
-**Last Updated:** 2026-04-21
-**Version:** 7.4.1
+**Last Updated:** 2026-05-07
+**Version:** 14.0.0

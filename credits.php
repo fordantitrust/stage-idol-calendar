@@ -46,6 +46,8 @@ foreach ($activeEvents as $ev) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
     <title>Credits - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <?php seo_render_meta([
         'description' => 'แหล่งข้อมูลอ้างอิงและ Credits สำหรับ ' . get_site_title(),
@@ -74,10 +76,11 @@ foreach ($activeEvents as $ev) {
     <?php if ($siteTheme !== 'sakura'): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/themes/' . $siteTheme . '.css'); ?>">
     <?php endif; ?>
+    <?php $headerCoverBg = get_header_cover_bg($eventMeta ?? null); ?>
 </head>
 <body>
     <div class="container">
-        <header>
+        <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars(get_base_path() . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
             <div class="header-top-left">
                 <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" data-i18n-title="nav.home" title="หน้าแรก">
                     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -102,21 +105,6 @@ foreach ($activeEvents as $ev) {
                         <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </a>
-                <?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
-                <button class="event-picker-btn" onclick="openEventPicker()" data-i18n-title="eventPicker.title" title="เลือก Event">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                        <circle cx="3" cy="3" r="2" fill="currentColor"/>
-                        <circle cx="9" cy="3" r="2" fill="currentColor"/>
-                        <circle cx="15" cy="3" r="2" fill="currentColor"/>
-                        <circle cx="3" cy="9" r="2" fill="currentColor"/>
-                        <circle cx="9" cy="9" r="2" fill="currentColor"/>
-                        <circle cx="15" cy="9" r="2" fill="currentColor"/>
-                        <circle cx="3" cy="15" r="2" fill="currentColor"/>
-                        <circle cx="9" cy="15" r="2" fill="currentColor"/>
-                        <circle cx="15" cy="15" r="2" fill="currentColor"/>
-                    </svg>
-                </button>
-                <?php endif; ?>
             </div>
             <div class="language-switcher">
                 <button class="lang-btn active" data-lang="th" onclick="changeLanguage('th')">TH</button>
@@ -136,19 +124,33 @@ foreach ($activeEvents as $ev) {
         // Fetch credits from cache (or database if cache expired)
         $credits = get_cached_credits($eventId);
 
-        // For global view: group credits by event_id
-        // key 0 = global (event_id IS NULL), other keys = event_id
         $isGlobalView = ($eventId === null) && MULTI_EVENT_MODE;
-        if ($isGlobalView && !empty($credits)) {
-            $grouped = [];
-            foreach ($credits as $c) {
-                if ($c['event_id'] !== null && !isset($eventNameMap[intval($c['event_id'])])) {
-                    continue; // skip credits from inactive/deleted events
-                }
+
+        // For global view: drop credits from inactive/deleted events
+        if ($isGlobalView) {
+            $credits = array_values(array_filter($credits, function ($c) use ($eventNameMap) {
+                return $c['event_id'] === null || isset($eventNameMap[intval($c['event_id'])]);
+            }));
+        }
+
+        // Pagination — applied to both views
+        $perPage        = 20;
+        $currentPage    = max(1, (int)($_GET['page'] ?? 1));
+        $totalCredits   = count($credits);
+        $totalPages     = max(1, (int)ceil($totalCredits / $perPage));
+        $currentPage    = min($currentPage, $totalPages);
+        $pagedCredits   = array_slice($credits, ($currentPage - 1) * $perPage, $perPage);
+        $creditsBaseUrl = $isGlobalView
+            ? (get_base_path() . '/credits')
+            : event_url('credits.php', $eventSlug);
+
+        // For global view: group the current page's credits by event_id
+        $grouped = [];
+        if ($isGlobalView && !empty($pagedCredits)) {
+            foreach ($pagedCredits as $c) {
                 $key = ($c['event_id'] === null) ? 0 : intval($c['event_id']);
                 $grouped[$key][] = $c;
             }
-            // Sort by event_id descending (newest first), global (key=0) goes last
             $globalGroup = isset($grouped[0]) ? [0 => $grouped[0]] : [];
             unset($grouped[0]);
             krsort($grouped);
@@ -215,11 +217,31 @@ foreach ($activeEvents as $ev) {
                             </ul>
                         </div>
                     <?php endforeach; ?>
+                    <?php if ($totalPages > 1): ?>
+                    <nav class="pagination" aria-label="Pagination">
+                        <?php if ($currentPage > 1): ?>
+                            <a href="<?php echo $creditsBaseUrl . '?page=' . ($currentPage - 1); ?>" data-i18n="listing.pagePrev">←</a>
+                        <?php endif; ?>
+                        <?php for ($p = 1; $p <= $totalPages; $p++):
+                            if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 1): ?>
+                            <?php if ($p === $currentPage): ?>
+                                <span class="current"><?php echo $p; ?></span>
+                            <?php else: ?>
+                                <a href="<?php echo $creditsBaseUrl . '?page=' . $p; ?>"><?php echo $p; ?></a>
+                            <?php endif; ?>
+                        <?php elseif (abs($p - $currentPage) === 2): ?>
+                            <span class="ellipsis">…</span>
+                        <?php endif; endfor; ?>
+                        <?php if ($currentPage < $totalPages): ?>
+                            <a href="<?php echo $creditsBaseUrl . '?page=' . ($currentPage + 1); ?>" data-i18n="listing.pageNext">→</a>
+                        <?php endif; ?>
+                    </nav>
+                    <?php endif; ?>
                 <?php else: ?>
                     <div class="section">
                         <h2 data-i18n="credits.list.title">📋 แหล่งข้อมูลอ้างอิง</h2>
                         <ul class="reference-list">
-                            <?php foreach ($credits as $credit): ?>
+                            <?php foreach ($pagedCredits as $credit): ?>
                                 <li class="reference-item">
                                     <div class="reference-title"><?php echo htmlspecialchars($credit['title']); ?></div>
                                     <?php if (!empty($credit['description'])): ?>
@@ -242,6 +264,26 @@ foreach ($activeEvents as $ev) {
                                 </li>
                             <?php endforeach; ?>
                         </ul>
+                        <?php if ($totalPages > 1): ?>
+                        <nav class="pagination" aria-label="Pagination">
+                            <?php if ($currentPage > 1): ?>
+                                <a href="<?php echo $creditsBaseUrl . '?page=' . ($currentPage - 1); ?>" data-i18n="listing.pagePrev">←</a>
+                            <?php endif; ?>
+                            <?php for ($p = 1; $p <= $totalPages; $p++):
+                                if ($p === 1 || $p === $totalPages || abs($p - $currentPage) <= 1): ?>
+                                <?php if ($p === $currentPage): ?>
+                                    <span class="current"><?php echo $p; ?></span>
+                                <?php else: ?>
+                                    <a href="<?php echo $creditsBaseUrl . '?page=' . $p; ?>"><?php echo $p; ?></a>
+                                <?php endif; ?>
+                            <?php elseif (abs($p - $currentPage) === 2): ?>
+                                <span class="ellipsis">…</span>
+                            <?php endif; endfor; ?>
+                            <?php if ($currentPage < $totalPages): ?>
+                                <a href="<?php echo $creditsBaseUrl . '?page=' . ($currentPage + 1); ?>" data-i18n="listing.pageNext">→</a>
+                            <?php endif; ?>
+                        </nav>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             <?php else: ?>
@@ -274,86 +316,5 @@ foreach ($activeEvents as $ev) {
     <script src="<?php echo asset_url('js/translations.js'); ?>"></script>
     <script src="<?php echo asset_url('js/common.js'); ?>"></script>
 
-<?php if (MULTI_EVENT_MODE && count($activeEvents) > 1): ?>
-<!-- Event Picker Modal -->
-<div id="eventPickerModal" class="event-picker-overlay" onclick="if(event.target===this)closeEventPicker()">
-    <div class="event-picker-modal">
-        <div class="event-picker-modal-header">
-            <span data-i18n="eventPicker.title">เลือก Event</span>
-            <button class="event-picker-close" onclick="closeEventPicker()">✕</button>
-        </div>
-        <div class="event-picker-controls">
-            <input type="search" id="eventPickerSearch"
-                   class="event-picker-search"
-                   placeholder="ค้นหา event..."
-                   data-i18n-placeholder="eventPicker.searchPlaceholder"
-                   oninput="filterEventPicker()"
-                   autocomplete="off">
-            <div class="event-picker-filter-tabs" id="eventPickerTabs">
-                <button class="ep-tab active" data-status="all"      onclick="setEventPickerTab(this)" data-i18n="eventPicker.all">ทั้งหมด</button>
-                <button class="ep-tab"         data-status="ongoing"  onclick="setEventPickerTab(this)" data-i18n="listing.ongoing">กำลังจัดงาน</button>
-                <button class="ep-tab"         data-status="upcoming" onclick="setEventPickerTab(this)" data-i18n="listing.upcoming">กำลังจะมาถึง</button>
-                <button class="ep-tab"         data-status="past"     onclick="setEventPickerTab(this)" data-i18n="listing.past">จบแล้ว</button>
-            </div>
-        </div>
-        <div class="event-picker-grid" id="eventPickerGrid">
-            <?php
-            $pickerEvents = $activeEvents;
-            usort($pickerEvents, function($a, $b) use ($today, $eventSlug) {
-                $aIsCurrent = ($a['slug'] === $eventSlug) ? 0 : 1;
-                $bIsCurrent = ($b['slug'] === $eventSlug) ? 0 : 1;
-                if ($aIsCurrent !== $bIsCurrent) return $aIsCurrent - $bIsCurrent;
-
-                $aStart = $a['start_date'] ?? '9999-12-31';
-                $aEnd   = $a['end_date']   ?? $aStart;
-                $bStart = $b['start_date'] ?? '9999-12-31';
-                $bEnd   = $b['end_date']   ?? $bStart;
-
-                $aStatus = ($aStart <= $today && $aEnd >= $today) ? 0 : ($aStart > $today ? 1 : 2);
-                $bStatus = ($bStart <= $today && $bEnd >= $today) ? 0 : ($bStart > $today ? 1 : 2);
-                if ($aStatus !== $bStatus) return $aStatus - $bStatus;
-
-                return $aStatus === 1
-                    ? strcmp($aStart, $bStart)
-                    : strcmp($bStart, $aStart);
-            });
-            foreach ($pickerEvents as $ev):
-                $evStart = $ev['start_date'] ?? null;
-                $evEnd   = $ev['end_date'] ?? $evStart;
-                $evStatus = 'upcoming';
-                if ($evStart && $evEnd) {
-                    if ($evStart <= $today && $evEnd >= $today) $evStatus = 'ongoing';
-                    elseif ($evEnd < $today) $evStatus = 'past';
-                }
-                $displayStart = $evStart ? date('d/m/Y', strtotime($evStart)) : null;
-                $displayEnd   = $evEnd   ? date('d/m/Y', strtotime($evEnd))   : null;
-                $isCurrent    = ($ev['slug'] === $eventSlug);
-                $cardUrl      = event_url('credits.php', $ev['slug']);
-                $statusLabel  = $evStatus === 'ongoing' ? 'กำลังจัดงาน' : ($evStatus === 'upcoming' ? 'กำลังจะมาถึง' : 'จบแล้ว');
-                $statusI18n   = 'listing.' . $evStatus;
-            ?>
-            <a href="<?php echo htmlspecialchars($cardUrl); ?>"
-               class="event-picker-card<?php echo $isCurrent ? ' current' : ''; ?>"
-               data-name="<?php echo htmlspecialchars(mb_strtolower($ev['name'], 'UTF-8')); ?>"
-               data-status="<?php echo $evStatus; ?>">
-                <?php if ($isCurrent): ?>
-                <span class="event-picker-current-badge">✓ ดูอยู่</span>
-                <?php endif; ?>
-                <div class="event-picker-card-name"><?php echo htmlspecialchars($ev['name']); ?></div>
-                <?php if ($displayStart): ?>
-                <div class="event-picker-card-dates">📅 <?php
-                    echo $displayStart;
-                    if ($displayEnd && $displayEnd !== $displayStart) echo ' – ' . $displayEnd;
-                ?></div>
-                <?php endif; ?>
-                <span class="event-picker-card-badge <?php echo $evStatus; ?>"
-                      data-i18n="<?php echo $statusI18n; ?>"><?php echo $statusLabel; ?></span>
-            </a>
-            <?php endforeach; ?>
-            <div class="event-picker-empty" id="eventPickerEmpty" style="display:none" data-i18n="eventPicker.noResults">ไม่พบ event ที่ตรงกัน</div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
 </body>
 </html>

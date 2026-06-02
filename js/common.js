@@ -499,6 +499,7 @@ function toggleView(isGantt) {
                     const events = JSON.parse(eventsData.textContent);
                     ganttView.innerHTML = renderGanttChart(events);
                     setupGanttScrollIndicator(ganttView);
+                    annotateGanttLocalTime();  // v16.0.5: cross-TZ local-time annotation
                 } catch (e) {
                     console.error('Error parsing events data:', e);
                 }
@@ -797,6 +798,18 @@ function calCrossDay(ev) {
     return Math.round((new Date(endDay) - new Date(startDay)) / 86400000);
 }
 
+// Render an event's artists as clickable /artist/{id} links; artists without an
+// id (raw categories fallback) render as plain text. Falls back to ev.categories.
+function calArtistLinksHtml(ev) {
+    const arr = (ev.artists && ev.artists.length) ? ev.artists : null;
+    if (!arr) return escapeHtml(ev.categories || ev.organizer || '');
+    const base = (typeof BASE_PATH !== 'undefined' && BASE_PATH) ? BASE_PATH : '';
+    return arr.map(a => a.id
+        ? `<a class="cal-artist-link" href="${base}/artist/${a.id}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>`
+        : escapeHtml(a.name)
+    ).join(', ');
+}
+
 function escapeHtmlAttr(str) {
     return String(str)
         .replace(/&/g, '&amp;')
@@ -822,7 +835,7 @@ function openCalendarDetailModal(ev) {
     if (timeRange) body += `<h3 class="cal-detail-title">${escapeHtml(timeRange)}${crossDayN > 0 ? ` <span class="cal-chip-nextday">+${crossDayN}</span>` : ''}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</h3>`;
     if (localRange) body += `<div class="cal-detail-time-local">(${escapeHtml(localRange)} ${escapeHtml(localLabel)})</div>`;
     if (ev.location) body += `<div class="cal-detail-row">📍 ${escapeHtml(ev.location)}</div>`;
-    if (ev.categories) body += `<div class="cal-detail-row">🎤 ${escapeHtml(ev.categories)}</div>`;
+    if ((ev.artists && ev.artists.length) || ev.categories) body += `<div class="cal-detail-row">🎤 ${calArtistLinksHtml(ev)}</div>`;
     if (ev.program_type) body += `<div class="cal-detail-row">🏷️ ${escapeHtml(ev.program_type)}</div>`;
     if (ev.description) body += `<div class="cal-detail-desc">${escapeHtml(ev.description)}</div>`;
     if (ev.stream_url) {
@@ -900,7 +913,7 @@ function openDayPanel(dateKey, dayEvs) {
         itemsHtml += `<div class="cal-dp-item-info">`;
 
         itemsHtml += `<div class="cal-dp-item-title">${escapeHtml(ev.title || artist || '—')}</div>`;
-        if (artist)     itemsHtml += `<div class="cal-dp-item-artist">${escapeHtml(artist)}</div>`;
+        if ((ev.artists && ev.artists.length) || artist) itemsHtml += `<div class="cal-dp-item-artist">${calArtistLinksHtml(ev)}</div>`;
         if (timeRange)  itemsHtml += `<div class="cal-dp-item-time">🕐 ${escapeHtml(timeRange)}${crossDayN > 0 ? ` <span class="cal-chip-nextday">+${crossDayN}</span>` : ''}${duration ? ` <span class="cal-detail-duration">${escapeHtml(duration)}</span>` : ''}</div>`;
         if (localRange) {
             const t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) ? translations[currentLang || 'th'] : null;
@@ -938,7 +951,7 @@ function openDayPanel(dateKey, dayEvs) {
     // Item click → detail modal (uses panel registry, not chip registry)
     panel.querySelectorAll('.cal-dp-item').forEach(item => {
         item.addEventListener('click', function(e) {
-            if (e.target.closest('.cal-dp-join')) return;
+            if (e.target.closest('.cal-dp-join') || e.target.closest('.cal-artist-link')) return;
             const idx = parseInt(this.dataset.dpidx, 10);
             const ev = window._calDpEvents[idx];
             if (ev) openCalendarDetailModal(ev);
@@ -1137,11 +1150,16 @@ function renderGanttChart(events) {
                 stackInlineStyle += ` left: calc(${leftPct}% + 2px); right: calc(${rightPct}% + 2px);`;
             }
 
+            // UTC instants for cross-TZ "(HH:MM local)" annotation (v16.0.5+)
+            const utcStart = event.start_ts ? (event.start_ts * 1000) : 0;
+            const utcEnd   = event.end_ts   ? (event.end_ts   * 1000) : 0;
             html += `
                 <div class="gantt-program-vertical${stackClass}"
                      style="${stackInlineStyle}"
                      data-start="${startTime}"
                      data-end="${endTime}"
+                     data-utc-start="${utcStart}"
+                     data-utc-end="${utcEnd}"
                      data-title="${escapeHtml(title)}"
                      data-venue="${escapeHtml(venue)}"
                      data-categories="${escapeHtml(categories)}"
@@ -1309,6 +1327,30 @@ function showEventTooltip(element, e) {
     timeStrong.textContent = (lang['table.time'] || 'Time') + ':';
     timeP.appendChild(timeStrong);
     timeP.appendChild(document.createTextNode(' ' + (startTime === endTime ? startTime : startTime + ' - ' + endTime)));
+    // Append "(HH:MM[–HH:MM] local)" when EVENT_TIMEZONE differs from browser TZ (v16.0.6+)
+    (function appendLocalTimeToTooltip() {
+        var eventTz = (typeof window.EVENT_TIMEZONE !== 'undefined') ? window.EVENT_TIMEZONE : null;
+        if (!eventTz || typeof Intl === 'undefined') return;
+        var userTz;
+        try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return; }
+        if (!userTz || userTz === eventTz) return;
+        var utcStart = parseInt(element.dataset.utcStart || '0', 10);
+        var utcEnd   = parseInt(element.dataset.utcEnd   || '0', 10);
+        if (!utcStart) return;
+        var fmt = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTz };
+        var localStart, localEnd;
+        try {
+            localStart = new Date(utcStart).toLocaleTimeString([], fmt);
+            localEnd   = utcEnd ? new Date(utcEnd).toLocaleTimeString([], fmt) : localStart;
+        } catch (e) { return; }
+        var localRange = (localStart === localEnd) ? localStart : (localStart + '–' + localEnd);
+        var labelWord = (lang && lang['tz.localTime']) || 'local';
+        var localSpan = document.createElement('span');
+        localSpan.className = 'tooltip-time-local';
+        localSpan.style.cssText = 'display:block;font-size:0.82em;color:#9ca3af;font-style:italic;margin-top:2px;';
+        localSpan.textContent = '(' + localRange + ' ' + labelWord + ')';
+        timeP.appendChild(localSpan);
+    })();
     tooltip.appendChild(timeP);
 
     if (categories) {
@@ -1382,7 +1424,30 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeView();
     injectFavNavButton();
     initTimezoneDisplay();
+    registerServiceWorker();
 });
+
+// Register Service Worker for PWA + Web Push
+function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    var base   = (typeof BASE_PATH !== 'undefined' ? BASE_PATH : '');
+    var swPath = base + '/service-worker.js';
+    navigator.serviceWorker.register(swPath, { scope: base + '/' })
+        .then(function(reg) { window._swRegistration = reg; })
+        .catch(function() {});
+}
+
+// Convert base64url VAPID public key to Uint8Array (for PushManager.subscribe)
+function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
 
 // Show local-timezone equivalents when user's browser TZ differs from event TZ
 function initTimezoneDisplay() {
@@ -1443,6 +1508,92 @@ function updateTimezoneLabels(lang) {
         var localTime = span.getAttribute('data-localtime');
         span.textContent = '(' + localTime + ' ' + label + ')';
     });
+    // Same for Gantt-view annotations
+    document.querySelectorAll('.gantt-program-time-local-v[data-localtime]').forEach(function(span) {
+        var localTime = span.getAttribute('data-localtime');
+        span.textContent = '(' + localTime + ' ' + label + ')';
+    });
+}
+
+// Annotate cross-TZ time cells on profile pages (artist.php, venue.php) — those pages
+// list programs from multiple events that may have different timezones, so the local-time
+// annotation has to be per-row (not page-wide like initTimezoneDisplay). v16.0.7+.
+//   <td class="prog-time" data-utc-start="..." data-utc-end="..." data-event-tz="...">18:00</td>
+//   →  <td>18:00<span class="prog-time-local">(17:00 local)</span></td>
+function annotateProfileTimes() {
+    if (typeof Intl === 'undefined') return;
+    var userTz;
+    try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return; }
+    if (!userTz) return;
+    var t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) || {};
+    var label = t['tz.localTime'] || 'local';
+
+    document.querySelectorAll('td.prog-time[data-event-tz][data-utc-start]').forEach(function(cell) {
+        var evTz = cell.getAttribute('data-event-tz');
+        if (!evTz || evTz === userTz) return;
+        if (cell.querySelector('.prog-time-local')) return;
+
+        var utcStart = parseInt(cell.getAttribute('data-utc-start'), 10);
+        var utcEnd   = parseInt(cell.getAttribute('data-utc-end') || '0', 10);
+        if (!utcStart) return;
+
+        var fmt = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTz };
+        var localStart, localEnd;
+        try {
+            localStart = new Date(utcStart).toLocaleTimeString([], fmt);
+            localEnd   = utcEnd ? new Date(utcEnd).toLocaleTimeString([], fmt) : localStart;
+        } catch (e) { return; }
+        var localRange = (localStart === localEnd) ? localStart : (localStart + '–' + localEnd);
+
+        var span = document.createElement('span');
+        span.className = 'prog-time-local';
+        span.setAttribute('data-localtime', localRange);
+        span.textContent = '(' + localRange + ' ' + label + ')';
+        cell.appendChild(span);
+    });
+}
+document.addEventListener('DOMContentLoaded', annotateProfileTimes);
+document.addEventListener('appLangChange', function() {
+    // re-render the label word (e.g. "local" → "ท้องถิ่น") on language change
+    document.querySelectorAll('.prog-time-local').forEach(function(s) { s.remove(); });
+    annotateProfileTimes();
+});
+
+// Annotate Gantt-view bars with "(HH:MM local)" when EVENT_TIMEZONE ≠ user TZ (v16.0.5+).
+// Mirrors the list-view annotation in initTimezoneDisplay() but for the Gantt/Timeline rendering.
+function annotateGanttLocalTime() {
+    var eventTz = (typeof window.EVENT_TIMEZONE !== 'undefined') ? window.EVENT_TIMEZONE : null;
+    if (!eventTz || typeof Intl === 'undefined') return;
+    var userTz;
+    try { userTz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return; }
+    if (!userTz || userTz === eventTz) return;
+
+    var t = (typeof translations !== 'undefined' && translations[currentLang || 'th']) || {};
+    var label = t['tz.localTime'] || 'local';
+    var fmt = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTz };
+
+    document.querySelectorAll('.gantt-program-vertical[data-utc-start]').forEach(function(bar) {
+        if (bar.querySelector('.gantt-program-time-local-v')) return;  // already annotated
+
+        var utcStart = parseInt(bar.getAttribute('data-utc-start'), 10);
+        var utcEnd   = parseInt(bar.getAttribute('data-utc-end') || '0', 10);
+        if (!utcStart) return;
+
+        var localStart, localEnd;
+        try {
+            localStart = new Date(utcStart).toLocaleTimeString([], fmt);
+            localEnd   = utcEnd ? new Date(utcEnd).toLocaleTimeString([], fmt) : localStart;
+        } catch (e) { return; }
+        var localRange = (localStart === localEnd) ? localStart : (localStart + '–' + localEnd);
+
+        var span = document.createElement('span');
+        span.className = 'gantt-program-time-local-v';
+        span.setAttribute('data-localtime', localRange);
+        span.textContent = '(' + localRange + ' ' + label + ')';
+
+        var row = bar.querySelector('.gantt-program-row-v');
+        if (row) row.appendChild(span);
+    });
 }
 
 document.addEventListener('appLangChange', function(e) {
@@ -1452,14 +1603,27 @@ document.addEventListener('appLangChange', function(e) {
 // Inject ⭐ My Favorites shortcut into header when fav_slug exists in localStorage
 function injectFavNavButton() {
     const slug = localStorage.getItem('fav_slug');
-    if (!slug) return;
 
     const topLeft = document.querySelector('.header-top-left');
     if (!topLeft) return;
 
-    // Don't inject on the favorites pages themselves
     const path = window.location.pathname;
+    // Don't inject on the favorites pages or connect page
     if (/\/my(-favorites)?(\/|\.php|$)/.test(path)) return;
+    if (/\/connect(\/|\.php|$)/.test(path)) return;
+
+    if (!slug) {
+        // No slug yet — show a Connect button so the user can transfer their slug from another device
+        const base = (typeof BASE_PATH !== 'undefined' ? BASE_PATH : '');
+        const aConnect = document.createElement('a');
+        aConnect.href = base + '/connect';
+        aConnect.className = 'home-icon-btn';
+        aConnect.title = 'Connect Favorites';
+        aConnect.setAttribute('aria-label', 'Connect Favorites');
+        aConnect.textContent = '🔗';
+        topLeft.appendChild(aConnect);
+        return;
+    }
 
     const base = (typeof BASE_PATH !== 'undefined' ? BASE_PATH : '');
 

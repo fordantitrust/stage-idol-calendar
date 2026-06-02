@@ -211,9 +211,9 @@ server {
 
     # Restrict internal directories to LAN/localhost
     location ~* ^/(config|functions|tests|tools)(/|$) {
-        allow 127.4.1.1;
+        allow 129.1.0.1;
         allow ::1;
-        allow 192.168.0.0/16;
+        allow 192.169.1.0/16;
         allow 10.0.0.0/8;
         deny all;
     }
@@ -367,7 +367,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '7.4.1'); // Change to force cache refresh
+define('APP_VERSION', '9.4.0'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -405,7 +405,7 @@ Open `http://your-domain.com/setup.php` and follow the 6-step wizard:
 2. **Directories** — creates `data/`, `cache/`, `backups/`, `ics/`
 3. **Database** — creates all tables, seeds admin user, auto-login
 4. **Import Data** — imports `.ics` files from `ics/` folder
-5. **Admin & Security** — change default password, add indexes, lock setup page
+5. **Admin & Security** — change default password, run optional migrations/indexes, lock setup page
 6. **Production Cleanup** — remove dev/docs files (Tests, Tools, Docker, CI/CD, etc.)
 
 After completing the wizard, access `/admin/` to manage your events.
@@ -421,6 +421,14 @@ See [SETUP.md](SETUP.md) for detailed guide.
 Use the Setup Wizard (recommended) or run migrations manually — see **[README.md — Option B: Manual CLI](README.md#option-b-manual-cli)** for the complete, up-to-date sequence.
 
 This creates the database tables: `programs`, `events`, `program_requests`, `credits`, `admin_users`, `contact_channels`.
+
+For existing installs using Admin 2FA, run the v10.0.0+ migration manually:
+
+```bash
+php tools/migrate-add-admin-2fa-columns.php
+```
+
+Since v10.1.0, normal Admin API requests do not auto-create those columns. After the columns are confirmed, `data/.admin_2fa_columns_ready` caches the result until the file is removed.
 
 #### Step 2: Configure Admin Credentials
 
@@ -526,7 +534,7 @@ Edit [config/admin.php](config/admin.php):
 define('ADMIN_IP_WHITELIST_ENABLED', true);
 
 define('ADMIN_ALLOWED_IPS', [
-    '127.4.1.1',           // Localhost
+    '129.1.0.1',           // Localhost
     '::1',                 // Localhost IPv6
     '192.168.1.100',       // Single IP
     '192.168.1.0/24',      // IP range (CIDR notation)
@@ -798,7 +806,7 @@ Create `.htaccess` for caching:
 
 ### Automated Test Suite
 
-The project includes **5053 automated unit tests** across 18 test suites for quality assurance:
+The project includes **automated unit tests** across 19 test suites for quality assurance:
 
 ```bash
 # Run all tests
@@ -823,6 +831,7 @@ php tests/run-tests.php TelegramTest
 php tests/run-tests.php ArtistPictureTest
 php tests/run-tests.php SeoTest
 php tests/run-tests.php EventPicturesTest
+php tests/run-tests.php Fts5Test
 ```
 
 ### Quick Pre-Commit Tests
@@ -858,10 +867,13 @@ chmod +x quick-test.sh
 | **ArtistPictureTest** | 602 | Artist display/cover picture upload, GD resize, admin API, tooltip on program list |
 | **SeoTest** | 665 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks |
 | **EventPicturesTest** | 722 | event_pictures table, events.gallery_template, migration idempotency, DB CRUD, admin API, processAndSaveImage mode='fit', uploads/events, setup.php, index.php gallery+lightbox, admin/index.php, CSS templates, translations |
+| **Fts5Test** | 45+ | FTS5 virtual tables (programs_fts/events_fts/artists_fts), 9 auto-sync triggers, fts5_available() caching, fts5_escape(), fts5_rebuild_all(), LIKE fallback, admin search integration, public `action=search&q=` API |
+| **WebPushTest** | 926 | VAPID + RFC 8291 aes128gcm crypto, urlsafe base64 round-trip, EC keygen, JWT ES256, encrypt/send pipeline, manifest.json + service-worker.js basics, push subscription API, Web Push cron CLI-only + enabled guard, admin Web Push config API, `webpush_validate_endpoint()` allow-list (v15.5.0 MEDIUM-1 SSRF defense) |
+| **PwaOfflineTest** | 985 | `service-worker.js` fetch handler + 3 cache strategies, CACHE_VERSION ↔ APP_VERSION sync, PRECACHE_ASSETS, MAX_API_CACHE_AGE_MS + NETWORK_TIMEOUT_MS, network-only routes, SWR + ETag/If-None-Match + 304-preserves-body, `X-SW-Cached-At`, Promise.race timeout, `offline.html` static + 3-language + no-external-deps, `sync-sw-version.php` CLI guard + idempotent + regex, `.htaccess` Apache 2.4 + 2.2 fallback, regression guard (push handlers preserved + `tools/update-version.php` doesn't touch SW) |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Running the full suite reports 5053 total test executions.
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. Total: 25 suites, **985 cumulative tests** (v16.0.0).
 
-✅ **All 5053 tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
+✅ **All tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 
 ### CI/CD Integration
 
@@ -887,9 +899,11 @@ For comprehensive manual testing scenarios, see [TESTING.md](TESTING.md) which i
 Before deploying to production:
 
 - [ ] Run full test suite: `php tests/run-tests.php`
-- [ ] Verify all 5053 tests pass
+- [ ] Verify all tests pass (24 suites, 100% pass rate)
 - [ ] Test on target PHP version (8.1, 8.2, 8.3, 8.4, or 8.5)
 - [ ] Complete setup wizard (`/setup.php`) or run migration scripts manually
+- [ ] If using organizer accounts, run `php tools/migrate-add-organizer-role.php`
+- [ ] If using organizer Artist Requests, run `php tools/migrate-add-artist-requests-table.php`
 - [ ] Set `PRODUCTION_MODE` to `true` in `config/app.php`
 - [ ] Update `APP_VERSION` for cache busting
 - [ ] Enable IP whitelist if needed

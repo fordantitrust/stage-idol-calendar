@@ -1,7 +1,18 @@
 # Database
+data/audit.db
+data/audit.db-wal
+data/audit.db-shm
+*.db
 *.db-shm
 *.db-wal
 *.db-journal
+# Note: data/calendar.db is currently tracked. *.db prevents future *.db files
+# from being accidentally added; existing tracked files are unaffected until
+# explicitly removed with `git rm --cached`.
+
+# Root-level debug / test scripts (must never be committed — see SECURITY_AUDIT_2026 HIGH-1)
+test-*.php
+debug-*.php
 
 # Cache
 cache/
@@ -56,6 +67,13 @@ config.local.php
 /backups
 /.claude
 *.code-workspace
-CLAUDE.md
-SKILLS.md
-WORKFLOW.md
+# CLAUDE.md
+# SKILL.md
+# WORKFLOW.md
+
+# Runtime admin settings / secrets
+# Keep SMTP, Telegram, and Google credentials out of built images.
+config/*-config.json
+
+# Runtime migration/schema flags
+data/.admin_2fa_columns_ready

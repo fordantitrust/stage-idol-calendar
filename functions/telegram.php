@@ -87,18 +87,27 @@ function telegram_send_message($chat_id, $text, $options = []) {
 /**
  * Format a program as Telegram notification message
  *
- * @param array $program Program data (title, start, end, location, event_name, program_type, stream_url)
+ * Primary time is shown in the event's own timezone. When a viewer timezone is
+ * supplied (and differs from the event TZ) the viewer-local time is appended in
+ * parentheses, e.g. "18:00 (16:00 Asia/Tokyo)". When $userTz is null the legacy
+ * behaviour applies: the site DEFAULT_TIMEZONE time is shown in parentheses if it
+ * differs from the event TZ.
+ *
+ * @param array       $program Program data (title, start, end, location, event_name, program_type, stream_url, event_timezone)
+ * @param string|null $userTz  Resolved viewer IANA timezone, or null to use the site default
  * @return string Formatted HTML message
  */
-function telegram_format_notification($program) {
+function telegram_format_notification($program, $userTz = null) {
     $title = htmlspecialchars($program['title'] ?? 'Program', ENT_QUOTES, 'UTF-8');
     $event = htmlspecialchars($program['event_name'] ?? '', ENT_QUOTES, 'UTF-8');
     $location = htmlspecialchars($program['location'] ?? 'TBA', ENT_QUOTES, 'UTF-8');
     $type = htmlspecialchars($program['program_type'] ?? '', ENT_QUOTES, 'UTF-8');
 
-    // Parse datetime
-    $start = new DateTime($program['start'] ?? 'now', new DateTimeZone('Asia/Bangkok'));
-    $end = new DateTime($program['end'] ?? 'now', new DateTimeZone('Asia/Bangkok'));
+    // Parse datetime in the event's own timezone (not hardcoded Bangkok)
+    $evTzName = $program['event_timezone'] ?? (defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok');
+    try { $evTz = new DateTimeZone($evTzName); } catch (Exception $e) { $evTz = new DateTimeZone('Asia/Bangkok'); }
+    $start = new DateTime($program['start'] ?? 'now', $evTz);
+    $end   = new DateTime($program['end']   ?? 'now', $evTz);
 
     $timeStr = $start->format('H:i');
     if ($start->format('Y-m-d') !== $end->format('Y-m-d')) {
@@ -106,6 +115,34 @@ function telegram_format_notification($program) {
         $timeStr .= ' – ' . $end->format('H:i (next day)');
     } else if ($start->format('H:i') !== $end->format('H:i')) {
         $timeStr .= ' – ' . $end->format('H:i');
+    }
+
+    // Decide which secondary timezone to annotate in parentheses:
+    //   - viewer timezone when provided (preferred)
+    //   - otherwise the site default (legacy behaviour)
+    // Show the IANA name only for the viewer case so the recipient knows whose clock it is.
+    $defaultTzName = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
+    $annotTzName = null;
+    $annotLabel  = '';
+    if (is_string($userTz) && $userTz !== '' && $userTz !== $evTzName) {
+        $annotTzName = $userTz;
+        $annotLabel  = ' ' . $userTz;
+    } elseif (($userTz === null || $userTz === '') && $evTzName !== $defaultTzName) {
+        $annotTzName = $defaultTzName;
+    }
+    if ($annotTzName !== null) {
+        try {
+            $annotTz = new DateTimeZone($annotTzName);
+            $localStart = (clone $start)->setTimezone($annotTz);
+            $localEnd   = (clone $end)->setTimezone($annotTz);
+            $localStr   = $localStart->format('H:i');
+            if ($localStart->format('H:i') !== $localEnd->format('H:i')) {
+                $localStr .= '–' . $localEnd->format('H:i');
+            }
+            $timeStr .= " ($localStr" . htmlspecialchars($annotLabel, ENT_QUOTES, 'UTF-8') . ")";
+        } catch (Exception $e) {
+            // invalid annotation timezone — skip the parenthetical
+        }
     }
 
     $msg = "🎪 <b>$title</b>\n";
@@ -516,9 +553,9 @@ function telegram_should_send_summary($favData) {
 function telegram_get_message($key, $language = 'th', $params = []) {
     $messages = [
         'welcome' => [
-            'th' => "👋 สวัสดี! {bot_name}\n\nฉันจะแจ้งเตือนให้คุณก่อนเริ่มโปรแกรมของศิลปินที่คุณติดตาม\n\nเพื่อเชื่อมต่อบัญชี กรุณา:\n1. เข้าไปที่ หน้า My Upcoming Programs\n2. กดปุ่ม 🔔 Link Telegram\n3. ทำตามคำแนะนำ\n\n📖 คำสั่ง:\n/today — events วันนี้ + จำนวน program\n/tomorrow — events พรุ่งนี้\n/week — 7 วันข้างหน้า\n/upcoming [N] — N โปรแกรมถัดไป (1–10, default 3)\n/next — โปรแกรมถัดไป 1 รายการ\n/artists — ศิลปินที่ติดตาม\n/lang th|en|ja — เปลี่ยนภาษา\n/mute N — ปิดเสียง N ชั่วโมง\n/notify on|off — เปิด/ปิดแจ้งเตือน\n/status — สถานะบัญชี\n/stop — ยกเลิกการเชื่อมต่อ",
-            'en' => "👋 Hello! {bot_name}\n\nI will notify you before your favorite artists' programs start.\n\nTo link your account:\n1. Go to My Upcoming Programs page\n2. Click 🔔 Link Telegram button\n3. Follow the instructions\n\n📖 Commands:\n/today — today's events + program count\n/tomorrow — tomorrow's events\n/week — next 7 days\n/upcoming [N] — next N programs (1–10, default 3)\n/next — next 1 program\n/artists — followed artists\n/lang th|en|ja — change language\n/mute N — mute for N hours\n/notify on|off — enable/disable notifications\n/status — account status\n/stop — unlink account",
-            'ja' => "👋 こんにちは! {bot_name}\n\nフォロー中のアーティストのプログラムが始まる前に通知します。\n\nアカウントをリンクするには:\n1. My Upcoming Programs ページに移動\n2. 🔔 Link Telegram ボタンをクリック\n3. 指示に従ってください\n\n📖 コマンド:\n/today — 今日のイベント + プログラム数\n/tomorrow — 明日のイベント\n/week — 今後7日間\n/upcoming [N] — 次のNプログラム (1–10, デフォルト3)\n/next — 次の1プログラム\n/artists — フォロー中アーティスト\n/lang th|en|ja — 言語変更\n/mute N — N時間ミュート\n/notify on|off — 通知のオン/オフ\n/status — アカウント状態\n/stop — リンク解除"
+            'th' => "👋 สวัสดี! {bot_name}\n\nฉันจะแจ้งเตือนให้คุณก่อนเริ่มโปรแกรมของศิลปินที่คุณติดตาม\n\nเพื่อเชื่อมต่อบัญชี กรุณา:\n1. เข้าไปที่ หน้า My Upcoming Programs\n2. กดปุ่ม 🔔 Link Telegram\n3. ทำตามคำแนะนำ\n\n📖 คำสั่ง:\n/today — events วันนี้ + จำนวน program\n/tomorrow — events พรุ่งนี้\n/week — 7 วันข้างหน้า\n/upcoming [N] — N โปรแกรมถัดไป (1–10, default 3)\n/next — โปรแกรมถัดไป 1 รายการ\n/artists — ศิลปินที่ติดตาม\n/lang th|en|ja — เปลี่ยนภาษา\n/tz — ตั้งเขตเวลา\n/mute N — ปิดเสียง N ชั่วโมง\n/notify on|off|summary — ตั้งโหมดแจ้งเตือน\n/status — สถานะบัญชี\n/stop — ยกเลิกการเชื่อมต่อ",
+            'en' => "👋 Hello! {bot_name}\n\nI will notify you before your favorite artists' programs start.\n\nTo link your account:\n1. Go to My Upcoming Programs page\n2. Click 🔔 Link Telegram button\n3. Follow the instructions\n\n📖 Commands:\n/today — today's events + program count\n/tomorrow — tomorrow's events\n/week — next 7 days\n/upcoming [N] — next N programs (1–10, default 3)\n/next — next 1 program\n/artists — followed artists\n/lang th|en|ja — change language\n/tz — set timezone\n/mute N — mute for N hours\n/notify on|off|summary — set notification mode\n/status — account status\n/stop — unlink account",
+            'ja' => "👋 こんにちは! {bot_name}\n\nフォロー中のアーティストのプログラムが始まる前に通知します。\n\nアカウントをリンクするには:\n1. My Upcoming Programs ページに移動\n2. 🔔 Link Telegram ボタンをクリック\n3. 指示に従ってください\n\n📖 コマンド:\n/today — 今日のイベント + プログラム数\n/tomorrow — 明日のイベント\n/week — 今後7日間\n/upcoming [N] — 次のNプログラム (1–10, デフォルト3)\n/next — 次の1プログラム\n/artists — フォロー中アーティスト\n/lang th|en|ja — 言語変更\n/tz — タイムゾーン設定\n/mute N — N時間ミュート\n/notify on|off|summary — 通知モード設定\n/status — アカウント状態\n/stop — リンク解除"
         ],
         'linked' => [
             'th' => "✅ เชื่อมต่อสำเร็จ!\n\nคุณจะได้รับการแจ้งเตือนก่อนเริ่มโปรแกรมของศิลปินที่คุณติดตาม\n\n📖 คำสั่ง:\n/today — events วันนี้\n/tomorrow — events พรุ่งนี้\n/week — 7 วันข้างหน้า\n/upcoming [N] — N โปรแกรมถัดไป\n/next — โปรแกรมถัดไป 1 รายการ\n/artists — ศิลปินที่ติดตาม\n/status — สถานะบัญชี\n/stop — ยกเลิกการเชื่อมต่อ",
@@ -551,9 +588,9 @@ function telegram_get_message($key, $language = 'th', $params = []) {
             'ja' => "👋 アカウントのリンクを解除するには:\n\n1. My Upcoming Programs ページに移動\n2. ❌ Unlink ボタンをクリック\n\nまたは、このメッセージを無視することもできます"
         ],
         'help' => [
-            'th' => "📖 {bot_name}\n\nคำสั่ง:\n/today — events วันนี้ + จำนวน program\n/tomorrow — events พรุ่งนี้\n/week — 7 วันข้างหน้า\n/upcoming [N] — N โปรแกรมถัดไป (1–10, default 3)\n/next — โปรแกรมถัดไป 1 รายการ\n/artists — ศิลปินที่ติดตาม\n/lang th|en|ja — เปลี่ยนภาษา\n/mute N — ปิดเสียง N ชั่วโมง (1–72)\n/notify on|off — เปิด/ปิดแจ้งเตือน\n/status — สถานะบัญชี\n/start — เชื่อมต่อบัญชี\n/stop — ยกเลิกการเชื่อมต่อ",
-            'en' => "📖 {bot_name}\n\nCommands:\n/today — today's events + program count\n/tomorrow — tomorrow's events\n/week — next 7 days overview\n/upcoming [N] — next N programs (1–10, default 3)\n/next — next 1 program (fastest)\n/artists — list followed artists\n/lang th|en|ja — change language\n/mute N — mute notifications for N hours (1–72)\n/notify on|off — enable or disable notifications\n/status — account status\n/start — link account\n/stop — unlink account",
-            'ja' => "📖 {bot_name}\n\nコマンド:\n/today — 今日のイベント + プログラム数\n/tomorrow — 明日のイベント\n/week — 今後7日間\n/upcoming [N] — 次のNプログラム (1–10, デフォルト3)\n/next — 次の1プログラム\n/artists — フォロー中アーティスト一覧\n/lang th|en|ja — 言語変更\n/mute N — N時間ミュート (1–72)\n/notify on|off — 通知のオン/オフ\n/status — アカウント状態\n/start — アカウントリンク\n/stop — リンク解除"
+            'th' => "📖 {bot_name}\n\nคำสั่ง:\n/today — events วันนี้ + จำนวน program\n/tomorrow — events พรุ่งนี้\n/week — 7 วันข้างหน้า\n/upcoming [N] — N โปรแกรมถัดไป (1–10, default 3)\n/next — โปรแกรมถัดไป 1 รายการ\n/artists — ศิลปินที่ติดตาม\n/lang th|en|ja — เปลี่ยนภาษา\n/tz [zone|auto] — ตั้งเขตเวลา\n/mute N — ปิดเสียง N ชั่วโมง (1–72)\n/notify on|off|summary — ตั้งโหมดแจ้งเตือน\n/status — สถานะบัญชี\n/start — เชื่อมต่อบัญชี\n/stop — ยกเลิกการเชื่อมต่อ",
+            'en' => "📖 {bot_name}\n\nCommands:\n/today — today's events + program count\n/tomorrow — tomorrow's events\n/week — next 7 days overview\n/upcoming [N] — next N programs (1–10, default 3)\n/next — next 1 program (fastest)\n/artists — list followed artists\n/lang th|en|ja — change language\n/tz [zone|auto] — set timezone\n/mute N — mute notifications for N hours (1–72)\n/notify on|off|summary — set notification mode (all / daily summary only / off)\n/status — account status\n/start — link account\n/stop — unlink account",
+            'ja' => "📖 {bot_name}\n\nコマンド:\n/today — 今日のイベント + プログラム数\n/tomorrow — 明日のイベント\n/week — 今後7日間\n/upcoming [N] — 次のNプログラム (1–10, デフォルト3)\n/next — 次の1プログラム\n/artists — フォロー中アーティスト一覧\n/lang th|en|ja — 言語変更\n/tz [zone|auto] — タイムゾーン設定\n/mute N — N時間ミュート (1–72)\n/notify on|off|summary — 通知モード設定\n/status — アカウント状態\n/start — アカウントリンク\n/stop — リンク解除"
         ],
         'upcoming_title' => [
             'th' => "📅 โปรแกรมที่จะมาถึง ({count} รายการ)",
@@ -620,15 +657,40 @@ function telegram_get_message($key, $language = 'th', $params = []) {
             'en' => "🔕 Notifications disabled\nType /notify on to re-enable",
             'ja' => "🔕 通知をオフにしました\n/notify on で再度オンにできます"
         ],
+        'notify_summary' => [
+            'th' => "🔔 แจ้งเตือนเฉพาะสรุปรายวันเท่านั้น\nปิดการเตือนรายโปรแกรมแล้ว — พิมพ์ /notify on เพื่อเปิดทั้งหมด",
+            'en' => "🔔 Daily summary only\nPer-program reminders are off — type /notify on to enable all",
+            'ja' => "🔔 デイリーサマリーのみ\n各プログラムの通知はオフです — /notify on ですべて有効にできます"
+        ],
         'notify_invalid' => [
-            'th' => "❌ ใช้: /notify on หรือ /notify off",
-            'en' => "❌ Use: /notify on or /notify off",
-            'ja' => "❌ 使い方: /notify on または /notify off"
+            'th' => "❌ ใช้: /notify on, /notify summary หรือ /notify off",
+            'en' => "❌ Use: /notify on, /notify summary, or /notify off",
+            'ja' => "❌ 使い方: /notify on、/notify summary または /notify off"
         ],
         'status' => [
-            'th' => "📊 สถานะบัญชี\n\n⭐ ติดตาม: {count} ศิลปิน\n🌐 ภาษา: {lang}\n🔔 การแจ้งเตือน: {notify}\n🔕 Mute: {mute}",
-            'en' => "📊 Account Status\n\n⭐ Following: {count} artists\n🌐 Language: {lang}\n🔔 Notifications: {notify}\n🔕 Mute: {mute}",
-            'ja' => "📊 アカウント状態\n\n⭐ フォロー中: {count}人\n🌐 言語: {lang}\n🔔 通知: {notify}\n🔕 ミュート: {mute}"
+            'th' => "📊 สถานะบัญชี\n\n⭐ ติดตาม: {count} ศิลปิน\n🌐 ภาษา: {lang}\n🕐 เขตเวลา: {tz}\n🔔 การแจ้งเตือน: {notify}\n🔕 Mute: {mute}",
+            'en' => "📊 Account Status\n\n⭐ Following: {count} artists\n🌐 Language: {lang}\n🕐 Timezone: {tz}\n🔔 Notifications: {notify}\n🔕 Mute: {mute}",
+            'ja' => "📊 アカウント状態\n\n⭐ フォロー中: {count}人\n🌐 言語: {lang}\n🕐 タイムゾーン: {tz}\n🔔 通知: {notify}\n🔕 ミュート: {mute}"
+        ],
+        'tz_current' => [
+            'th' => "🕐 เขตเวลาที่ใช้ตอนนี้: {tz} ({mode})\n\nเวลาในการแจ้งเตือนจะแสดงตามเขตเวลาของงาน และต่อท้ายด้วยเวลาเขตนี้ในวงเล็บ\n\nเปลี่ยน: /tz Asia/Tokyo\nกลับเป็นอัตโนมัติ: /tz auto",
+            'en' => "🕐 Current timezone: {tz} ({mode})\n\nNotification times show the event's timezone, with this timezone in parentheses.\n\nChange: /tz Asia/Tokyo\nBack to automatic: /tz auto",
+            'ja' => "🕐 現在のタイムゾーン: {tz} ({mode})\n\n通知時刻はイベントのタイムゾーンで表示され、括弧内にこのタイムゾーンが表示されます。\n\n変更: /tz Asia/Tokyo\n自動に戻す: /tz auto"
+        ],
+        'tz_set' => [
+            'th' => "✅ ตั้งเขตเวลาเป็น: {tz}\n\nพิมพ์ /tz auto เพื่อกลับไปใช้เขตเวลาอัตโนมัติจากเบราว์เซอร์",
+            'en' => "✅ Timezone set to: {tz}\n\nType /tz auto to go back to the browser-detected timezone",
+            'ja' => "✅ タイムゾーンを設定しました: {tz}\n\n/tz auto でブラウザ検出のタイムゾーンに戻せます"
+        ],
+        'tz_auto' => [
+            'th' => "🔄 กลับไปใช้เขตเวลาอัตโนมัติแล้ว\n\nใช้อยู่ตอนนี้: {tz}",
+            'en' => "🔄 Back to automatic timezone\n\nCurrently: {tz}",
+            'ja' => "🔄 自動タイムゾーンに戻しました\n\n現在: {tz}"
+        ],
+        'tz_invalid' => [
+            'th' => "❌ เขตเวลาไม่ถูกต้อง\nตัวอย่าง: /tz Asia/Tokyo, /tz Europe/London\nหรือ /tz auto เพื่อใช้อัตโนมัติ",
+            'en' => "❌ Invalid timezone\nExample: /tz Asia/Tokyo, /tz Europe/London\nOr /tz auto for automatic",
+            'ja' => "❌ 無効なタイムゾーン\n例: /tz Asia/Tokyo, /tz Europe/London\nまたは /tz auto で自動"
         ],
         'select_language' => [
             'th' => "🌐 โปรดเลือกภาษาของคุณ:\n\nคุณจะได้รับการแจ้งเตือนในภาษาที่เลือก",
@@ -713,16 +775,53 @@ function telegram_is_muted(array $favData): bool {
 }
 
 /**
- * Check if a user has Telegram notifications enabled.
+ * Resolve the user's Telegram notification mode.
+ *
+ * Modes:
+ *   - 'all'     → per-program reminders + daily summary (default)
+ *   - 'summary' → daily summary only (no per-program reminders)
+ *   - 'off'     → no notifications
+ *
+ * The new `telegram_notify_mode` field takes precedence. For backward
+ * compatibility with the old boolean `telegram_notify_enabled`, a stored
+ * `false` maps to 'off' and `true`/null maps to 'all' (opt-out model).
+ *
+ * @param array $favData Favorites data array
+ * @return string One of 'all', 'summary', 'off'
+ */
+function telegram_get_notify_mode(array $favData): string {
+    $m = $favData['telegram_notify_mode'] ?? null;
+    if (is_string($m) && in_array($m, ['all', 'summary', 'off'], true)) {
+        return $m;
+    }
+    // Backward compat with the legacy boolean
+    if (array_key_exists('telegram_notify_enabled', $favData)
+        && $favData['telegram_notify_enabled'] === false) {
+        return 'off';
+    }
+    return 'all';
+}
+
+/**
+ * Check if per-program ("starting soon") reminders are enabled.
+ * Only the 'all' mode sends per-program reminders.
+ *
+ * @param array $favData Favorites data array
+ * @return bool True if per-program reminders should be sent
+ */
+function telegram_per_program_enabled(array $favData): bool {
+    return telegram_get_notify_mode($favData) === 'all';
+}
+
+/**
+ * Check if a user has Telegram notifications enabled (mode is not 'off').
  * Absent or null means enabled (opt-out model).
  *
  * @param array $favData Favorites data array
- * @return bool True if notifications are enabled
+ * @return bool True if notifications are enabled (mode 'all' or 'summary')
  */
 function telegram_notify_is_enabled(array $favData): bool {
-    if (!array_key_exists('telegram_notify_enabled', $favData)) return true;
-    if ($favData['telegram_notify_enabled'] === null) return true;
-    return (bool)$favData['telegram_notify_enabled'];
+    return telegram_get_notify_mode($favData) !== 'off';
 }
 
 /**

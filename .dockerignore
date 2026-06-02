@@ -23,6 +23,10 @@
 .env.local
 .env.*.local
 
+# Runtime admin settings / secrets
+# Keep SMTP, Telegram, and Google credentials out of built images.
+config/*-config.json
+
 # Cache files (will be created at runtime)
 cache/*
 !cache/.gitignore

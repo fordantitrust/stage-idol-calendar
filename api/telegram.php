@@ -107,6 +107,8 @@ if (!empty($update['callback_query'])) {
         handle_mute_command($chat_id, $payload, $language);
     } elseif ($command === '/notify') {
         handle_notify_command($chat_id, $payload, $language);
+    } elseif ($command === '/tz') {
+        handle_tz_command($chat_id, $payload, $language);
     } elseif ($command === '/status') {
         handle_status_command($chat_id, $language);
     } else {
@@ -269,12 +271,14 @@ function handle_upcoming_command($chat_id, $language = 'th', $payload = '') {
     $allArtistIds = _telegram_resolve_artists($favData['artists']);
     $placeholders = implode(',', array_fill(0, count($allArtistIds), '?'));
 
+    $defaultTzName = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
     $db = get_db();
     $stmt = $db->prepare("
         SELECT DISTINCT
             p.id, p.title, p.start, p.end, p.location,
             p.program_type, p.stream_url, p.event_id,
-            e.name as event_name
+            e.name as event_name,
+            COALESCE(e.timezone, :defaultTz) AS event_timezone
         FROM programs p
         JOIN events e ON p.event_id = e.id
         JOIN program_artists pa ON p.id = pa.program_id
@@ -285,7 +289,7 @@ function handle_upcoming_command($chat_id, $language = 'th', $payload = '') {
         LIMIT :lim
     ");
 
-    $stmt->execute(array_merge($allArtistIds, [':now' => date('Y-m-d H:i:s'), ':lim' => $limit]));
+    $stmt->execute(array_merge($allArtistIds, [':defaultTz' => $defaultTzName, ':now' => date('Y-m-d H:i:s'), ':lim' => $limit]));
     $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     $stmt = null;
 
@@ -294,9 +298,12 @@ function handle_upcoming_command($chat_id, $language = 'th', $payload = '') {
         return;
     }
 
+    // Resolve the viewer's timezone for the parenthetical local-time annotation.
+    $userTz = fav_resolve_user_timezone($favData);
+
     $text = telegram_get_message('upcoming_title', $language, ['count' => count($programs)]) . "\n\n";
     foreach ($programs as $prog) {
-        $text .= telegram_format_notification($prog) . "\n\n";
+        $text .= telegram_format_notification($prog, $userTz) . "\n\n";
     }
     telegram_send_message($chat_id, $text);
 }
@@ -513,10 +520,14 @@ function handle_mute_command($chat_id, $payload, $language = 'th') {
 }
 
 /**
- * Handle /notify command — enable or disable push notifications.
+ * Handle /notify command — set the notification mode.
+ *
+ *   /notify on       → all notifications (per-program reminders + daily summary)
+ *   /notify summary  → daily summary only (no per-program reminders)
+ *   /notify off      → no notifications
  *
  * @param int    $chat_id  Telegram chat ID
- * @param string $payload  on|off
+ * @param string $payload  on|off|summary
  * @param string $language Language code (th, en, ja)
  */
 function handle_notify_command($chat_id, $payload, $language = 'th') {
@@ -529,16 +540,74 @@ function handle_notify_command($chat_id, $payload, $language = 'th') {
         return;
     }
     $arg = strtolower(trim($payload));
-    if ($arg !== 'on' && $arg !== 'off') {
+    $argToMode = ['on' => 'all', 'off' => 'off', 'summary' => 'summary'];
+    if (!isset($argToMode[$arg])) {
         telegram_send_message($chat_id, telegram_get_message('notify_invalid', $language));
         return;
     }
-    $enabled = ($arg === 'on');
+    $mode = $argToMode[$arg];
     $favData = $found['data'];
-    $favData['telegram_notify_enabled'] = $enabled;
+    $favData['telegram_notify_mode'] = $mode;
+    // Keep the legacy boolean in sync for any external reader
+    $favData['telegram_notify_enabled'] = ($mode !== 'off');
     file_put_contents($found['path'], json_encode($favData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
-    $key = $enabled ? 'notify_enabled' : 'notify_disabled';
-    telegram_send_message($chat_id, telegram_get_message($key, $language));
+    $keyMap = ['all' => 'notify_enabled', 'summary' => 'notify_summary', 'off' => 'notify_disabled'];
+    telegram_send_message($chat_id, telegram_get_message($keyMap[$mode], $language));
+}
+
+/**
+ * Handle /tz command — view or set the viewer timezone used for notification times.
+ *
+ *   /tz              → show the effective timezone + mode
+ *   /tz Asia/Tokyo   → set a manual override (sticky)
+ *   /tz auto         → clear the override, follow the browser-detected timezone
+ *
+ * @param int    $chat_id  Telegram chat ID
+ * @param string $payload  Argument (IANA timezone, "auto", or empty)
+ * @param string $language Language code (th, en, ja)
+ */
+function handle_tz_command($chat_id, $payload, $language = 'th') {
+    $found = find_favorites_by_chat_id((int)$chat_id);
+    if ($found && !empty($found['data']['telegram_language'])) {
+        $language = $found['data']['telegram_language'];
+    }
+    if (!$found) {
+        telegram_send_message($chat_id, telegram_get_message('no_account', $language));
+        return;
+    }
+    $favData    = $found['data'];
+    $defaultTz  = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
+    $arg        = trim($payload);
+
+    // No argument → show current effective timezone + mode
+    if ($arg === '') {
+        $eff  = fav_resolve_user_timezone($favData) ?: $defaultTz;
+        $modeMap = !empty($favData['user_timezone_manual'])
+            ? ['th' => 'ตั้งเอง', 'en' => 'manual', 'ja' => '手動']
+            : ['th' => 'อัตโนมัติ', 'en' => 'auto', 'ja' => '自動'];
+        $mode = $modeMap[$language] ?? $modeMap['en'];
+        telegram_send_message($chat_id, telegram_get_message('tz_current', $language, ['tz' => $eff, 'mode' => $mode]));
+        return;
+    }
+
+    // /tz auto → clear the manual override
+    if (strtolower($arg) === 'auto') {
+        $favData['user_timezone_manual'] = false;
+        file_put_contents($found['path'], json_encode($favData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+        $eff = fav_resolve_user_timezone($favData) ?: $defaultTz;
+        telegram_send_message($chat_id, telegram_get_message('tz_auto', $language, ['tz' => $eff]));
+        return;
+    }
+
+    // /tz <IANA> → set a manual override
+    if (!is_valid_timezone($arg)) {
+        telegram_send_message($chat_id, telegram_get_message('tz_invalid', $language));
+        return;
+    }
+    $favData['user_timezone']        = $arg;
+    $favData['user_timezone_manual'] = true;
+    file_put_contents($found['path'], json_encode($favData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
+    telegram_send_message($chat_id, telegram_get_message('tz_set', $language, ['tz' => $arg]));
 }
 
 /**
@@ -568,11 +637,15 @@ function handle_status_command($chat_id, $language = 'th') {
     ];
     $langLabel = $langMap[$lang][$language] ?? strtoupper($lang);
 
-    // Notify label
-    $notifyOn  = telegram_notify_is_enabled($favData);
-    $notifyMap = ['th' => ['เปิด', 'ปิด'], 'en' => ['On', 'Off'], 'ja' => ['オン', 'オフ']];
+    // Notify label (3-state: all / summary only / off)
+    $notifyMode = telegram_get_notify_mode($favData);
+    $notifyMap = [
+        'th' => ['all' => 'เปิด', 'summary' => 'สรุปรายวันเท่านั้น', 'off' => 'ปิด'],
+        'en' => ['all' => 'On',   'summary' => 'Daily summary only', 'off' => 'Off'],
+        'ja' => ['all' => 'オン', 'summary' => 'デイリーサマリーのみ', 'off' => 'オフ'],
+    ];
     $notifyArr = $notifyMap[$language] ?? $notifyMap['en'];
-    $notifyLabel = $notifyOn ? $notifyArr[0] : $notifyArr[1];
+    $notifyLabel = $notifyArr[$notifyMode] ?? $notifyArr['all'];
 
     // Mute label
     if (telegram_is_muted($favData)) {
@@ -586,11 +659,19 @@ function handle_status_command($chat_id, $language = 'th') {
         $muteLabel = $noMuteMap[$language] ?? 'not muted';
     }
 
+    // Effective timezone used for notification times
+    $effTz = fav_resolve_user_timezone($favData) ?: (defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok');
+    $tzModeMap = !empty($favData['user_timezone_manual'])
+        ? ['th' => 'ตั้งเอง', 'en' => 'manual', 'ja' => '手動']
+        : ['th' => 'อัตโนมัติ', 'en' => 'auto', 'ja' => '自動'];
+    $tzLabel = $effTz . ' (' . ($tzModeMap[$language] ?? $tzModeMap['en']) . ')';
+
     telegram_send_message($chat_id, telegram_get_message('status', $language, [
         'count'  => $count,
         'lang'   => $langLabel,
         'notify' => $notifyLabel,
         'mute'   => $muteLabel,
+        'tz'     => $tzLabel,
     ]));
 }
 

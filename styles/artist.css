@@ -158,6 +158,10 @@
 .programs-table tr:last-child td { border-bottom: none; }
 .programs-table tr:hover td { background: #fdf2f8; }
 .prog-time { white-space: nowrap; font-variant-numeric: tabular-nums; color: #6b7280; font-size: 0.9em; }
+.prog-time-local {
+    display: block; font-size: 0.78em; color: #9ca3af; font-style: italic;
+    font-weight: 400; margin-top: 1px; white-space: nowrap;
+}
 .prog-type-badge {
     display: inline-block;
     padding: 1px 7px;
@@ -206,6 +210,33 @@
     color: #fff;
 }
 .programs-toggle-btn:not(.active):hover { background: #fdf2f8; }
+
+/* ── Social links ────────────────────────────────────────────────────────── */
+.artist-social-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.artist-social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.82em;
+    font-weight: 600;
+    text-decoration: none;
+    background: rgba(255,255,255,.2);
+    color: #fff;
+    backdrop-filter: blur(4px);
+    transition: background .12s, transform .12s;
+}
+.artist-social-link:hover {
+    background: rgba(255,255,255,.35);
+    transform: translateY(-1px);
+}
 
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 .btn {

@@ -5,6 +5,1535 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [16.5.1] - 2026-06-02
+
+### Docs — Help & How-to-Use coverage brought up to v16.5.0
+
+The Admin Help pages and the public How-to-Use guide had drifted behind the features that shipped from v15.7.0 through v16.5.0. This documentation-only release closes that gap. No runtime code, schema, or API changed; tests remain **13,231/13,231**.
+
+- 📖 **Admin Help (TH + EN)** — Telegram section: added the `/tz [zone|auto]` command (v16.1.1), changed `/notify on|off` → `/notify on|off|summary` with all three modes explained (v16.2.0), updated `/status` to include timezone + notify mode, and added a new **"Notification Modes & Timezone"** subsection (per-program / daily summary / user-timezone display with parenthetical local time)
+- 🔴 **How-to-Use — new section: Live Now** (v16.1.0) — explains the homepage strip showing programs on now + starting within 60 min, auto-refresh every 30 s, device-clock status across timezones
+- 🏛️ **How-to-Use — new section: All Venues** (v16.0.0 / v16.0.1) — `/venues` portal + `/venue/{id}` profile + clickable venue cells + `🌐 Online` badge behaviour
+- 📊 **How-to-Use — My Favorites** — documented the 📋 List / 📊 Timeline toggle (v15.8.0) with overlap visualisation and user-timezone axis
+- 🔔 **How-to-Use — Telegram** — added `/tz`, `/notify summary`, a timezone annotation note, and the daily-summary-only mode
+- ❓ **How-to-Use — FAQ** — rewrote the offline answer to mention PWA Offline Cache (v15.7.0); the old answer ("can't be used offline") was outdated
+- 🌐 **i18n** — added/updated translation keys across all three languages (TH/EN/JA) in `js/translations.js`: `section25.*` (Live Now), `section26.*` (Venues), `section17.myupcoming.timeline`, `section20.notifications.summary`, `section20.tz.*`, `section20.controls.tz`, plus revised `section20.controls.notify/status` and `section6.a2`; 2 new TOC entries
+- 🎯 **Out of scope** — backend-only features (v16.4.0 CLI social import, v16.5.0 cross-event group query) are not surfaced in user-facing help; they remain documented in tool/setup docs
+
+**Files changed:**
+
+- `admin/help.php`
+- `admin/help-en.php`
+- `how-to-use.php`
+- `js/translations.js`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+- `README.md`
+- `SKILL.md`
+
+> **Migration:** none — documentation/i18n only; no DB schema change. Users pick up the new help/how-to-use content once the browser revalidates the service worker (`CACHE_VERSION` bumped to v16.5.1).
+
+## [16.5.0] - 2026-06-01
+
+### Feature — Cross-event section also references each artist's group
+
+The "งานอื่นที่เกี่ยวข้องกับศิลปิน" (cross-event artists) section on an event page lists other active/upcoming events where the current event's artists also appear. Until now it matched only the **same artist_id** — so if member X performs at this event but X's **group/วง G** performs elsewhere (tagged as the group, not X individually), that event stayed invisible. This release expands the match set to also include each solo artist's parent group, surfacing those group appearances. It reuses the same solo→group resolution already used by My Upcoming Programs (`my.php`).
+
+- 🎤 **Group-aware match set** — the cross-event query in `index.php` now `UNION`s each current-event artist's parent `group_id` into the `IN (...)` lookup, so events where the artist's group performs are included alongside same-artist events
+- 🏷️ **Group chips link to the group profile** — surfaced group appearances render as `.cross-event-artist-chip` links to `/artist/{group_id}`, reusing the existing markup/CSS; chips are deduped per event by artist id
+- 🗃️ **Name resolved in-query** — the query joins `artists` and selects `artist_name` per row so group names resolve correctly even for groups not present in the current event (which aren't in `$artistMeta`); the render path keeps the old `$artistMeta` lookup as a fallback for stale cache entries
+- 🎯 **Out of scope** — no group→member expansion (solo→group only); no DB schema change, migration, or CSS change
+- 🧪 tests **13,231/13,231 pass** (no regression; query/render-only change)
+
+**Files changed:**
+
+- `index.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — query/render-only change; no DB schema change. The `artist_other_events` query cache picks up the new `artist_name` field on its next rebuild (TTL 1h or on the next program/artist write).
+
+## [16.4.0] - 2026-06-01
+
+### Feature — Bulk-import artist social links from CSV/JSON (CLI tool)
+
+Artist social links (Facebook / Instagram / Twitter-X / TikTok) could only be set one artist at a time through the Admin artist edit modal — the existing `artists_bulk_import` flow imports names only. Editing socials for dozens of members across several groups was impractical. This release adds a CLI tool that reads a spreadsheet-style CSV (or JSON) and updates social columns in bulk.
+
+- 🧰 **`tools/import-artist-socials.php`** — `php tools/import-artist-socials.php <file.csv> [--dry-run] [--overwrite]`. Reads a header-row CSV (or `.json` array) and updates `artists.social_facebook/instagram/twitter/tiktok`
+- 🔎 **Name-first matching with ID fallback** — each row is resolved by exact `artists.name`, then by `artist_variants` alias, and finally by an explicit `id` column. Ambiguous name matches (>1 artist) are skipped and reported — never guessed
+- 🔗 **URL validation** — only `http(s)://` values are stored, mirroring `sanitize_social_url()` in `admin/api.php`. Invalid/empty cells are ignored
+- 🛟 **Non-destructive defaults** — an empty cell leaves the existing value untouched; a non-empty value fills only blank fields by default. Pass `--overwrite` to replace existing links; `--dry-run` previews every change without writing
+- 🈶 **Flexible headers** — case-insensitive aliases (`name`/`artist`/`ชื่อ`, `id`, `facebook`/`fb`, `instagram`/`ig`, `twitter`/`x`, `tiktok`/`tt`, plus the full `social_*` names); UTF-8 BOM tolerated so Excel-saved CSVs work
+- 🔄 **Cache invalidation** — calls `invalidate_artist_query_cache()` + `invalidate_data_version_cache()` when any row is written
+- 📄 **`tools/sample-artist-socials.csv`** — Excel-friendly UTF-8-BOM template demonstrating name-match and id-fallback rows
+- 🎯 **Out of scope** — no Admin UI change; no DB schema change; group/solo membership is not modified
+
+**Files changed:**
+
+- `tools/import-artist-socials.php`
+- `tools/sample-artist-socials.csv`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — CLI dev tool only; no DB schema change. Reuses existing `artists.social_*` columns (added in v9.5.0).
+
+## [16.3.0] - 2026-06-01
+
+### Feature — Artist profile links in Calendar view programs
+
+The Calendar view (`venue_mode = 'calendar'`) shows programs in two interactive surfaces — the mobile **day panel** (tap a day → list of programs) and the **detail modal** (tap a program → details). In both, artists were rendered as plain text on the `🎤` line. Everywhere else in the app (list view, artist filter, cross-event section) an artist name links to its profile at `/artist/{id}` — Calendar view was the one place a user could not click through. This release adds those links to both calendar surfaces.
+
+- 🎤 **Clickable artists** — `openCalendarDetailModal()` and the day-panel `.cal-dp-item-artist` line now render each artist as a `/artist/{id}` link (opens in a new tab). Artists not present in the `artists` table (raw categories fallback) stay as plain comma-separated text — no broken links
+- 🗃️ **Data plumbing** — `index.php` augments each event in `window.CALENDAR_EVENTS` with an `artists` array (`{id, name}`) derived from `$programArtistIdMap`, mirroring the list-view program-categories cell logic; `categories` remains as the text fallback. No cache-shape or DB change
+- 🧰 **`calArtistLinksHtml(ev)`** helper in `js/common.js` — builds the link markup, escapes names via `escapeHtml()`, uses the existing `BASE_PATH` JS const; falls back to `ev.categories || ev.organizer`
+- 🖱️ **Click isolation** — the whole `.cal-dp-item` opens the detail modal, so the day-panel click guard now also early-returns on `.cal-artist-link` (alongside the existing `.cal-dp-join` guard) so tapping a link navigates instead of opening the modal
+- 🎨 **`.cal-artist-link`** styling added to `styles/common.css` (theme accent color, dotted→solid underline on hover)
+- 🧪 Tests **13,231/13,231 pass** (JS/PHP render-only change; no behavioral regressions)
+
+**Files changed:**
+
+- `index.php`
+- `js/common.js`
+- `styles/common.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS/PHP/CSS only; no DB schema change. The `artists` field is attached to `CALENDAR_EVENTS` at render time.
+
+## [16.2.0] - 2026-06-01
+
+### Feature — Telegram "daily summary only" notification mode
+
+Telegram notifications were binary: `/notify on|off`. Because the cron checked the on/off flag **first** and returned early when off, turning notifications off also silenced the daily 9 AM summary — there was no way to keep just the once-a-day digest while muting the per-program "starting soon" pings. This release adds a third mode so a user can receive **only** the daily summary. Control is via the `/notify` bot command only (no UI added); mute (`/mute N`) still silences everything temporarily.
+
+- 🔔 **Three notification modes** — favorites JSON gains `telegram_notify_mode` ∈ `all` | `summary` | `off`. `all` (default) = per-program reminders + daily summary; `summary` = daily summary only; `off` = nothing. Backward compatible with the legacy `telegram_notify_enabled` boolean (`false` → `off`, `true`/absent → `all`)
+- 🤖 **`/notify on|off|summary`** — the command now accepts `summary`; it persists `telegram_notify_mode` (and keeps the legacy boolean in sync) and replies with mode-specific copy. New message key `notify_summary` (TH/EN/JA); `notify_invalid`, welcome and help text updated to list all three options
+- ⚙️ **Cron gating** — `cron/send-telegram-notifications.php` wraps the per-program window query + send loop in `if ($perProgram)` (`telegram_per_program_enabled()`), so `summary` mode skips per-program reminders while the daily-summary block still runs. The `off`-mode and mute early-returns are unchanged, so mute still suppresses both channels
+- 📊 **`/status`** — the notify line is now 3-state (On / Daily summary only / Off) driven by `telegram_get_notify_mode()`
+- 🧰 **Helpers** — `telegram_get_notify_mode($favData)` and `telegram_per_program_enabled($favData)` in `functions/telegram.php`; `telegram_notify_is_enabled()` reimplemented as `mode !== 'off'` (preserves existing behaviour)
+- 🎯 **Out of scope** — Web Push (no daily-summary feature); `my.php` UI (Telegram on/off has never had a web toggle)
+- 🧪 **`TelegramTest` +15** — full suite **13,231/13,231 pass**
+
+**Files changed:**
+
+- `functions/telegram.php`
+- `cron/send-telegram-notifications.php`
+- `api/telegram.php`
+- `tests/TelegramTest.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — no DB schema change; favorites JSON gains `telegram_notify_mode` only when a user runs `/notify summary` or `/notify off`. Existing links default to `all` (unchanged behaviour).
+
+## [16.1.1] - 2026-06-01
+
+### Feature — Notifications use the viewer's own timezone
+
+Telegram and Web Push notifications previously showed the program time in the event's timezone with the **site default** (Asia/Bangkok) in parentheses. A fan following from another country (e.g. Tokyo) saw the Bangkok clock, not their own. Notifications now annotate the **viewer's** local time instead. The notification *firing* time was already UTC-correct and is unchanged — only the displayed clock is affected.
+
+- 🕐 **Viewer-local parenthetical** — `telegram_format_notification($program, $userTz)` and the web push cron keep event-local time primary and append the viewer's local time labelled with its IANA zone, e.g. `18:00 (19:00 Asia/Tokyo)`. When the viewer TZ equals the event TZ no parenthetical is shown; when no viewer TZ is known the legacy site-default annotation is preserved (backward compatible)
+- 🗃️ **Unified timezone model** — single source of truth in the favorites JSON: `user_timezone` (effective IANA zone) + `user_timezone_manual` (sticky override flag). Per-device web push subscriptions also carry their own `tz`. Resolver `fav_resolve_user_timezone($favData, $subTz)` priority: manual override wins for every channel; otherwise per-device tz → `user_timezone` → site default
+- 🌐 **my.php timezone picker** — a settings row controls the notification timezone for both channels: "Automatic (detected: …)" plus a region-grouped list. Manual pick is sticky; "Automatic" clears the override and follows the browser
+- 🔄 **Auto re-sync on travel** — the browser TZ is captured on page load (mode `sync`, ignored while a manual override is active) and web push devices refresh their stored `tz` when the OS timezone changes, so notifications stay correct after moving countries
+- ✈️ **Telegram `/tz` command** — `/tz` shows the effective zone + mode; `/tz Asia/Tokyo` sets a manual override; `/tz auto` reverts to the browser-detected zone; `/status` now shows the effective timezone. Added to the dispatcher, welcome/help text, and i18n message keys `tz_set`/`tz_invalid`/`tz_current`/`tz_auto` (TH/EN/JA)
+- 🔌 **API** — `api/favorites.php?action=set_timezone` (modes `manual`/`auto`/`sync`); `api/push.php` subscribe accepts `tz`, validates it, and refreshes `tz`+`lang` when an endpoint re-subscribes
+- 🧰 **Helper** — `is_valid_timezone($tz)` in `functions/helpers.php`
+- 🎯 **Out of scope (already correct)** — notification firing time (UTC-based), personal ICS feed (`my-feed.php`, localized per device by calendar apps), `/today` `/tomorrow` `/week` and the daily summary (counts, not times)
+- 🌏 **i18n** — `tz.settingLabel`, `tz.auto`, `tz.effective` added in TH/EN/JA
+- 🧪 **`TelegramTest` +21, `WebPushTest` +6** — full suite **13,088/13,088 pass**
+
+**Files changed:**
+
+- `functions/helpers.php`
+- `functions/telegram.php`
+- `api/favorites.php`
+- `api/push.php`
+- `api/telegram.php`
+- `cron/send-telegram-notifications.php`
+- `cron/send-web-push-notifications.php`
+- `my.php`
+- `js/translations.js`
+- `tests/TelegramTest.php`
+- `tests/WebPushTest.php`
+- `service-worker.js`
+- `config/app.php`
+- `docs/TIMEZONE_NOTIFICATION_PLAN.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — no DB schema change; favorites JSON gains optional `user_timezone` / `user_timezone_manual` keys on first use; web push subscriptions gain an optional per-device `tz` on next subscribe/visit.
+
+## [16.1.0] - 2026-06-01
+
+### Feature — "Live Now" strip on the homepage listing
+
+The multi-event homepage listing previously showed only overview data (hero carousel, monthly calendar, events grid) with no real-time signal of what is happening *right now*. A new **Live Now** strip at the top of the listing (above the hero) shows 🔴 programs currently on stage and ⏭️ programs starting within 60 minutes, aggregated across **all active events**.
+
+- 🔴 **Currently playing + starting soon** — two groups (`#liveNowCurrentRows`, `#liveNowSoonRows`); each row shows title/artist, 📍 venue, event name, event-local time, a live countdown, and a 🔴 Watch Live button when the program has a `stream_url`; clicking a row opens that event's timetable
+- 🌐 **Timezone-correct & cache-safe** — PHP emits candidate programs (today ±1 day) as ISO-8601-with-offset absolute instants via `(new DateTime($p['start'], $tz))->format('c')`; the client classifies live/soon against its own clock, so cross-timezone events and the 1-hour listing cache never produce a stale "live" state. Cross-TZ rows append a `(HH:MM local)` annotation reusing the `tz.localTime` key (v16.0.x pattern)
+- ♻️ **Reuses existing architecture** — candidate query joins active events excluding `DEFAULT_EVENT_SLUG`, index-backed by `idx_programs_start`; result stored in the existing `query_listing.json` cache under a new `live_programs` key (no new cache file, no DB schema change)
+- 🔄 **Self-refreshing** — `renderLiveNow()` runs on `DOMContentLoaded`, every 30 s via `setInterval`, and on `appLangChange`; promotes "starting soon" → "live" and updates countdowns without a page reload; the whole strip hides itself when nothing is live or soon (no empty box)
+- 🌏 **i18n** — `live.nowTitle`, `live.soonTitle`, `live.timeLeft`, `live.startsIn`, `live.watch` added in TH/EN/JA
+- 🎯 **Scope** — homepage listing only (multi-event); single-event pages unchanged
+- 🧪 **`LiveNowTest`** — 15 new tests; full suite **12,847/12,847 pass**
+
+**Files changed:**
+
+- `index.php`
+- `styles/index.css`
+- `js/translations.js`
+- `tests/LiveNowTest.php`
+- `tests/run-tests.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — PHP/JS/CSS only; no DB schema changes. The listing cache picks up `live_programs` automatically on next rebuild (TTL 1 h) or after any program write.
+
+## [16.0.13] - 2026-06-01
+
+### Enhancement — Cross-timezone local time annotation in Telegram & WebPush notifications
+
+When a program's event timezone differs from `DEFAULT_TIMEZONE`, notifications now append the site-default local time in parentheses so recipients immediately see both the official event time and their own local equivalent without confusion.
+
+- 🔔 **Telegram** (`functions/telegram.php`) — `telegram_format_notification()` appends `(HH:MM–HH:MM)` local time after the event-local time string when `event_timezone ≠ DEFAULT_TIMEZONE`; for single-time programs (start == end) only start is shown; cross-day programs retain the existing `(next day)` suffix
+- 📱 **WebPush** (`cron/send-web-push-notifications.php`) — notification body appends `(HH:MM)` local start time when event TZ differs; compact one-time format fits notification constraints
+- 🎯 **Same-timezone → no change** — Bangkok user watching Bangkok event sees no extra annotation; annotation appears only for cross-timezone programs
+- ✅ Tests **11,813/11,813 pass**
+
+**Example (Taipei event, Bangkok user):**
+- Before: `⏰ 18:00–18:40`
+- After:  `⏰ 18:00–18:40 (17:00–17:40)`
+
+**Files changed:**
+
+- `functions/telegram.php`
+- `cron/send-web-push-notifications.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — PHP-only fix; no DB schema changes
+
+## [16.0.12] - 2026-05-31
+
+### Bug Fix — Telegram & WebPush notifications fired at wrong time for non-Bangkok event timezones
+
+Both notification cron scripts compared `programs.start` (stored in the event's own timezone, e.g. `Asia/Taipei`) against a notification window string computed in `DEFAULT_TIMEZONE` (`Asia/Bangkok`). A Taipei event program stored as `"18:00"` is Bangkok `17:00`, but the cron treated the stored `"18:00"` as if it were Bangkok `18:00`, so notifications fired 1 hour late — 30 minutes after the event started instead of 30 minutes before. The same mismatch made `telegram_format_notification()` display event-local times using hardcoded `'Asia/Bangkok'`, showing the wrong hour in the notification message body for any cross-TZ event.
+
+- 🐛 **Root cause** — both cron scripts used `DEFAULT_TIMEZONE` strings for the SQL `BETWEEN` window without fetching `e.timezone` per program; `telegram_format_notification()` in `functions/telegram.php` hardcoded `new DateTimeZone('Asia/Bangkok')` for both `$start` and `$end`
+- 🔧 **SQL fix** — added `COALESCE(e.timezone, :defaultTz) AS event_timezone` to both cron `SELECT` queries; replaced exact `BETWEEN` window strings with a ±14 h loose pre-filter (`$looseStartStr` / `$looseEndStr`) that covers every possible UTC offset without fetching the entire programs table
+- 🔧 **PHP exact check** — after the SQL fetch, added a per-program UTC-timestamp comparison: `(new DateTime($prog['start'], $evTz))->getTimestamp()` vs `(windowStart + windowEnd) / 2` ± `halfWindowDur`; programs outside the real window are skipped regardless of what the loose SQL returned — mirrors the `my.php` v16.0.3 fix identically
+- 🔧 **WebPush display time** — `cron/send-web-push-notifications.php` line 255 used `date('H:i', strtotime($prog['start']))` which silently treated the stored string as Bangkok time; replaced with `(new DateTime($prog['start'], $evTz))->format('H:i')` (reusing `$evTz` already computed for the exact check)
+- 🔧 **Telegram notification body** — `telegram_format_notification()` hardcoded `'Asia/Bangkok'`; now uses `$program['event_timezone']` with `DEFAULT_TIMEZONE` / `'Asia/Bangkok'` fallback, so the ⏰ time shown in the push message correctly reflects the event's local timezone
+- ✅ Tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `cron/send-telegram-notifications.php`
+- `cron/send-web-push-notifications.php`
+- `functions/telegram.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — cron / PHP-only fix; no DB schema changes.
+
+## [16.0.11] - 2026-05-28
+
+### Bug Fix — My Timeline mobile horizontal scroll broken with 3+ events
+
+On mobile, the My Timeline view could display the first two event columns but the user could not horizontally scroll to reach a third (or fourth, fifth …) event. The `overflow-x: auto` on the scroll container looked correct in CSS but never produced a scrollbar — instead the entire timeline card overflowed the viewport horizontally, body's `overflow-x: hidden` then cropped it, and the right-side events were unreachable.
+
+- 🐛 **Root cause** — `renderFavTimelineDay()` was emitting the calculated `minWidth` (50px time-axis + N × 140px event columns on mobile) as an **inline `min-width` on `.fav-tl-chart` itself** (the `overflow-x: auto` container). With min-width on the scroll container, the container itself grew past viewport width instead of staying at viewport width with overflowing inner content. The browser then had nothing to scroll inside `.fav-tl-chart` (its content was exactly its width), so `overflow-x: auto` produced no scrollbar; meanwhile the wide `.fav-tl-chart` pushed the entire `.fav-timeline-day` card out beyond the viewport edge, getting clipped by the body's overflow rules
+- 🔧 **Fix** — moved the inline `min-width` from `.fav-tl-chart` (scroll container) to `.fav-tl-header` and `.fav-tl-body` (the inner content). Now the scroll container fills the parent card at viewport width, but its inner header and body force themselves to at least `minWidth` wide — overflowing the container, which triggers `overflow-x: auto` to render a horizontal scrollbar; the user can swipe/drag inside the timeline card to reach all events while the card itself stays within the viewport
+- 📊 **Net layout change** — same visual width per column (180 / 140 px), same gridlines and bar positioning math (v16.0.8 user-local minutes unchanged), only the element that carries `min-width` shifted one level inward
+- 🎯 **Same-event-count cases (1–2 events on mobile)** — these always fit inside the viewport anyway, so the visual is identical to v16.0.10
+- ✅ **Verified** — generated HTML in the JS template now has `class="fav-tl-chart"` with no inline width, `class="fav-tl-header" style="min-width: Xpx"`, and `class="fav-tl-body" style="height: Ypx; min-width: Xpx"`; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `my.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — CSS/JS-only.
+
+## [16.0.10] - 2026-05-28
+
+### Bug Fix — `init_database` left venues out of sync with seeded sample programs
+
+`testVenuesSeededFromLocations` started failing because the `venues` table can end up with fewer rows than the distinct `programs.location` values — the v16.0.0 invariant the test guards. Reproduction path: running Setup Wizard's "Initialize Database" recreates the `programs` table and seeds three sample programs (`Main Stage`, `Main Stage`, `Sub Stage`) but the `venues` table is freshly created empty in the same step; `venue_resolve_canonical()` is only wired into the admin CRUD/ICS-import paths, not into the bulk seed `INSERT INTO programs (...)` loop, so the seeded locations never get registered as venues. Result: `venues=0, distinct=2`, test fails. The same pattern would bite anyone re-running `init_database` on an existing installation, or anyone who imported programs before v16.0.0 (when `venue_resolve_canonical` did not exist).
+
+- 🐛 **Root cause** — `init_database` block in `setup.php` (the Setup Wizard's fresh-install path) seeds 3 sample programs (`Opening Ceremony` / `Artist Performance` / `Closing Stage` with locations `Main Stage` / `Sub Stage`) via a direct `INSERT INTO programs (...)` loop, bypassing the `venue_resolve_canonical()` helper that normally auto-registers new venues
+- 🔧 **Fix 1 — re-sync after seed** — added `INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != ''` immediately after the sample-program seed loop in `init_database`; idempotent (only adds missing entries)
+- 🔧 **Fix 2 — `run_all_migrations` safety net** — same `INSERT OR IGNORE` step added to the `run_all_migrations` action, with a count-check first that surfaces "Sync venues จาก programs.location — เพิ่ม N สถานที่" in the migration messages when something was actually re-synced; this catches installations that imported programs before `venue_resolve_canonical()` existed (any pre-v16.0.0 ICS import path)
+- 🛡️ **Test guarantee** — the v16.0.0 `testVenuesSeededFromLocations` (`assertGreaterThanOrEqual($distinct, $venueCount, ...)`) is now genuinely maintained as an invariant by both initialization paths; full suite **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `setup.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none for new installs (the `init_database` path now self-syncs). For an existing DB that has the gap (e.g. `venues=0, distinct=2` from before this fix), run `setup.php` → "Run All Migrations" — the new safety-net step will sync the missing locations and report the count. Or run the one-liner: `php -r 'require "config.php"; $db=new PDO("sqlite:".DB_PATH); $db->exec("INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != \"\""); invalidate_venue_query_cache();'`
+
+## [16.0.9] - 2026-05-28
+
+### My Timeline — flip bar label: user-local as primary, event-local in parens
+
+v16.0.8 moved the Timeline's positioning math to user-local minutes so cross-TZ overlap detection works correctly, but the bar label was still showing the event-local time as the bold primary text with `(HH:MM local)` underneath. That created a small visual inconsistency: the bar sat on the axis row matching user-local 17:00 but the bold number inside the bar said `18:00` (the Taipei event-local time). This release flips the label priority so the bold number on each bar matches the user-local axis row it sits on, with the event-local time moved into parens beneath — consistent with how every axis-aligned chart elsewhere (Gantt on `index.php`) shows the primary axis-matching time first.
+
+- 📊 **Primary = user-local** — the bold `.fav-tl-bar-time` line now reads the user-local HH:MM range (computed from the cached `p._uStart` / `p._uEnd` set in v16.0.8 by `_favProgMins(p)`); this is the time that matches the bar's vertical position on the chart
+- 🔢 **Secondary (parens) = event-local** — when the program's event TZ differs from the browser TZ, a small italic `(18:00)` line is appended underneath the bold primary; the parens contains the event-local HH:MM range (already stored in `p.time` from the PHP renderer); no timezone name in the parens to keep the line compact — the lane's `🕐 Asia/Taipei` header chip already tells the user which TZ that parens number is in
+- 🎯 **Same-TZ → unchanged** — when event TZ equals user TZ, only the primary time line is rendered (just like before) — no parens, no italic sub-line; the Timeline for same-TZ users is byte-identical to v16.0.8
+- 🧰 **`_favFormatMin(min)`** — new tiny helper (`Math.floor / String.padStart`) to format minutes-since-midnight back to `HH:MM`; needed because the primary label is now derived from numeric minutes, not from the pre-formatted `p.start_iso` string
+- 🎨 **CSS class rename** — `.fav-tl-bar-time-local` → `.fav-tl-bar-time-sub` to reflect that the secondary line is no longer always "local" (it's now "event-local" when the bar's primary became user-local); same italic / muted / small style, same DOM position
+- 🪧 **Bar `title` (tooltip) updated** — native browser tooltip on hover now reads `${userTime} ${programTitle} [${eventTime} ${eventTz}]` for cross-TZ programs (e.g. `17:00–17:40 時空Astria [18:00–18:40 Asia/Taipei]`), so users can see both forms by hovering
+- ✅ **Verified** — `lint OK`; no remaining references to the old `.fav-tl-bar-time-local` class anywhere; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `my.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS/CSS only.
+
+## [16.0.8] - 2026-05-28
+
+### My Upcoming Programs Timeline — align the time-axis to the user's local clock
+
+The Timeline view on `/my/{slug}` (added in v15.8.0) was originally designed to visualise time overlap between programs the user follows. v16.0.5 added per-bar `(HH:MM local)` annotations and per-lane `🕐 Asia/Taipei` chips so users could see which timezone each lane was in, but the **time-axis itself** was still event-local: each lane's bars were positioned by the program's event-local minutes (`p.start_iso` = "HH:MM"). This made overlap detection wrong for mixed-TZ followed events — a Taipei 18:00 program and a Bangkok 17:00 program both happen at UTC 10:00 (i.e. truly overlap) but they appeared on different rows of the axis (row 18 vs row 17) so neither the overlap zone strip nor the date-header "🔴 มี event ทับซ้อน" badge fired. The whole point of the Timeline (real-time conflict detection) was undermined for cross-TZ schedules.
+
+This release moves the **positioning math** to user-local minutes while keeping bar **labels** in event-local form (matching venue announcements). Visually: same-TZ users see no change; cross-TZ users see bars from different lanes now line up by real time, overlap zones fire correctly, and the existing `(HH:MM local)` annotation underneath each bar's bold event-local time matches the bar's actual row on the axis.
+
+- 🌐 **`_favUserLocalMin(isoStr)`** — new helper: parses an ISO-8601-with-offset string (`2026-05-29T18:00:00+08:00`, already produced by the v16.0.3+ PHP renderer) into the browser's local minutes-since-midnight via `Intl.DateTimeFormat(... timeZone: userTz ... hourCycle: 'h23').formatToParts()`; handles the rare "24:00" return value for midnight; returns `null` on failure so callers can fall back to event-local minutes
+- 🌐 **`_favProgMins(p)`** — caches user-local start/end minutes on the program object as `p._uStart` / `p._uEnd` after the first call, with graceful fallback to `_favTimeToMin(p.start_iso)` / `p.end_iso` when no ISO+offset is available (e.g. stale query-cache data from before v16.0.3); used by every site that previously called `_favTimeToMin(p.start_iso)` so all of: lane-sort key (first start time), `minHour` / `maxHour` axis range, bar `top` / `height` positioning, within-event overlap detection, cross-event overlap-zone computation now agree on the same minute value
+- 📊 **Bar label vs position** — the bar still shows the bold event-local time (`p.start_iso` = "18:00") matching what the venue announces, with the `(17:00 local)` italic line underneath; only the bar's vertical **position** on the chart shifted to user-local row 17:00. The lane's `🕐 Asia/Taipei` header chip continues to show which TZ the bar's primary label is in
+- 🎯 **No-op for same-TZ users** — when every followed event's timezone equals the browser's resolved TZ, `_favProgMins(p)` returns the same minutes as the previous `_favTimeToMin(p.start_iso)` call (since event-local = user-local), so the Timeline looks identical to v16.0.7
+- ✅ **Verified** — `_favUserLocalMin` and `_favProgMins` defined and called in 6+ sites across the inline script; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `my.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS-only on top of v16.0.3's ISO-with-offset data shape. The `_favProgMins()` helper falls back to the previous event-local minutes for any program that lacks `start_full` / `end_full` (e.g. cached before v16.0.3), so the change is non-breaking for stale data.
+
+## [16.0.7] - 2026-05-28
+
+### Profile pages — cross-timezone local-time annotation on `/artist/{id}` and `/venue/{id}`
+
+Final follow-up to the v16.0.2 → v16.0.6 timezone series. The artist profile page (`/artist/{id}`) and the venue profile page (`/venue/{id}`) both list programs grouped by event, with each event potentially in its own timezone — exactly the same multi-TZ situation as the `/my/{slug}` list view fixed in v16.0.4. Until this release, those two profile pages displayed the event-local time (which was correct since v16.0.2) but provided no hint of the user's local-time equivalent, so a Bangkok user opening the SSr Vol.68 Taipei artist saw `18:20` with no indication that it meant `17:20` on their own clock. The `/venues` portal lists venue cards with program *counts* (no time fields) and so needs no change.
+
+- 🗃️ **PHP — SQL `e.timezone AS event_timezone`** — added to all three queries: artist's own programs, the artist's group programs (when the artist is a solo member of a group), and the venue's programs. Cache stores `event_timezone` automatically on the next refresh; existing cache files render without the annotation (graceful — old data simply doesn't trigger the chip) and refresh naturally on next program/venue write
+- 🗃️ **PHP — `data-utc-start` / `data-utc-end` / `data-event-tz` on time cell** — `render_programs_table()` (artist.php) and `render_venue_programs()` (venue.php) compute UTC ms via `(new DateTime($p['start'], new DateTimeZone($evTz)))->getTimestamp() * 1000` and emit the three attributes on the second `<td class="prog-time">` (the time cell, not the date cell); `$evTz = $p['event_timezone'] ?: DEFAULT_TIMEZONE` so the literal `'Asia/Bangkok'` is never hardcoded
+- 🌐 **JS — shared `annotateProfileTimes()` in `common.js`** — scans every `td.prog-time[data-event-tz][data-utc-start]`, skips rows where the cell's `data-event-tz` equals the browser's resolved TZ, and otherwise appends `<span class="prog-time-local">(17:20 local)</span>` (or range `(17:20–17:40 local)`) inside the cell; the function auto-runs on `DOMContentLoaded` (so both `artist.php` and `venue.php` get it for free since they both load `common.js`) and again on `appLangChange` (which strips the existing `.prog-time-local` spans and re-renders to refresh the "local" word per language); reuses the existing `tz.localTime` translation key — no new i18n keys
+- 🎨 **CSS — `.prog-time-local`** — `styles/artist.css` (shared between `artist.php` and `venue.php`) gets a small italic, muted, block-level chip styled to fit underneath the existing tabular `.prog-time` cell without disrupting column widths
+- 🚫 **`/venues` portal** — intentionally unchanged; the portal grid shows venue names + program counts + a "🌐 Online" badge for online platforms, but no program times, so cross-TZ annotation is not applicable
+- 🧹 **Cache hygiene** — invalidated `query_artist_*.json` + `query_portal.json` + `query_venue_*.json` + `query_portal_venues.json` once so the new `event_timezone` field starts being cached from the next page hit; future writes invalidate naturally via the existing `invalidate_artist_query_cache()` / `invalidate_venue_query_cache()` hooks
+- ✅ **Verified** — `/artist/445` (a member of the Taipei event SSr Vol.68) renders `data-event-tz="Asia/Taipei"` on each program's time cell; `/venue/2` (a Bangkok-event venue) correctly renders `data-event-tz="Asia/Bangkok"` (no annotation for Bangkok users since the TZ matches the browser); tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `artist.php`
+- `venue.php`
+- `js/common.js`
+- `styles/artist.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — PHP/JS/CSS only. The query caches were force-invalidated once during this release so the new `event_timezone` field becomes available on the next request; no schema change.
+
+## [16.0.6] - 2026-05-28
+
+### Event-page Gantt tooltip — show user-local time too
+
+Companion to v16.0.5. The Gantt/Timeline view's program bars now show `(HH:MM local)` underneath the bold event-local time, but clicking a bar opens a detailed tooltip (program title, venue, time range, artists, description) and the time row in that tooltip still showed only event-local time. Users who relied on the tooltip to confirm "what time should I actually tune in" got the right answer for same-TZ events but lost the local-time hint they had on the bar itself.
+
+- 🌐 **Tooltip time row gains local annotation** — `showEventTooltip()` in `js/common.js` now appends a small italic `(HH:MM local)` (or range `(HH:MM–HH:MM local)`) line beneath the existing event-local time when `window.EVENT_TIMEZONE` differs from the browser's resolved timezone; computed from the `data-utc-start` / `data-utc-end` UTC ms timestamps already attached to each bar in v16.0.5 (no new data attribute needed); class `.tooltip-time-local` with inline styling matching the per-bar `.gantt-program-time-local-v` style; reuses the existing `tz.localTime` translation key (no new i18n)
+- 🎯 **Same-TZ → unchanged** — when the browser TZ equals the event TZ, the tooltip is identical to v16.0.5 (no extra line)
+- ✅ **Verified** — `.tooltip-time-local` is created inside the existing `timeP` paragraph, so positioning logic in the tooltip is unaffected; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `js/common.js`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS-only enhancement on top of v16.0.5's data attributes.
+
+## [16.0.5] - 2026-05-28
+
+### Timezone follow-up — DEFAULT_TIMEZONE constant + Timeline/Gantt local-time annotation
+
+Three small follow-ups to the v16.0.2 → v16.0.4 timezone work: (1) the v16.0.3/v16.0.4 additions in `my.php` / `my-feed.php` hardcoded the literal `'Asia/Bangkok'` as the per-program fallback timezone (the project already has a `DEFAULT_TIMEZONE` constant — added v4.0.0 — that is the canonical place to change the default); (2) the event-page Gantt/Timeline view (`venue_mode=multi` on `index.php`) showed each bar's event-local time correctly but never displayed the user-local equivalent the way the list view does, leaving Bangkok users looking at a Taipei Gantt page with no way to tell that `18:00` on the chart meant `17:00` on their own clock; (3) the same gap existed on `/my/{slug}` Timeline view added in v15.8.0 — bars showed event-local time but with no annotation, and the per-event lane header didn't indicate which timezone that lane was in.
+
+- 🔧 **`DEFAULT_TIMEZONE` constant** — `my.php` (4 sites) and `my-feed.php` (2 sites) now reference `DEFAULT_TIMEZONE` instead of the literal `'Asia/Bangkok'`; SQL `COALESCE(e.timezone, 'Asia/Bangkok')` replaced by plain `e.timezone AS event_timezone` with PHP-side `$p['event_timezone'] ?: DEFAULT_TIMEZONE` fallback (cleaner: no literal duplicated in SQL, single source of truth in `config/app.php`)
+- 🌐 **Event-page Gantt local-time annotation** — `renderGanttChart()` in `js/common.js` now emits `data-utc-start` / `data-utc-end` (UTC ms from each program's `start_ts` / `end_ts`) on every `.gantt-program-vertical` bar; new `annotateGanttLocalTime()` is called after `ganttView.innerHTML = renderGanttChart(...)` to inject a small italic `(HH:MM local)` span (class `.gantt-program-time-local-v`) next to the existing bold event-local time when `window.EVENT_TIMEZONE` differs from the browser's resolved timezone; `updateTimezoneLabels()` was extended to refresh the "local" label word on language switch (no new translation keys — the existing `tz.localTime` already handles TH / EN / JA)
+- 🌐 **My Timeline cross-TZ annotation** — `renderFavTimelineDay()` in `my.php` was updated in two places: each `.fav-tl-bar` (the program bar) now emits `<div class="fav-tl-bar-time-local">(17:20 local)</div>` underneath the existing event-local `<div class="fav-tl-bar-time">18:20</div>` when the program's `event_tz` differs from the browser TZ; each `.fav-tl-event-header` (the per-event column header at the top of the timeline) now shows a small italic `· 🕐 Asia/Taipei` chip when that lane's TZ differs from the browser TZ — so users can tell at a glance both "what's this lane's clock?" (header) and "what would that be in my own clock?" (per-bar)
+- 🎯 **Same TZ → unchanged UI** — when the browser TZ equals the event TZ (e.g. a Bangkok user looking at a Bangkok event), no annotations are added on either the Gantt or the My Timeline view; the UI is identical to v16.0.4 for the common case
+- 🧰 **`_favUserTz()`** — small cached helper in `my.php` for the browser's resolved timezone (used per-bar during render and per-lane in the header); avoids calling `Intl.DateTimeFormat().resolvedOptions().timeZone` once per program/lane on every re-render
+- ✅ **Verified** — `data-event-tz="Asia/Taipei"` propagates from PHP through to the Timeline bars; `.fav-tl-event-tz` chip and `.fav-tl-bar-time-local` annotation CSS present; Gantt template emits `data-utc-start`; `annotateGanttLocalTime` is defined and wired into the Gantt-view switch handler; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `my.php`
+- `my-feed.php`
+- `js/common.js`
+- `styles/index.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS/PHP-only enhancement on top of v16.0.4's data shape. The `DEFAULT_TIMEZONE` constant is unchanged (`Asia/Bangkok`) so existing installs see identical defaults; sites that want a different default now have a single place to change it.
+
+## [16.0.4] - 2026-05-28
+
+### My Upcoming Programs: Cross-Timezone Local-Time Annotation
+
+After v16.0.3 fixed the underlying timestamps, programs displayed event-local times correctly (Taipei 18:20 actually showed `18:20`), but a Bangkok-based user looking at the My Upcoming Programs page had no way to tell that `18:20` meant `17:20` in their own wall clock — the event page (`index.php`) already shows `(HH:MM local)` annotations next to each program time and a `🕐 Asia/Tokyo (Asia/Bangkok)` header badge, but the per-user / cross-event My Upcoming Programs page didn't have an equivalent. This release adds the missing annotation, with the extra challenge that a single page mixes programs from multiple event timezones (so the annotation has to be per-row, not per-page).
+
+- 🌐 **Per-row `(HH:MM local)` annotation** — for every `.fav-program-row` whose `data-event-tz` differs from the browser's resolved timezone, JS appends a small italic `(17:20 local)` (or range `(17:20–17:40 local)`) line inside the existing `.fav-time` cell; user-local time computed from `data-start` / `data-end` (ISO-8601 with offset, added in v16.0.3) via `Date.toLocaleTimeString([], { timeZone: userTz })`, so the value is always the user's actual wall-clock time
+- 🕐 **Per-row TZ chip** — when the event's timezone differs from the user's, a small `· 🕐 Asia/Taipei` chip is appended to the existing `.fav-prog-meta` line (next to event name / location / categories) so the user can see which TZ the event-local time is in without hovering or guessing
+- 🗃️ **PHP data shape** — `$calPrograms[$date][]` now carries `start_full` (ISO-8601 with offset, e.g. `2026-05-29T18:20:00+08:00`), `end_full`, and `event_tz` per program, so the day modal's JS-generated rows can be annotated identically to the main list
+- 🔄 **Re-annotation hooks** — `_favAnnotateTimezones()` is called from `DOMContentLoaded`, again after `openDayModal()` inserts new rows, and again after `changeLanguage()` (which strips the old `.fav-time-local` spans first because the literal "local" word is translated through the existing `tz.localTime` translation key — no new i18n keys needed)
+- 🎯 **No-op when timezones match** — users in Asia/Bangkok viewing Bangkok events, or users in Asia/Taipei viewing Taipei events, see exactly the same UI as before; the annotation only appears for cross-TZ rows so the page stays uncluttered for the common case
+- ✅ **Verified** — created a test slug following SSr Vol.68 (Taipei UTC+8); each row carries `data-event-tz="Asia/Taipei"` + ISO-with-offset timestamps; `.fav-time-local` and `.fav-tz-chip` CSS hooks present; tests **11,813 / 11,813** pass
+
+**Files changed:**
+
+- `my.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — JS-only enhancement on top of v16.0.3's data shape. Refresh `/my/{slug}` to see the new annotations.
+
+## [16.0.3] - 2026-05-28
+
+### Bug Fix — My Upcoming Programs + Personal ICS Feed Wrong Time Across Timezones
+
+Companion to v16.0.2. The "My Upcoming Programs" page (`/my/{slug}`) and the personal ICS subscription feed (`/my/{slug}/feed`) had two separate timezone bugs that became visible once an event in a non-Bangkok timezone was added: the "Now Playing" highlight on `/my/{slug}` was off by the offset between the event's timezone and the browser's timezone (a Bangkok user following SSr Vol.68 in Taipei would see the NOW badge stay on for an hour after the program ended), and the personal ICS feed wrote UTC timestamps that assumed Bangkok-local stored time, so calendar apps subscribed to the feed put Taipei programs at the wrong UTC instant (Taipei 18:00 was emitted as `20260529T112000Z` = Bangkok 18:20 = Taipei 19:20, instead of the correct `20260529T102000Z`).
+
+Critically, this page aggregates programs from **multiple followed events that may each have their own timezone**, so a single page-wide default is not enough — the fix must look up each program's event timezone individually.
+
+- 🐛 **`my.php` "Now Playing" highlight** — `data-start` / `data-end` on `.fav-program-row` were emitted as the raw stored string `2026-05-29T18:00:00`, with no timezone marker; JS `new Date(...)` then parsed them as **browser-local** time, so a Bangkok browser interpreted Taipei 18:00 as Bangkok 18:00 (which is UTC 11:00, not the actual UTC 10:00) → "now" comparison was off by the TZ offset
+- 🐛 **`my-feed.php` DTSTART/DTEND** — used `gmdate('Ymd\THis\Z', strtotime($p['start']))` which `strtotime`-interprets the stored string in **PHP's default Bangkok timezone**, producing UTC timestamps offset by the event-TZ-vs-Bangkok difference; calendar apps then displayed every non-Bangkok program at the wrong time
+- 🔧 **Per-program timezone** — both `my.php` and `my-feed.php` SQL now `SELECT … COALESCE(e.timezone, 'Asia/Bangkok') AS event_timezone` so each row carries its own event's TZ
+- 🔧 **`my.php` emits ISO-8601 with explicit offset** — `data-start="2026-05-29T18:20:00+08:00"` for Taipei programs (PHP `(new DateTime($p['start'], $eventTz))->format('c')`); JS `new Date(row.dataset.start)` parses these to the correct UTC instant regardless of the browser's timezone, so the Now Playing comparison works for followed events in any TZ. Removed the now-unnecessary `.replace(' ', 'T')` since the ISO format always uses `T`
+- 🔧 **`my-feed.php` computes UTC via event TZ** — `gmdate('Ymd\THis\Z', (new DateTime($p['start'], $eventTz))->getTimestamp())`; Taipei 18:20 → `20260529T102000Z` (correct) instead of the previous Bangkok-interpreted `20260529T112000Z`
+- ✅ **Verified end-to-end** — created a test slug following an SSr Vol.68 (Taipei, UTC+8) artist (`時空Astria` #445); confirmed `/my/{slug}` emits `data-start="2026-05-29T18:20:00+08:00"` and `/my/{slug}/feed` emits `DTSTART:20260529T102000Z` (= Taipei 18:20)
+- 🚫 **Out of scope (already correct)** — the displayed time on each row (`<div class="fav-time">18:20</div>`) is read from `substr($p['start_date'], 11, 5)`, which is the event-local stored string — TZ-safe by construction. The Timeline view (`v15.8.0`) uses `start_iso` / `end_iso` for positioning on a per-day axis; the axis is event-local minutes, which displays each program at the hour it actually starts in its own venue's wall clock (the intuitive view for "what time should I tune in"). The mini calendar / day-modal lists are also `substr`-based — display-only, TZ-safe
+
+**Files changed:**
+
+- `my.php`
+- `my-feed.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — display-only fix on `my.php`; for `my-feed.php`, subscribed calendar apps refresh on their next pull (Apple ≤ 1 hour, Google ≤ 24 hours, Outlook ≤ 24 hours) and will then show the corrected times. Users with Outlook Web who want the fix immediately should remove and re-subscribe to the personal feed.
+
+## [16.0.2] - 2026-05-28
+
+### Bug Fix — Event Page Showed Wrong Time for Non-Bangkok Timezones
+
+Events whose timezone differs from the server-side PHP default (`Asia/Bangkok`, set in `config/app.php`) were rendering program times offset by the timezone difference on the event page. Example: SSr Vol.68 is `Asia/Taipei` (UTC+8); its stored start `2026-05-29T18:00:00` is Taipei-local, but the list view showed `17:00` (1 hour off — Bangkok). Tokyo events (UTC+9) were off by 2 hours, Pacific events by more. The Gantt and Calendar views, the ICS feed, the ICS export, and the venue/artist profile tables were already correct — the bug was isolated to the list view rendering on `index.php`.
+
+- 🐛 **Root cause** — `$start_ts` / `$end_ts` were correctly built as UTC timestamps by `(new DateTime($event['start'], $eventTzObj))->getTimestamp()`, but the four downstream `date(...)` calls that produced the visible time (`data-start` / `data-end`) and the date headers / date-jump bar used PHP's default timezone instead of the event timezone, so the timestamp was re-formatted as Bangkok-local time
+- 🔧 **Fix** — added an `$evFmt($ts, $fmt)` closure that wraps the UTC timestamp in a `DateTime` set to `$eventTzObj` and formats from there; replaced 10 `date()` calls in `index.php` (program-time `data-start` / `data-end`, day grouping key, day-header `d`/`m`/`Y`/`w`, date-jump-bar `d`/`m`/`w`)
+- ✅ **Verified end-to-end** — SSr Vol.68 (`Asia/Taipei`) now renders `data-start="18:00"` (matches stored 18:00 Taipei local) instead of the previous incorrect `17:00`; date headers render the Taipei date even when the event spans a Bangkok day boundary
+- 🚫 **Out of scope (already correct)** — `feed.php` and `export.php` use `(new DateTime($event['start'], $tz))->format(...)` (DateTime keeps its own TZ on `format()`), so `DTSTART;TZID=Asia/Taipei:20260529T180000` was already correct. `image.php` PNG export groups by `date('Y-m-d', strtotime($p['start']))` which roundtrips in the same default TZ and preserves the stored date string. The calendar view (`venue_mode=calendar`) and Gantt view use `ev.start.substring(...)` directly on the event-local stored string — also TZ-safe
+
+**Files changed:**
+
+- `index.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — display-only fix. Existing `programs.start` / `programs.end` data is unchanged (it was already correct event-local text); the bug was purely in how `index.php` rendered those values. Refresh the page to see the corrected time.
+
+## [16.0.1] - 2026-05-28
+
+### Venue: Hide Online Platforms from Portal
+
+Online platforms (YouTube, Instagram Live, X Spaces) are programs' "locations" technically, but they are not physical venues and only cluttered the `/venues` portal grid. v16.0.0 had no way to distinguish them; admins were either stuck with them in the listing or had to delete and lose the `programs.location` link. This release adds an opt-in `is_online` flag so online platforms stay first-class venues (programs still link to `/venue/{id}`, autocomplete still suggests them) but get hidden from the portal grid.
+
+- 🗃️ **Schema** — `venues.is_online INTEGER DEFAULT 0` added via idempotent `ALTER TABLE` in `tools/migrate-add-venues-table.php` + matching `CREATE TABLE` / `ALTER TABLE` in `setup.php` (`init_database` + `run_all_migrations`); existing rows default to 0
+- 🌱 **Auto-seed** — the migration auto-flags `YouTube`, `Instagram Live`, `X Spaces` as `is_online = 1` so the portal is clean on first re-run; idempotent (only updates rows that are currently 0)
+- 🌐 **Translation note (TH)** — all user-visible Thai labels that referred to a venue as "เวที" (stage) are now "สถานที่" (place) — both in the v16.0.0 venue UI and in pre-existing strings (`filter.venue`, `table.venue`, `modal.venue`, `gantt.venue`, `artist.colVenue`, `programs.allVenues`, `bulkEdit.venueHint`, `section2.filter2.*`, `section3.calendar.step1`, `section7.feature1`, `filter.noVenue`, etc. + `admin/index.php` / `index.php` / `how-to-use.php` / `image.php` / `admin/help.php` HTML fallbacks). Affects display only (no logic / no schema change); existing translations.js test counts unchanged
+- 🛠️ **Admin** — venue Add/Edit modal gets a `🌐 Online platform (hidden from /venues portal)` checkbox + hint; venue list row shows a blue `🌐 Online` badge next to the name when flagged; `venues_create` / `venues_update` accept `is_online`, `venues_get` / `venues_list` return it (all guarded with a `PRAGMA table_info` probe for backward-compat with un-migrated installs)
+- 🌐 **Portal `/venues`** — query filters `WHERE COALESCE(v.is_online, 0) = 0`; online venues are completely hidden from the grid
+- 🌐 **`/venue/{id}`** — still works for online venues (accessible via the program-cell link); renders the placeholder icon as `🌐` instead of `🏛️` and shows the `🌐 Online Platform` badge in the header. `venue.badgeOnline` translation key added in TH / EN / JA
+- 🧪 **`VenueTest`** — 7 new tests (column exists + defaults to 0; YouTube/Instagram Live/X Spaces seeded; portal SQL filter; admin API binds `:is_online`; venue page renders badge; 3 languages have `venue.badgeOnline`); full suite **11,813 / 11,813** passes 100%
+
+**Files changed:**
+
+- `tools/migrate-add-venues-table.php` — added idempotent ALTER + online seed step
+- `setup.php` — venues CREATE TABLE includes `is_online` + `run_all_migrations` ALTER fallback
+- `admin/api.php` — `createVenue` / `updateVenue` / `getVenue` / `listVenues` handle `is_online` (with `PRAGMA` probe)
+- `admin/index.php` — `is_online` checkbox in venue modal, JS load/save, 🌐 Online badge in venue list
+- `admin/js/admin-i18n.js` — `venues.fieldIsOnline`, `venues.isOnlineHint`, `venues.onlineBadge` (TH + EN)
+- `venues.php` — portal query filters online venues
+- `venue.php` — header icon + badge react to `is_online`; SELECT picks `is_online`
+- `js/translations.js` — `venue.badgeOnline` (TH / EN / JA) + system-wide "เวที" → "สถานที่" TH copy
+- `index.php`, `artist.php`, `how-to-use.php`, `image.php`, `admin/help.php` — Thai labels updated to "สถานที่"
+- `tests/VenueTest.php` — 7 new tests
+- `service-worker.js`, `config/app.php` — bumped to v16.0.1 (via `sync-sw-version.php`)
+- `CHANGELOG.md`, `CLAUDE.md` — release notes
+
+> **Migration:** re-run `php tools/migrate-add-venues-table.php` (idempotent — adds the column if missing and flags the 3 known online platforms). Existing custom online venues can be flagged via Admin › Venues › Edit › 🌐 checkbox.
+
+## [16.0.0] - 2026-05-27
+
+### Venue / Location Dedup System
+
+Introduced a canonical layer for program locations, mirroring the Artist Reuse architecture. Previously `programs.location` was free text and its suggestions came from `SELECT DISTINCT location`, so any spelling/spacing/case difference created a brand-new "venue" — the venue list grew duplicated and the homepage venue filter became cluttered. The new system keeps `location` as canonical text (no `venue_id` FK — lightweight by design, so the ~30 files that read/filter location are untouched) but adds a `venues` table + `venue_variants` aliases that drive autocomplete, auto-canonicalisation on save/import, an admin Merge tool, and public venue profile pages.
+
+- 🗃️ **Schema** — new `venues` (`id`, `name UNIQUE`, `description`, `map_url`, timestamps) + `venue_variants` (`venue_id` FK ON DELETE CASCADE, `variant`, `UNIQUE(venue_id, variant)`); indexes `idx_venues_name`, `idx_venue_variants_venue_id`
+- 🔁 **`venue_resolve_canonical($db, $raw, $allowCreate)`** in `admin/api.php` — mirror of `syncProgramArtists()`: exact name match → variant lookup → auto-create new venue (admin/agent only); returns the canonical string. Called before binding `programs.location` in `createProgram()`, `updateProgram()`, `bulkUpdatePrograms()`, and `confirmIcsImport()` so known aliases auto-normalise and new venues self-register
+- 🌱 **Seeding** — `tools/migrate-add-venues-table.php` seeds `venues` from existing `DISTINCT programs.location` and seeds `venue_variants` from the historical dedup mapping (the A–H groups merged earlier, e.g. `Phenix Pratunam` → `Lot of Live, 3rd Fl. Phenix Pratunam`), so re-imports of old names auto-canonicalise instead of re-duplicating
+- 🛠️ **Admin Venues tab** (admin/agent) — list with program/variant counts, search, sort, pagination; Add/Edit modal (name/description/map_url; rename rewrites `programs.location`); Variants modal (add/remove aliases); bulk-select + **Merge** modal (pick canonical target, others become variants, all matching programs + variants rewritten to the target name); program-form and bulk-edit venue datalists now pull canonical names from `venues_list` (graceful fallback to `programs_venues`)
+- 🌐 **Public `venue.php` → `/venue/{id}`** — venue profile listing upcoming programs grouped by event (matched by `location = name OR location IN (variants)`), description + map link, alternate-names section; query-cached as `query_venue_{id}.json`; 404 on unknown venue
+- 🌐 **Public `venues.php` → `/venues`** — venue portal grid with program counts + real-time search; cached as `query_portal_venues.json`; `🏛️ สถานที่` nav link added to the homepage listing header
+- 🔗 **Clickable venue cells** — `index.php` builds `$venueMeta[location → id]` (name + variants, cached in `query_event_{id}.json`) and renders the venue cell as a link to `/venue/{id}`
+- 🔌 **Admin API** — `venues_list`, `venues_get`, `venues_create`, `venues_update`, `venues_delete`, `venues_autocomplete`, `venues_variants_list/create/delete`, `venues_merge`; venue CRUD/merge are admin/agent; organizer allowlist gains read-only `venues_autocomplete` + `venues_list`
+- 🔄 **Cache** — new `invalidate_venue_query_cache()` (`query_venue_*.json` + `query_portal_venues.json`); program writes + venue writes invalidate it; merge/rename also invalidate data-version + feed caches (programs.location changes); both patterns added to `invalidate_all_caches()`
+- 🧪 **`VenueTest`** — 27 new tests (schema, migration idempotency, exact/variant resolve, cascade delete, dispatch/allowlist/source hooks, cache, public-page matching, `.htaccess` route, i18n keys, dedup-seed verification); **11,806 tests total**, 100% pass
+- 🧪 Updated `FeedTest::testAdminApiHasSixFeedCacheInvalidations` → expects 8 `invalidate_feed_cache()` calls (6 program ops + 2 venue ops that rewrite `programs.location`)
+- 🚫 **Out of scope** — no `venue_id` FK on programs; export/feed/image/api location queries unchanged; venue cover images; ICS feed per venue
+
+**Files changed:**
+
+- `tools/migrate-add-venues-table.php` — new (create tables + seed venues + seed dedup variants; idempotent)
+- `tools/dedup-locations.sql` — new (one-off SQL used to consolidate the existing duplicate locations, A–H groups)
+- `venue.php` — new (public venue profile page)
+- `venues.php` — new (public venue portal)
+- `tests/VenueTest.php` — new (27 tests)
+- `admin/api.php` — `venue_resolve_canonical()` + 10 venue API functions + dispatch cases + organizer allowlist + venue-cache invalidation on program/venue writes + canonicalise location on create/update/bulk/import
+- `functions/cache.php` — `invalidate_venue_query_cache()` + venue patterns in `invalidate_all_caches()`
+- `admin/index.php` — Venues tab (desktop + mobile), section table + toolbars, Add/Edit/Variants/Merge modals, venue tab JS, datalists repointed to canonical names
+- `admin/js/admin-i18n.js` — venue keys (TH + EN)
+- `index.php` — `$venueMeta` build + cache + clickable venue cell + `🏛️ สถานที่` nav link
+- `js/translations.js` — `nav.venues`, `venue.*`, `venuePortal.*` keys (TH / EN / JA)
+- `.htaccess` — `RewriteRule ^venue/([0-9]+)` route
+- `setup.php` — venues tables in `init_database` + `run_all_migrations` + `$hasVenuesTables` migration check
+- `tests/run-tests.php` — registered `VenueTest`
+- `tests/FeedTest.php` — updated feed-cache invalidation count to 8
+- `service-worker.js` — `CACHE_VERSION` bumped to v16.0.0 (automatic via `sync-sw-version.php`)
+- `config/app.php` — `APP_VERSION` bumped to v16.0.0
+- `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version references updated (automatic via `tools/update-version.php`)
+- `CHANGELOG.md` — added the v16.0.0 release entry (manual)
+- `CLAUDE.md` — added the v16.0.0 changelog section (manual)
+- `README.md` — added the v16.0.0 row to the Feature Timeline table (manual)
+
+> **Migration:** run `php tools/migrate-add-venues-table.php` (or `setup.php` → Run All Migrations) on existing installs to create + seed the venues tables. No change to `programs.location` data is required; the homepage/feeds/exports keep working unchanged.
+
+## [15.8.0] - 2026-05-22
+
+### Timeline View — My Upcoming Programs
+
+Added a per-day Gantt-style Timeline view on `/my/{slug}` alongside the existing List view. The Y-axis is **events** (each followed event becomes a horizontal lane), the X-axis is time (auto-fit to that day's min/max hour). Previously, when a single day had ≥2 followed events with overlapping program times, users had to manually compare timestamps row-by-row to spot the overlap — the Timeline now exposes it instantly through bar alignment.
+
+- 📊 **Toggle List / Timeline** — two-button segmented control (📋 List / 📊 Timeline) above "📅 Upcoming Programs"; selection persisted in `localStorage` key `fav_view_mode`; preferred view restored automatically on next page load; toggle uses `is-active` class with subtle `box-shadow` reminiscent of an iOS segmented control
+- 🗓️ **Per-day Gantt block** — each date with programs renders as its own block (`.fav-timeline-day`): date header (`.fav-tl-date-header`) followed by chart container (`.fav-tl-chart`) with sticky header row + horizontal scroll for days with many events; time axis column on the left (50 px mobile / 60 px desktop) shows `HH:00` hour ticks; each event occupies one column (140 px mobile / 180 px desktop); slot height 60 px mobile / 70 px desktop
+- ⏱️ **Time range auto-fit** — `minHour` / `maxHour` computed from that day's programs only (not a fixed 0–24); minimizes whitespace; programs where `end ≤ start` get a minimum 30-minute display window to avoid 0-height bars
+- 🎨 **Event color coding** — bars and event headers use the existing `.fav-ec-{0..5}` palette (pink / blue / green / amber / purple / teal) mapped via the `EVENT_COLOR_MAP[event_slug]` JS const that has existed since v4.0.3; CSS overrides set border-color + background tint per code; bars have `border: 1px solid` matching the event color over a white background for readability
+- 🔴 **Cross-event overlap visualization** — when programs from ≥2 different events occupy the same time range:
+  1. **Vertical overlap zone strip** — translucent red band (`rgba(229,57,53,.10)` + dashed top / bottom borders) covering the overlap time range, rendered in every affected event column at `z-index:1` (below bars at `z-index:2`); `pointer-events:none` so it doesn't intercept bar clicks
+  2. **Date header badge** — red badge appended next to the date label: `🔴 มี event ทับซ้อน` / `🔴 Overlapping events` / `🔴 重複あり`
+  3. **Bar layout itself** — since each event has its own column, bars at the same X-position but in different rows make the overlap visible from vertical alignment alone
+- 🧮 **Overlap detection algorithms** — two separate functions:
+  - `_favDetectWithinEventOverlaps(progs)` — pair-wise sweep within the same event (in case multiple programs of one event overlap, which is rare but possible); assigns dynamic `stackIndex` / `stackTotal` to split bar width equally (pattern ported from `js/common.js::detectOverlaps()`)
+  - `_favFindCrossEventOverlaps(programs)` — sort-by-start sweep-line; collects zones `{startMin, endMin, slugs[]}` whenever two programs overlap AND have different `event_slug`; consumed by the overlap-strip renderer above
+- 🖱️ **Click-to-detail** — clicking a bar opens the existing `openDayModal(date)` which shows that day's full program list with event / location / categories / stream URL — no separate detail popup needed
+- 🌐 **i18n re-render on language switch** — `changeLanguage()` IIFE patch calls `renderFavTimeline()` again when the timeline is currently rendered (`_favTimelineRendered === true`); event names are static text, but the "Time" axis label, date-format month names, and overlap badge text all need to update on language switch
+- 🗃️ **PHP data shape** — `$calPrograms[$date][]` now includes two new keys: `start_iso` (raw `HH:MM`) and `end_iso` (`HH:MM`, or falls back to `start_iso` when end is empty / `00:00`); existing fields (`time`, `title`, etc.) unchanged; no DB schema migration required
+- 🌐 **New translation keys** — `fav.view.list`, `fav.view.timeline`, `fav.timeline.overlapHint` across TH / EN / JA (9 entries in `js/translations.js`)
+- 🚫 **Out of scope** — the mini calendar's day modal (still list view); `/my-favorites/{slug}` page (no program data to render); ICS feed (unrelated to view mode)
+
+**Files changed:**
+
+- `my.php` — added `start_iso` + `end_iso` to `$calPrograms` shape; ~140 lines of new CSS for the view toggle + timeline (`.fav-section-header`, `.fav-view-toggle`, `.fav-vt-btn`, `.fav-timeline-day`, `.fav-tl-*`, event color overrides, `≤768px` media query); wrapped the Upcoming Programs section with `.fav-section-header` + `#favListView` / `#favTimelineView` containers; ~150 lines of new JS: `setFavView()`, `renderFavTimeline()`, `renderFavTimelineDay()`, `formatFavTimelineDates()`, `_favTimeToMin()`, `_favDetectWithinEventOverlaps()`, `_favFindCrossEventOverlaps()`, `openFavTimelineBar()`; patched the `changeLanguage()` IIFE + `DOMContentLoaded` to restore view mode
+- `js/translations.js` — added `fav.view.list`, `fav.view.timeline`, `fav.timeline.overlapHint` to the TH / EN / JA blocks (9 entries total)
+- `service-worker.js` — `CACHE_VERSION` bumped to v15.8.0 (automatic via `sync-sw-version.php`)
+- `config/app.php` — `APP_VERSION` bumped to v15.8.0
+- `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version references updated (automatic via `tools/update-version.php`)
+- `CHANGELOG.md` — added the v15.8.0 release entry (manual)
+- `CLAUDE.md` — added the v15.8.0 changelog section (manual)
+- `README.md` — added the v15.8.0 row to the Feature Timeline table (manual)
+- `SKILL.md` — updated `Current version: v15.8.0` (manual)
+- `WORKFLOW.md` — updated `Current version`, added v15.8.0 to Recent Release Notes, updated `Last Updated` (manual)
+
+> **Manual smoke test:** open `/my/{slug}` → click **📊 Timeline** → list hides, timeline shows; check `localStorage.fav_view_mode === 'timeline'` in DevTools; reload the page → timeline view is restored; switch language TH ↔ EN ↔ JA → "Time" axis label, date headers, and overlap badge re-render; test an overlap case (two followed artists from different events with programs at overlapping times) → two bars in two columns + vertical red zone + 🔴 badge in the date header; click a bar → day modal opens.
+>
+> **Migration:** no DB schema migration; existing PWA users get the feature automatically on next service-worker revalidation (the `Cache-Control: no-cache, no-store, must-revalidate` headers on `service-worker.js` at `.htaccess:82-85` force the browser to re-fetch it).
+
+## [15.7.0] - 2026-05-21
+
+### PWA Offline Cache
+
+Added a `fetch` handler with cache strategies to `service-worker.js` (previously push + lifecycle only). Users who open the PWA on poor signal — at the venue, on transit, on captive Wi-Fi — can now reload / reopen core pages they've already visited online; unvisited URLs serve a self-contained `offline.html` fallback.
+
+- 🌐 **Cache strategy matrix** — six route types with distinct behavior:
+  - **Static assets** (CSS / JS / icons / fonts / images, regex `/\.(css|js|png|jpe?g|gif|svg|ico|webp|woff2?|ttf|otf)(\?.*)?$/i`) → cache-first, versioned (`app-static-v{VER}`)
+  - **Visited HTML pages** → network-first with **3-second timeout** + cache fallback + `offline.html` last resort (`app-pages-v{VER}`)
+  - **Public JSON API** (root `api.php` only) → stale-while-revalidate with `ETag` / `If-None-Match` conditional revalidation; on `304` the cached body is preserved and only its `X-SW-Cached-At` timestamp refreshes — never overwritten with the empty `304` response (`app-api-v{VER}`)
+  - **User / private / write APIs + feeds + admin / setup / tools** → network-only (bypass): `api/favorites.php`, `api/push.php`, `api/request.php`, `api/event-request.php`, `api/telegram.php` (and their `/api/...` clean-URL variants), `feed.php`, `my-feed.php`, `/admin/`, `/setup.php`, `/tools/`, `service-worker.js` itself, `sync-sw-version.php`
+  - **Cross-origin** (AdSense, GA, jsQR / Cropper / html2canvas CDNs) → bypass entirely
+  - **Non-GET requests** → bypass entirely
+- 🔄 **Freshness controls** — `MAX_API_CACHE_AGE_MS = 7 × 24 × 60 × 60 × 1000` ms; API cache entries older than 7 days are treated as a cache miss so users don't see misleadingly stale data (e.g. last month's calendar) when offline. `NETWORK_TIMEOUT_MS = 3000` ms protects against captive Wi-Fi and weak signal: the HTML strategy uses `Promise.race([fetch, setTimeout])` to fall back to cache when the network is too slow to respond. Every `cache.put` injects an `X-SW-Cached-At: <ms>` response header so freshness can be evaluated on read.
+- 🗑️ **Activate cleanup** — `caches.keys()` iterates all cache names; any name starting with `app-` that isn't in `VALID_CACHES` for the current version is deleted. When `APP_VERSION` bumps, old static / page / API caches all clear automatically and the user re-fetches everything on next online use.
+- 📦 **`PRECACHE_ASSETS`** — 11 assets cached on install: `offline.html`, `manifest.json`, three icons (`icon/icon-72.png`, `icon/icon-192.png`, `icon/icon-512.png`), four stylesheets (`styles/common.css`, `index.css`, `artist.css`, `portal.css`), and two scripts (`js/common.js`, `js/translations.js`) — all version-qualified with `?v=` query strings. Resolved with `new URL(p, self.registration.scope)` so subdir installs (e.g. `https://host/stage-idol-calendar/`) work correctly. Theme CSS files and uploaded images are runtime-cached when a visited page requests them, since the active theme and uploads are deployment / data dependent and can't be enumerated at install time.
+- 🌸 **`offline.html`** (new, root level) — fully self-contained: inline `<style>` with sakura gradient pink card layout (no external CSS), inline `<script>` that picks language from `localStorage.lang` → `<html lang>` → `navigator.language` (TH / EN / JA). "🔄 ลองอีกครั้ง / Try again / 再試行" button calls `location.reload()`; "🏠 กลับหน้าแรก / Go home / ホームへ" button derives the deployment base from `location.pathname` by stripping known clean route prefixes (`/my/`, `/my-favorites/`, `/artist/`, `/event/`, `/artists`, `/connect`, `/contact`, `/past-events`, `/credits`, `/how-to-use`) — subdir-safe; no `.htaccess` rule needed (served as a plain static file).
+- 🔧 **`sync-sw-version.php`** (new, root level) — dedicated CLI-only sync script that reads `APP_VERSION` from `config/app.php` and updates the `CACHE_VERSION` constant in `service-worker.js`. Idempotent (exits 0 with "already at v…" when the version matches); fail-loud (writes to STDERR + exits 1 when the file is missing or the pattern can't be matched); does **not** modify `tools/update-version.php`. The workflow is two manual steps: `php tools/update-version.php X.Y.Z` first, then `php sync-sw-version.php` to invalidate PWA caches.
+- 🛡️ **Defense-in-depth web access blocking** — `sync-sw-version.php` has a `php_sapi_name() !== 'cli'` guard that returns HTTP 403 if accessed via the web, **and** `.htaccess` adds a `<Files "sync-sw-version.php">` block with `Require all denied` (Apache 2.4) plus an `Order deny,allow / Deny from all` 2.2 fallback so the script is denied at the Apache level before PHP ever runs.
+- 🧪 **`PwaOfflineTest`** — 59 new tests added (cumulative suite total: 985). Coverage includes: `service-worker.js` source checks (CACHE_VERSION matches APP_VERSION, cache constants, PRECACHE_ASSETS, MAX_API_CACHE_AGE_MS / NETWORK_TIMEOUT_MS constants, install / activate / fetch handlers, network-only routes for all 5 sensitive APIs + feeds + admin / setup / tools + SW self + sync-sw-version, SWR helper for api.php, `cachePutWithTimestamp` + `X-SW-Cached-At` injection, `isCacheFresh` age check, ETag / `If-None-Match` revalidation, 304-doesn't-overwrite-body invariant, `Promise.race` timeout, `getOfflineUrl` from `self.registration.scope`, static asset regex), `offline.html` checks (exists, has DOCTYPE + title, contains no `<?php` / `<?=` tags, has Thai + English + Japanese text, has inline `<style>`, has no external CSS `<link>` or `<script src=...>`, has `location.reload` handler), `sync-sw-version.php` checks (exists at root, CLI guard via `php_sapi_name`, `http_response_code(403)`, requires `config/app.php`, uses `preg_match` on CACHE_VERSION, idempotent "already at" early-return), `.htaccess` checks (has `<Files "sync-sw-version.php">` block, Apache 2.4 `Require all denied`, Apache 2.2 `Deny from all` fallback in the same block), and a regression guard that `tools/update-version.php` does **not** reference `service-worker.js` (force-keeps the SW sync logic in its dedicated script). Push, notificationclick, and pushsubscriptionchange handler preservation are verified.
+- 🚫 **Out of scope for v1** — iOS-specific `apple-touch-icon` link / `apple-mobile-web-app-title`; manifest `shortcuts` / `screenshots` arrays; Background Sync API for offline favorites mutations; push notification offline queue; client-driven precache of dynamic URLs (`/my/{slug}`, `/artist/{id}`) that the SW can't discover at install time without a postMessage handshake from the page.
+
+**Files changed:**
+
+- `service-worker.js` — rewrote: added `CACHE_VERSION` + 3 cache name constants, `VALID_CACHES` whitelist, `PRECACHE_ASSETS` array, `MAX_API_CACHE_AGE_MS` + `NETWORK_TIMEOUT_MS` constants, `NETWORK_ONLY_PATHS` array, 7 helpers (`getOfflineUrl`, `isStaticAsset`, `isNetworkOnly`, `isPublicApi`, `isHtmlRequest`, `cachePutWithTimestamp`, `isCacheFresh`, `refreshCacheTimestamp`, `revalidateApi`, `networkFirstWithTimeout`, `cacheFirstStatic`, `staleWhileRevalidate`), install handler with `cache.addAll`, activate handler with stale-cache cleanup, fetch handler with 6-stage routing. Push / notificationclick / pushsubscriptionchange handlers preserved unchanged.
+- `offline.html` — new file at root; self-contained HTML / CSS / JS; 3 languages; no external dependencies
+- `sync-sw-version.php` — new CLI-only sync script at root; idempotent; fail-loud
+- `.htaccess` — added `<Files "sync-sw-version.php">` block with Apache 2.4 + 2.2 fallback
+- `tests/PwaOfflineTest.php` — new test suite, 59 unique tests
+- `tests/run-tests.php` — registered `PwaOfflineTest` (suite #25, cumulative tests: 985)
+- `config/app.php` — version bump to v15.7.0
+- `CLAUDE.md` — added v15.7.0 changelog section
+- `README.md`, `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md` — version references updated
+
+> **Migration:** no DB schema migration required. Existing PWA users get the new service worker automatically on next revalidation (the `Cache-Control: no-cache, no-store, must-revalidate` headers on `service-worker.js` at `.htaccess:82-85` force the browser to refetch it on every load).
+>
+> **Workflow note:** version bumps now require two manual CLI steps — `php tools/update-version.php X.Y.Z` to update `config/app.php` + `.md` files, then `php sync-sw-version.php` to update `CACHE_VERSION` in `service-worker.js`. The split keeps `tools/update-version.php` focused on docs / config while the SW sync handles runtime cache invalidation separately.
+
+## [15.6.1] - 2026-05-21
+
+### Bug Fix — Duplicate Telegram Notifications (Race Condition)
+
+Fixes duplicate Telegram notifications caused by a read-clobber race between the Telegram cron and the Web Push cron when both run on the same 6-minute interval.
+
+- 🐛 **Root cause — read-clobber race between `cron/send-telegram-notifications.php` and `cron/send-web-push-notifications.php`**:
+  1. **T+0**: Both crons `fopen + LOCK_SH → read → unlock` simultaneously — each gets an in-memory snapshot of `$favData` that does **not** yet contain `telegram_notified[X]` for the current program
+  2. **T+0.5–1.5s**: Both crons make HTTP calls (Telegram Bot API / Apple Web Push) — no file lock held during this window
+  3. **T+1.5s**: Telegram cron acquires LOCK_EX, truncates, writes the **entire** `$favData` including `telegram_notified[X] = T+1.5s`
+  4. **T+1.5–2.0s**: Web Push cron acquires LOCK_EX, truncates, writes its **own** `$favData` (still the T+0 snapshot lacking `telegram_notified[X]`) on top — Telegram cron's update is **clobbered**
+  5. **T+360s (next cron tick)**: Telegram cron reads the file → no `telegram_notified[X]` → `telegram_should_notify()` returns `true` → **duplicate notification sent**
+- ✅ **Fix — Read-Modify-Write under LOCK_EX**: Replaced the write-back step in both crons so each one re-reads the latest file content inside the exclusive lock and overwrites **only its own keys** instead of writing the entire `$favData`:
+  - `cron/send-telegram-notifications.php` (in `process_favorites_file()`) — re-reads disk into `$latest`, then sets `$latest['telegram_notified'] = $telegramNotified` and (if the daily summary was sent this run) `$latest['telegram_summary_date'] = $favData['telegram_summary_date']`, then runs `telegram_cleanup_old_notifications($latest)` inside the lock window before writing back. The prior code ran cleanup on `$favData` and immediately discarded the result by overwriting `$favData['telegram_notified']` with the local — corrected as part of this fix.
+  - `cron/send-web-push-notifications.php` (in `wp_process_favorites_file()`) — re-reads disk into `$latest`, then sets `$latest['push_subscriptions'] = $subs` (which already contains expired-subscription pruning + 7-day cleanup applied earlier), then writes back.
+  - Fallback: if `json_decode($latestRaw, true)` returns a non-array (empty/corrupt file), the in-memory `$favData` is used as a fallback so the run still records its update.
+- 🛡️ **Defense-in-depth side benefit**: This pattern also protects against web-request-vs-cron races. If `api/favorites.php?action=add/remove` or `api/push.php?action=subscribe/unsubscribe` writes to the favorites file via `fav_write()` (atomic tmp+rename) while a cron is running, the cron's final write now picks up the web change instead of clobbering it (and vice versa for the cron-specific keys).
+
+**Files changed:**
+
+- `cron/send-telegram-notifications.php` — read-modify-write under LOCK_EX in `process_favorites_file()` write-back step; `telegram_cleanup_old_notifications()` moved inside the lock block where it operates on the merged state
+- `cron/send-web-push-notifications.php` — read-modify-write under LOCK_EX in `wp_process_favorites_file()` write-back step
+- `config/app.php` — version bump to v15.6.1
+
+> **Migration:** No DB schema migration. No cron schedule change required — the fix is purely at the code level and takes effect on the next cron tick after deploy. Existing stale entries in `telegram_notified` / `push_subscriptions[].notified` will be cleaned up automatically by the existing 7-day retention sweep.
+
+## [15.6.0] - 2026-05-20
+
+### Mobile UX — Favorites Pages Consolidation
+
+Reduced vertical height on `/my/{slug}` and `/my-favorites/{slug}` by ~75–80% above the fold. Three stacked banners on mobile were eating ~240–300px before users reached Mini Calendar / Programs content; now consolidated to a single ~50–60px action chip bar. The "Followed Artists" section was also restructured from an always-expanded chip grid into a stats line with collapsible chips on demand.
+
+- 🎨 **Action Chip Bar replaces 3 stacked banners** (`my.php`)
+  - The "🔗 ย้าย Favorites ไปยังอุปกรณ์อื่น / PWA" (QR Transfer) collapsible section, "🔔 เชื่อมต่อ Telegram" banner, and "🔔 Web Push Notifications" banner are now a single `.fav-actions-bar` row containing 3 `.fav-action-chip` buttons
+  - Each chip shows icon + label + (for stateful chips) a status dot — green `.is-active` when Telegram is linked or Web Push is subscribed, neutral gray when not
+  - **QR Transfer chip** — click opens new `#qrTransferModal` (was inline expand); reuses existing `loadQrCode()` lazy-load logic
+  - **Telegram chip** — click → if `.is-active` calls `unlinkTelegram()`; otherwise opens existing `#telegramLinkModal` (no change to the modal itself)
+  - **Web Push chip** — click toggles `handlePushSubscribe()` / `handlePushUnsubscribe()` based on `.is-active` state; browser-unsupported state disables the chip with a tooltip
+  - Responsive: `flex:1 1 0` with ellipsis labels; `@media (max-width:360px)` hides labels to keep 3 chips on one row
+  - Removed dead CSS: `.fav-tg-banner`, `.fav-push-banner`, `.fav-transfer-section`, `.btn-transfer-toggle`, `.fav-tg-status`, `.fav-tg-dot` and related rules
+
+- 🔧 **`checkPushStatus()` refactored to update chip class** (`my.php`)
+  - Previous implementation updated `#pushStatusText` + `#pushSubscribeBtn` + `#pushUnsubscribeBtn` (now removed)
+  - New implementation toggles `#pushChip` `.is-active` class based on subscription state
+  - `handlePushSubscribe()` / `handlePushUnsubscribe()` updated to disable the chip during async operations
+  - Unsupported-browser init guard sets `chip.disabled = true` + `chip.title = i18n('webpush.notSupported')` instead of writing to removed status element
+
+- 🔧 **`my-favorites.php` parity** — QR section converted to modal (was inline expand)
+  - Single `.fav-action-chip` (QR Transfer only — Telegram and Web Push banners were not present on this page)
+  - Inlined `.req-modal-overlay` / `.req-modal` / `.req-modal-header` / `.req-modal-body` / `.req-close` CSS rules because `my-favorites.php` only loads `common.css` while `.req-modal*` styles live in `artist.css` (loaded by `my.php`) and `index.css` — without the inline copy the modal was `display:flex` but lacked `position:fixed; inset:0; background:rgba(...)` so it appeared invisible
+
+- 📊 **Followed Artists → stats line + collapsible** (`my.php`)
+  - Replaces always-expanded `.fav-section` with `.fav-followed-section` containing a single `<button class="fav-followed-toggle">` row showing "👥 ติดตาม {N} ศิลปิน · {M} upcoming programs" plus a `.fav-followed-caret` that rotates 180° on expand
+  - Expanding reveals `.fav-followed-content` with the existing chip grid plus a new `.fav-manage-link` ("→ จัดการทั้งหมด") linking to `/my-favorites/{slug}` for batch management
+  - Empty state (no followed artists): the toggle button is `disabled` and the empty-state message ("ยังไม่มีศิลปินที่ติดตาม...") renders below the disabled stats line — preserves the existing onboarding CTA
+  - `toggleFollowedSection(btn)` JS function toggles `.is-open` class + `style.display` of content; uses `closest('.fav-followed-section')` so the function is reusable
+
+- 🌐 **New i18n keys** in `js/translations.js` (all TH/EN/JA)
+  - `actions.qrTransfer` ("ย้าย / PWA" / "Transfer / PWA" / "転送 / PWA")
+  - `actions.telegram` ("Telegram" — same in all 3 locales)
+  - `actions.push` ("แจ้งเตือน" / "Push" / "プッシュ")
+  - `transfer.modalTitle` ("🔗 ย้าย Favorites ไปยังอุปกรณ์อื่น" / "🔗 Transfer Favorites to Another Device" / "🔗 Favoritesを他のデバイスに転送")
+  - `fav.statsFollowing` ("ติดตาม" / "Following" / "フォロー中")
+  - `fav.manageAll` ("→ จัดการทั้งหมด" / "→ Manage all" / "→ すべて管理")
+
+**Files changed:**
+
+- `my.php` — chip bar HTML/CSS/JS, QR transfer modal, refactored push status handling, followed artists section restructure, `toggleFollowedSection()` + `openQrTransferModal()` + `closeQrTransferModal()` + `handleTelegramChip()` + `handlePushChip()` JS functions
+- `my-favorites.php` — chip bar (single chip), QR transfer modal, inlined `.req-modal*` CSS, `openQrTransferModal()` + `closeQrTransferModal()` JS functions
+- `js/translations.js` — 6 new keys × 3 locales = 18 entries added
+- `config/app.php` — version bump to v15.6.0
+
+> **Migration:** no DB schema migration required; no breaking changes — purely client-side / template restructure. Existing slugs, favorites JSON, Telegram links, and Web Push subscriptions continue to work unchanged.
+
+## [15.5.0] - 2026-05-20
+
+### Security
+Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-20). All audit findings closed with regression tests. See `docs/SECURITY_AUDIT_2026.md` (revision 6) for the complete report. Test suite grew from 9361 → 9809 (+448 cumulative tests).
+
+- 🔒 **HIGH-1 RESOLVED — Telegram webhook secret leak retired.**
+  Removed debug scripts `test-telegram-webhook.php` and `test-webhook-verify.php` from working tree and `HEAD` (commit `dc182fc`). The latter file hardcoded a live `webhook_secret` (`cc73866…`) on lines 12 and 67. Cleared `webhook_secret` in `config/telegram-config.json` to empty string; `verify_telegram_request()` in `api/telegram.php:16` fail-closes (`return false`) on empty secret, so the historical value in commit `57242a0` no longer authenticates anything. Verified on 2026-05-20 that the public-facing `public-origin` (`fordantitrust/stage-idol-calendar`) has a separate history and never received the leaked commit — exposure was scoped to the private `origin` repo only.
+
+- 🔒 **MEDIUM-1 RESOLVED — Web Push endpoint SSRF closed.**
+  Added `webpush_allowed_hosts()` and `webpush_validate_endpoint()` in `functions/webpush.php`. Only FCM (`fcm.googleapis.com`), Mozilla autopush (`updates.push.services.mozilla.com`), Apple Web Push (`web.push.apple.com`) by exact match, plus `.notify.windows.com` (WNS) and `.push.apple.com` by suffix are accepted. HTTPS-only on the production path; IP literals (v4 and v6) rejected via `filter_var(...FILTER_VALIDATE_IP)`; bare suffix as full hostname rejected; lookalike-suffix attacks blocked by strict `str_ends_with`. New `WEBPUSH_ALLOW_LOCALHOST` flag gates a dev-only exception for `localhost / 127.0.0.1 / ::1 / host.docker.internal` over http or https, and only when `PRODUCTION_MODE = false`. Validation runs at subscribe time (`api/push.php`) and at send time (`webpush_send()` short-circuits with `expired = true` so the cron drops pre-allow-list records on the next tick).
+
+- 🔒 **MEDIUM-2 RESOLVED — Login CSRF check added.**
+  `admin/login.php` POST handler now calls `verify_csrf_token($_POST['csrf_token'])` **before** rate-limit accounting, so attackers without a valid token cannot exhaust the per-IP login budget for a legitimate user. CSRF failures audit-log with `action=login_blocked`, `error_code=csrf_invalid`. New `login.errCsrf` translation key in TH/EN ("Session หมดอายุ กรุณาโหลดหน้านี้ใหม่แล้วลองอีกครั้ง" / "Session expired. Please reload this page and try again."). 2FA flow compatible: the same session token covers both password and 2FA submission steps.
+
+- 🔒 **LOW-1 RESOLVED — Log viewer authorization tightened.**
+  `getTelegramLog()`, `getWebPushLog()`, `getEmailLog()` now call `require_api_admin_role()` (previously `require_login()` only — agents and organizers could read). Defense-in-depth at the dispatcher: all 8 log actions (`telegram_log_get/download`, `webpush_log_get/download`, `email_log_get/download`, `admin_audit_log_get/download`) added to `$adminOnlyActions` in `admin/api.php`.
+
+- 🔒 **LOW-2 RESOLVED — `config/.htaccess` hardened.**
+  Replaced extension-only `<FilesMatch "\.(php|json)$">` + inert `Allow from 127.0.0.1` lines with Apache 2.4 `Require all denied` plus an Apache 2.2 / `mod_access_compat` fallback (`Order deny,allow` + `Deny from all`). Every file under `config/` is now denied regardless of extension — future `.pem`, `.key`, `.env`, or `.txt` configs are protected automatically.
+
+- 🔒 **LOW-3 RESOLVED — `tools/.htaccess` hardened.**
+  Removed `Allow from 192.168.0.0/16` and `Allow from 10.0.0.0/8` lines that were dangerous on shared / cloud hosting (provider's internal network often overlaps LAN CIDRs). Now uses the same Apache 2.4 + 2.2-fallback deny-all pattern as `config/.htaccess`.
+
+- 🔒 **LOW-4 RESOLVED — `.gitignore` extended.**
+  Added `*.db`, `test-*.php`, and `debug-*.php` rules to prevent recurrence of HIGH-1. Inline note clarifies that existing tracked file `data/calendar.db` is unaffected (gitignore does not untrack already-committed files); explicit `git rm --cached data/calendar.db` is the way to untrack if desired.
+
+### Tests Added (+~50 new regression tests; cumulative count +448)
+- `tests/WebPushTest.php` — +33 tests covering allow-list contents, accept paths for FCM/Mozilla/Apple/WNS, reject paths (http to known host, attacker host, IPv4/IPv6 literals, empty host, garbage, lookalike suffix, bare suffix as full hostname), two-flag dev gate behavior, defense-in-depth in `webpush_send()`, source check that `api/push.php` no longer uses `FILTER_SANITIZE_URL` (now 68 tests total).
+- `tests/AdminAuthTest.php` — +14 tests covering login CSRF (verify_csrf_token call, source order vs rate-limit, audit code, i18n markers, functional roundtrip) and log viewer authorization (4 viewers × `require_api_admin_role()` source check + dispatcher-list membership + organizer-list exclusion). Suite cumulative count: 38 → 46.
+- `tests/IntegrationTest.php` — +8 tests covering `.gitignore` rules and the new `Require all denied` content in `config/.htaccess` and `tools/.htaccess`, plus absence of any `Allow from` directives in both files. Suite cumulative count: 108 → 121.
+
+### Files Changed
+- `config/app.php` (version bump)
+- `config/webpush.php` (added `allow_localhost` default + `WEBPUSH_ALLOW_LOCALHOST` constant)
+- `config/.htaccess` (rewrite to `Require all denied`)
+- `config/telegram-config.json` (cleared `webhook_secret` to empty string)
+- `functions/webpush.php` (`webpush_allowed_hosts()`, `webpush_validate_endpoint()`, guard in `webpush_send()`)
+- `api/push.php` (replaced `FILTER_SANITIZE_URL` + regex with `webpush_validate_endpoint()` call)
+- `admin/api.php` (`require_api_admin_role()` added to 3 log viewers; 8 log actions added to `$adminOnlyActions`)
+- `admin/login.php` (CSRF gate before rate-limit; audit log on failure; new `login_csrf` error state)
+- `admin/js/admin-i18n.js` (added `login.errCsrf` in TH and EN)
+- `tools/.htaccess` (rewrite to `Require all denied`)
+- `.gitignore` (added `*.db`, `test-*.php`, `debug-*.php`)
+- `test-telegram-webhook.php` (deleted)
+- `test-webhook-verify.php` (deleted)
+- `tests/WebPushTest.php`, `tests/AdminAuthTest.php`, `tests/IntegrationTest.php`
+- `docs/SECURITY_AUDIT_2026.md` (revisions 1–6: tracked CRITICAL → HIGH reclassification, MEDIUM closures, LOW closures, final FULLY REMEDIATED status with score 9.8 / 10)
+
+> **Migration:** no DB schema migration required. **Operational note:** with `webhook_secret` cleared, the Telegram bot webhook handler rejects all incoming webhooks (fail-closed). To re-enable the bot, generate a fresh secret via Admin › Settings › Telegram and re-register the webhook with Telegram.
+
+## [15.4.0] - 2026-05-19
+
+### Added
+- **`connect.php`** — new `/connect` page; camera-based QR scanner using `jsQR` library (multi-CDN fallback: jsdelivr → unpkg → cdnjs); animated viewfinder UI with scan-line; validates scanned slug against `SLUG_RE` regex; on success saves `fav_slug` to localStorage and redirects to `/my/{slug}`; paste-URL fallback for devices where camera is unavailable; `noindex, nofollow` meta; overrides `Permissions-Policy: camera=(self)` to allow camera access despite global `camera=()` security header; header/footer matches main site (site title, language switcher, nav links, footer-text structure with copyright + GitHub link)
+- **🔗 Connect button in nav** — `injectFavNavButton()` in `js/common.js` now injects a 🔗 button (linking to `/connect`) when the user has no `fav_slug`; ⭐ and 📅 buttons still appear as before when a slug exists; 🔗 button is hidden on `/connect` and `/my*` pages
+- **Section 24 in how-to-use.php** — new section `#s-connect` covering the two-device QR transfer flow (source + destination steps); TOC entry added; `section24.*` translation keys in 3 languages; also updated `section17.nav.tipText` to mention the 🔗 button
+- **i18n keys** — `connect.*` (19 keys: title, heading, desc, tapStart, start, stop, opening, scanning, libError, camDenied, camError, verifying, invalidSlug, success, pasteDesc, pastePlaceholder, pasteBtn, pasteError) + updated `transfer.*` keys (showQr, desc, step1–3) + `section24.*` keys in TH/EN/JA
+
+### Files Changed
+- `connect.php` (new)
+- `.htaccess`
+- `js/common.js`
+- `js/translations.js`
+- `how-to-use.php`
+- `config/app.php`
+
+> **Migration:** no DB schema migration required.
+
+## [15.3.0] - 2026-05-19
+
+### Added
+- **QR Code transfer section on `/my/{slug}` and `/my-favorites/{slug}`** — collapsible "🔗 ย้าย Favorites ไปยังอุปกรณ์อื่น / PWA" section below the fav-save-banner; generates a QR Code (via lazy-loaded `qrcodejs` CDN) encoding the `/my/{slug}` URL; scanning the QR from another device/PWA triggers the existing auto-save logic in `my.php` which sets `fav_slug` in that device's localStorage; step-by-step instructions guide users through the two-device flow; i18n keys `transfer.*` in TH/EN/JA
+
+### Files Changed
+- `my.php`
+- `my-favorites.php`
+- `js/translations.js`
+- `config/app.php`
+
+> **Migration:** no DB schema migration required.
+
+## [15.2.0] - 2026-05-19
+
+### Added
+- **`cron/rotate-webpush-logs.php`** — daily log rotation for Web Push notification logs; renames `cache/logs/webpush-cron.log` to a dated archive (`webpush-cron-YYYY-MM-DD.log`); deletes archives older than 7 days; collision guard appends `-daily` suffix when a same-date size-rotated archive already exists; blocked via existing `cron/.htaccess`
+- **`cron/rotate-email-logs.php`** — daily log rotation for Email notification logs; renames `cache/logs/email.log` to `email-YYYY-MM-DD.log`; deletes archives older than 7 days; same structure and safety guards as the webpush rotation script
+- **Rotation cron instructions in Admin UI** — Web Push sub-tab shows daily rotation cron entry (`rotate-webpush-logs.php`); Email sub-tab shows daily rotation cron entry (`rotate-email-logs.php`); both output to shared `rotate-cron.log`
+- **Admin Help pages updated** — `admin/help.php` + `admin/help-en.php` Web Push section Cron Job Setup now shows both the notification cron (every 15 min) and the daily rotation cron
+
+### Files Changed
+- `cron/rotate-webpush-logs.php` (new)
+- `cron/rotate-email-logs.php` (new)
+- `admin/index.php`
+- `admin/js/admin-i18n.js`
+- `admin/help.php`
+- `admin/help-en.php`
+- `config/app.php`
+
+> **Migration:** no DB schema migration required; add the two new cron entries to your crontab.
+
+## [15.1.0] - 2026-05-19
+
+### Added
+- **Web Push Log Viewer** — Admin UI › Settings › 📱 Web Push sub-tab now includes a log viewer section below the cron instructions; file selector dropdown lists `webpush-cron.log` + dated archives newest-first; filter input; scrollable table (Timestamp / Level / Message, sticky header, max-height); click any row to open a detail modal with full context JSON; `webpush_log_get` + `webpush_log_download` actions in `admin/api.php`
+- **Email Log Viewer** — Admin UI › Settings › 📧 Email sub-tab similarly includes a log viewer; reads `cache/logs/email.log` + `email-YYYY-MM-DD.log` archives; same table + detail modal UX; `email_log_get` + `email_log_download` actions in `admin/api.php`
+- **Shared cron log helpers** in `admin/index.php` — `_cronLevelBadge()`, `openCronLogDetail()`, `closeCronLogDetail()`, `_renderCronTable()` shared by both Web Push and Email log viewers; single `#cronLogDetailOverlay` modal reused by both viewers and the existing Telegram log viewer
+
+### Fixed
+- **PWA icons directory renamed `icons/` → `icon/`** — the `icons` directory name was blocked at the shared hosting server level, causing HTTP 404 for all PWA icon assets; renamed directory and updated all references: `manifest.json`, `manifest.php` (dynamic manifest), `service-worker.js`, `cron/send-web-push-notifications.php`, `tools/generate-pwa-icons.php`, `tests/WebPushTest.php`, `setup.php`, `admin/help.php`, `admin/help-en.php`
+
+### Files Changed
+- `admin/api.php`
+- `admin/index.php`
+- `admin/js/admin-i18n.js`
+- `manifest.json`
+- `manifest.php`
+- `service-worker.js`
+- `cron/send-web-push-notifications.php`
+- `tools/generate-pwa-icons.php`
+- `tests/WebPushTest.php`
+- `setup.php`
+- `admin/help.php`
+- `admin/help-en.php`
+- `config/app.php`
+
+> **Migration:** no DB schema migration required; run `php tools/generate-pwa-icons.php` to regenerate icons into `icon/` directory if upgrading from v15.0.0.
+
+## [15.0.0] - 2026-05-19
+
+### Added
+- **Web Push Notifications (PWA)** — VAPID EC P-256 + RFC 8291 aes128gcm push implementation using PHP 8.1+ built-ins; no Composer required
+- `functions/webpush.php` — full crypto stack: `webpush_generate_vapid_keys()`, `webpush_vapid_jwt()` (ES256), `webpush_encrypt()` (RFC 8291 aes128gcm), `webpush_send()` (curl POST), `webpush_der_to_raw_sig()`, `webpush_raw_pubkey_to_pem()`, `webpush_urlsafe_b64encode/decode()`, `webpush_openssl_ec_config()` (Windows-safe via `php_ini_loaded_file()`), `webpush_is_enabled()`
+- `config/webpush.php` — loads `config/webpush-config.json` and defines `WEBPUSH_ENABLED`, `WEBPUSH_VAPID_PUBLIC_KEY`, `WEBPUSH_VAPID_PRIVATE_KEY_PEM`, `WEBPUSH_VAPID_SUBJECT`, `WEBPUSH_SITE_URL`, `WEBPUSH_NOTIFY_BEFORE_MINUTES`, `WEBPUSH_MAX_SUBS_PER_TOKEN`
+- `config/webpush-config.json` — default (disabled) VAPID config file; private key protected by existing `config/.htaccess`; includes `site_url` field
+- `manifest.json` — Web App Manifest (name, short_name, start_url, display=standalone, theme_color=#E91E63, 3 icon sizes); enables PWA installability
+- `service-worker.js` — handles `push` event (`showNotification`) and `notificationclick` event (focus/open window)
+- `api/push.php` — public subscription API: `subscribe`, `unsubscribe`, `status` actions; requires HMAC-signed favorites slug; max `WEBPUSH_MAX_SUBS_PER_TOKEN` subscriptions per token; HTTP 400 without slug
+- `cron/send-web-push-notifications.php` — mirrors Telegram cron structure; scans favorites JSON shards; respects `push_notify_enabled` + `push_mute_until`; removes HTTP 410 expired subscriptions; logs to `cache/logs/webpush-cron.log`
+- `tools/generate-pwa-icons.php` — generates sakura-gradient PWA icons at 72/192/512 px using PHP GD
+- `icons/icon-72.png`, `icons/icon-192.png`, `icons/icon-512.png` — generated PWA icon assets
+- `icons/.htaccess` — allows HTTP serving of icons (no Deny from all)
+- `tests/WebPushTest.php` — 45 automated tests (8 categories: Config/Constants, Crypto Functions, Static Files, Admin API, Public API, Cron, i18n, Config Loading)
+- Admin Settings › 📱 **Web Push** sub-tab (9th sub-tab): VAPID key generation, subject email, notify-before minutes, enable toggle, cron setup instructions
+- `webpush_config_get`, `webpush_config_save`, `webpush_vapid_generate` API actions in `admin/api.php`; private key never returned to UI; `site_url` persisted and validated
+- **Site URL field** (`WEBPUSH_SITE_URL`) in Web Push admin sub-tab — full base URL of the site (e.g. `https://example.com/stage-idol-calendar`) used by cron to build correct notification links including subdirectory path; `webpush.siteUrlLabel` / `webpush.siteUrlHint` i18n keys (TH/EN)
+- Web Push subscribe section in `my.php` (shown only when `webpush_is_enabled()` and slug present); `VAPID_PUBLIC_KEY` + `WEBPUSH_ENABLED` injected to JS
+- `handlePushSubscribe()`, `handlePushUnsubscribe()`, `checkPushStatus()` JS functions in `my.php`
+- SW registration + `urlBase64ToUint8Array()` helper in `js/common.js` DOMContentLoaded handler
+- `webpush.subscribe`, `webpush.unsubscribe`, `webpush.title`, `webpush.permissionDenied`, `webpush.notSupported`, `webpush.subscribed`, `webpush.checking` i18n keys in `js/translations.js` (TH/EN/JA)
+- `settings.webpush` i18n section in `admin/js/admin-i18n.js` (TH/EN)
+- `<link rel="manifest">` + `<meta name="theme-color">` + Apple PWA meta tags in all public pages (`index.php`, `artist.php`, `artists.php`, `credits.php`, `contact.php`, `how-to-use.php`, `my.php`, `my-favorites.php`, `past-events.php`)
+- `.htaccess` `Service-Worker-Allowed` + `Cache-Control: no-cache` headers for `service-worker.js` and `manifest.json`
+- Web Push section in `admin/help.php` (Thai) and `admin/help-en.php` (English): setup guide, configuration table, cron command, key files, troubleshooting, browser support
+
+### Fixed
+- `webpush_encrypt()` — `openssl_pkey_derive()` argument order was reversed (`$ephemKey, $uaKey`) causing "Supplied key param is a public key" warning; fixed to `($uaKey, $ephemKey)` per PHP signature `(public_key, private_key, length)`
+- `webpush_openssl_ec_config()` — Windows/XAMPP Apache context: `PHP_BINARY` points to `httpd.exe` so old `dirname(PHP_BINARY)` path lookup failed; fixed by using `php_ini_loaded_file()` as primary OpenSSL config path source
+- Admin UI Web Push JS functions (`loadWebPushConfig`, `saveWebPushConfig`, `generateVapidKeys`) were absent from `admin/index.php` causing "Network error" on every button click
+- `saveWebPushConfig()` and `generateWebPushVapidKeys()` in `admin/api.php` called `verify_csrf_token()` with no arguments causing `ArgumentCountError` — removed redundant calls (global `require_csrf_token()` at file top already handles CSRF)
+- Cron `$vapidCfg` keys used short names (`public_key`, `private_key_pem`, `subject`) that did not match what `webpush_send()` and `webpush_vapid_jwt()` read (`vapid_public_key`, `vapid_private_key_pem`, `vapid_subject`); fixed key names
+- Notification URL missing subdirectory base path (e.g. `/stage-idol-calendar`) when `WEBPUSH_VAPID_SUBJECT` is `mailto:` — cron now uses `WEBPUSH_SITE_URL` constant instead of deriving URL from VAPID subject; icon/badge paths also use `$baseUrl`
+
+### Changed
+- `config.php` — added `require_once` for `config/webpush.php` and `functions/webpush.php`
+- `setup.php` — added Web Push config check step and `cache/logs/` directory entry (reused from v14.0.0)
+- `tests/run-tests.php` — added `WebPushTest` to suite registry (24 suites total)
+- `config/app.php` — version bump to v15.0.0
+
+### Files Changed
+- `functions/webpush.php` (new)
+- `config/webpush.php` (new)
+- `config/webpush-config.json` (new)
+- `manifest.json` (new)
+- `service-worker.js` (new)
+- `api/push.php` (new)
+- `cron/send-web-push-notifications.php` (new)
+- `tools/generate-pwa-icons.php` (new)
+- `icons/icon-72.png` (new)
+- `icons/icon-192.png` (new)
+- `icons/icon-512.png` (new)
+- `icons/.htaccess` (new)
+- `tests/WebPushTest.php` (new)
+- `config.php`
+- `config/app.php`
+- `admin/api.php`
+- `admin/index.php`
+- `admin/js/admin-i18n.js`
+- `admin/help.php`
+- `admin/help-en.php`
+- `my.php`
+- `js/common.js`
+- `js/translations.js`
+- `index.php`
+- `artist.php`
+- `artists.php`
+- `credits.php`
+- `contact.php`
+- `how-to-use.php`
+- `my-favorites.php`
+- `past-events.php`
+- `.htaccess`
+- `setup.php`
+- `tests/run-tests.php`
+
+> **Migration:** no DB schema migration required; run `php tools/generate-pwa-icons.php` once; configure VAPID keys and Site URL through Admin UI › Settings › 📱 Web Push.
+> **Test Coverage:** All 9338 automated tests pass (100% pass rate, 24 suites)
+
+## [14.0.0] - 2026-05-18
+
+### Added
+- **Admin Audit Log (Phase 1 — File-based)** — `functions/audit.php` core engine appends JSON Lines records to `cache/logs/admin-audit-YYYY-MM-DD.log`; 30-day retention via `cron/rotate-admin-audit-logs.php`
+- `ADMIN_AUDIT_RETENTION_DAYS` and `ADMIN_AUDIT_LOG_DIR` constants in `config/admin.php`
+- Audit hooks in `functions/admin.php` and `admin/login.php`: `login_success`, `login_failure`, `login_blocked`, `twofa_required`, `twofa_success`, `twofa_failure`, `logout`
+- Audit hooks across all write actions in `admin/api.php`: programs, events, credits, artists, users, backup, settings, config, password/2FA
+- Audit hooks in `api/request.php` and `api/event-request.php`: public Program/Event Request submissions (`program_request_create`, `event_request_create`) and rate-limit blocks
+- `admin_audit_log_get` and `admin_audit_log_download` API endpoints in `admin/api.php`
+- Settings › 🔎 Audit Log sub-tab in `admin/index.php`: parsed table (Timestamp / Action / Outcome / Actor / Entity / IP), sticky header, 400 px scrollable container, filter input, click-to-open detail modal with pretty-printed metadata
+- Telegram Activity Log viewer upgraded from raw `<pre>` to same table+modal format (Timestamp / Level / Message; context in detail modal)
+- `cache/logs/` directory check in `setup.php` migration status
+
+### Files Changed
+- `functions/audit.php` (new)
+- `cron/rotate-admin-audit-logs.php` (new)
+- `config/admin.php`
+- `config.php`
+- `functions/admin.php`
+- `admin/login.php`
+- `admin/api.php`
+- `admin/index.php`
+- `admin/js/admin-i18n.js`
+- `api/request.php`
+- `api/event-request.php`
+- `setup.php`
+- `config/app.php`
+
+---
+
+## [12.3.4] - 2026-05-11
+
+### Fixed
+- 🐛 **Request email admin URL** — the `Open Admin Requests tab` link in Program/Event Request notification emails now resolves to `/admin/` instead of `/api/admin/`, including fallback cases where the request path is read from `REQUEST_URI`.
+- 🛡️ **Subdirectory-safe path handling** — email admin URL generation now normalizes `SCRIPT_NAME`, `PHP_SELF`, and `REQUEST_URI`, strips `/api` or `/admin`, and preserves app subdirectory deployments.
+
+### Changed
+- 🧪 **Email regression coverage** — `EmailNotificationTest` now verifies request-email HTML and plain-text bodies never link to `/api/admin`.
+- 🔢 **Version bump** — `APP_VERSION` updated to `12.3.4`.
+
+### Files Changed
+- `functions/email.php` — robust app base path extraction for request notification admin links.
+- `tests/EmailNotificationTest.php` — regression coverage for `/api/admin` email link fallback.
+- `config/app.php` — version bump to `12.3.4`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.4 release documentation.
+
+## [12.3.3] - 2026-05-08
+
+### Changed
+- 📖 **Role-aware Admin Help** — Thai and English Admin Help now hide topics that the current role cannot use: admin sees the full guide, agent sees operational/review workflows, and organizer sees scoped Events / Programs / Credits / Artist Request guidance.
+- 📝 **Admin Help content refresh** — Help documentation now covers organizer role behavior through v12.3.3, including Organizer Active Requests, Artist Requests, approve-to-artist behavior, and the current three-role permission matrix.
+- 🔢 **Version bump** — `APP_VERSION` updated to `12.3.3`.
+
+### Files Changed
+- `admin/help.php`, `admin/help-en.php` — role-aware navigation/content visibility and v12.3.3 documentation updates.
+- `config/app.php` — version bump to `12.3.3`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.3 release documentation.
+
+## [12.3.2] - 2026-05-08
+
+### Fixed
+- 🐛 **Artist Request approve visibility** — after approving an Artist Request, admin/agent UI now refreshes the Artist list so the newly created artist appears immediately.
+- ✅ **Approve confirmation** — approve success toast includes the created `artist_id`, making it clear that the request created an `artists` record.
+
+### Changed
+- 🧪 **Regression coverage** — `OrganizerRoleTest` now checks that Artist Request approval inserts into `artists`, returns `artist_id`, and refreshes the admin/agent Artist list.
+- 🔢 **Version bump** — `APP_VERSION` updated to `12.3.2`.
+
+### Files Changed
+- `admin/index.php` — refresh Artist list after Artist Request approval and show created artist id in the success toast.
+- `tests/OrganizerRoleTest.php` — regression coverage for approve-to-artist behavior and UI refresh.
+- `config/app.php` — version bump to `12.3.2`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.2 release documentation.
+
+## [12.3.1] - 2026-05-08
+
+### Fixed
+- 🐛 **Organizer Artist Request access** — organizer users entering the Artists tab no longer trigger the admin-only `artists_list` API before opening `Request new artist`.
+- 🛡️ **Role guard regression** — `switchTab('artists')` now loads the full Artist database only for non-organizer roles.
+
+### Changed
+- 🔢 **Version bump** — `APP_VERSION` updated to `12.3.1`.
+
+### Files Changed
+- `admin/index.php` — removed the unconditional `loadArtists()` call from Artists tab switching so organizer request flow can open without a 403 error.
+- `tests/OrganizerRoleTest.php` — regression coverage for organizer Artists tab access.
+- `config/app.php` — version bump to `12.3.1`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.1 release documentation.
+
+## [12.3.0] - 2026-05-08
+
+### Added
+- 🎤 **Organizer Artist Requests** — organizers can request a new artist from `Artists › Request new artist` using the existing Artist form in request mode.
+- 📝 **Requests › Artist Request** — admin/agent review flow now includes Artist Request as the fourth request group with approve/reject actions.
+- 🗄️ **artist_requests table** — stores artist details, group/social fields, requester metadata, review status, admin note, reviewer, and timestamps.
+
+### Changed
+- 📊 **Dashboard requests** — request KPIs and breakdown now include Program, Event Guest, Event Active, and Artist requests.
+- 🧭 **Organizer dashboard/actions** — organizer quick actions now focus on Events, Programs, Credits, and Request New Artist; request review breakdown, artist totals, import/settings/admin-only actions, and missing-artist-picture health are hidden.
+- 📐 **Dashboard long tables** — `Upcoming Events` and `Programs by Event` now render as full-width stacked panels instead of two columns for long event names.
+- 🔢 **Version bump** — `APP_VERSION` updated to `12.3.0`.
+
+### Files Changed
+- `admin/api.php` — Artist Request API actions, duplicate checks, approve-to-artist workflow, pending counts, and dashboard request breakdown.
+- `admin/index.php` — organizer Artist tab, request-mode Artist modal, Artist Request sub-tab, badges, role-focused Dashboard, and full-width Dashboard table panels.
+- `admin/js/admin-i18n.js` — Artist Request and Dashboard labels in Thai/English.
+- `setup.php` — fresh install, Run All Migrations, Migration Status sorting, setup top navigation, and `artist_requests` status checks.
+- `tools/migrate-add-artist-requests-table.php` — idempotent migration for `artist_requests` table and indexes.
+- `tests/OrganizerRoleTest.php` — coverage for Artist Request migration/API/UI surface.
+- `config/app.php` — version bump to `12.3.0`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.0 release documentation.
+
+## [12.2.0] - 2026-05-07
+
+### Added
+- 🎤 **Organizer Program autocomplete** — organizer users can use the existing Artist autocomplete while adding/editing Programs.
+- 📍 **Central Venue autocomplete** — Venue suggestions now come from the shared program venue list for organizer users too.
+
+### Changed
+- Organizer Artist input is reference-only: organizer users must select/use existing artists and cannot create new artist records through Program categories.
+- `syncProgramArtists()` now supports disabling automatic artist creation; organizer Program saves validate all artist references before insert/update.
+- `APP_VERSION` updated to `12.2.0`.
+
+### Files Changed
+- `admin/api.php` — allows organizer `artists_autocomplete`, validates organizer artist references, disables organizer artist auto-create, and uses central venue suggestions.
+- `admin/index.php` — organizer Artist tag input requires autocomplete selection and shows organizer-specific helper text.
+- `admin/js/admin-i18n.js` — organizer autocomplete-only helper/error labels in Thai/English.
+- `tests/OrganizerRoleTest.php` — coverage for organizer autocomplete access and artist reference-only policy.
+- `config/app.php` — version bump to `12.2.0`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.2.0 release documentation.
+
+## [12.1.0] - 2026-05-07
+
+### Added
+- 🟡 **Organizer active request flow** — organizer users can submit activation requests for assigned inactive events via `events_request_activate`.
+- ✅ **Admin/agent activation approval** — Event Requests now supports `request_type='activate'`; approving it sets the existing event to `is_active=1`.
+- 🧭 **Separated request menus** — Admin Requests now shows `Program Requests`, `Event Requests (Guest)`, and `Event Active Requests (Organizer)`.
+
+### Changed
+- Organizer-created events are always saved inactive.
+- Organizer users cannot directly turn on `is_active` while editing events; the Admin UI disables the Active checkbox for organizers and shows a Request Active action.
+- Event request listing supports `request_group=guest|active` so guest add/edit requests and organizer activation requests do not mix in the same menu.
+- `APP_VERSION` updated to `12.1.0`.
+
+### Files Changed
+- `admin/api.php` — added organizer activation request endpoint, blocked organizer direct activation, added activate approval handling, and split event request listing/counts by request group.
+- `admin/index.php` — disabled organizer Active checkbox, added Request Active button, and split Requests menus into Program, Guest Event, and Organizer Active sections.
+- `admin/js/admin-i18n.js` — request-active labels and activate request type labels in Thai/English.
+- `tests/OrganizerRoleTest.php` — static coverage for organizer activation policy and UI/API surface.
+- `config/app.php` — version bump to `12.1.0`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.1.0 release documentation.
+
+## [12.0.0] - 2026-05-07
+
+### Added
+- 👥 **Organizer role** — added `organizer` admin role for users who can manage only assigned events.
+- 🔐 **Event ownership schema** — added `events.created_by_user_id` and `event_organizers(event_id, user_id, assigned_by, assigned_at)` with cleanup-friendly foreign keys and indexes.
+- 🛡️ **Organizer API guards** — Events, Programs, Credits, event covers, header covers, and event pictures now enforce assigned-event ownership for organizer users.
+- 🧑‍💼 **Assignment API** — added admin-only `event_organizers_list` and `event_organizers_update` endpoints.
+- 🧪 **Tests** — added organizer role/static guard coverage and updated user role tests.
+
+### Changed
+- `APP_VERSION` updated to `12.0.0`.
+- User Management now accepts `admin`, `agent`, and `organizer` roles.
+- Organizer users see only Dashboard, Events, Programs, and Credits tabs in the Admin UI.
+
+### Files Changed
+- `admin/api.php` — organizer allow/deny matrix, ownership guards for Events/Programs/Credits/media, and admin-only event organizer assignment endpoints.
+- `admin/index.php` — organizer tab visibility, User Management role option, role badge, and Event modal organizer assignment UI.
+- `admin/js/admin-i18n.js` — organizer role and assignment labels in Thai/English.
+- `functions/admin.php` — role helpers, least-privilege fallback, current user helper, and `can_manage_event()`.
+- `setup.php` — fresh install and run-all migration support for `events.created_by_user_id` and `event_organizers`.
+- `tools/migrate-add-organizer-role.php` — idempotent CLI migration for organizer ownership schema.
+- `tests/UserManagementTest.php`, `tests/OrganizerRoleTest.php`, `tests/run-tests.php` — role helper, schema, API guard, UI surface, and suite registration coverage.
+- `config/app.php` — version bump to `12.0.0`.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.0.0 release documentation.
+
+## [11.0.0] - 2026-05-07
+
+### Added
+- 📊 **Admin Dashboard** — new first Admin tab focused on analytics: KPIs for Events, Programs, Credits, Artists, and pending Requests
+- 🧭 **Dashboard analytics API** — `admin/api.php?action=dashboard_stats` returns read-only aggregate data with role-aware admin-only fields
+- 🩺 **Content Health** — dashboard highlights missing event cover/card/header images, missing ticket URLs, and artists without display pictures
+- ⚡ **Quick Actions** — dashboard shortcuts for adding Events/Programs, importing ICS, reviewing Requests, and opening Settings for admins
+
+### Changed
+- 🏠 **Admin default page** — Admin now opens on Dashboard before Events
+- 🔢 **Version bump** — `APP_VERSION` updated to `11.0.0`
+
+### Files Changed
+- `admin/index.php` — Dashboard tab, responsive analytics UI, default tab switching, dashboard render logic
+- `admin/api.php` — `dashboard_stats` endpoint with defensive table checks for older databases
+- `admin/js/admin-i18n.js` — TH/EN Dashboard labels
+- `config/app.php` — version bump to v11.0.0
+
+---
+
+## [10.1.0] - 2026-05-07
+
+### Changed
+- 🗄️ **Manual 2FA migration policy** — `admin/api.php` no longer auto-adds `admin_users.twofa_*` columns during normal API requests
+- ⚡ **2FA schema readiness flag** — once the 2FA columns are confirmed, `admin/api.php` creates `data/.admin_2fa_columns_ready` and skips repeated schema checks until that file is removed
+- 👥 **User API compatibility** — `users_list` and `users_get` keep working before the 2FA migration by returning `twofa_enabled = 0` and `twofa_confirmed_at = null`
+
+### Migration
+- Existing installs should run the 2FA migration manually through `setup.php` or `php tools/migrate-add-admin-2fa-columns.php`.
+- Delete `data/.admin_2fa_columns_ready` if you need to force the Admin API to re-check the 2FA schema after a manual database change.
+
+### Files Changed
+- `admin/api.php` — replaced automatic 2FA schema migration with read-only schema detection, file-flag caching, endpoint guards, and user-list fallback fields
+- `.gitignore` — ignores `data/.admin_2fa_columns_ready`
+- `tests/TwoFactorAuthTest.php` — verifies Admin API does not auto-migrate and uses the schema readiness flag
+- `config/app.php` — version bump to v10.1.0
+- `README.md` — release notes, feature timeline, and test coverage updated for v10.1.0
+- `API.md` — documents manual 2FA migration requirement and schema readiness flag behavior
+- `SECURITY.md` — clarifies 2FA was introduced in v10.0.0 and schema migration control changed in v10.1.0
+- `SETUP.md` — documents manual 2FA columns migration and `data/.admin_2fa_columns_ready`
+- `INSTALLATION.md` — adds Admin 2FA manual migration note and restores `10.0.0.0/8` private network examples
+- `TESTING.md` — adds 2FA manual migration/schema flag test case
+- `PROJECT-STRUCTURE.md` — adds `data/.admin_2fa_columns_ready` runtime flag and updates TwoFactorAuthTest coverage summary
+- `WORKFLOW.md` — updates current version and release workflow examples to v10.1.0
+- `SKILL.md` — updates current version and Admin API architecture note
+- `tests/README.md` — updates TwoFactorAuthTest coverage summary
+- `CLAUDE.md` — adds v10.1.0 changelog section
+- `admin/help.php` — adds Thai admin help note for v10.1.0 2FA migration behavior
+- `admin/help-en.php` — adds English admin help note for v10.1.0 2FA migration behavior
+
+---
+
+## [10.0.0] - 2026-05-07
+
+### Added
+- 🔐 **Admin 2FA (TOTP / RFC 6238)** — DB-managed admin users can enable optional Authenticator app codes from the Change Password modal
+- 🧾 **Backup codes** — one-time recovery codes are generated when enabling 2FA and can be regenerated after password + 2FA verification
+- 👤 **Admin reset** — Users table shows 2FA status and lets admin reset another user's 2FA
+- 🧪 **TwoFactorAuthTest** — coverage for RFC 6238 vectors, Base32, otpauth URI, replay prevention, backup codes, schema, API, UI, and i18n
+
+### Changed
+- 🔑 **Login flow** — users with enabled 2FA complete a pending second step before the admin session is finalized
+- 🗄️ **Admin user schema** — adds `twofa_enabled`, `twofa_secret`, `twofa_backup_codes`, `twofa_confirmed_at`, and `twofa_last_used_step`
+
+### Migration
+- Run `php tools/migrate-add-admin-2fa-columns.php` for existing installs before enabling 2FA.
+
+### Files Changed
+- `functions/totp.php` (new) — RFC 6238 TOTP, Base32, otpauth URI, replay guard, and one-time backup-code helpers
+- `tools/migrate-add-admin-2fa-columns.php` (new) — idempotent migration for 2FA columns on `admin_users`
+- `tests/TwoFactorAuthTest.php` (new) — 2FA helper, schema, API, login flow, UI, and i18n coverage
+- `functions/admin.php` — pending 2FA login flow and final session creation after TOTP/recovery verification
+- `admin/login.php` — second-step 2FA form for users with 2FA enabled
+- `admin/api.php` — 2FA setup, confirm, disable, backup-code regeneration, reset endpoints, and public 2FA user status fields
+- `admin/index.php` — Change Password modal 2FA panel and Users table 2FA status/reset controls
+- `admin/js/admin-i18n.js` — TH/EN labels for 2FA setup, login, backup codes, and user status
+- `setup.php` — fresh-install and setup migration support for 2FA columns
+- `config.php` — loads `functions/totp.php`
+- `config/app.php` — version bump to v10.0.0
+- `tests/run-tests.php` — registered TwoFactorAuthTest suite
+- Documentation — updated `README.md`, `API.md`, `SECURITY.md`, `SETUP.md`, `TESTING.md`, `PROJECT-STRUCTURE.md`, `WORKFLOW.md`, `tests/README.md`, and `CLAUDE.md`
+
+---
+
+## [9.6.0] - 2026-05-07
+
+### Added
+- 📧 **Email Notifications** — Admin can configure SMTP email notifications from Admin › Settings › 📧 Email; settings are stored in `config/email-config.json` and loaded by `config/email.php`
+- 📬 **Request email alerts** — New Program Requests and Event Requests trigger admin notification emails through `email_notify_program_request_created()` and `email_notify_event_request_created()` when email notifications are enabled
+- 🧪 **EmailNotificationTest** — coverage for email config loading, SMTP disabled guard, recipient parsing, escaped request email bodies, Admin Email API/UI wiring, request API notification hooks, and Requests empty-state rendering
+
+### Changed
+- 🎨 **Requests empty state** — normalized the `"No requests"` display in both Admin › Requests › Program Requests and Event Requests so the empty table row uses centered muted text with the correct column span
+- 🛡️ **Email helper loading guard** — `admin/api.php` now defensively loads `functions/email.php` before Email Config/Test actions, preventing a production fatal if `config.php` is stale or deployed without the new helper load line
+- ✉️ **Site-name email subjects** — Email test and request notification subjects now use the configured site name: `[<site name>] Email Notification Test`, `[<site name>] New Program Request`, and `[<site name>] New EventRequest`
+- 🔗 **Admin email link target** — request notification emails now link to the real `/admin/` path and strip `/api` or duplicate `/admin` script directories from generated URLs
+
+### Files Changed
+- `config/email.php` (new) — loads runtime SMTP settings from `config/email-config.json` and defines `EMAIL_*` constants
+- `config/email-config.json` (new) — runtime-editable SMTP settings; disabled by default and protected by `config/.htaccess`
+- `functions/email.php` (new) — native SMTP helper, recipient parsing, logging, escaped HTML/plain-text request email body formatting, and request notification helpers
+- `config.php` — loads email config and helper functions
+- `admin/api.php` — `email_config_get`, `email_config_save`, and `email_test_send` actions
+- `admin/index.php` — Settings Email sub-tab UI + Program/Event Requests empty-state display fix
+- `admin/js/admin-i18n.js` — Email settings labels and messages
+- `api/request.php` — sends Program Request email notification after successful submission
+- `api/event-request.php` — sends Event Request email notification after successful submission
+- `tests/EmailNotificationTest.php` (new) — email notification, defensive helper loading, and request empty-state tests
+- `tests/run-tests.php` — registered EmailNotificationTest suite
+- `config/app.php` — version bump to v9.6.0
+
+---
+
+## [9.5.0] - 2026-05-08
+
+### Added
+- 🔗 **Artist Social Links** — Facebook, Instagram, Twitter/X, and TikTok link fields added to each artist; social icons displayed as styled pill buttons on `/artist/{id}` profile page (header, before subscribe/follow buttons); icon buttons also shown on the `/artists` portal page — in group gradient cards (below member chips) and on solo artist cards; 4 new columns `social_facebook`, `social_instagram`, `social_twitter`, `social_tiktok TEXT DEFAULT NULL` in `artists` table
+- 🎟️ **Ticket URL ("ซื้อบัตร" / "Get Ticket")** — each event can now store a ticket purchase URL (`ticket_url TEXT DEFAULT NULL`); when set, an orange "🎟️ ซื้อบัตร" button appears in the event-detail header nav before the data-version badge; hidden when empty; validated as `http(s)://` scheme; i18n key `event.buyTicket` (TH/EN/JA)
+- 🔧 **`tools/migrate-add-artist-social-columns.php`** — idempotent migration adding the 4 social columns via `PRAGMA table_info` + `ALTER TABLE ADD COLUMN`
+- 🔧 **`tools/migrate-add-ticket-url-column.php`** — idempotent migration adding `ticket_url` to `events` table
+
+### Changed
+- 🎨 **Artists portal solo cards restructured** — solo card wrapper changed from `<a>` to `<div>` (with inner `<a class="portal-solo-name-link">`) to allow valid nested anchor tags for social icon links; JS search filter unchanged (targets `data-name` on outer `.portal-solo-card`)
+
+### Files Changed
+- `tools/migrate-add-artist-social-columns.php` (new)
+- `tools/migrate-add-ticket-url-column.php` (new)
+- `admin/api.php` — `sanitize_social_url()` standalone function; `getArtist()` + `createArtist()` + `updateArtist()` include social fields; `createEvent()` + `updateEvent()` include `ticket_url`
+- `admin/index.php` — 4 social link inputs in artist modal; `ticket_url` input in event modal; modal open/save JS updated for all new fields
+- `admin/js/admin-i18n.js` — `event.ticketUrlLabel`, `event.ticketUrlHint`, `artist.socialLinksLabel` keys (TH/EN)
+- `artist.php` — SELECT extended; `.artist-social-links` block rendered in artist header (before subscribe/follow buttons)
+- `artists.php` — `portal_social_svg()` PHP helper; GROUP + SOLO queries extended; social icon buttons in group cards and solo cards; solo card wrapper changed from `<a>` → `<div>`
+- `styles/artist.css` — `.artist-social-link`, `.artist-social-links` CSS classes
+- `styles/portal.css` — `.portal-social-links`, `.portal-social-icon`, `.portal-solo-name-link` CSS; solo card styles updated for `<div>` wrapper
+- `styles/common.css` — `.btn-ticket` orange gradient CSS class
+- `index.php` — ticket URL button in event-detail `<nav class="header-nav">`
+- `js/translations.js` — `event.buyTicket` key (TH/EN/JA)
+- `setup.php` — migration checks + `$allTablesOk` + `run_all_migrations` + `init_database` + `add_artist_tables` updated for new columns
+- `config/app.php` — version bump to v9.5.0
+
+---
+
+## [9.4.0] - 2026-05-07
+
+### Added
+- 📋 **Inline Credits on Event Pages** — "แหล่งข้อมูลอ้างอิง" section now rendered directly at the bottom of every event-detail page (below the cross-event artists section), using cards with title, description, and external link; no need to navigate to a separate credits page; powered by `get_cached_credits($eventId)`; CSS classes `.event-credits-section`, `.event-credits-title`, `.event-credits-list`, `.event-credits-item*` in `styles/index.css`
+
+### Changed
+- 🧹 **Event-detail header nav simplified** — removed "📋 แหล่งข้อมูลอ้างอิง" (credits) link and "🎤 ศิลปิน" (artists portal) link from the event-detail page's `<nav class="header-nav">`; only the data-version badge remains; listing-page nav is unchanged and retains all links
+- 🧹 **Credits page event-picker removed** — the grid-dots 🎪 event-picker button and its full modal (with usort loop, search input, filter tabs, empty state) removed from `credits.php`; the listing-page event-picker is unaffected
+
+### Files Changed
+- `index.php` — inline credits PHP block inserted between cross-event `<?php endif; ?>` and `<footer>`; credits/artists links removed from event-detail `<nav class="header-nav">`
+- `credits.php` — event-picker button block (guarded by `MULTI_EVENT_MODE && count($activeEvents) > 1`) deleted; event-picker modal block deleted
+- `styles/index.css` — CSS classes for inline credits section added at end of file
+- `config/app.php` — version bump to v9.4.0
+
+---
+
+## [9.3.0] - 2026-05-07
+
+### Added
+- 📝 **Event Request System** — users can now submit new event proposals via a new "📝 แจ้งเพิ่มงาน" button in the header nav; available on the listing page only (not individual event pages); add-only (not modify)
+- 🗄️ **`event_requests` table** — stores request type (add), name, description, dates, requester info, status (pending/approved/rejected), admin note, and review metadata
+- 🌐 **`api/event-request.php`** — public API with two actions: `submit` (POST, rate-limited 10 req/hr/IP, type='add' only) and `events` (GET, returns active events for reference)
+- ⚙️ **Admin Event Requests section** — sub-toggle tabs in Requests tab ("📝 Program Requests" / "🗓️ Event Requests"); filter by status; table with type badge, event name, dates, reporter, status; detail modal with approve/reject with admin note
+- 🔢 **Unified pending badge** — Requests tab badge now sums pending counts from both `program_requests` AND `event_requests` tables; backward compatible when `event_requests` table absent
+- 🔧 **`tools/migrate-add-event-requests-table.php`** — idempotent migration creating the `event_requests` table
+
+### Changed
+- Admin approve (type=add): automatically creates a new event in the `events` table with auto-generated slug; `is_active=0` so newly created events start inactive and must be manually activated; invalidates listing query cache
+
+### Files Changed
+- `tools/migrate-add-event-requests-table.php` (new) — idempotent migration for `event_requests` table
+- `api/event-request.php` (new) — public API for submitting event requests and listing active events
+- `setup.php` — `event_requests` table in `init_database`, `run_all_migrations`; `$hasEventRequestsTable` detection; `$allTablesOk`; `$migrationChecks` entry
+- `index.php` — nav link "📝 แจ้งเพิ่มงาน" (listing header nav only); Event Request modal HTML (add-only, no type radio toggle); JS functions (`openEventRequestModal`, `closeEventRequestModal`, `submitEventRequest`)
+- `admin/api.php` — `event_requests_list`, `event_request_approve`, `event_request_reject`, `event_request_pending_count` actions; `getPendingCount()` updated; `require_api_admin_role()` fix; `is_active=0` on approve
+- `admin/index.php` — Program/Event Requests sub-tabs; Event Requests section (table + pagination + detail modal + approve/reject flow); fetch URL fix; colspan fix; modal CSS fix; sub-tab badge `<span>` elements
+- `admin/js/admin-i18n.js` — 21 new keys (TH+EN): `tab.programRequests`, `tab.eventRequests`, `evReq.*` table headers/labels/statuses, plus 7 missing detail modal keys
+- `js/translations.js` — keys: `nav.eventRequest`, `evReq.titleAdd`, `evReq.name`, `evReq.startDate`, `evReq.endDate`, `evReq.description`, `evReq.submitSuccess` (TH/EN/JA)
+- `config/app.php` — version bump to v9.3.0
+
+---
+
+## [9.2.0] - 2026-05-06
+
+### Added
+- 🖼️ **Site-wide Header Cover Background Image** — admins can upload a landscape cover image (1920×480 px, 4:1 ratio) that appears behind every page header site-wide; managed via Admin › Settings › Site sub-tab; stored in `uploads/site/` with directory listing and PHP execution blocked via `.htaccess`
+- 🖼️ **Per-event Header Cover Image** — separate `header_cover_image` column (`events` table) for a 4:1 header banner per event; independent from the hero cover image (16:9) and card cover (4:3); set via Admin › Events › Cover Images section
+- ✂️ **Cropper.js for site cover + event header cover** — both site-wide and per-event header covers use Cropper.js at 4:1 ratio before upload; cropper modal moved to top-level `<body>` child so it works from any admin tab including Settings (fixes hidden-parent `display:none` issue)
+- 🔧 **`get_site_cover_bg()`** — reads `site_cover_bg` key from `cache/site-settings.json`; validates file exists before returning path
+- 🔧 **`get_header_cover_bg(?$eventMeta)`** — priority chain: `event.header_cover_image` → site-wide cover → empty (gradient fallback); public pages inject `class="has-site-cover"` + `--header-cover-url` CSS variable on `<header>` when a cover image is available
+- 📐 **Date Jump Bar centering fix** — `.date-jump-bar` is now a full-width fixed background container; inner `.date-jump-inner` wrapper handles `max-width: 1200px; margin: 0 auto` centering; previously `max-width + margin:auto` had no effect on the fixed element itself
+- 🔧 **`tools/migrate-add-header-cover-image-column.php`** — idempotent migration adding `header_cover_image TEXT DEFAULT NULL` to `events` table
+
+### Changed
+- `header.has-site-cover` CSS — removed `linear-gradient` overlay; header now shows the cover image directly without a pink gradient tint on top; `background-image: var(--header-cover-url)` only
+- Admin API `site_cover_bg_upload` — resizes to 1920×480 (4:1) instead of 1920×1080
+- Admin API `title_get` — includes `site_cover_bg` in response so Settings UI loads everything in one request
+
+### Files Changed
+- `uploads/site/.htaccess` (new) — block PHP execution + directory listing for site cover uploads
+- `tools/migrate-add-header-cover-image-column.php` (new) — idempotent migration adding `events.header_cover_image`
+- `functions/helpers.php` — `get_site_cover_bg()`, `get_header_cover_bg()` helpers
+- `styles/common.css` — `header.has-site-cover` rule (removed gradient overlay)
+- `styles/index.css` — `.date-jump-bar` + `.date-jump-inner` restructure for centering
+- `index.php` — listing header + event-detail header: inject `has-site-cover` class + `--header-cover-url`; `.date-jump-inner` wrapper
+- `credits.php` — inject site-wide header cover
+- `contact.php` — inject site-wide header cover
+- `how-to-use.php` — inject site-wide header cover
+- `past-events.php` — inject site-wide header cover
+- `artist.php` — inject site-wide header cover
+- `artists.php` — inject site-wide header cover
+- `my.php` — inject site-wide header cover
+- `my-favorites.php` — inject site-wide header cover
+- `admin/api.php` — `site_cover_bg_upload` (1920×480), `site_cover_bg_delete`, `event_header_cover_upload`, `event_header_cover_delete`; `title_get` includes `site_cover_bg`
+- `admin/index.php` — site cover Cropper.js + upload UI in Settings; per-event Header Cover section in Cover Images; `cropperModal` moved to top-level `<body>`
+- `admin/js/admin-i18n.js` — i18n keys for Header Cover labels (TH + EN)
+- `setup.php` — `header_cover_image` in CREATE TABLE, ALTER TABLE fallback, `run_all_migrations`, `$allTablesOk`, `$migrationChecks`
+- `config/app.php` — version bump to v9.2.0
+
+---
+
+## [9.1.0] - 2026-05-05
+
+### Added
+- 📖 **"▼ อ่านเพิ่มเติม" button on homepage event cards** — event cards (`.event-card`) in the homepage grid now show description text (hidden via `height:0; overflow:hidden`) so `scrollHeight > clientHeight + 2` always fires for non-empty descriptions; button is injected by JS and aligned to the bottom of the card (`margin-top: auto` in flex column); clicking the button or the hidden description opens an event modal with full text + "📋 ดูตารางเวลา" link; `e.preventDefault()` + `e.stopPropagation()` guard navigation because `.event-card` is an `<a>` tag
+- 📋 **Event description block on event timetable page** — `<div class="event-desc-block">` rendered before `.calendar-container` when `$eventMeta['description']` is non-empty; includes a styled title (`ℹ️ เกี่ยวกับงาน` / `About this Event` / `イベント概要`) and a card-framed body with left-border accent; translation key `event.about` added to `js/translations.js`
+- 📄 **`past-events.php` redesign** — page now renders event cards using the same `events-grid` / `event-card` markup as the homepage (cover image with 4:3 fallback chain, badge, name, date, description button); 20 items per page; old `program-card` markup and `openModal()` JS replaced with `openEventCardModal()` matching the homepage pattern
+- 📑 **Pagination on `credits.php`** — 20 credits per page in both views:
+  - **Event-specific view**: standard `?page=N` pagination
+  - **Global view** (`/credits`): flat pagination across all credits (20/page); current page's slice is re-grouped by event after slicing so group headings remain correct; pagination nav appears below the groups
+  - URL base: global → `get_base_path() . '/credits'`; event-specific → `event_url('credits.php', $eventSlug)`
+
+### Changed
+- `styles/index.css` — `.event-card-description` and `.program-card-description` use `height:0; overflow:hidden; margin:0` (not `display:none`) so `scrollHeight` remains readable by the read-more JS
+- `.event-card-body .program-card-readmore` — `margin-top: auto` pushes the button to the card bottom in a flex column context
+- `past-events.php` — `$perPage` changed from 5 → 20; JS section rewritten to use `openEventCardModal()` with `.event-card-*` selectors
+
+### New CSS
+- `styles/credits.css` — `.pagination` block (copied from `styles/index.css`) so the credits page renders pagination without depending on `index.css`
+- `styles/index.css` — `.event-desc-block`, `.event-desc-title`, `.event-desc-body` for the event description section
+
+### Files Changed
+- `index.php` — added `event-card-description` div to event card body; `openEventCardModal()` JS function + forEach handler; `event-desc-block` PHP block before calendar-container
+- `past-events.php` — redesigned to use `events-grid` / `event-card` markup; 20 items per page; JS rewritten to use `openEventCardModal()` with `.event-card-*` selectors
+- `credits.php` — pagination logic (20/page) for both event-specific and global views; global view re-groups paged slice by event_id
+- `styles/index.css` — `.event-card-description` + `.program-card-description` use `height:0; overflow:hidden`; `.event-card-body .program-card-readmore` uses `margin-top:auto`; `.event-desc-block`, `.event-desc-title`, `.event-desc-body` styles
+- `styles/credits.css` — added `.pagination` block for credits page pagination
+- `js/translations.js` — added `event.about` key (TH/EN/JA)
+- `config/app.php` — version bump to 9.1.0
+
+> **Test Coverage**: All existing automated tests unaffected (no PHP logic, DB, or API changes)
+
+## [9.0.0] - 2026-05-04
+
+### Added
+- 🔍 **FTS5 Full-Text Search** — site-wide full-text search across programs, events, and artists powered by SQLite FTS5 with `unicode61` tokenizer
+  - **Search bar** — persistent search form (`fts-search-form`) on the homepage listing; submits `?q=` to the same page; ✕ clear button; accessible `aria-label`
+  - **2-column results layout** — Main column (Programs, paginated 10/page) + Sidebar (Events top 5, Artists top 10); mobile stacks to single column
+  - **Program results** — each card shows title, FTS5 highlighted snippet (`<mark>`), event name, date, time, and venue; links to the event page; sorted newest → oldest (`p.start DESC`)
+  - **Event sidebar** — top 5 matching active events sorted by `start_date DESC`; links to event page
+  - **Artist sidebar** — top 10 matching artists sorted by FTS5 relevance rank; links to `/artist/{id}`; "กลุ่ม / วง" badge for groups
+  - **Pagination** — ellipsis-aware page navigator with `?q=...&page=N` URLs; `fts5_count_programs()` for total count
+  - **FTS5 helpers** (`functions/search.php`) — `fts5_available()`, `fts5_escape()`, `fts5_count_programs()`, `fts5_search_programs()` (+offset), `fts5_count_events()`, `fts5_search_events()` (+offset), `fts5_search_artists()`, `fts5_search_all()`, `fts5_rebuild_all()`
+  - **Graceful LIKE fallback** — all search functions fall back to `LIKE '%query%'` queries when FTS5 virtual tables are unavailable
+  - **Admin integration** — Programs / Events / Artists list views in admin use FTS5 when `?q=` is present; `fts5_rebuild_all()` called after ICS import
+  - **Public API** — `api.php?action=search&q=` returns JSON `{ programs, events, artists }`
+
+### Schema
+- **`programs_fts`** — FTS5 virtual table (`content=programs`; indexes `title`, `categories`, `organizer`, `description`)
+- **`events_fts`** — FTS5 virtual table (`content=events`; indexes `name`, `description`)
+- **`artists_fts`** — FTS5 virtual table (`content=artists`; indexes `name`)
+- **6 auto-sync triggers** — `programs_ai/au/ad`, `events_ai/au/ad`, `artists_ai/au/ad` keep FTS indexes in sync on INSERT / UPDATE / DELETE
+
+### New Files
+- `functions/search.php` — all FTS5 helper functions
+- `tools/migrate-add-fts5.php` — idempotent migration: creates FTS tables, triggers, and rebuilds indexes
+- `tests/Fts5Test.php` — 45 automated tests (schema, triggers, helpers, API, UI, translations, setup)
+
+### Files Changed
+- `config.php` — added `require_once functions/search.php`
+- `index.php` — FTS search block: PHP variables + 2-column HTML results layout with programs main + sidebar
+- `api.php` — added `action=search` case calling `fts5_search_programs/events/artists`
+- `admin/api.php` — `listPrograms()`, `listEvents()`, `listArtists()` use FTS when `?q=` present; `fts5_rebuild_all()` after ICS import
+- `styles/index.css` — `.fts-search-form`, `.fts-search-input`, `.fts-results-layout` (2fr/1fr grid), `.fts-results-sidebar`, `.fts-result-item`, `.fts-sidebar-item`, `.fts-section-title`, `.fts-pagination`, `.fts-page-btn`, `.fts-result-snippet mark`
+- `js/translations.js` — `search.*` keys (placeholder, button, resultsFor, noResults, programs, events, artists, group) in TH / EN / JA
+- `setup.php` — FTS5 table and trigger presence checks (`$hasFts5Tables`, `$hasFts5Triggers`)
+- `tests/run-tests.php` — registered `Fts5Test` suite
+- `config/app.php` — version bump to 9.0.0
+
+> **Test Coverage**: All 45 Fts5Test tests pass (100% pass rate)
+
+---
+
+## [8.0.0] - 2026-05-04
+
+### Added
+- 🎨 **Homepage Redesign — Ticket-Marketplace Style** — complete UI overhaul of the event listing homepage
+  - **Hero Carousel** — 16:9 featured event slides; auto-rotates every 5s; pauses on hover; swipe support on mobile; prev/next/dots navigation; single slide renders as a static banner (no nav buttons); theme-gradient fallback when no cover image is set
+  - **Hero + Calendar side-by-side** — two-column layout (hero 2fr / calendar 1fr); stacks vertically on mobile; compact calendar reduces font and cell sizes via `.listing-cal-compact`
+  - **Events Grid** — 4-column responsive grid (3-col ≤1024px, 2-col ≤768px, 1-col ≤480px) replacing the previous vertical card list; entire card is clickable
+  - **Categories Tiles** — aggregates `programs.program_type` across all active events; displays icon and count; 3-column grid; hidden when no program types exist
+  - **Dual Cover Image System** — `events.cover_image` (Hero 16:9, 1600×900) and `events.cover_image_card` (Card 4:3, 800×600) managed independently
+  - **Cropper.js integration** — lazy-loaded from CDN; aspect ratio locked to 16:9 (Hero) or 4:3 (Card); `getCroppedCanvas()` performs client-side crop → blob → upload; shared modal changes aspect ratio based on `cover_type`
+  - **Admin Cover Upload UI** — two separate sections (Hero / Card) in the Event edit modal; individual previews and delete buttons; CSRF token sent via `X-CSRF-Token` header
+  - **Event Card fallback chain**: `cover_image_card` → `cover_image` → first `event_pictures` row → theme gradient
+
+### Changed
+- **Homepage carousel threshold** — Hero Carousel renders with ≥ 1 event having a cover image (previously ≥ 2)
+- **Listing pagination** — increased from 10 to 12 events per page to align with the 4-column grid layout
+- **Listing cache** (`query_listing.json`) — added `event_covers` key (first event_picture per event_id) and `program_type_counts` key (aggregated counts by type)
+- **`listing-cal-wrap`** — removed redundant `box-shadow` (duplicated by the `.listing-cal-compact` wrapper)
+- **`hero-calendar-row`** — switched from `margin` to `padding: 30px 30px 0` to align with `.program-listing` indentation
+- **`categories-section`** — uses `padding: 20px 30px 8px` to match `.program-listing` indentation
+- **`listing-cal-wrap` / `listing-cal-compact` background** — changed from hardcoded `#fff` to `var(--sakura-bg-soft)` so the calendar tint adapts to all 11 themes automatically
+
+### New Files
+- `tools/migrate-add-event-cover-image-column.php` — idempotent migration adding `events.cover_image`
+- `tools/migrate-add-event-cover-image-card-column.php` — idempotent migration adding `events.cover_image_card`
+- `tests/EventCoverTest.php` — 44 automated tests
+
+### Files Changed
+- `index.php` — homepage listing branch restructured (hero carousel, events grid, categories tiles, listing cache extensions)
+- `functions/helpers.php` — added `get_event_cover_image()`
+- `admin/api.php` — added `uploadEventCover()`, `deleteEventCover()` with `cover_type` param (hero/card)
+- `admin/index.php` — Cover Images section with Cropper.js crop modal (Hero 16:9 / Card 4:3)
+- `admin/js/admin-i18n.js` — added cover image keys (TH + EN)
+- `js/translations.js` — added `homepage.categoriesTitle`, `homepage.programs` keys (TH/EN/JA)
+- `styles/index.css` — hero carousel, events grid, categories tiles, compact calendar CSS; `var(--sakura-bg-soft)` for calendar background
+- `setup.php` — `cover_image` and `cover_image_card` column checks and migrations
+- `tests/EventCoverTest.php` — new test suite (44 tests)
+- `tests/run-tests.php` — registered `EventCoverTest` suite
+- `config/app.php` — version bump to 8.0.0
+
+> **Test Coverage**: All 44 EventCoverTest tests pass (100% pass rate)
+
+---
+
 ## [7.4.1] - 2026-04-27
 
 ### Fixed

@@ -64,3 +64,20 @@ define('ADMIN_ALLOWED_IPS', [
     // '192.168.1.0/24',  // Example: Entire subnet 192.168.1.x
     // '10.0.0.5',        // Example: Specific IP
 ]);
+
+// =============================================================================
+// AUDIT LOG SETTINGS (v14.0.0)
+// =============================================================================
+
+/**
+ * Retention period for admin audit log files (in days).
+ * Files older than this are deleted by cron/rotate-admin-audit-logs.php.
+ * Default: 30 days
+ */
+define('ADMIN_AUDIT_RETENTION_DAYS', 30);
+
+/**
+ * Directory where audit log files are stored.
+ * Must be writable by the web server process.
+ */
+define('ADMIN_AUDIT_LOG_DIR', dirname(__DIR__) . '/cache/logs');

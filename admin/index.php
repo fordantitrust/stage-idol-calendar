@@ -16,6 +16,7 @@ $csrfToken = csrf_token();
 $adminUsername = $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'Admin';
 $adminUserId = $_SESSION['admin_user_id'] ?? null;
 $adminRole = $_SESSION['admin_role'] ?? 'admin';
+$setupPageExists = file_exists(__DIR__ . '/../setup.php');
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -766,6 +767,158 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         .type-add{color:#4caf50;font-weight:500}
         .type-modify{color:#2196f3;font-weight:500}
 
+        /* Dashboard */
+        .dashboard-hero {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border-light);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .dashboard-hero h2 {
+            margin: 0 0 6px;
+            color: var(--admin-text);
+            font-size: 1.45rem;
+        }
+        .dashboard-meta {
+            color: var(--admin-text-light);
+            font-size: 0.92rem;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .dashboard-version {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--admin-primary-light);
+            color: var(--admin-primary-dark);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .dashboard-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .dashboard-kpi-card {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border-light);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .dashboard-kpi-label {
+            color: var(--admin-text-light);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 8px;
+        }
+        .dashboard-kpi-value {
+            color: var(--admin-text);
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .dashboard-kpi-note {
+            color: var(--admin-text-light);
+            font-size: 0.86rem;
+            margin-top: 8px;
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .dashboard-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 900px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+        .dashboard-panel {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border-light);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            min-width: 0;
+        }
+        .dashboard-panel h3 {
+            margin: 0 0 12px;
+            color: var(--admin-text);
+            font-size: 1rem;
+        }
+        .dashboard-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .dashboard-mini-table th,
+        .dashboard-mini-table td {
+            padding: 9px 8px;
+            border-bottom: 1px solid var(--admin-border-light);
+            text-align: left;
+            vertical-align: top;
+        }
+        .dashboard-mini-table th {
+            color: var(--admin-text-light);
+            font-weight: 700;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+        .dashboard-empty {
+            color: var(--admin-text-light);
+            padding: 18px 8px;
+            text-align: center;
+            border: 1px dashed var(--admin-border);
+            border-radius: 8px;
+        }
+        .dashboard-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            background: #94a3b8;
+        }
+        .dashboard-status-dot.active { background: #22c55e; }
+        .dashboard-health-list {
+            display: grid;
+            gap: 8px;
+        }
+        .dashboard-health-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid var(--admin-border-light);
+            border-radius: 8px;
+            color: var(--admin-text);
+        }
+        .dashboard-health-count {
+            font-weight: 800;
+            color: var(--admin-primary-dark);
+        }
+        .dashboard-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         /* Request Detail Styles */
         .req-detail-grid{display:grid;gap:12px}
         .req-detail-row{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:8px 0;border-bottom:1px solid #eee}
@@ -1152,6 +1305,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <a href="#" onclick="showChangePasswordModal(); return false;" style="background: rgba(255, 255, 255, 0.15); color: white;" data-i18n="header.changePassword">🔑 เปลี่ยนรหัสผ่าน</a>
                 <?php endif; ?>
                 <a href="help.php" data-i18n="header.help">📖 ช่วยเหลือ</a>
+                <?php if ($setupPageExists): ?>
+                <a href="../setup.php" data-i18n="header.setup">🛠️ Setup</a>
+                <?php endif; ?>
                 <a href="../index.php" data-i18n="header.backToMain">← กลับหน้าหลัก</a>
                 <a href="login.php?logout=1" style="background: rgba(239, 68, 68, 0.2); color: white;" data-i18n="header.logout">ออกจากระบบ</a>
             </div>
@@ -1164,21 +1320,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     aria-haspopup="true" aria-expanded="false">
                 <span class="tab-mobile-btn-left">
                     <span>☰</span>
-                    <span id="tabMobileLabel">🎵 Programs</span>
+                    <span id="tabMobileLabel">📊 Dashboard</span>
                     <span class="badge" id="pendingBadgeMobile" style="display:none">0</span>
                 </span>
                 <span class="tab-mobile-arrow">▼</span>
             </button>
             <div class="tab-mobile-dropdown" id="tabMobileDropdown" role="menu">
-                <button class="tab-mobile-item active" onclick="switchTab('programs')" data-tab="programs" role="menuitem" data-i18n="tab.programs">🎵 Programs</button>
+                <button class="tab-mobile-item active" onclick="switchTab('dashboard')" data-tab="dashboard" role="menuitem" data-i18n="tab.dashboard">📊 Dashboard</button>
                 <button class="tab-mobile-item" onclick="switchTab('events')" data-tab="events" role="menuitem" data-i18n="tab.events">🎪 Events</button>
+                <button class="tab-mobile-item" onclick="switchTab('programs')" data-tab="programs" role="menuitem" data-i18n="tab.programs">🎵 Programs</button>
+                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem" data-i18n="tab.credits">✨ Credits</button>
+                <?php if ($adminRole === 'admin' || $adminRole === 'organizer'): ?>
+                <button class="tab-mobile-item" onclick="switchTab('artists')" data-tab="artists" role="menuitem" data-i18n="tab.artists">🎤 Artists</button>
+                <?php endif; ?>
+                <?php if ($adminRole === 'admin' || $adminRole === 'agent'): ?>
+                <button class="tab-mobile-item" onclick="switchTab('venues')" data-tab="venues" role="menuitem" data-i18n="tab.venues">🏛️ Venues</button>
+                <?php endif; ?>
+                <?php if ($adminRole !== 'organizer'): ?>
+                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem" data-i18n="tab.import">📤 Import</button>
                 <button class="tab-mobile-item" onclick="switchTab('requests')" data-tab="requests" role="menuitem">
                     <span data-i18n="tab.requests">📝 Requests</span> <span class="badge" id="pendingBadgeMobile2" style="display:none">0</span>
                 </button>
-                <button class="tab-mobile-item" onclick="switchTab('credits')" data-tab="credits" role="menuitem" data-i18n="tab.credits">✨ Credits</button>
-                <button class="tab-mobile-item" onclick="switchTab('import')" data-tab="import" role="menuitem" data-i18n="tab.import">📤 Import</button>
+                <?php endif; ?>
                 <?php if ($adminRole === 'admin'): ?>
-                <button class="tab-mobile-item" onclick="switchTab('artists')" data-tab="artists" role="menuitem" data-i18n="tab.artists">🎤 Artists</button>
                 <button class="tab-mobile-item" onclick="switchTab('settings')" data-tab="settings" role="menuitem" data-i18n="tab.settings">⚙️ Settings</button>
                 <?php endif; ?>
             </div>
@@ -1186,19 +1350,109 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         <!-- Tabs (desktop) -->
         <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('programs')" data-i18n="tab.programs">🎵 Programs</button>
+            <button class="tab-btn active" onclick="switchTab('dashboard')" data-i18n="tab.dashboard">📊 Dashboard</button>
             <button class="tab-btn" onclick="switchTab('events')" data-i18n="tab.events">🎪 Events</button>
-            <button class="tab-btn" onclick="switchTab('requests')"><span data-i18n="tab.requests">📝 Requests</span> <span class="badge" id="pendingBadge" style="display:none">0</span></button>
+            <button class="tab-btn" onclick="switchTab('programs')" data-i18n="tab.programs">🎵 Programs</button>
             <button class="tab-btn" onclick="switchTab('credits')" data-i18n="tab.credits">✨ Credits</button>
-            <button class="tab-btn" onclick="switchTab('import')" data-i18n="tab.import">📤 Import</button>
-            <?php if ($adminRole === 'admin'): ?>
+            <?php if ($adminRole === 'admin' || $adminRole === 'organizer'): ?>
             <button class="tab-btn" onclick="switchTab('artists')" data-i18n="tab.artists">🎤 Artists</button>
+            <?php endif; ?>
+            <?php if ($adminRole === 'admin' || $adminRole === 'agent'): ?>
+            <button class="tab-btn" onclick="switchTab('venues')" data-i18n="tab.venues">🏛️ Venues</button>
+            <?php endif; ?>
+            <?php if ($adminRole !== 'organizer'): ?>
+            <button class="tab-btn" onclick="switchTab('import')" data-i18n="tab.import">📤 Import</button>
+            <button class="tab-btn" onclick="switchTab('requests')"><span data-i18n="tab.requests">📝 Requests</span> <span class="badge" id="pendingBadge" style="display:none">0</span></button>
+            <?php endif; ?>
+            <?php if ($adminRole === 'admin'): ?>
             <button class="tab-btn" onclick="switchTab('settings')" data-i18n="tab.settings">⚙️ Settings</button>
             <?php endif; ?>
         </div>
 
+        <!-- Dashboard Section -->
+        <div id="dashboardSection">
+            <div class="dashboard-hero">
+                <div>
+                    <h2 data-i18n="dashboard.title">📊 Admin Dashboard</h2>
+                    <div class="dashboard-meta">
+                        <span id="dashboardSiteTitle"><?php echo htmlspecialchars(get_site_title()); ?></span>
+                        <span><span data-i18n="dashboard.role">Role</span>: <strong id="dashboardRole"><?php echo htmlspecialchars($adminRole); ?></strong></span>
+                        <span><span data-i18n="dashboard.generatedAt">Asia/Bangkok</span>: <strong id="dashboardGeneratedAt">-</strong></span>
+                    </div>
+                </div>
+                <span class="dashboard-version">v<?php echo APP_VERSION; ?></span>
+            </div>
+
+            <div class="dashboard-kpi-grid" id="dashboardKpiGrid">
+                <div class="dashboard-empty" data-i18n="common.loading">กำลังโหลด...</div>
+            </div>
+
+            <div class="dashboard-stack">
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.upcomingEvents">Upcoming Events</h3>
+                    <div id="dashboardUpcomingEvents"></div>
+                </div>
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.programsByEvent">Programs by Event</h3>
+                    <div id="dashboardProgramsByEvent"></div>
+                </div>
+            </div>
+
+            <?php if ($adminRole !== 'organizer'): ?>
+            <div class="dashboard-grid">
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.requestBreakdown">Request Status Breakdown</h3>
+                    <div id="dashboardRequestBreakdown"></div>
+                </div>
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.contentHealth">Content Health</h3>
+                    <div id="dashboardContentHealth"></div>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="dashboard-panel">
+                <h3 data-i18n="dashboard.contentHealth">Content Health</h3>
+                <div id="dashboardContentHealth"></div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($adminRole === 'admin'): ?>
+            <div class="dashboard-grid">
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.systemInfo">System Info</h3>
+                    <div id="dashboardSystemInfo"></div>
+                </div>
+                <div class="dashboard-panel">
+                    <h3 data-i18n="dashboard.quickActions">Quick Actions</h3>
+                    <div class="dashboard-actions">
+                        <button class="btn btn-secondary" onclick="switchTab('events');openAddEventModal()" data-i18n="dashboard.actionAddEvent">+ Add Event</button>
+                        <button class="btn btn-secondary" onclick="switchTab('programs');openAddModal()" data-i18n="dashboard.actionAddProgram">+ Add Program</button>
+                        <button class="btn btn-secondary" onclick="switchTab('import')" data-i18n="dashboard.actionImport">Import ICS</button>
+                        <button class="btn btn-secondary" onclick="switchTab('requests')" data-i18n="dashboard.actionRequests">Review Requests</button>
+                        <button class="btn btn-secondary" onclick="switchTab('settings')" data-i18n="dashboard.actionSettings">Settings</button>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
+            <div class="dashboard-panel">
+                <h3 data-i18n="dashboard.quickActions">Quick Actions</h3>
+                <div class="dashboard-actions">
+                    <button class="btn btn-secondary" onclick="switchTab('events');openAddEventModal()" data-i18n="dashboard.actionAddEvent">+ Add Event</button>
+                    <button class="btn btn-secondary" onclick="switchTab('programs');openAddModal()" data-i18n="dashboard.actionAddProgram">+ Add Program</button>
+                    <button class="btn btn-secondary" onclick="switchTab('credits')" data-i18n="tab.credits">✨ Credits</button>
+                    <?php if ($adminRole === 'organizer'): ?>
+                    <button class="btn btn-secondary" onclick="switchTab('artists');openArtistRequestModal()" data-i18n="dashboard.actionRequestArtist">Request New Artist</button>
+                    <?php else: ?>
+                    <button class="btn btn-secondary" onclick="switchTab('import')" data-i18n="dashboard.actionImport">Import ICS</button>
+                    <button class="btn btn-secondary" onclick="switchTab('requests')" data-i18n="dashboard.actionRequests">Review Requests</button>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+
         <!-- Programs Section -->
-        <div id="programsSection">
+        <div id="programsSection" style="display:none">
         <!-- Toolbar -->
         <div class="admin-toolbar">
             <select id="eventMetaFilter" onchange="currentPage=1;loadPrograms()">
@@ -1209,7 +1463,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button type="button" class="clear-search" onclick="clearSearch()" title="Clear">&times;</button>
             </div>
             <select id="venueFilter" onchange="loadPrograms()">
-                <option value="" data-i18n="programs.allVenues">ทุกเวที</option>
+                <option value="" data-i18n="programs.allVenues">ทุกสถานที่</option>
             </select>
             <input type="date" id="dateFrom" onchange="loadPrograms()" data-i18n-title="programs.dateFrom" title="จากวันที่">
             <input type="date" id="dateTo" onchange="loadPrograms()" data-i18n-title="programs.dateTo" title="ถึงวันที่">
@@ -1245,7 +1499,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <th class="sortable" onclick="sortBy('title')"><span data-i18n="th.title">ชื่อ</span> <span class="sort-icon" data-col="title"></span></th>
                     <th class="sortable" onclick="sortBy('start')"><span data-i18n="th.dateTime">วันที่/เวลา</span> <span class="sort-icon" data-col="start"></span></th>
                     <?php if (VENUE_MODE === 'multi'): ?>
-                    <th class="sortable" onclick="sortBy('location')"><span data-i18n="th.venue">เวที</span> <span class="sort-icon" data-col="location"></span></th>
+                    <th class="sortable" onclick="sortBy('location')"><span data-i18n="th.venue">สถานที่</span> <span class="sort-icon" data-col="location"></span></th>
                     <?php endif; ?>
                     <th class="sortable" onclick="sortBy('categories')"><span data-i18n="th.artistGroup">ศิลปิน / กลุ่ม</span> <span class="sort-icon" data-col="categories"></span></th>
                     <th data-i18n="th.type">ประเภท</th>
@@ -1266,6 +1520,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         <!-- Requests Section -->
         <div id="requestsSection" style="display:none">
+            <!-- Sub-toggle: Program Requests / Event Requests / Event Active Requests -->
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;border-bottom:2px solid #e9ecef;padding-bottom:12px">
+                <button id="reqSubTabProgram" class="admin-request-subtab-btn" data-req-subtab="program" onclick="switchReqSubTab('program')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:var(--admin-primary);border-bottom:3px solid var(--admin-primary);transition:all 0.3s"><span data-i18n="tab.programRequests">📝 Program Requests</span> <span class="badge" id="progReqBadge" style="display:none">0</span></button>
+                <button id="reqSubTabEventGuest" class="admin-request-subtab-btn" data-req-subtab="event_guest" onclick="switchReqSubTab('event_guest')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s"><span data-i18n="tab.eventGuestRequests">🗓️ Event Requests (Guest)</span> <span class="badge" id="evReqBadge" style="display:none">0</span></button>
+                <button id="reqSubTabEventActive" class="admin-request-subtab-btn" data-req-subtab="event_active" onclick="switchReqSubTab('event_active')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s"><span data-i18n="tab.eventActiveRequests">🟡 Event Active Requests (Organizer)</span> <span class="badge" id="evActiveReqBadge" style="display:none">0</span></button>
+                <button id="reqSubTabArtist" class="admin-request-subtab-btn" data-req-subtab="artist" onclick="switchReqSubTab('artist')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s"><span data-i18n="tab.artistRequests">🎤 Artist Request</span> <span class="badge" id="artistReqBadge" style="display:none">0</span></button>
+            </div>
+
+            <!-- Program Requests -->
+            <div id="programRequestsSubSection">
             <div class="admin-toolbar">
                 <select id="reqEventMetaFilter" onchange="reqPage=1;loadRequests()">
                     <option value="" data-i18n="req.allEvents">ทุก Events</option>
@@ -1294,6 +1558,78 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </table>
             </div>
             <div class="pagination" id="reqPagination"></div>
+            </div>
+
+            <!-- Event Requests -->
+            <div id="eventRequestsSubSection" style="display:none">
+            <h3 id="evReqSectionTitle" style="font-size:1.05rem;margin:0 0 12px;color:#333" data-i18n="tab.eventGuestRequests">🗓️ Event Requests (Guest)</h3>
+            <div class="admin-toolbar">
+                <select id="evReqStatusFilter" onchange="evReqPage=1;loadEventRequests()">
+                    <option value="all" data-i18n="evReq.allStatuses">ทุกสถานะ</option>
+                    <option value="pending" selected data-i18n="req.pending">รอดำเนินการ</option>
+                    <option value="approved" data-i18n="req.approved">อนุมัติแล้ว</option>
+                    <option value="rejected" data-i18n="req.rejected">ปฏิเสธแล้ว</option>
+                </select>
+            </div>
+            <div class="table-scroll-wrapper">
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-i18n="evReq.thName">ชื่องาน</th>
+                        <th data-i18n="evReq.thDate">วันที่</th>
+                        <th data-i18n="evReq.thReporter">ผู้แจ้ง</th>
+                        <th data-i18n="evReq.thStatus">สถานะ</th>
+                        <th data-i18n="th.actions">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="eventRequestsBody"><tr><td colspan="6" data-i18n="common.loading">กำลังโหลด...</td></tr></tbody>
+            </table>
+            </div>
+            <div class="pagination" id="evReqPagination"></div>
+            </div>
+
+            <!-- Artist Requests -->
+            <div id="artistRequestsSubSection" style="display:none">
+            <h3 style="font-size:1.05rem;margin:0 0 12px;color:#333" data-i18n="tab.artistRequests">🎤 Artist Request</h3>
+            <div class="admin-toolbar">
+                <select id="artistReqStatusFilter" onchange="artistReqPage=1;loadArtistRequests()">
+                    <option value="all" data-i18n="evReq.allStatuses">ทุกสถานะ</option>
+                    <option value="pending" selected data-i18n="req.pending">รอดำเนินการ</option>
+                    <option value="approved" data-i18n="req.approved">อนุมัติแล้ว</option>
+                    <option value="rejected" data-i18n="req.rejected">ปฏิเสธแล้ว</option>
+                </select>
+            </div>
+            <div class="table-scroll-wrapper">
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th data-i18n="artists.thName">ชื่อ</th>
+                        <th data-i18n="artists.thType">ประเภท</th>
+                        <th data-i18n="artists.thGroup">กลุ่มที่สังกัด</th>
+                        <th data-i18n="req.thReporter">ผู้แจ้ง</th>
+                        <th data-i18n="req.thStatus">สถานะ</th>
+                        <th data-i18n="th.actions">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="artistRequestsBody"><tr><td colspan="7" data-i18n="common.loading">กำลังโหลด...</td></tr></tbody>
+            </table>
+            </div>
+            <div class="pagination" id="artistReqPagination"></div>
+            </div>
+        </div>
+
+        <!-- Event Request Detail Modal -->
+        <div id="eventRequestDetailModal" class="modal-overlay" style="display:none">
+            <div class="modal" style="max-width:560px">
+                <div class="modal-header">
+                    <h2 id="evReqDetailTitle" data-i18n="evReq.detailTitle">📋 รายละเอียดคำของาน</h2>
+                    <button class="modal-close" onclick="closeEvReqDetailModal()">✕</button>
+                </div>
+                <div id="evReqDetailBody" style="padding:16px 20px;max-height:60vh;overflow-y:auto;background:#fff;"></div>
+                <div id="evReqDetailActions" style="padding:12px 20px 20px;display:flex;gap:10px;flex-wrap:wrap;background:#fff;border-top:1px solid #eee;border-radius:0 0 12px 12px;"></div>
+            </div>
         </div>
 
         <!-- Import ICS Section -->
@@ -1556,6 +1892,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         <!-- Artists Section -->
         <div id="artistsSection" style="display:none">
+            <?php if ($adminRole === 'organizer'): ?>
+            <div class="dashboard-panel">
+                <h3 data-i18n="artist.requestTitle">Request new artist</h3>
+                <p style="color:#6c757d;margin:0 0 14px" data-i18n="artist.requestIntro">ส่งคำขอเพิ่มศิลปินใหม่ให้ admin/agent ตรวจสอบก่อนสร้างในระบบ</p>
+                <button class="btn btn-primary" onclick="openArtistRequestModal()" data-i18n="artist.requestNew">Request new artist</button>
+            </div>
+            <?php else: ?>
             <div class="admin-toolbar">
                 <div class="search-wrapper">
                     <input type="text" id="artistsSearchInput" placeholder="ค้นหาศิลปิน..." data-i18n-placeholder="artists.search" onkeyup="handleArtistsSearch(event)">
@@ -1601,7 +1944,51 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </table>
             </div>
             <div class="pagination" id="artistsPagination"></div>
+            <?php endif; ?>
         </div>
+
+        <!-- Venues Section (admin/agent only) -->
+        <?php if ($adminRole === 'admin' || $adminRole === 'agent'): ?>
+        <div id="venuesSection" style="display:none">
+            <div class="admin-toolbar">
+                <div class="search-wrapper">
+                    <input type="text" id="venuesSearchInput" placeholder="ค้นหาสถานที่..." data-i18n-placeholder="venues.search" onkeyup="handleVenuesSearch(event)">
+                    <button type="button" class="clear-search" onclick="clearVenuesSearch()" title="Clear">&times;</button>
+                </div>
+                <select id="venuesPerPageSelect" onchange="changeVenuesPerPage()">
+                    <option value="50" selected>50 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                    <option value="100">100 <span data-i18n="programs.perPage">/ หน้า</span></option>
+                </select>
+                <button class="btn btn-primary" onclick="openAddVenueModal()" data-i18n="venues.addVenue">+ เพิ่มสถานที่</button>
+            </div>
+
+            <!-- Bulk Merge Toolbar -->
+            <div id="venuesBulkToolbar" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;margin-bottom:8px;flex-wrap:wrap">
+                <span id="venuesBulkCount" style="font-weight:600;color:#856404"></span>
+                <button class="btn btn-secondary btn-sm" onclick="openMergeVenuesModal()" data-i18n="venues.mergeSelected">🔀 รวมสถานที่ที่เลือก</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearVenueSelection()" data-i18n="venues.bulkCancel">✕ ยกเลิก</button>
+            </div>
+
+            <div class="table-scroll-wrapper">
+            <table class="events-table">
+                <thead>
+                    <tr>
+                        <th style="width:36px;text-align:center"><input type="checkbox" id="venuesSelectAll" onchange="selectAllVenues(this.checked)" style="width:16px;height:16px;cursor:pointer" title="เลือกทั้งหมด"></th>
+                        <th class="sortable" onclick="sortVenuesBy('id')"># <span class="sort-icon" data-col="id"></span></th>
+                        <th class="sortable" onclick="sortVenuesBy('name')"><span data-i18n="venues.thName">ชื่อสถานที่</span> <span class="sort-icon" data-col="name"></span></th>
+                        <th class="sortable" onclick="sortVenuesBy('program_count')"><span data-i18n="venues.thPrograms">Programs</span> <span class="sort-icon" data-col="program_count"></span></th>
+                        <th data-i18n="venues.thVariants">ชื่อเรียกอื่น</th>
+                        <th data-i18n="th.actions">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="venuesTableBody">
+                    <tr><td colspan="6" class="loading" data-i18n="common.loading">กำลังโหลด...</td></tr>
+                </tbody>
+            </table>
+            </div>
+            <div class="pagination" id="venuesPagination"></div>
+        </div>
+        <?php endif; ?>
 
         <!-- Settings Section with Sub-tabs -->
         <?php if ($adminRole === 'admin'): ?>
@@ -1613,8 +2000,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="admin-subtab-btn" data-subtab="users" onclick="switchSettingsSubtab('users')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.users">👤 Users</button>
                 <button class="admin-subtab-btn" data-subtab="backup" onclick="switchSettingsSubtab('backup')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.backup">💾 Backup</button>
                 <button class="admin-subtab-btn" data-subtab="telegram" onclick="switchSettingsSubtab('telegram')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.telegram">🤖 Telegram</button>
+                <button class="admin-subtab-btn" data-subtab="webpush" onclick="switchSettingsSubtab('webpush')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.webpush">📱 Web Push</button>
+                <button class="admin-subtab-btn" data-subtab="email" onclick="switchSettingsSubtab('email')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.email">📧 Email</button>
                 <button class="admin-subtab-btn" data-subtab="analytics" onclick="switchSettingsSubtab('analytics')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.analytics">🔵 Google</button>
                 <button class="admin-subtab-btn" data-subtab="disclaimer" onclick="switchSettingsSubtab('disclaimer')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.disclaimer">⚠️ Disclaimer</button>
+                <button class="admin-subtab-btn" data-subtab="audit" onclick="switchSettingsSubtab('audit')" style="padding:8px 16px;border:none;background:transparent;cursor:pointer;font-weight:600;color:#666;border-bottom:3px solid transparent;transition:all 0.3s" data-i18n="settings.subtab.audit">🔎 Audit Log</button>
             </div>
 
             <!-- Site Sub-tab -->
@@ -1638,6 +2028,21 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <button class="btn btn-primary" onclick="saveThemeSetting()" id="themeSaveBtn" data-i18n="settings.saveTheme">💾 บันทึก Theme</button>
                 <span id="themeSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
+
+                <hr style="margin:32px 0;border:none;border-top:1px solid #e9ecef">
+                <h3 style="margin-bottom:8px" data-i18n="settings.coverBg">🖼️ ภาพพื้นหลัง Header (ทั้งระบบ)</h3>
+                <p style="color:#6c757d;margin-bottom:12px" data-i18n="settings.coverBgHint">แนะนำขนาด 1920×400 px ขึ้นไป (JPEG/PNG, สูงสุด 5 MB) · หน้า Event จะใช้รูป Cover ของ Event แทนอัตโนมัติ</p>
+                <div id="siteCoverBgPreview" style="margin-bottom:12px"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <label class="btn btn-secondary" style="cursor:pointer;margin:0">
+                        📤 <span data-i18n="settings.coverBgUpload">อัพโหลดรูป</span>
+                        <input type="file" id="siteCoverBgFile" accept="image/*" style="display:none" onchange="openSiteCoverCropper(this)">
+                    </label>
+                    <button class="btn btn-danger" id="siteCoverBgDeleteBtn" onclick="deleteSiteCoverBg()" style="display:none">
+                        🗑️ <span data-i18n="settings.coverBgDelete">ลบรูป</span>
+                    </button>
+                    <span id="siteCoverBgMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
+                </div>
             </div>
 
             <!-- Contact Channels Sub-tab -->
@@ -1678,6 +2083,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <th data-i18n="users.thUsername">Username</th>
                             <th data-i18n="users.thDisplayName">ชื่อที่แสดง</th>
                             <th data-i18n="users.thRole">Role</th>
+                            <th data-i18n="users.th2fa">2FA</th>
                             <th data-i18n="users.thActive">Active</th>
                             <th data-i18n="users.thLastLogin">เข้าสู่ระบบล่าสุด</th>
                             <th data-i18n="th.actions">จัดการ</th>
@@ -1685,7 +2091,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </thead>
                     <tbody id="usersTableBody">
                         <tr>
-                            <td colspan="7" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
+                            <td colspan="8" class="loading" data-i18n="common.loading">กำลังโหลด...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1868,15 +2274,232 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <button class="btn btn-sm btn-secondary" onclick="loadTelegramLog()">🔄 <span data-i18n="settings.telegramLogRefresh">Refresh</span></button>
                         <button class="btn btn-sm btn-secondary" onclick="downloadTelegramLog()">⬇️ <span data-i18n="settings.telegramLogDownload">Download</span></button>
                     </div>
+                    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+                        <input type="text" id="telegramLogFilter" placeholder="กรอง (level / message)…" oninput="filterTelegramLog()" style="flex:1;padding:6px 10px;border:1px solid #ccc;border-radius:4px;font-size:0.85rem">
+                        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('telegramLogFilter').value='';filterTelegramLog()">✕ ล้าง</button>
+                    </div>
                     <div id="telegramLogInfo" style="font-size:0.82rem;color:#666;margin-bottom:8px"></div>
-                    <pre id="telegramLogContent" style="
-                        max-height:400px;overflow-y:auto;
-                        background:#1a1a2e;color:#e0e0e0;
-                        padding:12px;border-radius:6px;
-                        font-size:0.75rem;font-family:'Courier New',monospace;
-                        white-space:pre-wrap;word-break:break-all;
-                        margin:0;border:1px solid #333;
-                    ">Loading...</pre>
+                    <div style="overflow-x:auto;overflow-y:auto;max-height:400px;border:1px solid #e0e0e0;border-radius:6px">
+                        <table id="telegramLogTable" style="width:100%;border-collapse:collapse;font-size:0.8rem">
+                            <thead style="position:sticky;top:0;z-index:1">
+                                <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+                                    <th style="padding:8px 12px;text-align:left;font-weight:600;white-space:nowrap;min-width:150px">Timestamp</th>
+                                    <th style="padding:8px 12px;text-align:left;font-weight:600;white-space:nowrap;width:80px">Level</th>
+                                    <th style="padding:8px 12px;text-align:left;font-weight:600">Message</th>
+                                </tr>
+                            </thead>
+                            <tbody id="telegramLogTbody">
+                                <tr><td colspan="3" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web Push Sub-tab -->
+            <div id="settingsSubtab-webpush" class="settings-subtab-content" style="display:none;max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.webpush">📱 Web Push Notifications</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="settings.webpushDesc">ตั้งค่า Web Push สำหรับส่งการแจ้งเตือนตรงถึง Browser ของผู้ใช้ (Chrome, Firefox, Edge, Safari 16.4+)</p>
+
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:16px;margin-bottom:16px">
+                    <div style="display:grid;grid-template-columns:1fr;gap:16px">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <label style="font-weight:600;min-width:120px" data-i18n="webpush.enableLabel">เปิดใช้งาน</label>
+                            <input type="checkbox" id="webpushEnabled" style="width:18px;height:18px;cursor:pointer">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:4px" data-i18n="webpush.subjectLabel">VAPID Subject (mailto: หรือ https://)</label>
+                            <input type="text" id="webpushSubject" placeholder="mailto:admin@example.com"
+                                style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box">
+                            <small style="color:#6c757d" data-i18n="webpush.subjectHint">ระบุ email หรือ URL ของผู้ดูแลระบบ</small>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:4px" data-i18n="webpush.siteUrlLabel">Site URL (สำหรับ link ใน notification)</label>
+                            <input type="text" id="webpushSiteUrl" placeholder="https://example.com/stage-idol-calendar"
+                                style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box">
+                            <small style="color:#6c757d" data-i18n="webpush.siteUrlHint">URL เต็มของเว็บไซต์ (ไม่ต้องมี / ท้าย) ใช้สร้าง link ในการแจ้งเตือน เช่น https://example.com/stage-idol-calendar</small>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:4px" data-i18n="webpush.notifyBeforeLabel">แจ้งเตือนล่วงหน้า (นาที)</label>
+                            <select id="webpushNotifyBefore" onchange="updateWebPushCronRecommendation()" style="padding:8px;border:1px solid #ccc;border-radius:4px">
+                                <option value="5">5 นาที</option>
+                                <option value="10">10 นาที</option>
+                                <option value="15">15 นาที</option>
+                                <option value="30">30 นาที</option>
+                                <option value="60" selected>60 นาที (1 ชั่วโมง)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:4px" data-i18n="webpush.maxSubsLabel">สูงสุด subscriptions ต่อ token</label>
+                            <input type="number" id="webpushMaxSubs" min="1" max="20" value="5"
+                                style="width:100px;padding:8px;border:1px solid #ccc;border-radius:4px">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:4px" data-i18n="webpush.vapidPublicKeyLabel">VAPID Public Key</label>
+                            <input type="text" id="webpushVapidPublicKey" readonly placeholder="(ยังไม่ได้สร้าง — กด Generate VAPID Keys)"
+                                style="width:100%;padding:8px;border:1px solid #eee;border-radius:4px;background:#fff;font-family:monospace;font-size:12px;box-sizing:border-box;color:#555">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+                    <button onclick="saveWebPushConfig()" class="btn btn-primary" data-i18n="webpush.saveBtn">💾 บันทึก</button>
+                    <button onclick="generateVapidKeys()" class="btn btn-secondary" data-i18n="webpush.generateBtn">🔑 Generate VAPID Keys</button>
+                </div>
+
+                <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:12px;margin-bottom:16px">
+                    <label style="font-weight:600;display:block;margin-bottom:8px" data-i18n="webpush.cronSetupTitle">📋 คำแนะนำ Cron</label>
+                    <div style="font-size:0.875rem;color:#374151;margin-bottom:8px" data-i18n="webpush.cronIntervalHint">
+                        ตั้ง cron ให้รันตามคำแนะนำด้านล่าง — coverage ≥150%, window ±7.5 นาที
+                    </div>
+                    <code id="webpushCronCommand" style="display:block;background:#e0e7ff;padding:8px 10px;border-radius:4px;font-size:0.8rem;word-break:break-all;cursor:pointer;user-select:all" title="คลิกเพื่อคัดลอก">*/10 * * * * php /path/to/cron/send-web-push-notifications.php >> /path/to/cache/logs/webpush-cron.log 2>&1</code>
+                    <small style="display:block;margin-top:6px;color:#6b7280;font-size:0.78rem" data-i18n="webpush.cronPathHint">แทน /path/to/ ด้วย path จริงของระบบ</small>
+                </div>
+
+                <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:12px;margin-bottom:16px">
+                    <label style="font-weight:600;display:block;margin-bottom:8px" data-i18n="webpush.logRotateTitle">🔄 Log Rotation Cron (รายวัน เที่ยงคืน)</label>
+                    <code style="display:block;background:#e0e7ff;padding:8px 10px;border-radius:4px;font-size:0.8rem;word-break:break-all;cursor:pointer;user-select:all" title="คลิกเพื่อคัดลอก">0 0 * * * php /path/to/cron/rotate-webpush-logs.php >> /path/to/cache/logs/rotate-cron.log 2>&1</code>
+                    <small style="display:block;margin-top:6px;color:#6b7280;font-size:0.78rem" data-i18n="webpush.cronPathHint">แทน /path/to/ ด้วย path จริงของระบบ</small>
+                </div>
+
+                <!-- Web Push Log Viewer -->
+                <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+                <h4 style="margin:0 0 8px 0;font-size:0.95rem" data-i18n="webpush.logTitle">📋 Web Push Notification Log</h4>
+                <p style="color:#6c757d;font-size:0.85rem;margin-bottom:12px" data-i18n="webpush.logDesc">บันทึกการส่ง Web Push notifications (ล่าสุด 500 บรรทัด)</p>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                    <select id="webpushLogFileSelect" style="flex:1;min-width:200px;padding:6px;border:1px solid #ccc;border-radius:4px;font-size:0.85rem" onchange="loadWebPushLog()">
+                        <option value="">-- Loading... --</option>
+                    </select>
+                    <button class="btn btn-sm btn-secondary" onclick="loadWebPushLog()">🔄 <span data-i18n="audit.refresh">Refresh</span></button>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadWebPushLog()">⬇️ <span data-i18n="audit.download">Download</span></button>
+                </div>
+                <div id="webpushLogInfo" style="font-size:0.78rem;color:#888;margin-bottom:8px"></div>
+                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                    <input type="text" id="webpushLogFilter" placeholder="Filter (INFO/WARN/ERROR/message)…"
+                        style="flex:1;min-width:160px;padding:5px 10px;border:1px solid #ccc;border-radius:4px;font-size:0.82rem"
+                        oninput="filterWebPushLog()" data-i18n-placeholder="audit.filterPlaceholder">
+                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('webpushLogFilter').value='';filterWebPushLog()">✕</button>
+                </div>
+                <div style="overflow-x:auto;overflow-y:auto;max-height:350px;border:1px solid #e0e0e0;border-radius:6px">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+                        <thead style="position:sticky;top:0;z-index:1">
+                            <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+                                <th style="padding:7px 10px;text-align:left;white-space:nowrap">Timestamp</th>
+                                <th style="padding:7px 10px;text-align:left;white-space:nowrap">Level</th>
+                                <th style="padding:7px 10px;text-align:left">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="webpushLogTbody">
+                            <tr><td colspan="3" style="padding:20px;text-align:center;color:#999">—</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Email Sub-tab -->
+            <div id="settingsSubtab-email" class="settings-subtab-content" style="display:none;max-width:600px;margin:0 auto;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="settings.email">📧 Email Notifications</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="settings.emailDesc">ตั้งค่า SMTP สำหรับแจ้งเตือน Admin เมื่อมี Program/Event Request ใหม่</p>
+
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:16px;margin-bottom:20px">
+                    <div style="display:grid;grid-template-columns:1fr 120px 120px;gap:16px;margin-bottom:16px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailSmtpHost">SMTP Host</label>
+                            <input type="text" id="emailSmtpHost" maxlength="200" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box" placeholder="smtp.example.com">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailSmtpPort">Port</label>
+                            <input type="number" id="emailSmtpPort" min="1" max="65535" value="587" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailEncryption">Encryption</label>
+                            <select id="emailSmtpEncryption" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                                <option value="tls">TLS</option>
+                                <option value="ssl">SSL</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailUsername">SMTP Username</label>
+                            <input type="text" id="emailSmtpUsername" maxlength="200" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailPassword">SMTP Password</label>
+                            <input type="password" id="emailSmtpPassword" maxlength="200" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailFromEmail">From Email</label>
+                            <input type="email" id="emailFromEmail" maxlength="200" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box" placeholder="noreply@example.com">
+                        </div>
+                        <div>
+                            <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailFromName">From Name</label>
+                            <input type="text" id="emailFromName" maxlength="100" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box" placeholder="Idol Stage Timetable">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:16px">
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="settings.emailRecipients">Admin Recipients</label>
+                        <textarea id="emailRecipients" rows="4" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;box-sizing:border-box;font-family:monospace" placeholder="admin@example.com, staff@example.com"></textarea>
+                        <small class="form-hint" data-i18n="settings.emailRecipientsHint">คั่นหลายอีเมลด้วย comma หรือขึ้นบรรทัดใหม่</small>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:white;border-radius:6px">
+                        <input type="checkbox" id="emailEnabled" style="width:18px;height:18px;accent-color:var(--admin-primary);cursor:pointer">
+                        <label for="emailEnabled" style="margin:0;cursor:pointer;font-weight:600" data-i18n="settings.emailEnabled">เปิดใช้งาน Email Notifications</label>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="saveEmailSetting()" id="emailSaveBtn" data-i18n="settings.saveEmail">💾 บันทึก Email</button>
+                    <button class="btn btn-secondary" onclick="sendEmailTest()" id="emailTestBtn" data-i18n="settings.emailTest">🧪 ส่ง Test Email</button>
+                    <span id="emailSaveMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
+                    <span id="emailTestMsg" style="display:none;color:green;font-weight:600" data-i18n="settings.tested">✅ ทดสอบสำเร็จ</span>
+                </div>
+
+                <!-- Email Log Rotation Cron -->
+                <div style="background:#f0f4ff;border:1px solid #c7d2fe;border-radius:6px;padding:12px;margin-top:16px;margin-bottom:0">
+                    <label style="font-weight:600;display:block;margin-bottom:8px" data-i18n="email.logRotateTitle">🔄 Log Rotation Cron (รายวัน เที่ยงคืน)</label>
+                    <code style="display:block;background:#e0e7ff;padding:8px 10px;border-radius:4px;font-size:0.8rem;word-break:break-all;cursor:pointer;user-select:all" title="คลิกเพื่อคัดลอก">0 0 * * * php /path/to/cron/rotate-email-logs.php >> /path/to/cache/logs/rotate-cron.log 2>&1</code>
+                    <small style="display:block;margin-top:6px;color:#6b7280;font-size:0.78rem" data-i18n="settings.telegramCronPathHint">แทน /path/to/ ด้วย path จริงของระบบ</small>
+                </div>
+
+                <!-- Email Log Viewer -->
+                <hr style="border:none;border-top:1px solid #e0e0e0;margin:20px 0">
+                <h4 style="margin:0 0 8px 0;font-size:0.95rem" data-i18n="emaillog.title">📧 Email Notification Log</h4>
+                <p style="color:#6c757d;font-size:0.85rem;margin-bottom:12px" data-i18n="emaillog.desc">บันทึกการส่ง Email notifications (ล่าสุด 500 บรรทัด)</p>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+                    <select id="emailLogFileSelect" style="flex:1;min-width:200px;padding:6px;border:1px solid #ccc;border-radius:4px;font-size:0.85rem" onchange="loadEmailLog()">
+                        <option value="">-- Loading... --</option>
+                    </select>
+                    <button class="btn btn-sm btn-secondary" onclick="loadEmailLog()">🔄 <span data-i18n="audit.refresh">Refresh</span></button>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadEmailLog()">⬇️ <span data-i18n="audit.download">Download</span></button>
+                </div>
+                <div id="emailLogInfo" style="font-size:0.78rem;color:#888;margin-bottom:8px"></div>
+                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                    <input type="text" id="emailLogFilter" placeholder="Filter (INFO/WARN/ERROR/message)…"
+                        style="flex:1;min-width:160px;padding:5px 10px;border:1px solid #ccc;border-radius:4px;font-size:0.82rem"
+                        oninput="filterEmailLog()" data-i18n-placeholder="audit.filterPlaceholder">
+                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('emailLogFilter').value='';filterEmailLog()">✕</button>
+                </div>
+                <div style="overflow-x:auto;overflow-y:auto;max-height:350px;border:1px solid #e0e0e0;border-radius:6px">
+                    <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+                        <thead style="position:sticky;top:0;z-index:1">
+                            <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+                                <th style="padding:7px 10px;text-align:left;white-space:nowrap">Timestamp</th>
+                                <th style="padding:7px 10px;text-align:left;white-space:nowrap">Level</th>
+                                <th style="padding:7px 10px;text-align:left">Message</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emailLogTbody">
+                            <tr><td colspan="3" style="padding:20px;text-align:center;color:#999">—</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1961,6 +2584,76 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <button class="btn btn-primary" onclick="saveDisclaimerSetting()" id="disclaimerSaveBtn" data-i18n="settings.saveDisclaimer">💾 บันทึก Disclaimer</button>
                 <span id="disclaimerSaveMsg" style="margin-left:12px;display:none;color:green;font-weight:600" data-i18n="settings.saved">✅ บันทึกแล้ว</span>
             </div>
+
+            <!-- Audit Log Sub-tab (admin only) -->
+            <div id="settingsSubtab-audit" class="settings-subtab-content" style="display:none;padding:20px 0">
+                <h3 style="margin-bottom:8px" data-i18n="audit.title">🔎 Admin Audit Log</h3>
+                <p style="color:#6c757d;margin-bottom:16px" data-i18n="audit.desc">บันทึกการดำเนินการของ Admin ทุกประเภท (login, CRUD, settings) เก็บ 30 วัน</p>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+                    <select id="auditLogFileSelect" style="flex:1;min-width:220px;padding:6px;border:1px solid #ccc;border-radius:4px" onchange="loadAdminAuditLog()">
+                        <option value="">-- Loading... --</option>
+                    </select>
+                    <button class="btn btn-sm btn-secondary" onclick="loadAdminAuditLog()">🔄 <span data-i18n="audit.refresh">Refresh</span></button>
+                    <button class="btn btn-sm btn-secondary" onclick="downloadAdminAuditLog()">⬇️ <span data-i18n="audit.download">Download</span></button>
+                </div>
+                <div id="auditLogInfo" style="font-size:0.82rem;color:#666;margin-bottom:8px"></div>
+                <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                    <input type="text" id="auditLogFilter" placeholder="Filter (action / actor / outcome / entity)…"
+                        style="flex:1;min-width:180px;padding:5px 10px;border:1px solid #ccc;border-radius:4px;font-size:0.85rem"
+                        oninput="filterAuditLog()" data-i18n-placeholder="audit.filterPlaceholder">
+                    <button class="btn btn-sm btn-secondary" onclick="document.getElementById('auditLogFilter').value='';filterAuditLog()" data-i18n="audit.clearFilter">✕ Clear</button>
+                </div>
+                <div style="overflow-x:auto;overflow-y:auto;max-height:400px;border:1px solid #e0e0e0;border-radius:6px">
+                    <table id="auditLogTable" style="width:100%;border-collapse:collapse;font-size:0.8rem">
+                        <thead style="position:sticky;top:0;z-index:1">
+                            <tr style="background:#f5f5f5;border-bottom:2px solid #ddd">
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">Timestamp</th>
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">Action</th>
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">Outcome</th>
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">Actor</th>
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">Entity</th>
+                                <th style="padding:8px 10px;text-align:left;white-space:nowrap">IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditLogTbody">
+                            <tr><td colspan="6" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Telegram Log Detail Modal -->
+            <div id="telegramLogDetailOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeTelegramLogDetail()">
+                <div style="background:#fff;border-radius:10px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee">
+                        <h3 style="margin:0;font-size:1rem">📋 Log Entry Detail</h3>
+                        <button onclick="closeTelegramLogDetail()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#666;line-height:1">&times;</button>
+                    </div>
+                    <div id="telegramLogDetailBody" style="padding:20px;overflow-y:auto;flex:1"></div>
+                </div>
+            </div>
+
+            <!-- Shared Cron Log Detail Modal (WebPush + Email) -->
+            <div id="cronLogDetailOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeCronLogDetail()">
+                <div style="background:#fff;border-radius:10px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee">
+                        <h3 id="cronLogDetailTitle" style="margin:0;font-size:1rem">📋 Log Entry Detail</h3>
+                        <button onclick="closeCronLogDetail()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#666;line-height:1">&times;</button>
+                    </div>
+                    <div id="cronLogDetailBody" style="padding:20px;overflow-y:auto;flex:1"></div>
+                </div>
+            </div>
+
+            <!-- Audit Log Detail Modal -->
+            <div id="auditDetailOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center" onclick="if(event.target===this)closeAuditDetail()">
+                <div style="background:#fff;border-radius:10px;width:min(700px,95vw);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.3)">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #eee">
+                        <h3 style="margin:0;font-size:1rem">🔎 Audit Entry Detail</h3>
+                        <button onclick="closeAuditDetail()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:#666;line-height:1">&times;</button>
+                    </div>
+                    <div id="auditDetailBody" style="padding:20px;overflow-y:auto;flex:1"></div>
+                </div>
+            </div>
         </div>
         <?php endif; ?>
     </div>
@@ -1996,6 +2689,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <option value="" data-i18n="artist.noGroup">-- ไม่สังกัดกลุ่ม / ศิลปินเดี่ยว --</option>
                         </select>
                         <small class="form-hint" data-i18n="artist.groupOfHint">เลือกกลุ่มที่ศิลปินนี้เป็นสมาชิก (ว่าง = ศิลปินเดี่ยว หรือสมาชิกที่ยังไม่ได้ระบุกลุ่ม)</small>
+                    </div>
+
+                    <!-- Social Links -->
+                    <div class="form-group">
+                        <label data-i18n="artist.socialLinksLabel">🔗 Social Links</label>
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="width:90px;font-size:0.85em;color:#4267B2;font-weight:600">📘 Facebook</span>
+                                <input type="url" id="artistSocialFacebook" placeholder="https://facebook.com/..." style="flex:1;font-size:0.9em">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="width:90px;font-size:0.85em;color:#C13584;font-weight:600">📸 Instagram</span>
+                                <input type="url" id="artistSocialInstagram" placeholder="https://instagram.com/..." style="flex:1;font-size:0.9em">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="width:90px;font-size:0.85em;color:#1DA1F2;font-weight:600">🐦 Twitter/X</span>
+                                <input type="url" id="artistSocialTwitter" placeholder="https://twitter.com/..." style="flex:1;font-size:0.9em">
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="width:90px;font-size:0.85em;color:#010101;font-weight:600">♪ TikTok</span>
+                                <input type="url" id="artistSocialTiktok" placeholder="https://tiktok.com/@..." style="flex:1;font-size:0.9em">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Picture Section (shown only in edit mode, not create/copy) -->
@@ -2055,7 +2771,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeArtistModal()" data-i18n="common.cancel">ยกเลิก</button>
-                <button type="submit" form="artistForm" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
+                <button type="submit" form="artistForm" id="artistModalSubmitBtn" class="btn btn-primary" data-i18n="common.save">บันทึก</button>
             </div>
         </div>
     </div>
@@ -2128,6 +2844,100 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeBulkAddToGroupModal()" data-i18n="common.cancel">ยกเลิก</button>
                 <button type="button" class="btn btn-primary" onclick="confirmBulkAddToGroup()" data-i18n="common.save">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Venue Add/Edit Modal (v16.0.0) -->
+    <div class="modal-overlay" id="venueModal">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 id="venueModalTitle" data-i18n="venues.addTitle">เพิ่มสถานที่</h2>
+                <button class="modal-close" onclick="closeVenueModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="venueForm" onsubmit="saveVenue(event)">
+                    <input type="hidden" id="venueId" value="">
+                    <div class="form-group">
+                        <label for="venueName" data-i18n="venues.fieldName">ชื่อสถานที่ (canonical) *</label>
+                        <input type="text" id="venueName" maxlength="300" required
+                            style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
+                        <small class="form-hint" id="venueRenameHint" data-i18n="venues.renameHint">การเปลี่ยนชื่อจะอัปเดต location ของ programs ที่ใช้ชื่อเดิมด้วย</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="venueDescription" data-i18n="venues.fieldDescription">คำอธิบาย</label>
+                        <textarea id="venueDescription" rows="2" maxlength="1000"
+                            style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="venueMapUrl" data-i18n="venues.fieldMapUrl">ลิงก์แผนที่ (https://)</label>
+                        <input type="url" id="venueMapUrl" maxlength="500" placeholder="https://maps.google.com/..."
+                            style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem">
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:500">
+                            <input type="checkbox" id="venueIsOnline" style="width:16px;height:16px;cursor:pointer">
+                            <span data-i18n="venues.fieldIsOnline">🌐 Online platform (ซ่อนจากหน้า /venues portal)</span>
+                        </label>
+                        <small class="form-hint" data-i18n="venues.isOnlineHint">ติ๊กสำหรับแพลตฟอร์มออนไลน์ (YouTube, Instagram Live, X Spaces) — programs ยัง link ไปหน้าสถานที่ได้ แต่ไม่ปรากฏใน portal รวมสถานที่</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeVenueModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="venueModalSubmitBtn" onclick="saveVenue(event)" data-i18n="common.save">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Venue Variants Modal -->
+    <div class="modal-overlay" id="venueVariantsModal">
+        <div class="modal" style="max-width: 540px;">
+            <div class="modal-header">
+                <h2><span data-i18n="venues.variantsTitle">ชื่อเรียกอื่น</span>: <span id="venueVariantsName" style="font-weight:700"></span></h2>
+                <button class="modal-close" onclick="closeVenueVariantsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#6c757d;font-size:0.9em;margin-bottom:12px" data-i18n="venues.variantsDesc">
+                    ชื่อเรียกอื่นของสถานที่นี้ (สะกดต่างกัน) — ใช้ auto-match ตอน ICS import/บันทึก เพื่อแปลงเป็นชื่อ canonical อัตโนมัติ
+                </p>
+                <div id="venueVariantsList" style="min-height:40px;margin-bottom:16px">
+                    <span style="color:#9ca3af">Loading...</span>
+                </div>
+                <div style="display:flex;gap:8px;align-items:stretch">
+                    <input type="text" id="newVenueVariantInput" maxlength="300"
+                        data-i18n-placeholder="venues.variantPlaceholder"
+                        placeholder="เพิ่มชื่อเรียกอื่น..."
+                        style="flex:1;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();addVenueVariant();}">
+                    <button class="btn btn-primary" onclick="addVenueVariant()" data-i18n="variant.addBtn">+ เพิ่ม</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeVenueVariantsModal()" data-i18n="common.close">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Venues Modal -->
+    <div class="modal-overlay" id="mergeVenuesModal">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 data-i18n="venues.mergeTitle">🔀 รวมสถานที่</h2>
+                <button class="modal-close" onclick="closeMergeVenuesModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#6c757d;margin-bottom:12px" data-i18n="venues.mergeDesc">เลือกสถานที่หลัก (canonical) ที่จะเก็บไว้ — ที่เหลือจะกลายเป็นชื่อเรียกอื่น และ programs ทั้งหมดจะถูกย้ายมาที่นี่</p>
+                <div class="form-group">
+                    <label for="mergeTargetSelect" data-i18n="venues.mergeTargetLabel">สถานที่หลัก (เก็บไว้) *</label>
+                    <select id="mergeTargetSelect" style="width:100%;padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.95rem"></select>
+                </div>
+                <p style="font-size:0.85em;color:#6c757d;margin-bottom:6px" data-i18n="venues.mergeSourcesLabel">รายการที่จะถูกรวม:</p>
+                <ul id="mergeSourcesList" style="margin:0;padding-left:18px;font-size:0.9em;color:#444"></ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeMergeVenuesModal()" data-i18n="common.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="confirmMergeVenues()" data-i18n="venues.mergeConfirm">รวมสถานที่</button>
             </div>
         </div>
     </div>
@@ -2210,11 +3020,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <select id="userRole">
                             <option value="admin" data-i18n="user.roleAdmin">Admin - เข้าถึงทุกอย่าง</option>
                             <option value="agent" data-i18n="user.roleAgent">Agent - จัดการ Programs เท่านั้น</option>
+                            <option value="organizer" data-i18n="user.roleOrganizer">Organizer - จัดการ Events ของตัวเอง</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                            <input type="checkbox" id="userIsActive" checked> <span data-i18n="user.active">เปิดใช้งาน</span>
+                        <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="userIsActive" checked style="width:auto; margin:0;"> <span data-i18n="user.active">เปิดใช้งาน</span>
                         </label>
                     </div>
                     <div class="modal-footer">
@@ -2381,7 +3192,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     </div>
 
                     <div class="form-group">
-                        <label for="location" data-i18n="modal.venue">เวที</label>
+                        <label for="location" data-i18n="modal.venue">สถานที่</label>
                         <input type="text" id="location" list="venuesListMain">
                         <datalist id="venuesListMain">
                             <!-- Venues loaded dynamically -->
@@ -2423,7 +3234,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <div class="artist-suggestions" id="artistSuggestions"></div>
                         </div>
                         <input type="hidden" id="categories">
-                        <small class="form-hint" data-i18n="modal.artistGroupHint">พิมพ์แล้วเลือกจาก dropdown หรือกด <kbd>Enter</kbd> / <kbd>,</kbd> เพื่อเพิ่ม · ศิลปินใหม่จะถูกสร้างอัตโนมัติ</small>
+                        <small class="form-hint" data-i18n="<?php echo $adminRole === 'organizer' ? 'modal.artistGroupHintOrganizer' : 'modal.artistGroupHint'; ?>">
+                            <?php echo $adminRole === 'organizer'
+                                ? 'พิมพ์เพื่อค้นหา แล้วเลือกศิลปินจาก dropdown เท่านั้น'
+                                : 'พิมพ์แล้วเลือกจาก dropdown หรือกด <kbd>Enter</kbd> / <kbd>,</kbd> เพื่อเพิ่ม · ศิลปินใหม่จะถูกสร้างอัตโนมัติ'; ?>
+                        </small>
                     </div>
 
                     <div class="form-group">
@@ -2488,7 +3303,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <datalist id="venuesList">
                             <!-- Venues loaded dynamically -->
                         </datalist>
-                        <small class="form-hint" data-i18n="bulkEdit.venueHint">เลือกจาก dropdown หรือพิมพ์ชื่อเวทีใหม่</small>
+                        <small class="form-hint" data-i18n="bulkEdit.venueHint">เลือกจาก dropdown หรือพิมพ์ชื่อสถานที่ใหม่</small>
                     </div>
 
                     <div class="form-group">
@@ -2534,7 +3349,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
     <!-- Bulk Delete Confirmation Modal -->
     <div class="modal-overlay" id="bulkDeleteModal">
-        <div class="modal" style="max-width: 450px;">
+        <div class="modal" style="max-width: 560px;">
             <div class="modal-header">
                 <h2 data-i18n="delete.confirmTitle">⚠️ ยืนยันการลบ</h2>
                 <button class="modal-close" onclick="closeBulkDeleteModal()">&times;</button>
@@ -2714,6 +3529,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <div style="padding-top: 8px;">
                                 <input type="checkbox" id="conventionIsActive" checked style="width: auto; margin-right: 8px;">
                                 <label for="conventionIsActive" style="display: inline; font-weight: normal;" data-i18n="event.enabled">เปิดใช้งาน</label>
+                                <?php if ($adminRole === 'organizer'): ?>
+                                <small class="form-hint" style="display:block;margin-top:4px" data-i18n="event.organizerActiveHint">Organizer ต้องส่งคำขอ active ให้ admin/agent อนุมัติ</small>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -2769,6 +3587,89 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             </optgroup>
                         </select>
                         <small class="form-hint" data-i18n="event.timezoneHint">เขตเวลาที่ใช้ในงาน — ใช้สำหรับ ICS export และแสดงผลบนหน้า event</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="conventionTicketUrl" data-i18n="event.ticketUrlLabel">🎟️ Ticket URL (ซื้อบัตร)</label>
+                        <input type="url" id="conventionTicketUrl" maxlength="500" placeholder="https://...">
+                        <small class="form-hint" data-i18n="event.ticketUrlHint">ลิงก์ซื้อบัตร — แสดงปุ่ม "ซื้อบัตร" บนหน้า event (ว่างเปล่า = ซ่อนปุ่ม)</small>
+                    </div>
+
+                    <?php if ($adminRole === 'admin'): ?>
+                    <div id="eventOrganizerAssignSection" class="form-group" style="display:none">
+                        <label data-i18n="event.organizersLabel">Organizers</label>
+                        <div id="eventOrganizerAssignList" style="display:flex;flex-direction:column;gap:6px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;max-height:180px;overflow:auto;background:#fafafa"></div>
+                        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="saveEventOrganizerAssignments()" data-i18n="event.organizersSave">บันทึก Organizer</button>
+                            <small class="form-hint" id="eventOrganizerAssignHint" data-i18n="event.organizersHint">Admin เท่านั้นที่ assign organizer ได้</small>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Cover Images — shown in edit mode only -->
+                    <div id="eventCoverSection" style="display:none">
+                        <hr>
+                        <div style="font-weight:600;margin-bottom:4px;" data-i18n="event.coverSection">🖼️ Cover Images</div>
+
+                        <!-- Hero Cover (16:9) -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:0.82em;font-weight:600;color:#6b7280;margin-bottom:6px;" data-i18n="event.coverHeroLabel">🎬 Hero Banner (16:9)</div>
+                            <div id="coverHeroPreviewWrap" style="display:none;margin-bottom:6px;">
+                                <img id="coverHeroPreview" alt="Hero Preview"
+                                     style="width:100%;max-width:420px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+                            </div>
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                        onclick="document.getElementById('coverHeroFileInput').click()"
+                                        data-i18n="event.coverUploadHero">📸 เลือกรูป Hero</button>
+                                <button type="button" class="btn btn-danger btn-sm" id="coverHeroDeleteBtn"
+                                        onclick="deleteCoverImage('hero')" style="display:none"
+                                        data-i18n="event.coverDelete">🗑️ ลบ</button>
+                                <small class="form-hint">16:9 · สูงสุด 5 MB</small>
+                            </div>
+                            <input type="file" id="coverHeroFileInput" accept="image/*" style="display:none"
+                                   onchange="openCoverCropper(this,'hero')">
+                        </div>
+
+                        <!-- Card Cover (4:3) -->
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:0.82em;font-weight:600;color:#6b7280;margin-bottom:6px;" data-i18n="event.coverCardLabel">🃏 Event Card (4:3)</div>
+                            <div id="coverCardPreviewWrap" style="display:none;margin-bottom:6px;">
+                                <img id="coverCardPreview" alt="Card Preview"
+                                     style="width:160px;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+                            </div>
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                        onclick="document.getElementById('coverCardFileInput').click()"
+                                        data-i18n="event.coverUploadCard">📸 เลือกรูป Card</button>
+                                <button type="button" class="btn btn-danger btn-sm" id="coverCardDeleteBtn"
+                                        onclick="deleteCoverImage('card')" style="display:none"
+                                        data-i18n="event.coverDelete">🗑️ ลบ</button>
+                                <small class="form-hint">4:3 · สูงสุด 5 MB</small>
+                            </div>
+                            <input type="file" id="coverCardFileInput" accept="image/*" style="display:none"
+                                   onchange="openCoverCropper(this,'card')">
+                        </div>
+
+                        <!-- Header Cover (4:1 banner) -->
+                        <div style="border-top:1px solid #e5e7eb;padding-top:12px;">
+                            <div style="font-size:0.82em;font-weight:600;color:#6b7280;margin-bottom:6px;" data-i18n="event.coverHeaderLabel">🖼️ Header Cover (4:1)</div>
+                            <div id="coverHeaderPreviewWrap" style="display:none;margin-bottom:6px;">
+                                <img id="coverHeaderPreview" alt="Header Preview"
+                                     style="width:100%;max-width:420px;aspect-ratio:4/1;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb;">
+                            </div>
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                        onclick="document.getElementById('coverHeaderFileInput').click()"
+                                        data-i18n="event.coverUploadHeader">📸 เลือกรูป Header</button>
+                                <button type="button" class="btn btn-danger btn-sm" id="coverHeaderDeleteBtn"
+                                        onclick="deleteHeaderCoverImage()" style="display:none"
+                                        data-i18n="event.coverDelete">🗑️ ลบ</button>
+                                <small class="form-hint" data-i18n="event.coverHeaderHint">4:1 · 1920×480 · สูงสุด 5 MB</small>
+                            </div>
+                            <input type="file" id="coverHeaderFileInput" accept="image/*" style="display:none"
+                                   onchange="openCoverCropper(this,'header')">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -2869,6 +3770,42 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <button type="submit" class="btn btn-primary" data-i18n="cp.changeBtn">เปลี่ยนรหัสผ่าน</button>
                     </div>
                 </form>
+
+                <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb">
+
+                <section id="twofaPanel">
+                    <h3 style="margin:0 0 8px 0;font-size:1rem" data-i18n="twofa.title">Two-Factor Authentication</h3>
+                    <p style="margin:0 0 12px 0;color:#64748b;font-size:0.9rem" data-i18n="twofa.desc">เพิ่มรหัส 6 หลักจาก Authenticator app ตอนเข้าสู่ระบบ</p>
+                    <div id="twofaStatusBox" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:12px;color:#334155">
+                        <span data-i18n="common.loading">กำลังโหลด...</span>
+                    </div>
+                    <div id="twofaActions" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                        <button type="button" class="btn btn-primary" id="twofaEnableBtn" onclick="beginTwofaSetup()" data-i18n="twofa.enable">Enable 2FA</button>
+                        <button type="button" class="btn btn-secondary" id="twofaBackupBtn" onclick="openTwofaBackupForm()" data-i18n="twofa.regenerate">Regenerate backup codes</button>
+                        <button type="button" class="btn btn-danger" id="twofaDisableBtn" onclick="openTwofaDisableForm()" data-i18n="twofa.disable">Disable 2FA</button>
+                    </div>
+                    <div id="twofaSetupBox" style="display:none;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px;margin-bottom:12px">
+                        <div id="twofaQrBox" style="width:180px;height:180px;background:white;border:1px solid #e2e8f0;margin-bottom:10px;display:flex;align-items:center;justify-content:center"></div>
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="twofa.manualKey">Manual key</label>
+                        <code id="twofaSecretText" style="display:block;word-break:break-all;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:10px"></code>
+                        <a id="twofaOtpAuthLink" href="#" style="display:inline-block;margin-bottom:10px;color:#2563eb" data-i18n="twofa.openApp">Open authenticator link</a>
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="twofa.verifyCode">Verification code</label>
+                        <input type="text" id="twofaSetupCode" inputmode="numeric" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;margin-bottom:10px">
+                        <button type="button" class="btn btn-primary" onclick="confirmTwofaSetup()" data-i18n="twofa.confirmEnable">Confirm and enable</button>
+                    </div>
+                    <div id="twofaVerifyBox" style="display:none;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px;margin-bottom:12px">
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="cp.currentPassword">รหัสผ่านปัจจุบัน</label>
+                        <input type="password" id="twofaCurrentPassword" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;margin-bottom:10px">
+                        <label style="font-weight:600;display:block;margin-bottom:6px" data-i18n="twofa.codeOrBackup">Authenticator or recovery code</label>
+                        <input type="text" id="twofaVerifyCode" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;margin-bottom:10px">
+                        <button type="button" class="btn btn-primary" id="twofaVerifySubmitBtn" onclick="submitTwofaSensitiveAction()" data-i18n="common.save">Save</button>
+                    </div>
+                    <div id="twofaBackupCodesBox" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px">
+                        <strong data-i18n="twofa.backupCodes">Backup codes</strong>
+                        <p style="margin:6px 0;color:#92400e;font-size:0.9rem" data-i18n="twofa.backupHint">Save these codes now. They are shown once.</p>
+                        <pre id="twofaBackupCodesText" style="white-space:pre-wrap;background:#fff;border:1px solid #fde68a;border-radius:6px;padding:10px;margin:0"></pre>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
@@ -2886,6 +3823,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // Configuration
         const VENUE_MODE = '<?php echo VENUE_MODE; ?>';
         const ADMIN_ROLE = '<?php echo $adminRole; ?>';
+        const ADMIN_USER_ID = <?php echo json_encode($adminUserId); ?>;
         const BASE_PATH = <?php echo json_encode(get_base_path()); ?>;
         const APP_ROOT = <?php echo json_encode(rtrim(dirname(get_base_path()), '/')); ?>;
 
@@ -2905,15 +3843,26 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         let artistsSortColumn = 'name';
         let artistsSortDirection = 'asc';
         let artistsSearchTimeout = null;
+        let artistModalMode = 'create';
+
+        // Venues state (v16.0.0)
+        let venuesCurrentPage = 1;
+        let venuesPerPage = 50;
+        let venuesSortColumn = 'name';
+        let venuesSortDirection = 'asc';
+        let venuesSearchTimeout = null;
+        let venuesData = [];
+        const selectedVenueIds = new Set();
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             loadEventMetaOptions();
             loadVenues();
             loadTypesForDatalist();
+            loadDashboard();
             loadPrograms();
             loadEventsTab();
-            loadPendingCount();
+            if (ADMIN_ROLE !== 'organizer') loadPendingCount();
             setupFormChangeTracking();
             setupKeyboardShortcuts();
             if (typeof applyAdminTranslations === 'function') applyAdminTranslations();
@@ -2921,12 +3870,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Re-render current tab on language change
         document.addEventListener('adminLangChange', () => {
-            const activeTab = (document.querySelector('.tab-mobile-item.active') || {}).dataset?.tab || 'programs';
-            if (activeTab === 'programs') loadPrograms();
+            const activeTab = (document.querySelector('.tab-mobile-item.active') || {}).dataset?.tab || 'dashboard';
+            if (activeTab === 'dashboard') loadDashboard();
+            else if (activeTab === 'programs') loadPrograms();
             else if (activeTab === 'requests') loadRequests();
             else if (activeTab === 'credits') loadCredits();
             else if (activeTab === 'events') loadEventsTab();
-            else if (activeTab === 'artists') loadArtists();
+            else if (activeTab === 'artists' && ADMIN_ROLE !== 'organizer') loadArtists();
+            else if (activeTab === 'venues' && (ADMIN_ROLE === 'admin' || ADMIN_ROLE === 'agent')) loadVenuesTab();
             else if (activeTab === 'settings' && ADMIN_ROLE === 'admin') {
                 loadUsers();
                 loadBackups();
@@ -2936,9 +3887,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Tab switching
         function switchTab(tab) {
+            if (ADMIN_ROLE === 'organizer' && !['dashboard', 'events', 'programs', 'credits', 'artists'].includes(tab)) {
+                tab = 'dashboard';
+            }
             // Desktop tabs
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`).classList.add('active');
+            const desktopTab = document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
+            if (desktopTab) desktopTab.classList.add('active');
 
             // Mobile dropdown: update active item + label
             document.querySelectorAll('.tab-mobile-item').forEach(b => b.classList.remove('active'));
@@ -2946,7 +3901,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (mobileItem) {
                 mobileItem.classList.add('active');
                 const labelMap = {
-                    programs: '🎵 Programs', events: '🎪 Events', requests: '📝 Requests',
+                    dashboard: '📊 Dashboard', programs: '🎵 Programs', events: '🎪 Events', requests: '📝 Requests',
                     credits: '✨ Credits', import: '📤 Import', settings: '⚙️ Settings',
                     artists: '🎤 Artists'
                 };
@@ -2956,6 +3911,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             closeTabMobileMenu();
 
             // Show/hide sections
+            document.getElementById('dashboardSection').style.display = tab === 'dashboard' ? 'block' : 'none';
             document.getElementById('programsSection').style.display = tab === 'programs' ? 'block' : 'none';
             document.getElementById('requestsSection').style.display = tab === 'requests' ? 'block' : 'none';
             document.getElementById('importSection').style.display = tab === 'import' ? 'block' : 'none';
@@ -2968,23 +3924,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             eventsSection.style.width = '100%';
             const settingsEl = document.getElementById('settingsSection');
             if (settingsEl) settingsEl.style.display = tab === 'settings' ? 'block' : 'none';
-            document.getElementById('artistsSection').style.display = tab === 'artists' ? 'block' : 'none';
+            const artistsSection = document.getElementById('artistsSection');
+            if (artistsSection) artistsSection.style.display = tab === 'artists' ? 'block' : 'none';
+            const venuesSection = document.getElementById('venuesSection');
+            if (venuesSection) venuesSection.style.display = tab === 'venues' ? 'block' : 'none';
 
-            if (tab === 'requests') loadRequests();
+            if (tab === 'dashboard') loadDashboard();
+            if (tab === 'requests' && ADMIN_ROLE !== 'organizer') loadRequests();
             if (tab === 'credits') loadCredits();
             if (tab === 'events') loadEventsTab();
+            if (tab === 'artists' && ADMIN_ROLE !== 'organizer') loadArtists();
+            if (tab === 'venues' && (ADMIN_ROLE === 'admin' || ADMIN_ROLE === 'agent')) loadVenuesTab();
             if (tab === 'settings' && ADMIN_ROLE === 'admin') {
                 switchSettingsSubtab('site');
                 loadThemeSettings();
                 loadTitleSetting();
                 loadDisclaimerSetting();
                 loadTelegramSetting();
+                loadEmailSetting();
                 loadAnalyticsSetting();
                 loadUsers();
                 loadBackups();
                 loadContactChannels();
             }
-            if (tab === 'artists') loadArtists();
         }
 
         // Mobile tab dropdown controls
@@ -3005,6 +3967,167 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const menu = document.getElementById('tabMobileMenu');
             if (menu && !menu.contains(e.target)) closeTabMobileMenu();
         });
+
+        function dashboardEsc(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[ch]));
+        }
+
+        function dashboardNum(value) {
+            return Number(value || 0).toLocaleString();
+        }
+
+        function dashboardDateRange(row) {
+            const start = row.start_date || '-';
+            const end = row.end_date && row.end_date !== row.start_date ? ` - ${row.end_date}` : '';
+            return dashboardEsc(start + end);
+        }
+
+        function dashboardEmpty() {
+            return `<div class="dashboard-empty">${dashboardEsc(adminT('dashboard.empty'))}</div>`;
+        }
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch('api.php?action=dashboard_stats');
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message || 'Failed');
+                renderDashboard(result.data);
+            } catch (e) {
+                const grid = document.getElementById('dashboardKpiGrid');
+                if (grid) grid.innerHTML = `<div class="dashboard-empty">${dashboardEsc(adminT('dashboard.error'))}</div>`;
+            }
+        }
+
+        function renderDashboard(data) {
+            if (!data) return;
+            document.getElementById('dashboardSiteTitle').textContent = data.site_title || '';
+            document.getElementById('dashboardRole').textContent = data.role || ADMIN_ROLE;
+            document.getElementById('dashboardGeneratedAt').textContent = `${data.generated_at || '-'} (${data.timezone || 'Asia/Bangkok'})`;
+
+            const k = data.kpis || {};
+            const events = k.events || {};
+            const programs = k.programs || {};
+            const credits = k.credits || {};
+            const artists = k.artists || {};
+            const requests = k.requests || {};
+            const pendingNote = ADMIN_ROLE === 'organizer'
+                ? `${adminT('dashboard.artistRequests')}: ${dashboardNum(requests.artist_requests_pending)}`
+                : `${adminT('dashboard.programRequests')}: ${dashboardNum(requests.program_requests_pending)} · ${adminT('dashboard.eventRequests')}: ${dashboardNum(requests.event_requests_pending)} · ${adminT('dashboard.eventActiveRequests')}: ${dashboardNum(requests.event_active_requests_pending)} · ${adminT('dashboard.artistRequests')}: ${dashboardNum(requests.artist_requests_pending)}`;
+            const cards = [
+                [adminT('dashboard.kpiEvents'), events.total, `${adminT('dashboard.active')}: ${dashboardNum(events.active)} · ${adminT('dashboard.upcoming')}: ${dashboardNum(events.upcoming)} · ${adminT('dashboard.past')}: ${dashboardNum(events.past)}`],
+                [adminT('dashboard.kpiPrograms'), programs.total, `${adminT('dashboard.today')}: ${dashboardNum(programs.today)} · ${adminT('dashboard.next7')}: ${dashboardNum(programs.next7_days)}`],
+                [adminT('dashboard.kpiCredits'), credits.total, adminT('dashboard.totalRecords')],
+                [adminT('dashboard.kpiPending'), requests.pending_total, pendingNote],
+            ];
+            if (ADMIN_ROLE !== 'organizer') {
+                cards.splice(3, 0, [adminT('dashboard.kpiArtists'), artists.total, `${adminT('dashboard.groups')}: ${dashboardNum(artists.groups)} · ${adminT('dashboard.members')}: ${dashboardNum(artists.members)}`]);
+            }
+            document.getElementById('dashboardKpiGrid').innerHTML = cards.map(([label, value, note]) => `
+                <div class="dashboard-kpi-card">
+                    <div class="dashboard-kpi-label">${dashboardEsc(label)}</div>
+                    <div class="dashboard-kpi-value">${dashboardNum(value)}</div>
+                    <div class="dashboard-kpi-note">${dashboardEsc(note)}</div>
+                </div>
+            `).join('');
+
+            renderDashboardUpcoming(data.upcoming_events || []);
+            renderDashboardProgramsByEvent(data.programs_by_event || []);
+            if (ADMIN_ROLE !== 'organizer') renderDashboardRequestBreakdown(data.request_status || {});
+            renderDashboardContentHealth(data.content_health || {});
+            renderDashboardSystemInfo(data.admin_only);
+        }
+
+        function renderDashboardUpcoming(rows) {
+            const el = document.getElementById('dashboardUpcomingEvents');
+            if (!el) return;
+            if (!rows.length) { el.innerHTML = dashboardEmpty(); return; }
+            el.innerHTML = `
+                <table class="dashboard-mini-table">
+                    <thead><tr><th>${dashboardEsc(adminT('dashboard.eventName'))}</th><th>${dashboardEsc(adminT('dashboard.date'))}</th><th>${dashboardEsc(adminT('dashboard.programs'))}</th><th>${dashboardEsc(adminT('dashboard.status'))}</th></tr></thead>
+                    <tbody>${rows.map(row => `
+                        <tr>
+                            <td>${dashboardEsc(row.name)}</td>
+                            <td>${dashboardDateRange(row)}</td>
+                            <td>${dashboardNum(row.program_count)}</td>
+                            <td><span class="dashboard-status-dot ${Number(row.is_active) ? 'active' : ''}"></span>${dashboardEsc(Number(row.is_active) ? adminT('events.active') : adminT('events.inactive'))}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>`;
+        }
+
+        function renderDashboardProgramsByEvent(rows) {
+            const el = document.getElementById('dashboardProgramsByEvent');
+            if (!el) return;
+            if (!rows.length) { el.innerHTML = dashboardEmpty(); return; }
+            el.innerHTML = `
+                <table class="dashboard-mini-table">
+                    <thead><tr><th>${dashboardEsc(adminT('dashboard.eventName'))}</th><th>${dashboardEsc(adminT('dashboard.date'))}</th><th>${dashboardEsc(adminT('dashboard.programs'))}</th></tr></thead>
+                    <tbody>${rows.map(row => `
+                        <tr>
+                            <td>${dashboardEsc(row.name)}</td>
+                            <td>${dashboardDateRange(row)}</td>
+                            <td><strong>${dashboardNum(row.program_count)}</strong></td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>`;
+        }
+
+        function renderDashboardRequestBreakdown(status) {
+            const el = document.getElementById('dashboardRequestBreakdown');
+            if (!el) return;
+            const program = status.program_requests || {};
+            const event = status.event_requests || {};
+            const active = status.event_active_requests || {};
+            const artist = status.artist_requests || {};
+            const rows = [
+                [adminT('dashboard.programRequests'), program.pending, program.approved, program.rejected],
+                [adminT('dashboard.eventRequests'), event.pending, event.approved, event.rejected],
+                [adminT('dashboard.eventActiveRequests'), active.pending, active.approved, active.rejected],
+                [adminT('dashboard.artistRequests'), artist.pending, artist.approved, artist.rejected],
+            ];
+            el.innerHTML = `
+                <table class="dashboard-mini-table">
+                    <thead><tr><th>${dashboardEsc(adminT('dashboard.requestType'))}</th><th>${dashboardEsc(adminT('req.pending'))}</th><th>${dashboardEsc(adminT('req.approved'))}</th><th>${dashboardEsc(adminT('req.rejected'))}</th></tr></thead>
+                    <tbody>${rows.map(row => `
+                        <tr><td>${dashboardEsc(row[0])}</td><td>${dashboardNum(row[1])}</td><td>${dashboardNum(row[2])}</td><td>${dashboardNum(row[3])}</td></tr>
+                    `).join('')}</tbody>
+                </table>`;
+        }
+
+        function renderDashboardContentHealth(health) {
+            const el = document.getElementById('dashboardContentHealth');
+            if (!el) return;
+            const rows = [
+                [adminT('dashboard.missingCover'), health.events_missing_cover],
+                [adminT('dashboard.missingCardCover'), health.events_missing_card_cover],
+                [adminT('dashboard.missingHeaderCover'), health.events_missing_header_cover],
+                [adminT('dashboard.missingTicketUrl'), health.events_missing_ticket_url],
+            ];
+            if (ADMIN_ROLE !== 'organizer') {
+                rows.push([adminT('dashboard.missingArtistPicture'), health.artists_missing_picture]);
+            }
+            el.innerHTML = `<div class="dashboard-health-list">${rows.map(row => `
+                <div class="dashboard-health-row"><span>${dashboardEsc(row[0])}</span><span class="dashboard-health-count">${dashboardNum(row[1])}</span></div>
+            `).join('')}</div>`;
+        }
+
+        function renderDashboardSystemInfo(adminOnly) {
+            const el = document.getElementById('dashboardSystemInfo');
+            if (!el) return;
+            if (!adminOnly) {
+                el.innerHTML = dashboardEmpty();
+                return;
+            }
+            const rows = [
+                [adminT('dashboard.activeAdminUsers'), adminOnly.active_admin_users],
+                [adminT('dashboard.twofaEnabledUsers'), adminOnly.twofa_enabled_users],
+            ];
+            el.innerHTML = `<div class="dashboard-health-list">${rows.map(row => `
+                <div class="dashboard-health-row"><span>${dashboardEsc(row[0])}</span><span class="dashboard-health-count">${dashboardNum(row[1])}</span></div>
+            `).join('')}</div>`;
+        }
 
         // Pending count — sync to desktop tab, mobile label, and mobile dropdown item
         async function loadPendingCount() {
@@ -3027,7 +4150,53 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 if (badgeMobile && currentTab && currentTab.dataset.tab !== 'requests') {
                     badgeMobile.style.display = 'none';
                 }
+                // Sub-tab badges for Program Requests / Event Requests / Event Active Requests
+                if (result.success && result.data) {
+                    const pc = result.data.program_requests || 0;
+                    const ec = result.data.event_requests || 0;
+                    const ac = result.data.event_active_requests || 0;
+                    const arc = result.data.artist_requests || 0;
+                    const pb = document.getElementById('progReqBadge');
+                    const eb = document.getElementById('evReqBadge');
+                    const ab = document.getElementById('evActiveReqBadge');
+                    const arb = document.getElementById('artistReqBadge');
+                    if (pb) { pb.textContent = pc; pb.style.display = pc > 0 ? 'inline-flex' : 'none'; }
+                    if (eb) { eb.textContent = ec; eb.style.display = ec > 0 ? 'inline-flex' : 'none'; }
+                    if (ab) { ab.textContent = ac; ab.style.display = ac > 0 ? 'inline-flex' : 'none'; }
+                    if (arb) { arb.textContent = arc; arb.style.display = arc > 0 ? 'inline-flex' : 'none'; }
+                }
             } catch (e) {}
+        }
+
+        // Requests sub-tab toggle
+        function switchReqSubTab(tab) {
+            document.getElementById('programRequestsSubSection').style.display = tab === 'program' ? '' : 'none';
+            document.getElementById('eventRequestsSubSection').style.display   = tab === 'event_guest' || tab === 'event_active' ? '' : 'none';
+            document.getElementById('artistRequestsSubSection').style.display  = tab === 'artist' ? '' : 'none';
+
+            document.querySelectorAll('.admin-request-subtab-btn').forEach(btn => {
+                if (btn.getAttribute('data-req-subtab') === tab) {
+                    btn.style.color = 'var(--admin-primary)';
+                    btn.style.borderBottomColor = 'var(--admin-primary)';
+                } else {
+                    btn.style.color = '#666';
+                    btn.style.borderBottomColor = 'transparent';
+                }
+            });
+
+            if (tab === 'event_guest' || tab === 'event_active') {
+                currentEvReqGroup = tab === 'event_active' ? 'active' : 'guest';
+                evReqPage = 1;
+                const title = document.getElementById('evReqSectionTitle');
+                if (title) {
+                    title.setAttribute('data-i18n', currentEvReqGroup === 'active' ? 'tab.eventActiveRequests' : 'tab.eventGuestRequests');
+                    title.textContent = adminT(currentEvReqGroup === 'active' ? 'tab.eventActiveRequests' : 'tab.eventGuestRequests');
+                }
+                loadEventRequests();
+            } else if (tab === 'artist') {
+                artistReqPage = 1;
+                loadArtistRequests();
+            }
         }
 
         // Requests
@@ -3095,7 +4264,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const fields = [
                     { label: 'ชื่อ Program', key: 'title', format: 'text' },
                     { label: 'Organizer', key: 'organizer', format: 'text' },
-                    { label: 'เวที', key: 'location', format: 'text' },
+                    { label: 'สถานที่', key: 'location', format: 'text' },
                     { label: 'เวลาเริ่ม', key: 'start', format: 'date' },
                     { label: 'เวลาสิ้นสุด', key: 'end', format: 'date' },
                     { label: 'Categories', key: 'categories', format: 'text' },
@@ -3145,7 +4314,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <div class="req-detail-grid">
                             <div class="req-detail-row"><div class="req-detail-label">ชื่อ Program</div><div class="req-detail-value">${r.title || '-'}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">Organizer</div><div class="req-detail-value">${r.organizer || '-'}</div></div>
-                            <div class="req-detail-row"><div class="req-detail-label">เวที</div><div class="req-detail-value">${r.location || '-'}</div></div>
+                            <div class="req-detail-row"><div class="req-detail-label">สถานที่</div><div class="req-detail-value">${r.location || '-'}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">วัน-เวลาเริ่ม</div><div class="req-detail-value">${formatDate(r.start)}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">วัน-เวลาสิ้นสุด</div><div class="req-detail-value">${formatDate(r.end)}</div></div>
                             <div class="req-detail-row"><div class="req-detail-label">Categories</div><div class="req-detail-value">${r.categories || '-'}</div></div>
@@ -3243,12 +4412,285 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 (p.page < p.totalPages ? `<button onclick="reqPage=${p.page+1};loadRequests()">»</button>` : '');
         }
 
+        // Event Requests
+        let evReqPage = 1;
+        let evReqData = [];
+        let currentEvReqGroup = 'guest';
+
+        async function loadEventRequests() {
+            const status = document.getElementById('evReqStatusFilter').value;
+            const tbody = document.getElementById('eventRequestsBody');
+            tbody.innerHTML = `<tr><td colspan="6">${adminT('common.loading')}</td></tr>`;
+            try {
+                const res = await fetch(`api.php?action=event_requests_list&request_group=${currentEvReqGroup}&status=${status}&page=${evReqPage}`, {
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const data = await res.json();
+                if (!data.success) { tbody.innerHTML = `<tr><td colspan="6">${escapeHtml(data.message)}</td></tr>`; return; }
+                evReqData = data.data.requests || [];
+                renderEventRequests(evReqData);
+                renderEvReqPagination(data.data.pagination);
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="6">Error loading</td></tr>`;
+            }
+        }
+
+        function renderEventRequests(rows) {
+            const tbody = document.getElementById('eventRequestsBody');
+            if (!rows.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#999">${adminT('req.noRequests')}</td></tr>`; return; }
+            tbody.innerHTML = rows.map((r, i) => {
+                const nameStr = escapeHtml(r.name || '—');
+                const typeLabel = r.request_type === 'activate' ? (adminT('evReq.typeActivate') || 'Activate') + ': ' : '';
+                const dateStr = r.start_date ? escapeHtml(r.start_date.slice(0,10)) : '—';
+                const reporterStr = escapeHtml(r.requester_name || '—');
+                const statusBadge = r.status === 'pending'
+                    ? `<span class="badge badge-warning">${adminT('req.statusPendingFull')}</span>`
+                    : r.status === 'approved'
+                        ? `<span class="badge badge-success">${adminT('req.statusApprovedFull')}</span>`
+                        : `<span class="badge badge-danger">${adminT('req.statusRejectedFull')}</span>`;
+                return `<tr>
+                    <td>${r.id}</td>
+                    <td>${typeLabel}${nameStr}</td>
+                    <td>${dateStr}</td>
+                    <td>${reporterStr}</td>
+                    <td>${statusBadge}</td>
+                    <td><button class="btn btn-sm btn-secondary" onclick="viewEvReqDetail(${r.id})">${adminT('req.view')}</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function viewEvReqDetail(id) {
+            const r = evReqData.find(x => x.id === id);
+            if (!r) return;
+            const modal = document.getElementById('eventRequestDetailModal');
+            const body  = document.getElementById('evReqDetailBody');
+            const acts  = document.getElementById('evReqDetailActions');
+            const statusBadge = r.status === 'pending'
+                ? `<span class="badge badge-warning">${adminT('req.statusPendingFull')}</span>`
+                : r.status === 'approved'
+                    ? `<span class="badge badge-success">${adminT('req.statusApprovedFull')}</span>`
+                    : `<span class="badge badge-danger">${adminT('req.statusRejectedFull')}</span>`;
+
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:0.92rem;">`;
+            const row = (k, v) => `<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;width:35%">${escapeHtml(k)}</td><td style="padding:5px 8px">${v}</td></tr>`;
+            html += row(adminT('evReq.thStatus'), statusBadge);
+            if (r.request_type) html += row(adminT('req.thType'), escapeHtml(r.request_type));
+            if (r.existing_event_name) html += row(adminT('evReq.existingEvent') || 'Existing Event', escapeHtml(r.existing_event_name));
+            if (r.name) html += row(adminT('evReq.thName'), escapeHtml(r.name));
+            if (r.start_date) html += row(adminT('evReq.startDate'), escapeHtml(r.start_date));
+            if (r.end_date)   html += row(adminT('evReq.endDate'),   escapeHtml(r.end_date));
+            if (r.description) html += row(adminT('evReq.description'), escapeHtml(r.description).replace(/\n/g,'<br>'));
+            html += `<tr><td colspan="2" style="padding:8px 8px 4px;font-weight:700;">${adminT('evReq.reporterSection')}</td></tr>`;
+            html += row(adminT('modal.requesterName'), escapeHtml(r.requester_name));
+            if (r.requester_email) html += row('Email', escapeHtml(r.requester_email));
+            if (r.note) html += row(adminT('modal.requesterNote'), escapeHtml(r.note));
+            if (r.admin_note) html += row('Admin Note', escapeHtml(r.admin_note));
+            if (r.reviewed_by) html += row('Reviewed by', escapeHtml(r.reviewed_by) + ' — ' + escapeHtml((r.reviewed_at||'').slice(0,16)));
+            html += row('Created', escapeHtml((r.created_at||'').slice(0,16)));
+            html += `</table>`;
+            body.innerHTML = html;
+
+            acts.innerHTML = '';
+            if (r.status === 'pending') {
+                acts.innerHTML = `
+                    <button class="btn btn-success" onclick="showEvReqNoteForm(${r.id},'approve')">${adminT('evReq.approve')}</button>
+                    <button class="btn btn-danger"  onclick="showEvReqNoteForm(${r.id},'reject')">${adminT('evReq.reject')}</button>
+                    <button class="btn btn-secondary" onclick="closeEvReqDetailModal()">${adminT('button.cancel')}</button>`;
+            } else {
+                acts.innerHTML = `<button class="btn btn-secondary" onclick="closeEvReqDetailModal()">Close</button>`;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function closeEvReqDetailModal() {
+            document.getElementById('eventRequestDetailModal').style.display = 'none';
+        }
+
+        function showEvReqNoteForm(id, action) {
+            const acts = document.getElementById('evReqDetailActions');
+            acts.innerHTML = `
+                <div style="width:100%">
+                    <label style="font-weight:600;display:block;margin-bottom:6px">Admin Note (optional)</label>
+                    <textarea id="evReqAdminNote" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:0.92rem;box-sizing:border-box;" maxlength="1000"></textarea>
+                    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                        <button class="btn ${action==='approve'?'btn-success':'btn-danger'}" onclick="confirmEvReqAction(${id},'${action}')">
+                            ${action==='approve' ? adminT('evReq.approve') : adminT('evReq.reject')}
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewEvReqDetail(${id})">← Back</button>
+                    </div>
+                </div>`;
+        }
+
+        async function confirmEvReqAction(id, action) {
+            const note = (document.getElementById('evReqAdminNote')?.value || '').trim();
+            const apiAction = action === 'approve' ? 'event_request_approve' : 'event_request_reject';
+            try {
+                const res = await fetch(`api.php?action=${apiAction}&id=${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ admin_note: note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closeEvReqDetailModal();
+                    loadEventRequests();
+                    loadPendingCount();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch(e) {
+                alert('Request failed');
+            }
+        }
+
+        function renderEvReqPagination(p) {
+            const el = document.getElementById('evReqPagination');
+            if (!el || p.totalPages <= 1) { if(el) el.innerHTML = ''; return; }
+            el.innerHTML = (p.page > 1 ? `<button onclick="evReqPage=${p.page-1};loadEventRequests()">«</button>` : '') +
+                `<span class="page-info">${p.page}/${p.totalPages}</span>` +
+                (p.page < p.totalPages ? `<button onclick="evReqPage=${p.page+1};loadEventRequests()">»</button>` : '');
+        }
+
+        // Artist Requests
+        let artistReqPage = 1;
+        let artistReqData = [];
+
+        async function loadArtistRequests() {
+            const status = document.getElementById('artistReqStatusFilter')?.value || 'pending';
+            const tbody = document.getElementById('artistRequestsBody');
+            if (!tbody) return;
+            tbody.innerHTML = `<tr><td colspan="7">${adminT('common.loading')}</td></tr>`;
+            try {
+                const res = await fetch(`api.php?action=artist_requests_list&status=${status}&page=${artistReqPage}`, {
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const data = await res.json();
+                if (!data.success) { tbody.innerHTML = `<tr><td colspan="7">${escapeHtml(data.message)}</td></tr>`; return; }
+                artistReqData = data.data.requests || [];
+                renderArtistRequests(artistReqData);
+                renderArtistReqPagination(data.data.pagination);
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="7">Error loading</td></tr>`;
+            }
+        }
+
+        function renderArtistRequests(rows) {
+            const tbody = document.getElementById('artistRequestsBody');
+            if (!rows.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#999">${adminT('req.noRequests')}</td></tr>`; return; }
+            tbody.innerHTML = rows.map(r => {
+                const statusBadge = r.status === 'pending'
+                    ? `<span class="badge badge-warning">${adminT('req.statusPendingFull')}</span>`
+                    : r.status === 'approved'
+                        ? `<span class="badge badge-success">${adminT('req.statusApprovedFull')}</span>`
+                        : `<span class="badge badge-danger">${adminT('req.statusRejectedFull')}</span>`;
+                return `<tr>
+                    <td>${r.id}</td>
+                    <td>${escapeHtml(r.name || '')}</td>
+                    <td>${Number(r.is_group) ? adminT('artistReq.typeGroup') : adminT('artistReq.typeSolo')}</td>
+                    <td>${escapeHtml(r.group_name || adminT('artist.noGroup'))}</td>
+                    <td>${escapeHtml(r.requester_name || '')}</td>
+                    <td>${statusBadge}</td>
+                    <td><button class="btn btn-sm btn-secondary" onclick="viewArtistReqDetail(${r.id})">${adminT('req.view')}</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function viewArtistReqDetail(id) {
+            const r = artistReqData.find(x => x.id === id);
+            if (!r) return;
+            const modal = document.getElementById('eventRequestDetailModal');
+            const title = document.getElementById('evReqDetailTitle');
+            const body = document.getElementById('evReqDetailBody');
+            const acts = document.getElementById('evReqDetailActions');
+            title.textContent = adminT('artistReq.detailTitle');
+            const statusBadge = r.status === 'pending'
+                ? `<span class="badge badge-warning">${adminT('req.statusPendingFull')}</span>`
+                : r.status === 'approved'
+                    ? `<span class="badge badge-success">${adminT('req.statusApprovedFull')}</span>`
+                    : `<span class="badge badge-danger">${adminT('req.statusRejectedFull')}</span>`;
+            const row = (k, v) => `<tr><td style="padding:5px 8px;font-weight:600;white-space:nowrap;width:35%">${escapeHtml(k)}</td><td style="padding:5px 8px">${v}</td></tr>`;
+            const socials = [r.social_facebook, r.social_instagram, r.social_twitter, r.social_tiktok].filter(Boolean).map(escapeHtml).join('<br>') || '-';
+            let html = `<table style="width:100%;border-collapse:collapse;font-size:0.92rem;">`;
+            html += row(adminT('req.thStatus'), statusBadge);
+            html += row(adminT('artists.thName'), escapeHtml(r.name || ''));
+            html += row(adminT('artists.thType'), Number(r.is_group) ? adminT('artistReq.typeGroup') : adminT('artistReq.typeSolo'));
+            if (!Number(r.is_group)) html += row(adminT('artists.thGroup'), escapeHtml(r.group_name || adminT('artist.noGroup')));
+            html += row(adminT('artistReq.socialLinks'), socials);
+            html += row(adminT('req.thReporter'), escapeHtml(r.requester_name || '-'));
+            if (r.requester_email) html += row('Email', escapeHtml(r.requester_email));
+            if (r.admin_note) html += row('Admin Note', escapeHtml(r.admin_note));
+            if (r.reviewed_by) html += row('Reviewed by', escapeHtml(r.reviewed_by) + ' - ' + escapeHtml((r.reviewed_at||'').slice(0,16)));
+            html += row('Created', escapeHtml((r.created_at||'').slice(0,16)));
+            html += `</table>`;
+            body.innerHTML = html;
+            acts.innerHTML = r.status === 'pending'
+                ? `<button class="btn btn-success" onclick="showArtistReqNoteForm(${r.id},'approve')">${adminT('evReq.approve')}</button>
+                   <button class="btn btn-danger" onclick="showArtistReqNoteForm(${r.id},'reject')">${adminT('evReq.reject')}</button>
+                   <button class="btn btn-secondary" onclick="closeEvReqDetailModal()">${adminT('button.cancel')}</button>`
+                : `<button class="btn btn-secondary" onclick="closeEvReqDetailModal()">Close</button>`;
+            modal.style.display = 'flex';
+        }
+
+        function showArtistReqNoteForm(id, action) {
+            const acts = document.getElementById('evReqDetailActions');
+            acts.innerHTML = `
+                <div style="width:100%">
+                    <label style="font-weight:600;display:block;margin-bottom:6px">Admin Note (optional)</label>
+                    <textarea id="artistReqAdminNote" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:0.92rem;box-sizing:border-box;" maxlength="1000"></textarea>
+                    <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+                        <button class="btn ${action==='approve'?'btn-success':'btn-danger'}" onclick="confirmArtistReqAction(${id},'${action}')">
+                            ${action==='approve' ? adminT('evReq.approve') : adminT('evReq.reject')}
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewArtistReqDetail(${id})">Back</button>
+                    </div>
+                </div>`;
+        }
+
+        async function confirmArtistReqAction(id, action) {
+            const note = (document.getElementById('artistReqAdminNote')?.value || '').trim();
+            const apiAction = action === 'approve' ? 'artist_request_approve' : 'artist_request_reject';
+            try {
+                const res = await fetch(`api.php?action=${apiAction}&id=${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ admin_note: note })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closeEvReqDetailModal();
+                    loadArtistRequests();
+                    loadPendingCount();
+                    if (ADMIN_ROLE !== 'organizer') {
+                        loadArtists();
+                    }
+                    const createdArtistId = action === 'approve' && data.data?.artist_id
+                        ? ` #${data.data.artist_id}`
+                        : '';
+                    showToast((data.message || 'Saved') + createdArtistId, 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch(e) {
+                showToast('Request failed', 'error');
+            }
+        }
+
+        function renderArtistReqPagination(p) {
+            const el = document.getElementById('artistReqPagination');
+            if (!el || !p || p.totalPages <= 1) { if(el) el.innerHTML = ''; return; }
+            el.innerHTML = (p.page > 1 ? `<button onclick="artistReqPage=${p.page-1};loadArtistRequests()">«</button>` : '') +
+                `<span class="page-info">${p.page}/${p.totalPages}</span>` +
+                (p.page < p.totalPages ? `<button onclick="artistReqPage=${p.page+1};loadArtistRequests()">»</button>` : '');
+        }
 
         // Setup keyboard shortcuts (ESC to close modal)
         function setupKeyboardShortcuts() {
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    if (document.getElementById('requestDetailModal').classList.contains('active')) {
+                    const evReqModal = document.getElementById('eventRequestDetailModal');
+                    if (evReqModal && evReqModal.style.display !== 'none') {
+                        closeEvReqDetailModal();
+                    } else if (document.getElementById('requestDetailModal').classList.contains('active')) {
                         closeRequestDetailModal();
                     } else if (document.getElementById('deleteModal').classList.contains('active')) {
                         closeDeleteModal();
@@ -3320,14 +4762,12 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         // Load venues for filters and form
         async function loadVenues() {
+            // Filter dropdown: actual distinct location values in programs
             try {
                 const response = await fetch('api.php?action=programs_venues');
                 const result = await response.json();
-
                 if (result.success) {
                     venues = result.data;
-
-                    // Update filter dropdown
                     const filterSelect = document.getElementById('venueFilter');
                     venues.forEach(venue => {
                         const option = document.createElement('option');
@@ -3335,19 +4775,326 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         option.textContent = venue;
                         filterSelect.appendChild(option);
                     });
-
-                    // Update form datalist
-                    const datalist = document.getElementById('venuesListMain');
-                    datalist.innerHTML = ''; // Clear existing options
-                    venues.forEach(venue => {
-                        const option = document.createElement('option');
-                        option.value = venue;
-                        datalist.appendChild(option);
-                    });
                 }
             } catch (error) {
                 console.error('Failed to load venues:', error);
             }
+            // Form datalist: canonical venue names (v16.0.0)
+            await loadCanonicalVenueDatalist('venuesListMain');
+        }
+
+        // Populate a <datalist> with canonical venue names (falls back to distinct
+        // programs.location if the venues table is not yet migrated).
+        async function loadCanonicalVenueDatalist(datalistId) {
+            let names = [];
+            try {
+                const r = await fetch('api.php?action=venues_list&limit=200&sort=name&order=asc');
+                const j = await r.json();
+                if (j.success && j.data && Array.isArray(j.data.venues)) {
+                    names = j.data.venues.map(v => decodeHtml(v.name));
+                }
+            } catch (e) { /* fall through */ }
+            if (!names.length) {
+                try {
+                    const r2 = await fetch('api.php?action=programs_venues');
+                    const j2 = await r2.json();
+                    if (j2.success) names = j2.data;
+                } catch (e) { /* ignore */ }
+            }
+            const dl = document.getElementById(datalistId);
+            if (!dl) return;
+            dl.innerHTML = '';
+            names.forEach(n => {
+                const o = document.createElement('option');
+                o.value = n;
+                dl.appendChild(o);
+            });
+        }
+
+        // ============================================================
+        // Venues tab (v16.0.0)
+        // ============================================================
+        const venueSelNames = {};
+
+        async function loadVenuesTab() {
+            const tbody = document.getElementById('venuesTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="loading">' + adminT('common.loading') + '</td></tr>';
+            const search = document.getElementById('venuesSearchInput')?.value || '';
+            const url = `api.php?action=venues_list&page=${venuesCurrentPage}&limit=${venuesPerPage}&sort=${venuesSortColumn}&order=${venuesSortDirection}&search=${encodeURIComponent(search)}`;
+            try {
+                const res = await fetch(url);
+                const result = await res.json();
+                if (result.success) {
+                    venuesData = result.data.venues || [];
+                    renderVenues(venuesData);
+                    renderVenuesPagination(result.data.pagination);
+                } else {
+                    showToast(result.message, 'error');
+                    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="empty-state">' + escapeHtml(result.message || 'Error') + '</td></tr>';
+                }
+            } catch (err) {
+                showToast('Failed to load venues', 'error');
+            }
+        }
+
+        function renderVenues(venues) {
+            const tbody = document.getElementById('venuesTableBody');
+            if (!venues.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">' + adminT('venues.empty') + '</td></tr>';
+                updateVenueBulkToolbar();
+                return;
+            }
+            tbody.innerHTML = venues.map(v => {
+                const checked = selectedVenueIds.has(v.id) ? 'checked' : '';
+                const progBadge = v.program_count > 0
+                    ? `<span style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">${v.program_count}</span>`
+                    : `<span style="color:#9ca3af;font-size:0.85em">0</span>`;
+                const varBadge = v.variant_count > 0
+                    ? `<span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;font-size:0.8em;font-weight:600">${v.variant_count}</span>`
+                    : `<span style="color:#9ca3af;font-size:0.85em">-</span>`;
+                const onlineBadge = parseInt(v.is_online || 0)
+                    ? ` <span style="background:#e3f2fd;color:#1565c0;padding:2px 7px;border-radius:10px;font-size:0.72em;font-weight:600" title="${adminT('venues.onlineBadge')}">🌐 Online</span>`
+                    : '';
+                return `
+                    <tr>
+                        <td style="text-align:center"><input type="checkbox" class="venue-checkbox" data-id="${v.id}" ${checked} onchange="toggleVenueSelect(${v.id}, this.checked)" style="width:16px;height:16px;cursor:pointer"></td>
+                        <td>${v.id}</td>
+                        <td><strong><a href="${APP_ROOT}/venue/${v.id}" target="_blank" style="color:inherit;text-decoration:none" title="เปิดหน้าสถานที่">${v.name}</a></strong>${onlineBadge}</td>
+                        <td>${progBadge}</td>
+                        <td>${varBadge}</td>
+                        <td class="actions">
+                            <button class="btn btn-secondary btn-sm" onclick="openVenueVariantsModal(${v.id})">${adminT('venues.variantsBtn')}</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditVenueModal(${v.id})">${adminT('common.edit')}</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteVenue(${v.id})">${adminT('common.delete')}</button>
+                        </td>
+                    </tr>`;
+            }).join('');
+            updateVenueBulkToolbar();
+        }
+
+        function renderVenuesPagination(pagination) {
+            const container = document.getElementById('venuesPagination');
+            const { page, totalPages, total } = pagination;
+            if (totalPages <= 1) {
+                container.innerHTML = `<span class="pagination-info">${adminT('common.total')} ${total}</span>`;
+                return;
+            }
+            container.innerHTML = `
+                <button class="btn btn-secondary btn-sm" onclick="goToVenuePage(${page - 1})" ${page <= 1 ? 'disabled' : ''}>&laquo;</button>
+                <span class="pagination-info">${page} / ${totalPages} (${total})</span>
+                <button class="btn btn-secondary btn-sm" onclick="goToVenuePage(${page + 1})" ${page >= totalPages ? 'disabled' : ''}>&raquo;</button>`;
+        }
+
+        function goToVenuePage(p) { venuesCurrentPage = p; loadVenuesTab(); }
+        function changeVenuesPerPage() { venuesPerPage = parseInt(document.getElementById('venuesPerPageSelect').value); venuesCurrentPage = 1; loadVenuesTab(); }
+        function handleVenuesSearch(event) {
+            if (event.key === 'Enter') { venuesCurrentPage = 1; loadVenuesTab(); return; }
+            clearTimeout(venuesSearchTimeout);
+            venuesSearchTimeout = setTimeout(() => { venuesCurrentPage = 1; loadVenuesTab(); }, 300);
+        }
+        function clearVenuesSearch() { document.getElementById('venuesSearchInput').value = ''; venuesCurrentPage = 1; loadVenuesTab(); }
+        function sortVenuesBy(col) {
+            if (venuesSortColumn === col) venuesSortDirection = venuesSortDirection === 'asc' ? 'desc' : 'asc';
+            else { venuesSortColumn = col; venuesSortDirection = 'asc'; }
+            loadVenuesTab();
+        }
+
+        // ---- Selection / bulk merge ----
+        function toggleVenueSelect(id, checked) {
+            if (checked) {
+                selectedVenueIds.add(id);
+                const v = venuesData.find(x => x.id === id);
+                if (v) venueSelNames[id] = decodeHtml(v.name);
+            } else {
+                selectedVenueIds.delete(id);
+                delete venueSelNames[id];
+            }
+            updateVenueBulkToolbar();
+        }
+        function selectAllVenues(checked) {
+            document.querySelectorAll('.venue-checkbox').forEach(cb => {
+                cb.checked = checked;
+                toggleVenueSelect(parseInt(cb.dataset.id), checked);
+            });
+        }
+        function clearVenueSelection() {
+            selectedVenueIds.clear();
+            Object.keys(venueSelNames).forEach(k => delete venueSelNames[k]);
+            document.querySelectorAll('.venue-checkbox').forEach(cb => cb.checked = false);
+            const sa = document.getElementById('venuesSelectAll'); if (sa) sa.checked = false;
+            updateVenueBulkToolbar();
+        }
+        function updateVenueBulkToolbar() {
+            const bar = document.getElementById('venuesBulkToolbar');
+            const cnt = selectedVenueIds.size;
+            if (cnt > 0) {
+                bar.style.display = 'flex';
+                document.getElementById('venuesBulkCount').textContent = adminT('venues.selectedCount').replace('{n}', cnt);
+            } else {
+                bar.style.display = 'none';
+            }
+        }
+
+        // ---- Add / Edit modal ----
+        function openAddVenueModal() {
+            document.getElementById('venueModalTitle').textContent = adminT('venues.addTitle');
+            document.getElementById('venueForm').reset();
+            document.getElementById('venueId').value = '';
+            document.getElementById('venueIsOnline').checked = false;
+            document.getElementById('venueRenameHint').style.display = 'none';
+            document.getElementById('venueModal').classList.add('active');
+        }
+        async function openEditVenueModal(id) {
+            try {
+                const res = await fetch(`api.php?action=venues_get&id=${id}`);
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                const v = result.data;
+                document.getElementById('venueModalTitle').textContent = adminT('venues.editTitle');
+                document.getElementById('venueId').value = v.id;
+                document.getElementById('venueName').value = decodeHtml(v.name || '');
+                document.getElementById('venueDescription').value = decodeHtml(v.description || '');
+                document.getElementById('venueMapUrl').value = decodeHtml(v.map_url || '');
+                document.getElementById('venueIsOnline').checked = !!parseInt(v.is_online || 0);
+                document.getElementById('venueRenameHint').style.display = 'block';
+                document.getElementById('venueModal').classList.add('active');
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+        function closeVenueModal() { document.getElementById('venueModal').classList.remove('active'); }
+
+        async function saveVenue(event) {
+            if (event) event.preventDefault();
+            const id = document.getElementById('venueId').value;
+            const name = document.getElementById('venueName').value.trim();
+            if (!name) { showToast(adminT('venues.nameRequired'), 'error'); return; }
+            const payload = {
+                name,
+                description: document.getElementById('venueDescription').value.trim(),
+                map_url: document.getElementById('venueMapUrl').value.trim(),
+                is_online: document.getElementById('venueIsOnline').checked ? 1 : 0,
+            };
+            const isEdit = !!id;
+            const url = isEdit ? `api.php?action=venues_update&id=${id}` : 'api.php?action=venues_create';
+            try {
+                const res = await fetch(url, {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify(payload),
+                });
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                showToast(result.message || 'Saved', 'success');
+                closeVenueModal();
+                loadVenuesTab();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        async function deleteVenue(id) {
+            if (!confirm(adminT('venues.deleteConfirm'))) return;
+            try {
+                const res = await fetch(`api.php?action=venues_delete&id=${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                });
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                showToast(result.message || 'Deleted', 'success');
+                selectedVenueIds.delete(id); delete venueSelNames[id];
+                loadVenuesTab();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // ---- Variants modal ----
+        let _venueVariantsId = null;
+        async function openVenueVariantsModal(id) {
+            _venueVariantsId = id;
+            const v = venuesData.find(x => x.id === id);
+            document.getElementById('venueVariantsName').textContent = v ? decodeHtml(v.name) : ('#' + id);
+            document.getElementById('newVenueVariantInput').value = '';
+            document.getElementById('venueVariantsModal').classList.add('active');
+            await loadVenueVariants();
+        }
+        function closeVenueVariantsModal() { document.getElementById('venueVariantsModal').classList.remove('active'); loadVenuesTab(); }
+        async function loadVenueVariants() {
+            const list = document.getElementById('venueVariantsList');
+            list.innerHTML = '<span style="color:#9ca3af">' + adminT('common.loading') + '</span>';
+            try {
+                const res = await fetch(`api.php?action=venues_variants_list&venue_id=${_venueVariantsId}`);
+                const result = await res.json();
+                if (!result.success) { list.innerHTML = escapeHtml(result.message); return; }
+                renderVenueVariants(result.data.variants || []);
+            } catch (err) { list.innerHTML = 'Error'; }
+        }
+        function renderVenueVariants(variants) {
+            const list = document.getElementById('venueVariantsList');
+            if (!variants.length) { list.innerHTML = '<span style="color:#9ca3af">' + adminT('venues.noVariants') + '</span>'; return; }
+            list.innerHTML = variants.map(v => `
+                <span style="display:inline-flex;align-items:center;gap:6px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:14px;padding:4px 10px;margin:0 6px 6px 0;font-size:0.9em">
+                    ${v.variant}
+                    <button onclick="deleteVenueVariant(${v.id})" title="ลบ" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:1.1em;line-height:1">&times;</button>
+                </span>`).join('');
+        }
+        async function addVenueVariant() {
+            const input = document.getElementById('newVenueVariantInput');
+            const variant = input.value.trim();
+            if (!variant) return;
+            try {
+                const res = await fetch('api.php?action=venues_variants_create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ venue_id: _venueVariantsId, variant }),
+                });
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                input.value = '';
+                loadVenueVariants();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+        async function deleteVenueVariant(id) {
+            try {
+                const res = await fetch(`api.php?action=venues_variants_delete&id=${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                });
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                loadVenueVariants();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
+        }
+
+        // ---- Merge modal ----
+        function openMergeVenuesModal() {
+            const ids = Array.from(selectedVenueIds);
+            if (ids.length < 2) { showToast(adminT('venues.mergeNeedTwo'), 'error'); return; }
+            const sel = document.getElementById('mergeTargetSelect');
+            sel.innerHTML = ids.map(id => `<option value="${id}">${escapeHtml(venueSelNames[id] || ('#' + id))}</option>`).join('');
+            sel.onchange = renderMergeSources;
+            renderMergeSources();
+            document.getElementById('mergeVenuesModal').classList.add('active');
+        }
+        function renderMergeSources() {
+            const targetId = parseInt(document.getElementById('mergeTargetSelect').value);
+            const ids = Array.from(selectedVenueIds).filter(id => id !== targetId);
+            document.getElementById('mergeSourcesList').innerHTML = ids.map(id => `<li>${escapeHtml(venueSelNames[id] || ('#' + id))}</li>`).join('');
+        }
+        function closeMergeVenuesModal() { document.getElementById('mergeVenuesModal').classList.remove('active'); }
+        async function confirmMergeVenues() {
+            const targetId = parseInt(document.getElementById('mergeTargetSelect').value);
+            const sourceIds = Array.from(selectedVenueIds).filter(id => id !== targetId);
+            if (!targetId || !sourceIds.length) { showToast(adminT('venues.mergeNeedTwo'), 'error'); return; }
+            try {
+                const res = await fetch('api.php?action=venues_merge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ target_id: targetId, source_ids: sourceIds }),
+                });
+                const result = await res.json();
+                if (!result.success) { showToast(result.message, 'error'); return; }
+                showToast((result.message || 'Merged') + ' (' + (result.data?.rewritten_programs ?? 0) + ' programs)', 'success');
+                closeMergeVenuesModal();
+                clearVenueSelection();
+                loadVenuesTab();
+            } catch (err) { showToast('Error: ' + err.message, 'error'); }
         }
 
         // Load programs
@@ -3637,22 +5384,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         async function loadVenuesForBulkEdit() {
-            try {
-                const response = await fetch('api.php?action=programs_venues');
-                const result = await response.json();
-
-                if (result.success) {
-                    const datalist = document.getElementById('venuesList');
-                    datalist.innerHTML = ''; // Clear existing options
-                    result.data.forEach(venue => {
-                        const option = document.createElement('option');
-                        option.value = venue;
-                        datalist.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Failed to load venues:', error);
-            }
+            // Canonical venue names (v16.0.0)
+            await loadCanonicalVenueDatalist('venuesList');
         }
 
         async function loadTypesForDatalist() {
@@ -5087,6 +6820,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     const activeLabel = conv.is_active
                         ? '<span class="status-approved">Active</span>'
                         : '<span class="status-rejected">Inactive</span>';
+                    const requestActiveBtn = (ADMIN_ROLE === 'organizer' && !Number(conv.is_active))
+                        ? `<button class="btn btn-warning btn-sm" onclick="requestActivateEvent(${conv.id})">${adminT('event.requestActive') || 'Request Active'}</button>`
+                        : '';
 
                     const startDate = conv.start_date || '-';
                     const endDate = conv.end_date || '-';
@@ -5103,6 +6839,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                             <td>${conv.event_count !== undefined ? conv.event_count : '-'}</td>
                             <td class="actions">
                                 <button class="btn btn-secondary btn-sm" onclick="openEditEventModal(${conv.id})">${adminT('common.edit')}</button>
+                                ${requestActiveBtn}
                                 <button class="btn btn-danger btn-sm" onclick="openDeleteEventModal(${conv.id}, this.dataset.name)" data-name="${conv.name}">${adminT('common.delete')}</button>
                             </td>
                         </tr>
@@ -5112,6 +6849,29 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 tbody.innerHTML = html;
             } catch (error) {
                 tbody.innerHTML = '<tr><td colspan="9" style="color:red;">Error rendering events: ' + escapeHtml(error.message) + '</td></tr>';
+            }
+        }
+
+        async function requestActivateEvent(eventId) {
+            const note = prompt(adminT('event.requestActiveNote') || 'Optional note for admin/agent approval') || '';
+            try {
+                const response = await fetch('api.php?action=events_request_activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({ event_id: eventId, note })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message || (adminT('event.requestActiveSent') || 'Activation request submitted'), 'success');
+                    loadEventsTab();
+                } else {
+                    showToast(result.message || 'Failed to submit activation request', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to submit activation request', 'error');
             }
         }
 
@@ -5216,11 +6976,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('conventionForm').reset();
             document.getElementById('conventionId').value = '';
             document.getElementById('conventionIsActive').checked = true;
+            document.getElementById('conventionIsActive').disabled = ADMIN_ROLE === 'organizer';
+            if (ADMIN_ROLE === 'organizer') document.getElementById('conventionIsActive').checked = false;
             document.getElementById('conventionVenueMode').value = 'multi';
             document.getElementById('conventionTheme').value = '';
             document.getElementById('conventionTimezone').value = 'Asia/Bangkok';
             document.getElementById('conventionGalleryTemplate').value = 'grid3';
+            document.getElementById('conventionTicketUrl').value = '';
             resetEventPictureSection();
+            resetEventCoverSection();
+            resetEventOrganizerAssignSection();
             conventionsFormChanged = false;
             document.getElementById('conventionModal').classList.add('active');
         }
@@ -5249,10 +7014,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 document.getElementById('conventionEndDate').value = conv.end_date || '';
                 document.getElementById('conventionVenueMode').value = conv.venue_mode || 'multi';
                 document.getElementById('conventionIsActive').checked = !!conv.is_active;
+                document.getElementById('conventionIsActive').disabled = ADMIN_ROLE === 'organizer';
                 document.getElementById('conventionTheme').value = conv.theme || '';
                 document.getElementById('conventionTimezone').value = conv.timezone || 'Asia/Bangkok';
                 document.getElementById('conventionGalleryTemplate').value = conv.gallery_template || 'grid3';
+                document.getElementById('conventionTicketUrl').value = decodeHtml(conv.ticket_url || '');
                 showEventPictureSection(conv.id);
+                showEventCoverSection(conv.id, conv.cover_image || '', conv.cover_image_card || '', conv.header_cover_image || '');
+                loadEventOrganizerAssignments(conv.id);
 
                 conventionsFormChanged = false;
                 document.getElementById('conventionModal').classList.add('active');
@@ -5272,7 +7041,88 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
             conventionsFormChanged = false;
             resetEventPictureSection();
+            resetEventCoverSection();
+            resetEventOrganizerAssignSection();
             document.getElementById('conventionModal').classList.remove('active');
+        }
+
+        function resetEventOrganizerAssignSection() {
+            const section = document.getElementById('eventOrganizerAssignSection');
+            const list = document.getElementById('eventOrganizerAssignList');
+            if (section) section.style.display = 'none';
+            if (list) list.innerHTML = '';
+        }
+
+        async function loadEventOrganizerAssignments(eventId) {
+            if (ADMIN_ROLE !== 'admin') return;
+            const section = document.getElementById('eventOrganizerAssignSection');
+            const list = document.getElementById('eventOrganizerAssignList');
+            if (!section || !list) return;
+
+            section.style.display = 'block';
+            list.innerHTML = '<span style="color:#64748b;font-size:0.9em">Loading...</span>';
+
+            try {
+                const response = await fetch(`api.php?action=event_organizers_list&event_id=${eventId}`, {
+                    headers: { 'X-CSRF-Token': CSRF_TOKEN }
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    list.innerHTML = `<span style="color:#dc2626;font-size:0.9em">${escapeHtml(result.message || 'Failed to load organizers')}</span>`;
+                    return;
+                }
+
+                const assigned = new Set((result.data.assigned || []).map(u => String(u.user_id)));
+                const organizers = result.data.organizers || [];
+                if (!organizers.length) {
+                    list.innerHTML = '<span style="color:#64748b;font-size:0.9em">No organizer users found</span>';
+                    return;
+                }
+
+                list.innerHTML = organizers.map(user => {
+                    const label = escapeHtml(user.display_name || user.username || ('#' + user.id));
+                    const username = escapeHtml(user.username || '');
+                    const checked = assigned.has(String(user.id)) ? 'checked' : '';
+                    return `
+                        <label style="display:flex;gap:8px;align-items:center;cursor:pointer">
+                            <input type="checkbox" class="event-organizer-checkbox" value="${user.id}" ${checked} style="width:auto;margin:0">
+                            <span>${label}${username && username !== label ? ` <small style="color:#64748b">(${username})</small>` : ''}</span>
+                        </label>
+                    `;
+                }).join('');
+            } catch (error) {
+                list.innerHTML = '<span style="color:#dc2626;font-size:0.9em">Failed to load organizers</span>';
+            }
+        }
+
+        async function saveEventOrganizerAssignments() {
+            if (ADMIN_ROLE !== 'admin') return;
+            const eventId = parseInt(document.getElementById('conventionId')?.value || '0', 10);
+            if (!eventId) return;
+
+            const userIds = Array.from(document.querySelectorAll('.event-organizer-checkbox:checked'))
+                .map(input => parseInt(input.value, 10))
+                .filter(id => id > 0);
+
+            try {
+                const response = await fetch('api.php?action=event_organizers_update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({ event_id: eventId, user_ids: userIds })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message || 'Organizer assignments saved', 'success');
+                    loadEventOrganizerAssignments(eventId);
+                } else {
+                    showToast(result.message || 'Failed to save organizers', 'error');
+                }
+            } catch (error) {
+                showToast('Failed to save organizers', 'error');
+            }
         }
 
         // Save Event Meta
@@ -5292,7 +7142,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 is_active: document.getElementById('conventionIsActive').checked ? 1 : 0,
                 theme: themeVal || null,
                 timezone: document.getElementById('conventionTimezone').value || 'Asia/Bangkok',
-                gallery_template: document.getElementById('conventionGalleryTemplate').value || 'grid3'
+                gallery_template: document.getElementById('conventionGalleryTemplate').value || 'grid3',
+                ticket_url: document.getElementById('conventionTicketUrl').value || null,
             };
 
             const isEdit = !!id;
@@ -5326,6 +7177,267 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 showToast('Failed to save event', 'error');
             } finally {
                 hideLoading();
+            }
+        }
+
+        // ===== Cover Images (Cropper.js — Hero 16:9 / Card 4:3 / Header 4:1 / Site Cover 4:1) =====
+        let _cropperInstance = null;
+        let _cropperEventId  = null;
+        let _cropperType     = 'hero'; // 'hero' | 'card' | 'header' | 'site_cover'
+
+        function loadCropperJs(callback) {
+            if (window.Cropper) { callback(); return; }
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css';
+            document.head.appendChild(link);
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js';
+            s.onload = callback;
+            document.head.appendChild(s);
+        }
+
+        function openCoverCropper(input, coverType) {
+            if (!input.files || !input.files[0]) return;
+            _cropperType = coverType || 'hero';
+            let aspectRatio, label;
+            if (_cropperType === 'card') {
+                aspectRatio = 4 / 3;
+                label = adminT('event.cropTitleCard') || '✂️ Crop Card Cover (4:3)';
+            } else if (_cropperType === 'header') {
+                aspectRatio = 4 / 1;
+                label = adminT('event.cropTitleHeader') || '✂️ Crop Header Cover (4:1)';
+            } else {
+                aspectRatio = 16 / 9;
+                label = adminT('event.cropTitle') || '✂️ Crop Hero Cover (16:9)';
+            }
+            document.getElementById('cropperModalTitle').textContent = label;
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadCropperJs(function() {
+                    const img = document.getElementById('cropperImage');
+                    img.src = e.target.result;
+                    document.getElementById('cropperModal').style.display = '';
+                    if (_cropperInstance) { _cropperInstance.destroy(); }
+                    _cropperInstance = new Cropper(img, {
+                        aspectRatio,
+                        viewMode: 1,
+                        autoCropArea: 0.9,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: false,
+                        scalable: false,
+                    });
+                });
+            };
+            reader.readAsDataURL(file);
+            input.value = '';
+        }
+
+        function openSiteCoverCropper(input) {
+            if (!input.files || !input.files[0]) return;
+            _cropperType = 'site_cover';
+            document.getElementById('cropperModalTitle').textContent =
+                adminT('settings.cropTitleCoverBg') || '✂️ Crop Header Cover (4:1)';
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadCropperJs(function() {
+                    const img = document.getElementById('cropperImage');
+                    img.src = e.target.result;
+                    document.getElementById('cropperModal').style.display = '';
+                    if (_cropperInstance) { _cropperInstance.destroy(); }
+                    _cropperInstance = new Cropper(img, {
+                        aspectRatio: 4 / 1,
+                        viewMode: 1,
+                        autoCropArea: 0.9,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: false,
+                        scalable: false,
+                    });
+                });
+            };
+            reader.readAsDataURL(file);
+            input.value = '';
+        }
+
+        function closeCropperModal() {
+            document.getElementById('cropperModal').style.display = 'none';
+            if (_cropperInstance) { _cropperInstance.destroy(); _cropperInstance = null; }
+        }
+
+        function confirmCrop() {
+            if (!_cropperInstance) return;
+            if (_cropperType !== 'site_cover' && !_cropperEventId) return;
+
+            let w, h;
+            if (_cropperType === 'card')                          { w = 800;  h = 600; }
+            else if (_cropperType === 'header' ||
+                     _cropperType === 'site_cover')               { w = 1920; h = 480; }
+            else                                                   { w = 1600; h = 900; } // hero
+
+            const canvas = _cropperInstance.getCroppedCanvas({ width: w, height: h, imageSmoothingQuality: 'high' });
+            if (!canvas) { alert('Crop failed'); return; }
+            closeCropperModal();
+
+            canvas.toBlob(async function(blob) {
+                const formData = new FormData();
+
+                // --- Site-wide cover ---
+                if (_cropperType === 'site_cover') {
+                    formData.append('cover_bg', blob, 'cover.jpg');
+                    try {
+                        const res = await fetch('api.php?action=site_cover_bg_upload', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-Token': CSRF_TOKEN },
+                            body: formData
+                        });
+                        const result = await res.json();
+                        const msg = document.getElementById('siteCoverBgMsg');
+                        if (result.success) {
+                            loadSiteCoverBg(result.data.path);
+                            msg.style.display = 'inline';
+                            setTimeout(() => msg.style.display = 'none', 3000);
+                        } else {
+                            alert('Error: ' + (result.message || 'Upload failed'));
+                        }
+                    } catch (err) {
+                        alert('Upload error: ' + err.message);
+                    }
+                    return;
+                }
+
+                // --- Event header cover ---
+                if (_cropperType === 'header') {
+                    formData.append('cover', blob, 'cover.jpg');
+                    try {
+                        const res = await fetch(
+                            `api.php?action=event_header_cover_upload&event_id=${_cropperEventId}`,
+                            { method: 'POST', headers: { 'X-CSRF-Token': CSRF_TOKEN }, body: formData }
+                        );
+                        const result = await res.json();
+                        if (result.success) {
+                            showHeaderCoverPreview(result.data.path);
+                        } else {
+                            alert(result.message || 'Upload failed');
+                        }
+                    } catch (err) {
+                        alert('Upload error: ' + err.message);
+                    }
+                    return;
+                }
+
+                // --- Event hero / card cover ---
+                formData.append('cover', blob, 'cover.jpg');
+                try {
+                    const res = await fetch(
+                        `api.php?action=event_cover_upload&event_id=${_cropperEventId}&cover_type=${_cropperType}`,
+                        { method: 'POST', headers: { 'X-CSRF-Token': CSRF_TOKEN }, body: formData }
+                    );
+                    const result = await res.json();
+                    if (result.success) {
+                        showCoverPreview(_cropperType, result.data.path);
+                    } else {
+                        alert(result.message || 'Upload failed');
+                    }
+                } catch (err) {
+                    alert('Upload error: ' + err.message);
+                }
+            }, 'image/jpeg', 0.88);
+        }
+
+        function showCoverPreview(coverType, path) {
+            if (coverType === 'card') {
+                document.getElementById('coverCardPreview').src = APP_ROOT + '/' + path + '?t=' + Date.now();
+                document.getElementById('coverCardPreviewWrap').style.display = '';
+                document.getElementById('coverCardDeleteBtn').style.display = '';
+            } else {
+                document.getElementById('coverHeroPreview').src = APP_ROOT + '/' + path + '?t=' + Date.now();
+                document.getElementById('coverHeroPreviewWrap').style.display = '';
+                document.getElementById('coverHeroDeleteBtn').style.display = '';
+            }
+        }
+
+        function showHeaderCoverPreview(path) {
+            document.getElementById('coverHeaderPreview').src = APP_ROOT + '/' + path + '?t=' + Date.now();
+            document.getElementById('coverHeaderPreviewWrap').style.display = '';
+            document.getElementById('coverHeaderDeleteBtn').style.display = '';
+        }
+
+        function resetEventCoverSection() {
+            document.getElementById('eventCoverSection').style.display = 'none';
+            ['coverHeroPreviewWrap', 'coverCardPreviewWrap', 'coverHeaderPreviewWrap'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            ['coverHeroPreview', 'coverCardPreview', 'coverHeaderPreview'].forEach(id => {
+                document.getElementById(id).src = '';
+            });
+            ['coverHeroDeleteBtn', 'coverCardDeleteBtn', 'coverHeaderDeleteBtn'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            ['coverHeroFileInput', 'coverCardFileInput', 'coverHeaderFileInput'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            _cropperEventId = null;
+        }
+
+        function showEventCoverSection(eventId, heroPath, cardPath, headerPath) {
+            _cropperEventId = eventId;
+            document.getElementById('eventCoverSection').style.display = '';
+            if (heroPath)   showCoverPreview('hero', heroPath);
+            if (cardPath)   showCoverPreview('card', cardPath);
+            if (headerPath) showHeaderCoverPreview(headerPath);
+        }
+
+        async function deleteCoverImage(coverType) {
+            if (!_cropperEventId) return;
+            if (!confirm(adminT('event.coverDeleteConfirm') || 'ลบ Cover Image?')) return;
+            try {
+                const res = await fetch('api.php?action=event_cover_delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ event_id: _cropperEventId, cover_type: coverType })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    if (coverType === 'card') {
+                        document.getElementById('coverCardPreviewWrap').style.display = 'none';
+                        document.getElementById('coverCardPreview').src = '';
+                        document.getElementById('coverCardDeleteBtn').style.display = 'none';
+                    } else {
+                        document.getElementById('coverHeroPreviewWrap').style.display = 'none';
+                        document.getElementById('coverHeroPreview').src = '';
+                        document.getElementById('coverHeroDeleteBtn').style.display = 'none';
+                    }
+                } else {
+                    alert(result.message || 'Delete failed');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function deleteHeaderCoverImage() {
+            if (!_cropperEventId) return;
+            if (!confirm(adminT('event.coverDeleteConfirm') || 'ลบ Header Cover Image?')) return;
+            try {
+                const res = await fetch('api.php?action=event_header_cover_delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ event_id: _cropperEventId })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    document.getElementById('coverHeaderPreviewWrap').style.display = 'none';
+                    document.getElementById('coverHeaderPreview').src = '';
+                    document.getElementById('coverHeaderDeleteBtn').style.display = 'none';
+                } else {
+                    alert(result.message || 'Delete failed');
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
             }
         }
 
@@ -5920,7 +8032,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             if (ADMIN_ROLE !== 'admin') return;
             const tbody = document.getElementById('usersTableBody');
             if (!tbody) return;
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">Loading...</td></tr>';
 
             try {
                 const res = await fetch('api.php?action=users_list', {
@@ -5928,35 +8040,45 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 });
                 const result = await res.json();
                 if (!result.success) {
-                    tbody.innerHTML = '<tr><td colspan="7">Error: ' + escapeHtml(result.message || 'Failed') + '</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8">Error: ' + escapeHtml(result.message || 'Failed') + '</td></tr>';
                     return;
                 }
 
                 const users = result.data.users;
                 if (users.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7">No users found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8">No users found</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = users.map(function(user) {
                     const roleBadge = user.role === 'admin'
                         ? '<span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Admin</span>'
-                        : '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Agent</span>';
+                        : (user.role === 'organizer'
+                            ? '<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Organizer</span>'
+                            : '<span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Agent</span>');
                     const activeBadge = user.is_active == 1
                         ? '<span style="color:#16a34a;">Active</span>'
                         : '<span style="color:#dc2626;">Inactive</span>';
+                    const twofaBadge = user.twofa_enabled == 1
+                        ? '<span style="background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">2FA On</span>'
+                        : '<span style="background:#f1f5f9;color:#475569;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;">Off</span>';
                     const lastLogin = user.last_login_at || '-';
+                    const reset2faBtn = user.twofa_enabled == 1
+                        ? ' <button class="btn btn-warning" onclick="resetUserTwofa(' + user.id + ')" style="padding:4px 10px;font-size:12px;">Reset 2FA</button>'
+                        : '';
 
                     return '<tr>' +
                         '<td>' + user.id + '</td>' +
                         '<td><strong>' + user.username + '</strong></td>' +
                         '<td>' + (user.display_name || '-') + '</td>' +
                         '<td>' + roleBadge + '</td>' +
+                        '<td>' + twofaBadge + '</td>' +
                         '<td>' + activeBadge + '</td>' +
                         '<td>' + lastLogin + '</td>' +
                         '<td>' +
                             '<button class="btn btn-secondary" onclick="openEditUserModal(' + user.id + ')" style="padding:4px 10px;font-size:12px;">' + adminT('common.edit') + '</button> ' +
                             '<button class="btn btn-danger" onclick="openDeleteUserModal(' + user.id + ', \'' + user.username.replace(/'/g, "\\'") + '\')" style="padding:4px 10px;font-size:12px;">' + adminT('common.delete') + '</button>' +
+                            reset2faBtn +
                         '</td>' +
                     '</tr>';
                 }).join('');
@@ -6114,6 +8236,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             document.getElementById('changePasswordForm').reset();
             document.getElementById('changePasswordError').style.display = 'none';
             document.getElementById('changePasswordSuccess').style.display = 'none';
+            resetTwofaPanels();
+            loadTwofaStatus();
         }
 
         function closeChangePasswordModal() {
@@ -6170,6 +8294,177 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             }
         }
 
+        let twofaPendingAction = null;
+
+        function resetTwofaPanels() {
+            ['twofaSetupBox', 'twofaVerifyBox', 'twofaBackupCodesBox'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            const pass = document.getElementById('twofaCurrentPassword');
+            const code = document.getElementById('twofaVerifyCode');
+            const setupCode = document.getElementById('twofaSetupCode');
+            if (pass) pass.value = '';
+            if (code) code.value = '';
+            if (setupCode) setupCode.value = '';
+            twofaPendingAction = null;
+        }
+
+        async function loadTwofaStatus() {
+            const box = document.getElementById('twofaStatusBox');
+            if (!box) return;
+            try {
+                const res = await fetch('api.php?action=twofa_status', { headers: { 'X-CSRF-Token': CSRF_TOKEN } });
+                const result = await res.json();
+                if (!result.success || !result.data.managed) {
+                    box.textContent = adminT('twofa.dbOnly');
+                    document.getElementById('twofaEnableBtn').style.display = 'none';
+                    document.getElementById('twofaBackupBtn').style.display = 'none';
+                    document.getElementById('twofaDisableBtn').style.display = 'none';
+                    return;
+                }
+                const enabled = !!result.data.enabled;
+                box.innerHTML = enabled
+                    ? '<strong style="color:#166534">' + adminT('twofa.enabled') + '</strong> · ' + adminT('twofa.backupRemaining').replace('{count}', result.data.backup_codes_remaining || 0)
+                    : '<strong style="color:#92400e">' + adminT('twofa.disabled') + '</strong>';
+                document.getElementById('twofaEnableBtn').style.display = enabled ? 'none' : 'inline-block';
+                document.getElementById('twofaBackupBtn').style.display = enabled ? 'inline-block' : 'none';
+                document.getElementById('twofaDisableBtn').style.display = enabled ? 'inline-block' : 'none';
+            } catch (e) {
+                box.textContent = 'Failed to load 2FA status';
+            }
+        }
+
+        function renderTwofaQr(text) {
+            const box = document.getElementById('twofaQrBox');
+            if (!box) return;
+            let hash = 2166136261;
+            for (let i = 0; i < text.length; i++) {
+                hash ^= text.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            const size = 25;
+            let html = '<div title="Local QR preview; use manual key if scanning fails" style="display:grid;grid-template-columns:repeat(' + size + ',6px);grid-auto-rows:6px;gap:0;background:white;padding:8px">';
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const finder = (x < 7 && y < 7) || (x > 17 && y < 7) || (x < 7 && y > 17);
+                    const bit = finder || (((x * 31 + y * 17 + hash + ((x * y) << 1)) & 7) < 3);
+                    html += '<span style="width:6px;height:6px;background:' + (bit ? '#111827' : '#fff') + '"></span>';
+                }
+            }
+            html += '</div>';
+            box.innerHTML = html;
+        }
+
+        async function beginTwofaSetup() {
+            resetTwofaPanels();
+            try {
+                const res = await fetch('api.php?action=twofa_begin_setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: '{}'
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showToast(result.message || 'Failed to start 2FA setup', 'error');
+                    return;
+                }
+                document.getElementById('twofaSecretText').textContent = result.data.secret;
+                document.getElementById('twofaOtpAuthLink').href = result.data.otpauth_uri || '#';
+                renderTwofaQr(result.data.otpauth_uri || result.data.qr_text || result.data.secret);
+                document.getElementById('twofaSetupBox').style.display = 'block';
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function confirmTwofaSetup() {
+            const code = document.getElementById('twofaSetupCode').value.trim();
+            try {
+                const res = await fetch('api.php?action=twofa_confirm_setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ code: code })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showToast(result.message || 'Failed to enable 2FA', 'error');
+                    return;
+                }
+                showTwofaBackupCodes(result.data.backup_codes || []);
+                loadTwofaStatus();
+                showToast(result.message || '2FA enabled', 'success');
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        function showTwofaBackupCodes(codes) {
+            document.getElementById('twofaBackupCodesText').textContent = codes.join('\n');
+            document.getElementById('twofaBackupCodesBox').style.display = 'block';
+        }
+
+        function openTwofaDisableForm() {
+            resetTwofaPanels();
+            twofaPendingAction = 'twofa_disable';
+            document.getElementById('twofaVerifySubmitBtn').textContent = adminT('twofa.disable');
+            document.getElementById('twofaVerifyBox').style.display = 'block';
+        }
+
+        function openTwofaBackupForm() {
+            resetTwofaPanels();
+            twofaPendingAction = 'twofa_regenerate_backup_codes';
+            document.getElementById('twofaVerifySubmitBtn').textContent = adminT('twofa.regenerate');
+            document.getElementById('twofaVerifyBox').style.display = 'block';
+        }
+
+        async function submitTwofaSensitiveAction() {
+            if (!twofaPendingAction) return;
+            try {
+                const res = await fetch('api.php?action=' + twofaPendingAction, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({
+                        current_password: document.getElementById('twofaCurrentPassword').value,
+                        code: document.getElementById('twofaVerifyCode').value
+                    })
+                });
+                const result = await res.json();
+                if (!result.success) {
+                    showToast(result.message || '2FA action failed', 'error');
+                    return;
+                }
+                if (result.data && result.data.backup_codes) {
+                    showTwofaBackupCodes(result.data.backup_codes);
+                }
+                document.getElementById('twofaVerifyBox').style.display = 'none';
+                loadTwofaStatus();
+                showToast(result.message || 'Success', 'success');
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function resetUserTwofa(id) {
+            if (!confirm(adminT('twofa.resetConfirm'))) return;
+            try {
+                const res = await fetch('api.php?action=twofa_reset_user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({ id: id })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadUsers();
+                    showToast(result.message || '2FA reset', 'success');
+                } else {
+                    showToast(result.message || 'Failed to reset 2FA', 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
         // =====================================================================
         // Theme Settings
         // =====================================================================
@@ -6217,6 +8512,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             // Load sub-tab specific data
             if (subtab === 'telegram') {
                 loadTelegramLog();
+            }
+            if (subtab === 'webpush') {
+                loadWebPushConfig();
+                loadWebPushLog();
+            }
+            if (subtab === 'email') {
+                loadEmailLog();
+            }
+            if (subtab === 'audit') {
+                loadAdminAuditLog();
             }
 
             // Show first sub-tab (Site) on default
@@ -6296,8 +8601,40 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 .then(data => {
                     if (data.success) {
                         document.getElementById('siteTitleInput').value = decodeHtml(data.data.site_title || '');
+                        loadSiteCoverBg(data.data.site_cover_bg || '');
                     }
                 });
+        }
+
+        function loadSiteCoverBg(path) {
+            var preview = document.getElementById('siteCoverBgPreview');
+            var deleteBtn = document.getElementById('siteCoverBgDeleteBtn');
+            if (path) {
+                preview.innerHTML = '<img src="' + APP_ROOT + '/' + path + '?v=' + Date.now() + '" style="max-width:100%;aspect-ratio:4/1;object-fit:cover;border-radius:8px;border:1px solid #ddd" alt="Cover BG">';
+                deleteBtn.style.display = '';
+            } else {
+                preview.innerHTML = '<span style="color:#999;font-size:0.9em" data-i18n="settings.coverBgNone">ยังไม่มีรูปพื้นหลัง</span>';
+                deleteBtn.style.display = 'none';
+            }
+        }
+        // Upload is handled by openSiteCoverCropper() → confirmCrop() in the cropper block above.
+
+        function deleteSiteCoverBg() {
+            if (!confirm('ลบรูปพื้นหลัง Header?')) return;
+            fetch('api.php?action=site_cover_bg_delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify({})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    loadSiteCoverBg('');
+                } else {
+                    alert('Error: ' + (data.message || 'Delete failed'));
+                }
+            })
+            .catch(() => alert('Network error'));
         }
 
         function saveTitleSetting() {
@@ -6563,6 +8900,82 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             .catch(() => { btn.disabled = false; alert('Network error'); });
         }
 
+        // Web Push Settings
+        function loadWebPushConfig() {
+            fetch('api.php?action=webpush_config_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const cfg = data.data;
+                        document.getElementById('webpushEnabled').checked   = !!cfg.enabled;
+                        document.getElementById('webpushSubject').value      = decodeHtml(cfg.vapid_subject || '');
+                        document.getElementById('webpushSiteUrl').value      = decodeHtml(cfg.site_url || '');
+                        document.getElementById('webpushMaxSubs').value      = cfg.max_subs_per_token || 5;
+                        document.getElementById('webpushVapidPublicKey').value = decodeHtml(cfg.vapid_public_key || '');
+                        const sel = document.getElementById('webpushNotifyBefore');
+                        const minutes = String(cfg.notify_before_minutes || 60);
+                        for (let opt of sel.options) { opt.selected = (opt.value === minutes); }
+                        updateWebPushCronRecommendation();
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function saveWebPushConfig() {
+            const btn = event.target;
+            btn.disabled = true;
+            const body = {
+                enabled:               document.getElementById('webpushEnabled').checked,
+                vapid_subject:         document.getElementById('webpushSubject').value.trim(),
+                site_url:              document.getElementById('webpushSiteUrl').value.trim(),
+                notify_before_minutes: parseInt(document.getElementById('webpushNotifyBefore').value),
+                max_subs_per_token:    parseInt(document.getElementById('webpushMaxSubs').value),
+            };
+            fetch('api.php?action=webpush_config_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(body)
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    showToast(adminT('webpush.saved') || 'Web Push config saved', 'success');
+                } else {
+                    alert('Error: ' + (data.message || 'Failed'));
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function generateVapidKeys() {
+            if (!confirm(adminT('webpush.generateConfirm') || 'สร้าง VAPID Keys ใหม่จะแทนที่ Keys เดิม ผู้ใช้ที่ subscribe อยู่จะต้อง subscribe ใหม่ ต้องการดำเนินการต่อหรือไม่?')) return;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = adminT('webpush.generating') || '⏳ กำลังสร้าง...';
+            fetch('api.php?action=webpush_vapid_generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: '{}'
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = adminT('webpush.generateBtn') || '🔑 Generate VAPID Keys';
+                if (data.success && data.data) {
+                    document.getElementById('webpushVapidPublicKey').value = data.data.vapid_public_key || '';
+                    showToast(adminT('webpush.generated') || 'VAPID Keys สร้างแล้ว', 'success');
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to generate keys'));
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.textContent = adminT('webpush.generateBtn') || '🔑 Generate VAPID Keys';
+                alert('Network error');
+            });
+        }
+
         // Analytics Settings (Google Analytics + AdSense)
         function loadAnalyticsSetting() {
             fetch('api.php?action=analytics_config_get')
@@ -6610,57 +9023,209 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             .catch(() => { btn.disabled = false; });
         }
 
+        // Email Settings
+        function collectEmailPayload(forceEnabled = null) {
+            const enabled = forceEnabled === null ? document.getElementById('emailEnabled').checked : forceEnabled;
+            return {
+                enabled: enabled,
+                smtp_host: document.getElementById('emailSmtpHost').value.trim(),
+                smtp_port: parseInt(document.getElementById('emailSmtpPort').value) || 587,
+                smtp_encryption: document.getElementById('emailSmtpEncryption').value,
+                smtp_username: document.getElementById('emailSmtpUsername').value.trim(),
+                smtp_password: document.getElementById('emailSmtpPassword').value,
+                from_email: document.getElementById('emailFromEmail').value.trim(),
+                from_name: document.getElementById('emailFromName').value.trim(),
+                recipients: document.getElementById('emailRecipients').value.trim()
+            };
+        }
+
+        function loadEmailSetting() {
+            fetch('api.php?action=email_config_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const cfg = data.data;
+                        document.getElementById('emailEnabled').checked = cfg.enabled || false;
+                        document.getElementById('emailSmtpHost').value = decodeHtml(cfg.smtp_host || '');
+                        document.getElementById('emailSmtpPort').value = cfg.smtp_port || 587;
+                        document.getElementById('emailSmtpEncryption').value = cfg.smtp_encryption || 'tls';
+                        document.getElementById('emailSmtpUsername').value = decodeHtml(cfg.smtp_username || '');
+                        document.getElementById('emailSmtpPassword').value = decodeHtml(cfg.smtp_password || '');
+                        document.getElementById('emailFromEmail').value = decodeHtml(cfg.from_email || '');
+                        document.getElementById('emailFromName').value = decodeHtml(cfg.from_name || 'Idol Stage Timetable');
+                        document.getElementById('emailRecipients').value = decodeHtml(cfg.recipients || '');
+                    }
+                });
+        }
+
+        function saveEmailSetting() {
+            const btn = document.getElementById('emailSaveBtn');
+            btn.disabled = true;
+
+            fetch('api.php?action=email_config_save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(collectEmailPayload())
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('emailSaveMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
+        function sendEmailTest() {
+            const btn = document.getElementById('emailTestBtn');
+            btn.disabled = true;
+
+            fetch('api.php?action=email_test_send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                body: JSON.stringify(collectEmailPayload(true))
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                if (data.success) {
+                    const msg = document.getElementById('emailTestMsg');
+                    msg.style.display = 'inline';
+                    setTimeout(() => msg.style.display = 'none', 3000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(() => { btn.disabled = false; alert('Network error'); });
+        }
+
         // Telegram Log Viewer
+        // Telegram Log Viewer (table + modal, mirrors Audit Log UI)
+        let _telegramLogParsed = []; // array of parsed objects (newest-first)
+
+        function _parseTelegramLine(raw) {
+            // Format: [YYYY-MM-DD HH:MM:SS] [LEVEL] message | {"ctx":"json"}
+            const m = raw.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[([A-Z]+)\] (.*?)(?:\s\|\s(\{.*\}))?$/);
+            if (!m) return null;
+            let ctx = null;
+            if (m[4]) { try { ctx = JSON.parse(m[4]); } catch(e) {} }
+            return { ts: m[1], level: m[2], message: m[3], context: ctx, _raw: raw };
+        }
+
+        function telegramLevelBadge(level) {
+            const map = {
+                INFO:  { bg:'#e3f2fd', color:'#1565c0', border:'#90caf9' },
+                DEBUG: { bg:'#f5f5f5', color:'#616161', border:'#bdbdbd' },
+                WARN:  { bg:'#fff3e0', color:'#e65100', border:'#ffcc80' },
+                ERROR: { bg:'#ffebee', color:'#b71c1c', border:'#ef9a9a' },
+            };
+            const s = map[level] || { bg:'#f5f5f5', color:'#333', border:'#ccc' };
+            return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;letter-spacing:.4px;background:${s.bg};color:${s.color};border:1px solid ${s.border}">${escapeHtml(level)}</span>`;
+        }
+
+        function renderTelegramTable(entries) {
+            const tbody = document.getElementById('telegramLogTbody');
+            if (!tbody) return;
+            if (!entries.length) {
+                tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#999">ไม่มีรายการ</td></tr>';
+                return;
+            }
+            tbody.innerHTML = entries.map((e, i) => {
+                const rowStyle = i % 2 === 0 ? '' : 'background:#fafafa';
+                return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;${rowStyle}" onclick="openTelegramLogDetail(${e._idx})" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='${i%2===0?'':'#fafafa'}'">
+                    <td style="padding:7px 12px;white-space:nowrap;font-family:monospace;font-size:0.77rem;color:#555">${escapeHtml(e.ts)}</td>
+                    <td style="padding:7px 12px;white-space:nowrap">${telegramLevelBadge(e.level)}</td>
+                    <td style="padding:7px 12px;max-width:500px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(e.message)}">${escapeHtml(e.message)}${e.context ? ' <span style="color:#aaa;font-size:0.72rem">[+context]</span>' : ''}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterTelegramLog() {
+            const q = (document.getElementById('telegramLogFilter')?.value || '').toLowerCase();
+            const info = document.getElementById('telegramLogInfo');
+            if (!q) {
+                renderTelegramTable(_telegramLogParsed);
+                if (info) info.textContent = `แสดง ${_telegramLogParsed.length} รายการ`;
+                return;
+            }
+            const filtered = _telegramLogParsed.filter(e =>
+                (e.level || '').toLowerCase().includes(q) ||
+                (e.message || '').toLowerCase().includes(q) ||
+                (e.ts || '').includes(q) ||
+                (e._raw || '').toLowerCase().includes(q)
+            );
+            renderTelegramTable(filtered);
+            if (info) info.textContent = `แสดง ${filtered.length} / ${_telegramLogParsed.length} รายการ`;
+        }
+
+        function openTelegramLogDetail(idx) {
+            const e = _telegramLogParsed[idx];
+            if (!e) return;
+            const body = document.getElementById('telegramLogDetailBody');
+            if (!body) return;
+            const row = (label, val) => `<tr>
+                <td style="padding:6px 10px;font-weight:600;color:#555;white-space:nowrap;vertical-align:top;width:130px">${label}</td>
+                <td style="padding:6px 10px;font-family:monospace;font-size:0.85rem">${val}</td>
+            </tr>`;
+            let html = `<table style="width:100%;border-collapse:collapse;background:#f9f9f9;border-radius:6px;overflow:hidden;border:1px solid #e0e0e0">
+                ${row('Timestamp', escapeHtml(e.ts))}
+                ${row('Level', telegramLevelBadge(e.level))}
+                ${row('Message', `<span style="white-space:pre-wrap;word-break:break-word">${escapeHtml(e.message)}</span>`)}
+            </table>`;
+            if (e.context) {
+                html += `<div style="margin-top:16px">
+                    <div style="font-weight:600;font-size:0.85rem;color:#555;margin-bottom:6px">Context</div>
+                    <pre style="margin:0;background:#1a1a2e;color:#e0e0e0;padding:14px;border-radius:6px;font-size:0.78rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${escapeHtml(JSON.stringify(e.context, null, 2))}</pre>
+                </div>`;
+            }
+            body.innerHTML = html;
+            document.getElementById('telegramLogDetailOverlay').style.display = 'flex';
+        }
+
+        function closeTelegramLogDetail() {
+            document.getElementById('telegramLogDetailOverlay').style.display = 'none';
+        }
+
         async function loadTelegramLog() {
             const select = document.getElementById('telegramLogFileSelect');
-            const pre = document.getElementById('telegramLogContent');
-            const info = document.getElementById('telegramLogInfo');
-            if (!pre) return;
-
+            const tbody = document.getElementById('telegramLogTbody');
+            const info  = document.getElementById('telegramLogInfo');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>';
             const selectedFile = select ? select.value : '';
-            pre.textContent = adminT('common.loading');
-
             try {
                 const url = 'api.php?action=telegram_log_get' + (selectedFile ? '&file=' + encodeURIComponent(selectedFile) : '');
                 const r = await fetch(url);
                 const data = await r.json();
-
                 if (!data.success) {
-                    pre.textContent = 'Error: ' + (data.message || 'Unknown error');
+                    tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Error: ${escapeHtml(data.message || 'Unknown error')}</td></tr>`;
                     return;
                 }
-
-                // Populate file select if needed
+                // Populate file select
                 if (select && data.files) {
-                    const current = select.value;
                     select.innerHTML = data.files && data.files.length > 0
                         ? data.files.map(f => `<option value="${escapeHtml(f.key)}" ${f.key === data.selected ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join('')
                         : '<option value="">No log files found</option>';
-                    if (!select.value && data.files && data.files.length > 0) {
-                        select.value = data.files[0].key;
-                    }
                 }
+                // Parse lines newest-first (API already returns last N lines chronologically — reverse)
+                const lines = (data.content || '').split('\n').filter(l => l.trim());
+                _telegramLogParsed = lines
+                    .map((l, i) => { const p = _parseTelegramLine(l.trim()); if (!p) return null; p._idx = i; return p; })
+                    .filter(Boolean)
+                    .reverse()
+                    .map((e, i) => { e._idx = i; return e; }); // re-index after reverse
 
-                // Show content with color coding
-                pre.innerHTML = colorizeLogOutput(data.content || '(empty)');
-                pre.scrollTop = pre.scrollHeight; // scroll to bottom
-
-                // Info line
-                if (info && data.total_lines > 0) {
-                    info.textContent = `Showing ${data.showing_lines} / ${data.total_lines} lines`;
-                }
+                if (info) info.textContent = `แสดง ${_telegramLogParsed.length} รายการ`;
+                if (document.getElementById('telegramLogFilter')) document.getElementById('telegramLogFilter').value = '';
+                renderTelegramTable(_telegramLogParsed);
             } catch(e) {
-                pre.textContent = 'Network error: ' + e.message;
+                tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Network error: ${escapeHtml(e.message)}</td></tr>`;
             }
-        }
-
-        function colorizeLogOutput(rawText) {
-            const escaped = escapeHtml(rawText);
-            return escaped
-                .replace(/\[INFO\]/g, '<span style="color:#4caf50">[INFO]</span>')
-                .replace(/\[DEBUG\]/g, '<span style="color:#9e9e9e">[DEBUG]</span>')
-                .replace(/\[WARN\]/g, '<span style="color:#ff9800">[WARN]</span>')
-                .replace(/\[ERROR\]/g, '<span style="color:#f44336">[ERROR]</span>');
         }
 
         function downloadTelegramLog() {
@@ -6668,6 +9233,440 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const file = select ? select.value : '';
             const filename = file || 'telegram-cron.log';
             window.location.href = 'api.php?action=telegram_log_download&file=' + encodeURIComponent(filename);
+        }
+
+        // =====================================================================
+        // Web Push Config
+        // =====================================================================
+
+        // =====================================================================
+        // Shared Cron Log Detail Modal
+        // =====================================================================
+        function _cronLevelBadge(level) {
+            const map = {
+                INFO:  { bg:'#e3f2fd', color:'#1565c0', border:'#90caf9' },
+                DEBUG: { bg:'#f5f5f5', color:'#616161', border:'#bdbdbd' },
+                WARN:  { bg:'#fff3e0', color:'#e65100', border:'#ffcc80' },
+                ERROR: { bg:'#ffebee', color:'#b71c1c', border:'#ef9a9a' },
+            };
+            const s = map[level] || { bg:'#f5f5f5', color:'#333', border:'#ccc' };
+            return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;letter-spacing:.4px;background:${s.bg};color:${s.color};border:1px solid ${s.border}">${escapeHtml(level || '?')}</span>`;
+        }
+
+        function openCronLogDetail(entry, titleLabel) {
+            const body    = document.getElementById('cronLogDetailBody');
+            const titleEl = document.getElementById('cronLogDetailTitle');
+            if (!body) return;
+            if (titleEl) titleEl.textContent = titleLabel || '📋 Log Entry Detail';
+            const row = (label, val) => `<tr>
+                <td style="padding:6px 10px;font-weight:600;color:#555;white-space:nowrap;vertical-align:top;width:110px">${label}</td>
+                <td style="padding:6px 10px;font-family:monospace;font-size:0.84rem">${val}</td>
+            </tr>`;
+            let html = `<table style="width:100%;border-collapse:collapse;background:#f9f9f9;border-radius:6px;overflow:hidden;border:1px solid #e0e0e0">
+                ${row('Timestamp', escapeHtml(entry.ts || '—'))}
+                ${row('Level', _cronLevelBadge(entry.level))}
+                ${row('Message', `<span style="white-space:pre-wrap;word-break:break-word">${escapeHtml(entry.message || entry._raw || '')}</span>`)}
+            </table>`;
+            if (entry.context && Object.keys(entry.context).length) {
+                html += `<div style="margin-top:16px">
+                    <div style="font-weight:600;font-size:0.85rem;color:#555;margin-bottom:6px">Context</div>
+                    <pre style="margin:0;background:#1a1a2e;color:#e0e0e0;padding:14px;border-radius:6px;font-size:0.78rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${escapeHtml(JSON.stringify(entry.context, null, 2))}</pre>
+                </div>`;
+            }
+            body.innerHTML = html;
+            document.getElementById('cronLogDetailOverlay').style.display = 'flex';
+        }
+
+        function closeCronLogDetail() {
+            document.getElementById('cronLogDetailOverlay').style.display = 'none';
+        }
+
+        // =====================================================================
+        // Web Push Log Viewer
+        // =====================================================================
+        let _webPushLogParsed = [];
+
+        // Same format as Telegram: [YYYY-MM-DD HH:MM:SS] [LEVEL] message | {json}
+        function _parseWebPushLine(raw) {
+            const m = raw.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[([A-Z]+)\] (.*?)(?:\s\|\s(\{.*\}))?$/);
+            if (!m) return { ts: '?', level: '?', message: raw, context: null, _raw: raw };
+            let ctx = null;
+            if (m[4]) { try { ctx = JSON.parse(m[4]); } catch(e) {} }
+            return { ts: m[1], level: m[2], message: m[3], context: ctx, _raw: raw };
+        }
+
+        function _renderCronTable(tbodyId, entries, detailFn) {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+            if (!entries.length) {
+                tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#999">ไม่มีรายการ</td></tr>';
+                return;
+            }
+            tbody.innerHTML = entries.map((e, i) => {
+                const rowStyle = i % 2 === 0 ? '' : 'background:#fafafa';
+                return `<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;${rowStyle}" onclick="${detailFn}(${e._idx})" onmouseover="this.style.background='#f0f4ff'" onmouseout="this.style.background='${i%2===0?'':'#fafafa'}'">
+                    <td style="padding:7px 10px;white-space:nowrap;font-family:monospace;font-size:0.77rem;color:#555">${escapeHtml(e.ts)}</td>
+                    <td style="padding:7px 10px;white-space:nowrap">${_cronLevelBadge(e.level)}</td>
+                    <td style="padding:7px 10px;max-width:460px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(e.message)}">${escapeHtml(e.message)}${e.context ? ' <span style="color:#aaa;font-size:0.72rem">[+ctx]</span>' : ''}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function openWebPushLogDetail(idx) {
+            openCronLogDetail(_webPushLogParsed[idx], '📱 Web Push Log Entry');
+        }
+
+        function filterWebPushLog() {
+            const q = (document.getElementById('webpushLogFilter')?.value || '').toLowerCase();
+            const info = document.getElementById('webpushLogInfo');
+            const filtered = q ? _webPushLogParsed.filter(e =>
+                (e.level || '').toLowerCase().includes(q) ||
+                (e.message || '').toLowerCase().includes(q) ||
+                (e.ts || '').includes(q) ||
+                (e._raw || '').toLowerCase().includes(q)
+            ) : _webPushLogParsed;
+            _renderCronTable('webpushLogTbody', filtered, 'openWebPushLogDetail');
+            if (info) info.textContent = q ? `แสดง ${filtered.length} / ${_webPushLogParsed.length} รายการ` : `แสดง ${_webPushLogParsed.length} รายการ`;
+        }
+
+        async function loadWebPushLog() {
+            const select = document.getElementById('webpushLogFileSelect');
+            const tbody  = document.getElementById('webpushLogTbody');
+            const info   = document.getElementById('webpushLogInfo');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>';
+            const selectedFile = select ? select.value : '';
+            try {
+                const url = 'api.php?action=webpush_log_get' + (selectedFile ? '&file=' + encodeURIComponent(selectedFile) : '');
+                const r = await fetch(url);
+                const data = await r.json();
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Error: ${escapeHtml(data.message || 'Unknown error')}</td></tr>`;
+                    return;
+                }
+                if (select && data.files) {
+                    select.innerHTML = data.files && data.files.length
+                        ? data.files.map(f => `<option value="${escapeHtml(f.key)}" ${f.key === data.selected ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join('')
+                        : '<option value="">ไม่มีไฟล์ log</option>';
+                }
+                const lines = (data.content || '').split('\n').filter(l => l.trim());
+                _webPushLogParsed = lines.map((l, i) => {
+                    const p = _parseWebPushLine(l.trim()); p._idx = i; return p;
+                }).reverse().map((e, i) => { e._idx = i; return e; });
+                if (info) info.textContent = `แสดง ${_webPushLogParsed.length} รายการ`;
+                if (document.getElementById('webpushLogFilter')) document.getElementById('webpushLogFilter').value = '';
+                _renderCronTable('webpushLogTbody', _webPushLogParsed, 'openWebPushLogDetail');
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Network error: ${escapeHtml(e.message)}</td></tr>`;
+            }
+        }
+
+        function downloadWebPushLog() {
+            const select = document.getElementById('webpushLogFileSelect');
+            const file   = select ? select.value : '';
+            window.location.href = 'api.php?action=webpush_log_download&file=' + encodeURIComponent(file || 'webpush-cron.log');
+        }
+
+        // =====================================================================
+        // Email Log Viewer
+        // =====================================================================
+        let _emailLogParsed = [];
+
+        // Format: [YYYY-MM-DD HH:MM:SS] LEVEL message {json}
+        function _parseEmailLine(raw) {
+            const m = raw.match(/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] ([A-Z]+) (.*?)(\{.*\})?$/);
+            if (!m) return { ts: '?', level: '?', message: raw, context: null, _raw: raw };
+            let ctx = null; let msg = (m[3] || '').trim();
+            if (m[4]) { try { ctx = JSON.parse(m[4]); msg = msg.replace(/\{.*\}$/, '').trim(); } catch(e) { msg = (m[3] + (m[4] || '')).trim(); } }
+            return { ts: m[1], level: m[2], message: msg, context: ctx, _raw: raw };
+        }
+
+        function openEmailLogDetail(idx) {
+            openCronLogDetail(_emailLogParsed[idx], '📧 Email Log Entry');
+        }
+
+        function filterEmailLog() {
+            const q = (document.getElementById('emailLogFilter')?.value || '').toLowerCase();
+            const info = document.getElementById('emailLogInfo');
+            const filtered = q ? _emailLogParsed.filter(e =>
+                (e.level || '').toLowerCase().includes(q) ||
+                (e.message || '').toLowerCase().includes(q) ||
+                (e.ts || '').includes(q) ||
+                (e._raw || '').toLowerCase().includes(q)
+            ) : _emailLogParsed;
+            _renderCronTable('emailLogTbody', filtered, 'openEmailLogDetail');
+            if (info) info.textContent = q ? `แสดง ${filtered.length} / ${_emailLogParsed.length} รายการ` : `แสดง ${_emailLogParsed.length} รายการ`;
+        }
+
+        async function loadEmailLog() {
+            const select = document.getElementById('emailLogFileSelect');
+            const tbody  = document.getElementById('emailLogTbody');
+            const info   = document.getElementById('emailLogInfo');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>';
+            const selectedFile = select ? select.value : '';
+            try {
+                const url = 'api.php?action=email_log_get' + (selectedFile ? '&file=' + encodeURIComponent(selectedFile) : '');
+                const r = await fetch(url);
+                const data = await r.json();
+                if (!data.success) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Error: ${escapeHtml(data.message || 'Unknown error')}</td></tr>`;
+                    return;
+                }
+                if (select && data.files) {
+                    select.innerHTML = data.files && data.files.length
+                        ? data.files.map(f => `<option value="${escapeHtml(f.key)}" ${f.key === data.selected ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join('')
+                        : '<option value="">ไม่มีไฟล์ log</option>';
+                }
+                const lines = (data.content || '').split('\n').filter(l => l.trim());
+                _emailLogParsed = lines.map((l, i) => {
+                    const p = _parseEmailLine(l.trim()); p._idx = i; return p;
+                }).reverse().map((e, i) => { e._idx = i; return e; });
+                if (info) info.textContent = `แสดง ${_emailLogParsed.length} รายการ`;
+                if (document.getElementById('emailLogFilter')) document.getElementById('emailLogFilter').value = '';
+                _renderCronTable('emailLogTbody', _emailLogParsed, 'openEmailLogDetail');
+            } catch(e) {
+                tbody.innerHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#c62828">Network error: ${escapeHtml(e.message)}</td></tr>`;
+            }
+        }
+
+        function downloadEmailLog() {
+            const select = document.getElementById('emailLogFileSelect');
+            const file   = select ? select.value : '';
+            window.location.href = 'api.php?action=email_log_download&file=' + encodeURIComponent(file || 'email.log');
+        }
+
+        // =====================================================================
+        // Cron recommendation: floor(min(notify, 15) / 1.5) → exactly 150% coverage
+        function updateWebPushCronRecommendation() {
+            const notify   = parseInt(document.getElementById('webpushNotifyBefore').value) || 60;
+            const interval = Math.max(1, Math.floor(Math.min(notify, 15) / 1.5));
+            document.getElementById('webpushCronCommand').textContent =
+                '*/' + interval + ' * * * * php /path/to/cron/send-web-push-notifications.php >> /path/to/cache/logs/webpush-cron.log 2>&1';
+        }
+
+        function loadWebPushConfig() {
+            fetch('api.php?action=webpush_config_get')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const cfg = data.data;
+                        document.getElementById('webpushEnabled').checked            = cfg.enabled || false;
+                        document.getElementById('webpushSubject').value             = decodeHtml(cfg.vapid_subject || 'mailto:admin@stageidol.local');
+                        document.getElementById('webpushSiteUrl').value             = decodeHtml(cfg.site_url || '');
+                        document.getElementById('webpushNotifyBefore').value        = cfg.notify_before_minutes || 60;
+                        document.getElementById('webpushMaxSubs').value             = cfg.max_subs_per_token || 5;
+                        document.getElementById('webpushVapidPublicKey').value      = cfg.vapid_public_key || '';
+                        updateWebPushCronRecommendation();
+                    }
+                })
+                .catch(() => showToast('Network error', 'error'));
+        }
+
+        async function saveWebPushConfig() {
+            try {
+                const res = await fetch('api.php?action=webpush_config_save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({
+                        enabled:               document.getElementById('webpushEnabled').checked,
+                        vapid_subject:         document.getElementById('webpushSubject').value.trim(),
+                        site_url:              document.getElementById('webpushSiteUrl').value.trim(),
+                        notify_before_minutes: parseInt(document.getElementById('webpushNotifyBefore').value) || 60,
+                        max_subs_per_token:    parseInt(document.getElementById('webpushMaxSubs').value) || 5,
+                    })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast(result.message || adminT('webpush.saved') || 'Web Push config saved', 'success');
+                } else {
+                    showToast(result.message || 'Failed to save', 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function generateVapidKeys() {
+            if (!confirm(adminT('webpush.generateConfirm') || 'Generate new VAPID keys? This will replace existing keys and disconnect all current subscribers.')) return;
+            try {
+                const res = await fetch('api.php?action=webpush_vapid_generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                    body: JSON.stringify({})
+                });
+                const result = await res.json();
+                if (result.success && result.data) {
+                    document.getElementById('webpushVapidPublicKey').value = result.data.vapid_public_key || '';
+                    showToast(result.message || adminT('webpush.generated') || 'VAPID keys generated', 'success');
+                } else {
+                    showToast(result.message || 'Failed to generate VAPID keys', 'error');
+                }
+            } catch (e) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        // Admin Audit Log Viewer
+        let _auditParsed = []; // array of parsed JSON objects (newest-first after reverse)
+
+        async function loadAdminAuditLog() {
+            const select = document.getElementById('auditLogFileSelect');
+            const tbody = document.getElementById('auditLogTbody');
+            const info  = document.getElementById('auditLogInfo');
+            if (!tbody) return;
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#999">Loading…</td></tr>';
+            const selectedFile = select ? select.value : '';
+            try {
+                const url = 'api.php?action=admin_audit_log_get' + (selectedFile ? '&file=' + encodeURIComponent(selectedFile) : '');
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (!data.success) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#c00">Error loading log.</td></tr>';
+                    return;
+                }
+                // Populate file selector
+                if (select) {
+                    select.innerHTML = '';
+                    (data.files || []).forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.key; opt.textContent = f.label;
+                        if (f.key === data.selected) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                    if (!data.files || !data.files.length) {
+                        select.innerHTML = '<option value="">-- No log files --</option>';
+                    }
+                }
+                if (info) {
+                    const t = adminT('audit.displayingLines') || 'Displaying {showing} / {total} lines';
+                    info.textContent = t.replace('{showing}', data.showing_lines).replace('{total}', data.total_lines);
+                }
+                // Parse JSON Lines, newest-first
+                const lines = (data.content || '').split('\n').filter(l => l.trim());
+                _auditParsed = lines.map(l => { try { return JSON.parse(l); } catch(e) { return { _raw: l }; } }).reverse();
+                renderAuditTable(_auditParsed);
+                const filter = document.getElementById('auditLogFilter');
+                if (filter && filter.value) filterAuditLog();
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#c00">Error: ${escapeHtml(e.message)}</td></tr>`;
+            }
+        }
+
+        function auditOutcomeBadge(outcome) {
+            const colors = { success: '#2e7d32', failure: '#c62828', blocked: '#e65100' };
+            const bg     = { success: '#e8f5e9', failure: '#ffebee', blocked: '#fff3e0' };
+            const c = colors[outcome] || '#555';
+            const b = bg[outcome]    || '#f5f5f5';
+            return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:700;color:${c};background:${b}">${escapeHtml(outcome || '—')}</span>`;
+        }
+
+        function auditActionBadge(action) {
+            const a = action || '—';
+            let color = '#37474f';
+            if (a.startsWith('login') || a === 'logout') color = '#1565c0';
+            else if (a.includes('_delete') || a.includes('_restore')) color = '#b71c1c';
+            else if (a.includes('_create')) color = '#2e7d32';
+            else if (a.includes('_update') || a.includes('settings_') || a.includes('config_') || a.includes('change_password')) color = '#6a1b9a';
+            else if (a.startsWith('backup_')) color = '#e65100';
+            else if (a.startsWith('twofa_')) color = '#00695c';
+            return `<code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:0.75rem;color:${color}">${escapeHtml(a)}</code>`;
+        }
+
+        function renderAuditTable(entries) {
+            const tbody = document.getElementById('auditLogTbody');
+            if (!tbody) return;
+            if (!entries.length) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#999">No entries.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = entries.map((e, idx) => {
+                if (e._raw) {
+                    return `<tr style="border-bottom:1px solid #f0f0f0">
+                        <td colspan="6" style="padding:6px 10px;font-family:monospace;font-size:0.72rem;color:#999">${escapeHtml(e._raw)}</td>
+                    </tr>`;
+                }
+                const ts     = e.ts || '—';
+                const entity = [e.entity_type, e.entity_id ? '#' + e.entity_id : null, e.entity_label].filter(Boolean).join(' ') || '—';
+                const actor  = [e.actor_username || e.actor, e.actor_role ? '(' + e.actor_role + ')' : null].filter(Boolean).join(' ') || '—';
+                const rowBg  = idx % 2 === 0 ? '#fff' : '#fafafa';
+                return `<tr style="border-bottom:1px solid #f0f0f0;background:${rowBg};cursor:pointer" onclick="openAuditDetail(${idx})" title="Click to view details">
+                    <td style="padding:7px 10px;white-space:nowrap;font-size:0.75rem;color:#555;font-family:monospace">${escapeHtml(ts)}</td>
+                    <td style="padding:7px 10px;white-space:nowrap">${auditActionBadge(e.action)}</td>
+                    <td style="padding:7px 10px;white-space:nowrap">${auditOutcomeBadge(e.outcome)}</td>
+                    <td style="padding:7px 10px;font-size:0.78rem;color:#333">${escapeHtml(actor)}</td>
+                    <td style="padding:7px 10px;font-size:0.78rem;color:#333;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(entity)}">${escapeHtml(entity)}</td>
+                    <td style="padding:7px 10px;font-size:0.75rem;color:#777;font-family:monospace;white-space:nowrap">${escapeHtml(e.ip || '—')}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterAuditLog() {
+            const q = (document.getElementById('auditLogFilter')?.value || '').toLowerCase();
+            if (!q) { renderAuditTable(_auditParsed); return; }
+            const filtered = _auditParsed.filter(e => {
+                if (e._raw) return e._raw.toLowerCase().includes(q);
+                return [e.action, e.outcome, e.actor_username, e.actor, e.actor_role,
+                        e.entity_type, e.entity_label, String(e.entity_id || ''), e.ip]
+                    .some(v => v && String(v).toLowerCase().includes(q));
+            });
+            renderAuditTable(filtered);
+        }
+
+        function openAuditDetail(idx) {
+            const e = _auditParsed[idx];
+            if (!e) return;
+            const overlay = document.getElementById('auditDetailOverlay');
+            const body    = document.getElementById('auditDetailBody');
+            if (!overlay || !body) return;
+
+            // Build field rows
+            const fields = [
+                ['Timestamp',   e.ts],
+                ['Action',      e.action],
+                ['Outcome',     e.outcome],
+                ['Error Code',  e.error_code],
+                ['Actor ID',    e.actor_id || e.actor_user_id],
+                ['Actor',       e.actor_username || e.actor],
+                ['Role',        e.actor_role],
+                ['IP',          e.ip],
+                ['User-Agent',  e.ua],
+                ['Request ID',  e.request_id],
+                ['Entity Type', e.entity_type],
+                ['Entity ID',   e.entity_id],
+                ['Entity Label',e.entity_label],
+            ];
+            const rows = fields.filter(([, v]) => v != null && v !== '').map(([k, v]) =>
+                `<tr style="border-bottom:1px solid #f5f5f5">
+                    <td style="padding:6px 12px;font-weight:600;color:#555;white-space:nowrap;font-size:0.82rem;vertical-align:top">${escapeHtml(k)}</td>
+                    <td style="padding:6px 12px;font-size:0.82rem;color:#222;word-break:break-all">${k === 'Outcome' ? auditOutcomeBadge(v) : k === 'Action' ? auditActionBadge(v) : escapeHtml(String(v))}</td>
+                </tr>`
+            ).join('');
+
+            const metaHtml = (e.metadata && Object.keys(e.metadata).length)
+                ? `<div style="margin-top:16px">
+                    <div style="font-weight:700;color:#333;margin-bottom:8px;font-size:0.85rem">Metadata</div>
+                    <pre style="background:#1a1a2e;color:#e0e0e0;padding:12px;border-radius:6px;font-size:0.75rem;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all">${escapeHtml(JSON.stringify(e.metadata, null, 2))}</pre>
+                  </div>`
+                : '';
+
+            body.innerHTML = `
+                <table style="width:100%;border-collapse:collapse">${rows}</table>
+                ${metaHtml}
+            `;
+            overlay.style.display = 'flex';
+        }
+
+        function closeAuditDetail() {
+            const overlay = document.getElementById('auditDetailOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        function downloadAdminAuditLog() {
+            const select = document.getElementById('auditLogFileSelect');
+            const file = select ? select.value : '';
+            if (!file) return;
+            window.location.href = 'api.php?action=admin_audit_log_download&file=' + encodeURIComponent(file);
         }
 
         // Contact Channels
@@ -7178,10 +10177,34 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         async function openAddArtistModal() {
+            artistModalMode = 'create';
             document.getElementById('artistModalTitle').textContent = adminT('artist.addTitle');
+            document.getElementById('artistModalSubmitBtn').textContent = adminT('common.save');
             document.getElementById('artistForm').reset();
             document.getElementById('artistId').value = '';
             document.getElementById('artistGroupIdRow').style.display = 'block';
+            document.getElementById('artistSocialFacebook').value  = '';
+            document.getElementById('artistSocialInstagram').value = '';
+            document.getElementById('artistSocialTwitter').value   = '';
+            document.getElementById('artistSocialTiktok').value    = '';
+            resetArtistCopyState();
+            resetArtistPictureSection();
+            await loadGroupsIntoSelect(null);
+            document.getElementById('artistModal').classList.add('active');
+        }
+
+        async function openArtistRequestModal() {
+            artistModalMode = 'request';
+            document.getElementById('artistModalTitle').textContent = adminT('artist.requestTitle');
+            document.getElementById('artistModalSubmitBtn').textContent = adminT('artist.requestSubmit');
+            document.getElementById('artistForm').reset();
+            document.getElementById('artistId').value = '';
+            document.getElementById('artistCopySourceId').value = '';
+            document.getElementById('artistGroupIdRow').style.display = 'block';
+            document.getElementById('artistSocialFacebook').value  = '';
+            document.getElementById('artistSocialInstagram').value = '';
+            document.getElementById('artistSocialTwitter').value   = '';
+            document.getElementById('artistSocialTiktok').value    = '';
             resetArtistCopyState();
             resetArtistPictureSection();
             await loadGroupsIntoSelect(null);
@@ -7189,6 +10212,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         async function openEditArtistModal(id) {
+            artistModalMode = 'edit';
             showLoading();
             try {
                 const response = await fetch(`api.php?action=artists_get&id=${id}`);
@@ -7200,10 +10224,15 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 const artist = result.data;
 
                 document.getElementById('artistModalTitle').textContent = adminT('artist.editTitle');
+                document.getElementById('artistModalSubmitBtn').textContent = adminT('common.save');
                 document.getElementById('artistId').value = artist.id;
                 document.getElementById('artistName').value = decodeHtml(artist.name);
                 document.getElementById('artistIsGroup').checked = artist.is_group == 1;
                 document.getElementById('artistGroupIdRow').style.display = artist.is_group == 1 ? 'none' : 'block';
+                document.getElementById('artistSocialFacebook').value  = decodeHtml(artist.social_facebook  || '');
+                document.getElementById('artistSocialInstagram').value = decodeHtml(artist.social_instagram || '');
+                document.getElementById('artistSocialTwitter').value   = decodeHtml(artist.social_twitter   || '');
+                document.getElementById('artistSocialTiktok').value    = decodeHtml(artist.social_tiktok    || '');
                 resetArtistCopyState();
                 showArtistPictureSection(artist);
 
@@ -7217,6 +10246,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
 
         async function openCopyArtistModal(id) {
+            artistModalMode = 'copy';
             showLoading();
             try {
                 resetArtistPictureSection();
@@ -7237,6 +10267,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 // Pre-fill modal
                 document.getElementById('artistModalTitle').textContent = `Copy ศิลปิน: ${decodeHtml(artist.name)}`;
+                document.getElementById('artistModalSubmitBtn').textContent = adminT('common.save');
                 document.getElementById('artistId').value     = '';          // create new
                 document.getElementById('artistCopySourceId').value = id;
                 document.getElementById('artistName').value   = decodeHtml(artist.name) + ' (copy)';
@@ -7274,6 +10305,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
         function closeArtistModal() {
             document.getElementById('artistModal').classList.remove('active');
+            artistModalMode = 'create';
+            document.getElementById('artistModalSubmitBtn').textContent = adminT('common.save');
             resetArtistCopyState();
             resetArtistPictureSection();
         }
@@ -7284,10 +10317,38 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             const copySourceId = document.getElementById('artistCopySourceId').value;
             const groupIdVal  = document.getElementById('artistGroupId').value;
             const data = {
-                name:     document.getElementById('artistName').value,
-                is_group: document.getElementById('artistIsGroup').checked ? 1 : 0,
-                group_id: groupIdVal !== '' ? parseInt(groupIdVal) : null,
+                name:             document.getElementById('artistName').value,
+                is_group:         document.getElementById('artistIsGroup').checked ? 1 : 0,
+                group_id:         groupIdVal !== '' ? parseInt(groupIdVal) : null,
+                social_facebook:  document.getElementById('artistSocialFacebook').value  || null,
+                social_instagram: document.getElementById('artistSocialInstagram').value || null,
+                social_twitter:   document.getElementById('artistSocialTwitter').value   || null,
+                social_tiktok:    document.getElementById('artistSocialTiktok').value    || null,
             };
+
+            if (artistModalMode === 'request') {
+                showLoading();
+                try {
+                    const response = await fetch('api.php?action=artist_requests_create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+                        body: JSON.stringify(data),
+                    });
+                    const result = await response.json();
+                    if (!result.success) {
+                        showToast(result.message, 'error');
+                        return;
+                    }
+                    showToast(result.message || adminT('artist.requestSubmitted'), 'success');
+                    closeArtistModal();
+                    loadDashboard();
+                } catch (err) {
+                    showToast('Failed to submit artist request', 'error');
+                } finally {
+                    hideLoading();
+                }
+                return;
+            }
 
             const isEdit = !!id;
             const url    = isEdit ? `api.php?action=artists_update&id=${id}` : 'api.php?action=artists_create';
@@ -7698,7 +10759,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // ================================================================
         // ARTIST TAG INPUT — factory (shared by single-edit + bulk-edit)
         // ================================================================
-        function createArtistTagInput(wrapperId, textInputId, hiddenInputId, suggestionsId, publicName) {
+        function createArtistTagInput(wrapperId, textInputId, hiddenInputId, suggestionsId, publicName, options = {}) {
             const wrapper      = document.getElementById(wrapperId);
             const textInput    = document.getElementById(textInputId);
             const hiddenInput  = document.getElementById(hiddenInputId);
@@ -7710,6 +10771,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             let suggestionData = [];
             let activeIdx      = -1;
             let debounceTimer  = null;
+            const requireSuggestion = !!options.requireSuggestion;
 
             function renderTags() {
                 wrapper.querySelectorAll('.artist-tag').forEach(function (el) { el.remove(); });
@@ -7832,7 +10894,16 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         addTag(suggestionData[activeIdx].name);
                     } else {
                         const q = textInput.value.replace(/,$/, '').trim();
-                        if (q) addTag(q);
+                        const exact = suggestionData.find(function (item) {
+                            return item.name.toLowerCase() === q.toLowerCase();
+                        });
+                        if (exact) {
+                            addTag(exact.name);
+                        } else if (q && !requireSuggestion) {
+                            addTag(q);
+                        } else if (q && requireSuggestion) {
+                            showToast(adminT('modal.artistMustSelectExisting') || 'Select an existing artist from autocomplete', 'error');
+                        }
                     }
                     return;
                 }
@@ -7872,7 +10943,8 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         // ================================================================
         createArtistTagInput(
             'artistTagWrapper', 'categoriesInput', 'categories', 'artistSuggestions',
-            'artistTagInput'
+            'artistTagInput',
+            { requireSuggestion: ADMIN_ROLE === 'organizer' }
         );
         createArtistTagInput(
             'bulkArtistTagWrapper', 'bulkCategoriesInput', 'bulkEditCategories', 'bulkArtistSuggestions',
@@ -7890,6 +10962,20 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div class="ep-admin-lb-inner">
             <img id="epAdminLbImg" src="" alt="">
             <p id="epAdminLbCaption" class="ep-admin-lb-caption"></p>
+        </div>
+    </div>
+
+    <!-- Cropper.js Modal — top-level so it works from any tab (Settings, Events, etc.) -->
+    <div id="cropperModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:10000;overflow:auto;">
+        <div style="max-width:860px;margin:32px auto;background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,0.4);">
+            <div id="cropperModalTitle" style="font-weight:700;font-size:1.1em;margin-bottom:12px;">✂️ ปรับ Crop รูป Cover</div>
+            <div style="max-height:60vh;overflow:hidden;">
+                <img id="cropperImage" alt="Crop" style="max-width:100%;display:block;">
+            </div>
+            <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeCropperModal()" data-i18n="btn.cancel">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="confirmCrop()" data-i18n="event.cropConfirm">✂️ Confirm Crop</button>
+            </div>
         </div>
     </div>
 </body>

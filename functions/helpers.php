@@ -73,6 +73,43 @@ function get_site_title() {
 }
 
 // =============================================================================
+// SITE COVER BACKGROUND HELPERS
+// =============================================================================
+
+/**
+ * Get the site-wide header cover background image path
+ *
+ * @return string Relative path like 'uploads/site/cover_bg_abc.jpg', or '' if none
+ */
+function get_site_cover_bg(): string {
+    $settingsFile = dirname(__DIR__) . '/cache/site-settings.json';
+    if (!file_exists($settingsFile)) return '';
+    $data = json_decode(file_get_contents($settingsFile), true);
+    $path = $data['site_cover_bg'] ?? '';
+    if ($path === '') return '';
+    if (!file_exists(dirname(__DIR__) . '/' . ltrim($path, '/'))) return '';
+    return $path;
+}
+
+/**
+ * Get the effective header cover background image path, with per-event override.
+ *
+ * Priority:
+ *   1. $eventMeta['header_cover_image'] — event-specific header cover (4:1 banner)
+ *   2. get_site_cover_bg()              — site-wide setting from admin Settings
+ *   3. ''                               — no image; caller renders plain gradient
+ *
+ * @param array|null $eventMeta Event meta row from DB, or null for non-event pages
+ * @return string Relative path, or '' when no image is configured
+ */
+function get_header_cover_bg(?array $eventMeta = null): string {
+    if (!empty($eventMeta['header_cover_image'])) {
+        return $eventMeta['header_cover_image'];
+    }
+    return get_site_cover_bg();
+}
+
+// =============================================================================
 // SITE DISCLAIMER HELPER
 // =============================================================================
 
@@ -217,6 +254,55 @@ function get_event_venue_mode($eventMeta) {
 }
 
 /**
+ * Validate an IANA timezone identifier.
+ *
+ * @param mixed $tz Candidate timezone string (e.g. "Asia/Tokyo")
+ * @return bool True if $tz is a non-empty string accepted by DateTimeZone
+ */
+function is_valid_timezone($tz): bool {
+    if (!is_string($tz) || $tz === '') {
+        return false;
+    }
+    try {
+        new DateTimeZone($tz);
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
+ * Resolve the viewer's effective timezone from a favorites record.
+ *
+ * Priority:
+ *   - Manual override (user_timezone_manual === true): user_timezone wins for
+ *     every channel, ignoring any per-device timezone.
+ *   - Auto mode: per-device $subTz (web push) first, then user_timezone.
+ *
+ * Returns null when no usable viewer timezone is known — callers then fall back
+ * to their legacy behaviour (e.g. annotate the site default timezone).
+ *
+ * @param array       $favData Favorites JSON data
+ * @param string|null $subTz   Per-device timezone (web push subscription), or null
+ * @return string|null Valid IANA timezone, or null
+ */
+function fav_resolve_user_timezone(array $favData, ?string $subTz = null): ?string {
+    $userTz = $favData['user_timezone'] ?? null;
+    $manual = !empty($favData['user_timezone_manual']);
+
+    if ($manual && is_valid_timezone($userTz)) {
+        return $userTz;
+    }
+    if (is_valid_timezone($subTz)) {
+        return $subTz;
+    }
+    if (is_valid_timezone($userTz)) {
+        return $userTz;
+    }
+    return null;
+}
+
+/**
  * Get the timezone for an event
  *
  * Priority:
@@ -255,6 +341,33 @@ function get_safe_host(): string {
     // Fallback to SERVER_NAME which is configured by the web server
     return $_SERVER['SERVER_NAME'] ?? 'localhost';
 }
+
+// =============================================================================
+// EVENT COVER IMAGE HELPER
+// =============================================================================
+
+/**
+ * Get the cover image path for an event (hero carousel / event cards)
+ *
+ * Priority:
+ *   1. events.cover_image (dedicated 16:9 cover, uploaded via admin crop UI)
+ *   2. $fallbackPicture (first event_picture, pre-fetched by caller)
+ *   3. null → caller should render theme gradient placeholder
+ *
+ * @param array       $event           Event row from DB (must include 'cover_image' key)
+ * @param string|null $fallbackPicture Relative path to first event_picture, or null
+ * @return string|null Relative path (e.g. 'uploads/events/3/cover_abc.jpg'), or null
+ */
+function get_event_cover_image(array $event, ?string $fallbackPicture = null): ?string {
+    if (!empty($event['cover_image'])) {
+        return $event['cover_image'];
+    }
+    return $fallbackPicture ?: null;
+}
+
+// =============================================================================
+// URL HELPERS
+// =============================================================================
 
 /**
  * Get the application base path (for subdirectory deployments)

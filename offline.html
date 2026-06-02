@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Offline — Idol Stage Timetable</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans Thai",sans-serif;
+    background:linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    color:#333;
+    -webkit-font-smoothing:antialiased;
+}
+.offline-card{
+    background:#fff;
+    border-radius:16px;
+    padding:36px 28px;
+    max-width:480px;
+    width:100%;
+    box-shadow:0 12px 40px rgba(194,24,91,0.25);
+    text-align:center;
+}
+.offline-icon{
+    font-size:64px;
+    line-height:1;
+    margin-bottom:16px;
+}
+.offline-title{
+    font-size:1.55rem;
+    font-weight:800;
+    margin:0 0 10px;
+    color:#C2185B;
+}
+.offline-desc{
+    font-size:1rem;
+    line-height:1.6;
+    margin:0 0 24px;
+    color:#555;
+}
+.offline-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+.offline-btn{
+    appearance:none;
+    border:none;
+    cursor:pointer;
+    padding:12px 18px;
+    border-radius:10px;
+    font-size:1rem;
+    font-weight:600;
+    font-family:inherit;
+    text-decoration:none;
+    transition:transform .15s,box-shadow .15s,filter .15s;
+}
+.offline-btn:hover{filter:brightness(1.05)}
+.offline-btn:active{transform:translateY(1px)}
+.offline-btn-primary{
+    background:linear-gradient(135deg,#FFB7C5 0%,#E91E63 100%);
+    color:#fff;
+    box-shadow:0 4px 14px rgba(233,30,99,0.35);
+}
+.offline-btn-secondary{
+    background:#fff;
+    color:#C2185B;
+    border:2px solid #F48FB1;
+}
+.offline-hint{
+    margin-top:18px;
+    font-size:.85rem;
+    color:#888;
+}
+@media (max-width:420px){
+    .offline-card{padding:28px 20px}
+    .offline-icon{font-size:52px}
+    .offline-title{font-size:1.3rem}
+}
+</style>
+</head>
+<body>
+<main class="offline-card" role="main">
+    <div class="offline-icon" aria-hidden="true">🌸</div>
+    <h1 class="offline-title" data-i18n="title">คุณกำลังออฟไลน์</h1>
+    <p class="offline-desc" data-i18n="desc">ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ในขณะนี้ ลองตรวจสอบสัญญาณแล้วกดลองอีกครั้ง</p>
+    <div class="offline-actions">
+        <button type="button" class="offline-btn offline-btn-primary" id="btnRetry" data-i18n="retry">ลองอีกครั้ง</button>
+        <a class="offline-btn offline-btn-secondary" id="btnHome" href="/" data-i18n="home">กลับหน้าแรก</a>
+    </div>
+    <p class="offline-hint" data-i18n="hint">หน้านี้ทำงานได้แม้ไม่มีอินเทอร์เน็ต</p>
+</main>
+<script>
+(function(){
+    var I18N = {
+        th:{title:'คุณกำลังออฟไลน์',desc:'ไม่สามารถเชื่อมต่ออินเทอร์เน็ตได้ในขณะนี้ ลองตรวจสอบสัญญาณแล้วกดลองอีกครั้ง',retry:'🔄 ลองอีกครั้ง',home:'🏠 กลับหน้าแรก',hint:'หน้านี้ทำงานได้แม้ไม่มีอินเทอร์เน็ต'},
+        en:{title:'You are offline',desc:'No internet connection right now. Check your signal and try again.',retry:'🔄 Try again',home:'🏠 Go home',hint:'This page works without an internet connection'},
+        ja:{title:'オフラインです',desc:'インターネットに接続できません。電波を確認してから再試行してください。',retry:'🔄 再試行',home:'🏠 ホームへ',hint:'このページはオフラインでも動作します'}
+    };
+    function pickLang(){
+        var v = null;
+        try { v = localStorage.getItem('lang'); } catch (e) {}
+        if (v && I18N[v]) return v;
+        var h = (document.documentElement.getAttribute('lang') || '').toLowerCase();
+        if (h.indexOf('ja') === 0) return 'ja';
+        if (h.indexOf('en') === 0) return 'en';
+        if (h.indexOf('th') === 0) return 'th';
+        var n = (navigator.language || 'th').toLowerCase();
+        if (n.indexOf('ja') === 0) return 'ja';
+        if (n.indexOf('en') === 0) return 'en';
+        return 'th';
+    }
+    function apply(lang){
+        var dict = I18N[lang] || I18N.th;
+        document.documentElement.setAttribute('lang', lang);
+        var nodes = document.querySelectorAll('[data-i18n]');
+        for (var i = 0; i < nodes.length; i++) {
+            var key = nodes[i].getAttribute('data-i18n');
+            if (dict[key]) nodes[i].textContent = dict[key];
+        }
+        try { document.title = dict.title + ' — Idol Stage Timetable'; } catch (e) {}
+    }
+    function deriveHome(){
+        var clean = ['/my/','/my-favorites/','/artist/','/event/','/artists','/connect','/contact','/past-events','/credits','/how-to-use'];
+        var path = location.pathname || '/';
+        for (var i = 0; i < clean.length; i++) {
+            var p = clean[i];
+            var idx = path.indexOf(p);
+            if (idx >= 0) return path.substring(0, idx) + '/';
+        }
+        // Default: strip filename if any, fall back to '/'
+        var last = path.lastIndexOf('/');
+        if (last < 0) return '/';
+        return path.substring(0, last + 1);
+    }
+    apply(pickLang());
+    var home = document.getElementById('btnHome');
+    if (home) home.setAttribute('href', deriveHome());
+    var retry = document.getElementById('btnRetry');
+    if (retry) retry.addEventListener('click', function(){ location.reload(); });
+})();
+</script>
+</body>
+</html>

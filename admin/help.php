@@ -9,7 +9,7 @@ require_allowed_ip();
 require_login();
 
 $adminUsername = $_SESSION['admin_display_name'] ?? $_SESSION['admin_username'] ?? 'Admin';
-$adminRole = $_SESSION['admin_role'] ?? 'admin';
+$adminRole = get_admin_role();
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -138,6 +138,14 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         /* Badge role */
         .badge-admin { display: inline-block; background: #2563eb; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
         .badge-agent { display: inline-block; background: #7c3aed; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+        .badge-organizer { display: inline-block; background: #059669; color: #fff; font-size: .72rem; padding: 2px 8px; border-radius: 10px; vertical-align: middle; margin-left: 6px; }
+        body.role-agent .admin-only,
+        body.role-agent .admin-organizer-only,
+        body.role-agent .organizer-only,
+        body.role-organizer .admin-only,
+        body.role-organizer .admin-agent-only,
+        body.role-organizer .non-organizer-only,
+        body.role-admin .organizer-only { display: none !important; }
 
         /* Step boxes */
         .steps { counter-reset: step; padding-left: 0; list-style: none; }
@@ -327,7 +335,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         }
     </style>
 </head>
-<body>
+<body class="role-<?php echo htmlspecialchars($adminRole, ENT_QUOTES, 'UTF-8'); ?>">
 <div class="admin-container">
 
     <!-- Header -->
@@ -354,20 +362,24 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
         <div class="mobile-toc-menu" id="mobileTocMenu">
             <a href="#overview">ภาพรวมระบบ</a>
             <a href="#login">การเข้าสู่ระบบ</a>
+            <a href="#login-2fa">↳ 2FA / TOTP</a>
             <a href="#header">Header &amp; การตั้งค่า</a>
             <a href="#programs">Tab: Programs</a>
             <a href="#events">Tab: Events</a>
             <a href="#events-gallery">↳ Gallery รูปภาพ</a>
-            <a href="#requests">Tab: Requests</a>
+            <a href="#requests" class="non-organizer-only">Tab: Requests</a>
             <a href="#credits">Tab: Credits</a>
-            <a href="#import">Tab: Import</a>
-            <a href="#import-type">↳ Program Type</a>
+            <a href="#import" class="non-organizer-only">Tab: Import</a>
+            <a href="#import-type" class="non-organizer-only">↳ Program Type</a>
+            <a href="#artists" class="admin-organizer-only">Tab: Artists</a>
             <a href="#feed">Feed / Subscribe</a>
-            <a href="#telegram">Telegram Notifications</a>
-            <a href="#users">Tab: Users</a>
-            <a href="#backup">Tab: Backup</a>
-            <a href="#settings">Tab: Settings</a>
-            <a href="#contact">Tab: Contact</a>
+            <a href="#telegram" class="admin-only">Telegram Notifications</a>
+            <a href="#webpush" class="admin-only">Web Push (PWA)</a>
+            <a href="#audit-log" class="admin-only">Admin Audit Log</a>
+            <a href="#users" class="admin-only">Tab: Users</a>
+            <a href="#backup" class="admin-only">Tab: Backup</a>
+            <a href="#settings" class="admin-only">Tab: Settings</a>
+            <a href="#contact" class="admin-only">Tab: Contact</a>
             <a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a>
             <a href="#tips">เคล็ดลับ &amp; FAQ</a>
         </div>
@@ -381,6 +393,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <ul>
                 <li><a href="#overview">ภาพรวมระบบ</a></li>
                 <li><a href="#login">การเข้าสู่ระบบ</a></li>
+                <li><a href="#login-2fa">2FA / TOTP</a></li>
                 <li><a href="#header">Header &amp; การตั้งค่า</a></li>
                 <li><a href="#programs">Tab: Programs</a>
                     <ul class="toc-sub">
@@ -397,25 +410,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <li><a href="#events-timezone">Timezone</a></li>
                     </ul>
                 </li>
-                <li><a href="#requests">Tab: Requests</a></li>
+                <li class="non-organizer-only"><a href="#requests">Tab: Requests</a></li>
                 <li><a href="#credits">Tab: Credits</a></li>
-                <li><a href="#import">Tab: Import</a>
+                <li class="non-organizer-only"><a href="#import">Tab: Import</a>
                     <ul class="toc-sub">
                         <li><a href="#import-type">Program Type</a></li>
                     </ul>
                 </li>
-                <li><a href="#artists">Tab: Artists</a></li>
+                <li class="admin-organizer-only"><a href="#artists">Tab: Artists</a></li>
                 <li><a href="#feed">Feed / Subscribe</a>
                     <ul class="toc-sub">
                         <li><a href="#feed-event">Feed ตาม Event</a></li>
                         <li><a href="#feed-artist">Artist Feed</a></li>
                     </ul>
                 </li>
-                <li><a href="#telegram">Telegram Notifications</a></li>
-                <li><a href="#users">Tab: Users</a></li>
-                <li><a href="#backup">Tab: Backup</a></li>
-                <li><a href="#settings">Tab: Settings</a></li>
-                <li><a href="#contact">Tab: Contact</a></li>
+                <li class="admin-only"><a href="#telegram">Telegram Notifications</a></li>
+                <li class="admin-only"><a href="#webpush">Web Push (PWA)</a></li>
+                <li class="admin-only"><a href="#audit-log">Admin Audit Log</a></li>
+                <li class="admin-only"><a href="#users">Tab: Users</a></li>
+                <li class="admin-only"><a href="#backup">Tab: Backup</a></li>
+                <li class="admin-only"><a href="#settings">Tab: Settings</a></li>
+                <li class="admin-only"><a href="#contact">Tab: Contact</a></li>
                 <li><a href="#roles">สิทธิ์ผู้ใช้ (Roles)</a></li>
                 <li><a href="#tips">เคล็ดลับ &amp; FAQ</a></li>
             </ul>
@@ -431,22 +446,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     Admin Panel ของ <strong>Idol Stage Timetable</strong> ใช้สำหรับจัดการข้อมูลทั้งหมดที่แสดงบนเว็บไซต์
                     รวมถึง Programs (รายการแสดง), Events (งาน/convention), คำขอจากผู้ใช้, Credits และการสำรองข้อมูล
                 </p>
-                <p>Admin Panel ประกอบด้วย <strong>9 แท็บหลัก</strong>:</p>
+                <p>Admin Panel จะแสดงแท็บตาม role ที่ login อยู่ (อัปเดตถึง <strong>v12.3.3</strong>):</p>
                 <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
                     <span class="tab-chip">🎵 Programs</span>
                     <span class="tab-chip">🎪 Events</span>
-                    <span class="tab-chip">📝 Requests</span>
+                    <span class="tab-chip non-organizer-only">📝 Requests</span>
                     <span class="tab-chip">✨ Credits</span>
-                    <span class="tab-chip">📤 Import</span>
-                    <span class="tab-chip">🎤 Artists</span>
-                    <span class="tab-chip">👤 Users <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">💾 Backup <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">⚙️ Settings <span class="badge-admin">admin</span></span>
-                    <span class="tab-chip">✉️ Contact <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip non-organizer-only">📤 Import</span>
+                    <span class="tab-chip admin-organizer-only">🎤 Artists <span class="badge-organizer">organizer request</span></span>
+                    <span class="tab-chip admin-only">👤 Users <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">💾 Backup <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">⚙️ Settings <span class="badge-admin">admin</span></span>
+                    <span class="tab-chip admin-only">✉️ Contact <span class="badge-admin">admin</span></span>
                 </div>
                 <div class="callout callout-info" style="margin-top:16px;">
                     <span class="callout-icon">ℹ️</span>
-                    <div>แท็บ <strong>👤 Users</strong>, <strong>💾 Backup</strong>, <strong>⚙️ Settings</strong> และ <strong>✉️ Contact</strong> มองเห็นได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</div>
+                    <div>หน้านี้ซ่อนหัวข้อที่ role ปัจจุบันใช้งานไม่ได้โดยอัตโนมัติ: admin เห็นครบ, agent เห็นงานปฏิบัติการและคำขอ, organizer เห็นเฉพาะ Events / Programs / Credits / Artists request ของตัวเอง</div>
                 </div>
             </section>
 
@@ -458,8 +473,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <ol class="steps">
                     <li>กรอก <strong>Username</strong> และ <strong>Password</strong></li>
                     <li>กด <strong>Login</strong></li>
+                    <li>หากบัญชีนั้นเปิด 2FA ไว้ ให้กรอกรหัส 6 หลักจาก Authenticator app หรือ recovery code</li>
                     <li>ระบบจะ redirect ไปยังหน้า Admin Dashboard</li>
                 </ol>
+
+                <h3 id="login-2fa">🔐 2FA / TOTP <span class="badge-version">v10.0.0</span></h3>
+                <p>ระบบรองรับ 2FA แบบ TOTP ตามมาตรฐาน RFC 6238 สำหรับบัญชีที่จัดการผ่านฐานข้อมูล <code>admin_users</code> เท่านั้น บัญชี fallback จาก <code>config/admin.php</code> ยังใช้ password อย่างเดียวเพื่อ backward compatibility</p>
+                <table class="help-table">
+                    <thead><tr><th>หัวข้อ</th><th>รายละเอียด</th></tr></thead>
+                    <tbody>
+                        <tr><td>รูปแบบรหัส</td><td>รหัส 6 หลัก เปลี่ยนทุก 30 วินาที ใช้กับ Google Authenticator, Microsoft Authenticator, 1Password, Authy ฯลฯ</td></tr>
+                        <tr><td>Recovery</td><td>ระบบสร้าง backup codes แบบใช้ครั้งเดียวตอนเปิด 2FA และสามารถสร้างชุดใหม่ได้ภายหลัง</td></tr>
+                        <tr><td>Replay protection</td><td>รหัส TOTP ที่ใช้แล้วใน time-step เดิมจะถูกปฏิเสธ</td></tr>
+                        <tr><td>Migration <span class="badge-version">v10.1.0</span></td><td>ต้องเพิ่มคอลัมน์ 2FA ผ่าน <code>setup.php</code> หรือ <code>php tools/migrate-add-admin-2fa-columns.php</code>; API จะไม่ auto-migrate และใช้ flag <code>data/.admin_2fa_columns_ready</code> หลังตรวจพบ schema ครบ</td></tr>
+                        <tr><td>Rate limit</td><td>กรอกรหัส 2FA หรือ recovery code ผิดจะนับรวมกับ rate limit ของหน้า login</td></tr>
+                    </tbody>
+                </table>
 
                 <h3>ข้อจำกัดความปลอดภัย</h3>
                 <table class="help-table">
@@ -484,9 +513,9 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <table class="help-table">
                     <thead><tr><th>ปุ่ม / ข้อมูล</th><th>หน้าที่</th></tr></thead>
                     <tbody>
-                        <tr><td>ชื่อผู้ใช้ &amp; Role</td><td>แสดงชื่อที่ login อยู่ และ role ปัจจุบัน (admin / agent)</td></tr>
-                        <tr><td>v5.1.1 (Version Badge)</td><td>แสดง app version ปัจจุบัน (ดึงจาก APP_VERSION constant) — ใช้สำหรับตรวจสอบ version ขณะใช้งาน Admin</td></tr>
-                        <tr><td>🔑 Change Password</td><td>เปลี่ยนรหัสผ่านของตัวเอง (แสดงเฉพาะผู้ใช้ที่สร้างจาก database)</td></tr>
+                        <tr><td>ชื่อผู้ใช้ &amp; Role</td><td>แสดงชื่อที่ login อยู่ และ role ปัจจุบัน (admin / agent / organizer)</td></tr>
+                        <tr><td>Version Badge</td><td>แสดง app version ปัจจุบัน เช่น <code>v<?php echo htmlspecialchars(APP_VERSION); ?></code> (ดึงจาก APP_VERSION constant) — ใช้สำหรับตรวจสอบ version ขณะใช้งาน Admin</td></tr>
+                        <tr><td>🔑 Change Password</td><td>เปลี่ยนรหัสผ่านและจัดการ 2FA ของตัวเอง (แสดงเฉพาะผู้ใช้ที่สร้างจาก database)</td></tr>
                         <tr><td>← กลับหน้าหลัก</td><td>ไปยังหน้าเว็บหลัก (index)</td></tr>
                         <tr><td>Logout</td><td>ออกจากระบบ</td></tr>
                     </tbody>
@@ -500,6 +529,18 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <li>กรอก <em>Confirm New Password</em> ให้ตรงกัน</li>
                     <li>กด <strong>Change Password</strong></li>
                 </ol>
+
+                <h3>การเปิดใช้ 2FA <span class="badge-version">v10.0.0</span></h3>
+                <ol class="steps">
+                    <li>คลิก <strong>🔑 Change Password</strong> ใน header</li>
+                    <li>ในส่วน <strong>Two-Factor Authentication</strong> กด <strong>เปิดใช้ 2FA</strong></li>
+                    <li>สแกน QR หรือคัดลอก manual key ไปใส่ใน Authenticator app</li>
+                    <li>กรอกรหัส 6 หลักเพื่อยืนยัน แล้วบันทึก backup codes ที่ระบบแสดงไว้ทันที</li>
+                </ol>
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>Backup codes จะแสดงครั้งเดียวเท่านั้น หากอุปกรณ์ Authenticator หาย ให้ใช้ backup code หรือให้ admin คนอื่น reset 2FA จากแท็บ Users</div>
+                </div>
             </section>
 
             <!-- Programs Tab -->
@@ -517,7 +558,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Event Selector</td><td>กรองตามงาน (event) เลือก "All Events" เพื่อดูทุกงาน</td></tr>
                         <tr><td>ช่องค้นหา</td><td>ค้นหาชื่อ program, organizer, หรือ description (กด Enter หรือรอ 500ms)</td></tr>
                         <tr><td>✕ (ปุ่มล้าง)</td><td>ล้างคำค้นหาออก</td></tr>
-                        <tr><td>Venue Filter</td><td>กรองตามชื่อเวที</td></tr>
+                        <tr><td>Venue Filter</td><td>กรองตามชื่อสถานที่</td></tr>
                         <tr><td>จากวันที่ / ถึงวันที่</td><td>กรองตามช่วงวันที่</td></tr>
                         <tr><td>Clear Filters</td><td>ล้างตัวกรองทั้งหมด</td></tr>
                         <tr><td>N / หน้า</td><td>เลือกจำนวนรายการต่อหน้า: 20, 50, หรือ 100</td></tr>
@@ -535,11 +576,11 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Event <span style="color:#999">(ไม่บังคับ)</span></td><td>เลือกงานที่ program นี้สังกัด</td></tr>
                         <tr><td>ชื่อ Program <span style="color:red">*</span></td><td>ชื่อการแสดง / กิจกรรม (บังคับ)</td></tr>
                         <tr><td>Organizer</td><td>ชื่อศิลปิน / ผู้จัด</td></tr>
-                        <tr><td>เวที</td><td>พิมพ์ชื่อเวที หรือเลือกจาก dropdown autocomplete</td></tr>
+                        <tr><td>สถานที่</td><td>พิมพ์ชื่อสถานที่ หรือเลือกจาก dropdown autocomplete</td></tr>
                         <tr><td>วันที่ <span style="color:red">*</span></td><td>วันที่จัดการแสดง</td></tr>
                         <tr><td>เวลาเริ่ม / สิ้นสุด <span style="color:red">*</span></td><td>เวลาในรูปแบบ HH:MM</td></tr>
                         <tr><td>Description</td><td>รายละเอียดเพิ่มเติม</td></tr>
-                        <tr><td>Artist / Group</td><td>ศิลปินที่เกี่ยวข้องกับ program นี้ — พิมพ์ชื่อแล้วกด <kbd>Enter</kbd> หรือ <kbd>,</kbd> เพื่อเพิ่ม chip; กด <code>×</code> เพื่อลบ; ระบบดึง autocomplete จากตาราง Artists (ไอคอน 🎤 = solo, 🎵 = group); ถ้าพิมพ์ชื่อใหม่ที่ยังไม่มีในระบบจะถูกสร้างอัตโนมัติเมื่อกด <strong>บันทึก</strong></td></tr>
+                        <tr><td>Artist / Group</td><td>ศิลปินที่เกี่ยวข้องกับ program นี้ — ระบบดึง autocomplete จากตาราง Artists (ไอคอน 🎤 = solo, 🎵 = group); role admin/agent สามารถพิมพ์ชื่อใหม่เพื่อสร้าง artist อัตโนมัติเมื่อบันทึก ส่วน organizer ต้องเลือก artist ที่มีอยู่จาก autocomplete เท่านั้น</td></tr>
                         <tr><td>Program Type</td><td>ประเภทของ program เช่น <code>stage</code>, <code>booth</code>, <code>meet &amp; greet</code> (ไม่บังคับ รองรับ autocomplete จาก type ที่มีในระบบ)</td></tr>
                         <tr><td>Live Stream URL</td><td>URL ลิงก์ถ่ายทอดสด เช่น YouTube, X/Twitter, TikTok (ต้องเป็น <code>https://</code> เท่านั้น — ค่าอื่นจะถูก ignore); เมื่อกรอกแล้วหน้าเว็บจะแสดงไอคอน platform และปุ่ม <strong>🔴 เข้าร่วม</strong>; ไฟล์ ICS feed จะมี <code>URL:</code> property ด้วย</td></tr>
                     </tbody>
@@ -604,12 +645,39 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Slug <span style="color:red">*</span></td><td>ชื่อย่อสำหรับ URL เช่น <code>idol-stage-feb-2026</code> (ตัวเล็ก, ตัวเลข, - เท่านั้น)</td></tr>
                         <tr><td>Description</td><td>รายละเอียดงาน</td></tr>
                         <tr><td>Start Date / End Date</td><td>วันเริ่มและวันสิ้นสุดของงาน</td></tr>
-                        <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายเวที (แสดง venue filter, Gantt) | <strong>single</strong> = เวทีเดียว | <strong>calendar</strong> = ปฏิทินรายเดือน</td></tr>
+                        <tr><td>Venue Mode</td><td><strong>multi</strong> = หลายสถานที่ (แสดง venue filter, Gantt) | <strong>single</strong> = สถานที่เดียว | <strong>calendar</strong> = ปฏิทินรายเดือน</td></tr>
                         <tr><td>Theme</td><td>Theme สีสำหรับ event นี้โดยเฉพาะ (ถ้าไม่เลือกจะใช้ global theme จาก Settings)</td></tr>
                         <tr><td>Gallery Layout</td><td>รูปแบบ gallery รูปภาพในหน้า event: <strong>grid3</strong> (3 คอลัมน์, default) | <strong>grid2</strong> | <strong>grid1</strong> | <strong>masonry</strong></td></tr>
+                        <tr><td>Cover Image (Hero) <span class="badge-version">v8.0.0</span></td><td>รูปปกแบบ Hero สัดส่วน 16:9 (แนะนำ 1600×900 px) — แสดงใน Hero Carousel หน้าแรก; ใช้ Cropper.js crop ก่อน upload อัตโนมัติ</td></tr>
+                        <tr><td>Cover Image (Card) <span class="badge-version">v8.0.0</span></td><td>รูปปกแบบ Card สัดส่วน 4:3 (แนะนำ 800×600 px) — แสดงใน event cards หน้ารายการ; Fallback: Cover Image (Hero) → event pictures → gradient</td></tr>
+                        <tr><td>Header Cover Image <span class="badge-version">v9.2.0</span></td><td>รูป banner แบบ 4:1 (แนะนำ 1920×480 px) — แสดงเป็น background ของ header ในหน้า event นั้น; priority สูงกว่า Site-wide Header Cover</td></tr>
                         <tr><td>Active</td><td>เปิด/ปิดการแสดงผล event บนหน้าเว็บ</td></tr>
                     </tbody>
                 </table>
+
+                <h3 id="events-cover">🖼️ Cover Images <span class="badge-version">v8.0.0</span></h3>
+                <p>แต่ละ Event มีระบบรูปปก 2 แบบ (Hero + Card) และ 1 Header Cover แยกอิสระ:</p>
+                <table class="help-table">
+                    <thead><tr><th>ประเภท</th><th>สัดส่วน</th><th>ขนาดแนะนำ</th><th>ใช้งานที่</th></tr></thead>
+                    <tbody>
+                        <tr><td>Cover Image (Hero)</td><td>16:9</td><td>1600×900 px</td><td>Hero Carousel หน้าแรก; Social OG image</td></tr>
+                        <tr><td>Cover Image (Card)</td><td>4:3</td><td>800×600 px</td><td>Event cards บนหน้ารายการ</td></tr>
+                        <tr><td>Header Cover Image</td><td>4:1</td><td>1920×480 px</td><td>Background ของ header ในหน้า event นั้น</td></tr>
+                    </tbody>
+                </table>
+                <h4>วิธีอัปโหลด Cover Image</h4>
+                <ol>
+                    <li>Admin → Tab <strong>Events</strong> → คลิก ✏️ แก้ไข event</li>
+                    <li>เลื่อนลงมาส่วน <strong>Cover Images</strong></li>
+                    <li>คลิกปุ่ม <strong>📸 อัปโหลด Hero</strong> หรือ <strong>📸 อัปโหลด Card</strong> หรือ <strong>📸 อัปโหลด Header</strong></li>
+                    <li>เลือกไฟล์ — หน้าต่าง Cropper.js จะเปิดขึ้นพร้อม frame ขนาดที่กำหนด</li>
+                    <li>ปรับ crop area ตามต้องการ → กด <strong>✅ Crop &amp; Upload</strong></li>
+                    <li>รูปใหม่แสดงผล preview ทันที; กดปุ่ม 🗑️ เพื่อลบรูปที่มีอยู่</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>CSRF token ส่งผ่าน HTTP header <code>X-CSRF-Token</code> อัตโนมัติ — ไม่ต้องทำอะไรเพิ่มเติม</div>
+                </div>
 
                 <h3>Venue Mode: Calendar</h3>
                 <p>เมื่อเลือก <strong>calendar</strong> หน้าเว็บของ event นั้นจะแสดงเป็นปฏิทินรายเดือนแทนตาราง/ไทม์ไลน์:</p>
@@ -802,40 +870,75 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Requests Tab -->
-            <section class="help-section" id="requests">
+            <section class="help-section non-organizer-only" id="requests">
                 <h2>📝 Tab: Requests</h2>
                 <p>
-                    <strong>Requests</strong> คือคำขอที่ผู้ใช้งานทั่วไปส่งมาผ่านหน้าเว็บ เพื่อขอ
-                    <span style="color:#4caf50;font-weight:600;">เพิ่ม Program ใหม่</span> หรือ
-                    <span style="color:#2196f3;font-weight:600;">แก้ไข Program ที่มีอยู่</span>
+                    <strong>Requests</strong> คือคำขอที่ผู้ใช้งานทั่วไปและ organizer ส่งมาผ่านหน้าเว็บ/หน้า Admin แบ่งเป็น 4 กลุ่ม:
                 </p>
+                <ul>
+                    <li><strong>📝 Program Requests</strong> — ขอเพิ่ม Program ใหม่ หรือแก้ไข Program ที่มีอยู่</li>
+                    <li><strong>🗓️ Event Requests</strong> — ขอเพิ่มงานใหม่ หรือแก้ไขข้อมูลงานที่มีอยู่ <span class="badge-version">v9.3.0</span></li>
+                    <li><strong>🟡 Event Active Requests</strong> — organizer ขอเปิดใช้งาน event ที่ได้รับมอบหมาย <span class="badge-version">v12.1.0</span></li>
+                    <li><strong>🎤 Artist Request</strong> — organizer ขอเพิ่ม artist ใหม่ให้ admin/agent ตรวจสอบ <span class="badge-version">v12.3.0</span></li>
+                </ul>
+
+                <h3>Sub-tabs ใน Requests</h3>
+                <p>Tab Requests มี 4 sub-tabs สลับได้ด้วยปุ่มด้านบนของส่วน Requests:</p>
+                <table class="help-table">
+                    <thead><tr><th>Sub-tab</th><th>เนื้อหา</th></tr></thead>
+                    <tbody>
+                        <tr><td>📝 <strong>Program Requests</strong></td><td>คำขอเพิ่ม/แก้ไข Program จากผู้ใช้; approve → auto-create/update Program</td></tr>
+                        <tr><td>🗓️ <strong>Event Requests (Guest)</strong></td><td>คำขอเพิ่ม/แก้ไข Event จากผู้ใช้ทั่วไป; approve → auto-create Event (inactive) หรือ update ข้อมูลงาน</td></tr>
+                        <tr><td>🟡 <strong>Event Active Requests (Organizer)</strong></td><td>คำขอเปิดใช้งาน Event จาก organizer; approve → ตั้งค่า <code>is_active=1</code> ให้ event เดิม</td></tr>
+                        <tr><td>🎤 <strong>Artist Request</strong></td><td>คำขอเพิ่ม artist จาก organizer; approve → สร้าง record ใน <code>artists</code> และรีเฟรช Artist list พร้อมแสดง <code>artist_id</code> <span class="badge-version">v12.3.2</span></td></tr>
+                    </tbody>
+                </table>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>badge สีแดงบน tab "Requests" แสดงผลรวม pending ทั้ง <strong>Program + Guest Event + Active Event + Artist Requests</strong> รวมกัน</div>
+                </div>
 
                 <h3>สถานะของคำขอ</h3>
                 <table class="help-table">
                     <thead><tr><th>สถานะ</th><th>ความหมาย</th></tr></thead>
                     <tbody>
                         <tr><td><span style="background:#ff9800;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">pending</span></td><td>รอดำเนินการ (ยังไม่ได้รีวิว)</td></tr>
-                        <tr><td><span style="background:#4caf50;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">approved</span></td><td>อนุมัติแล้ว (program ถูกสร้าง/อัปเดตแล้ว)</td></tr>
+                        <tr><td><span style="background:#4caf50;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">approved</span></td><td>อนุมัติแล้ว (สร้าง/อัปเดตอัตโนมัติแล้ว)</td></tr>
                         <tr><td><span style="background:#f44336;color:#fff;padding:2px 8px;border-radius:10px;font-size:.8rem;">rejected</span></td><td>ปฏิเสธแล้ว</td></tr>
                     </tbody>
                 </table>
 
-                <h3>การอนุมัติ / ปฏิเสธคำขอ</h3>
+                <h3>การอนุมัติ / ปฏิเสธคำขอ Program</h3>
                 <ol class="steps">
+                    <li>คลิก sub-tab <strong>📝 Program Requests</strong></li>
                     <li>คลิกปุ่ม <strong>👁️ ดู</strong> ที่คำขอที่ต้องการรีวิว</li>
                     <li>ตรวจสอบข้อมูลในหน้าต่าง: ประเภทคำขอ, ข้อมูล Program ที่ขอเพิ่ม/แก้ไข, ข้อมูลผู้แจ้ง</li>
                     <li>หากเป็นคำขอแก้ไข จะแสดง <strong>Comparison View</strong> เปรียบเทียบข้อมูลเดิมและใหม่</li>
                     <li>กด <strong>✅ อนุมัติ</strong> เพื่ออนุมัติและ auto-สร้าง/อัปเดต Program หรือกด <strong>❌ ปฏิเสธ</strong></li>
+                    <li>ใส่ <strong>Admin Note</strong> (ไม่บังคับ) ก่อนยืนยัน</li>
                 </ol>
 
-                <div class="callout callout-info">
-                    <span class="callout-icon">ℹ️</span>
-                    <div>จำนวนคำขอ <strong>pending</strong> จะแสดงเป็น badge สีแดงบน tab "Requests" เพื่อเตือนให้รีวิว</div>
+                <h3>การอนุมัติ / ปฏิเสธคำขอ Event <span class="badge-version">v9.3.0</span></h3>
+                <ol class="steps">
+                    <li>คลิก sub-tab <strong>🗓️ Event Requests</strong></li>
+                    <li>คลิกปุ่ม <strong>👁️ ดู</strong> ที่คำขอที่ต้องการรีวิว</li>
+                    <li>ตรวจสอบข้อมูล: ประเภทคำขอ (เพิ่มใหม่/แก้ไข), ชื่องาน, คำอธิบาย, วันที่, ข้อมูลผู้แจ้ง</li>
+                    <li>กด <strong>✅ อนุมัติ</strong> — ระบบจะดำเนินการดังนี้:
+                        <ul>
+                            <li><strong>type = add</strong>: สร้าง Event ใหม่โดยอัตโนมัติ (status = <strong>inactive</strong> — Admin ต้องเปิดใช้เองจาก Events tab)</li>
+                            <li><strong>type = modify</strong>: อัปเดตข้อมูลงานที่ระบุในฟิลด์ที่ไม่ว่างเปล่า</li>
+                        </ul>
+                    </li>
+                    <li>หรือกด <strong>❌ ปฏิเสธ</strong> พร้อมใส่ Admin Note</li>
+                </ol>
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div>Event ที่สร้างจากการ Approve คำขอจะมีสถานะ <strong>inactive</strong> เสมอ — ต้องไปเปิดใช้เองที่ Tab <strong>Events</strong> เพื่อให้แสดงบนหน้าเว็บ</div>
                 </div>
 
                 <h3>การกรอง Requests</h3>
                 <ul>
-                    <li><strong>Event Filter</strong>: กรองคำขอตาม event</li>
+                    <li><strong>Event Filter</strong>: กรองคำขอตาม event (สำหรับ Program Requests)</li>
                     <li><strong>Status Filter</strong>: เลือกดูเฉพาะสถานะที่ต้องการ (pending, approved, rejected, ทุกสถานะ)</li>
                 </ul>
             </section>
@@ -870,7 +973,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Import ICS Tab -->
-            <section class="help-section" id="import">
+            <section class="help-section non-organizer-only" id="import">
                 <h2>📤 Tab: Import</h2>
                 <p>
                     นำเข้าข้อมูล Programs จากไฟล์ <strong>.ics</strong> (iCalendar format)
@@ -901,7 +1004,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <tbody>
                         <tr><td>SUMMARY</td><td>ชื่อ Program (title)</td></tr>
                         <tr><td>DTSTART / DTEND</td><td>วันเวลาเริ่ม / สิ้นสุด</td></tr>
-                        <tr><td>LOCATION</td><td>เวที (venue)</td></tr>
+                        <tr><td>LOCATION</td><td>สถานที่ (venue)</td></tr>
                         <tr><td>ORGANIZER (CN)</td><td>ผู้จัด (organizer)</td></tr>
                         <tr><td>CATEGORIES</td><td>หมวดหมู่ (categories)</td></tr>
                         <tr><td>DESCRIPTION</td><td>รายละเอียด</td></tr>
@@ -927,9 +1030,27 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Artists Tab -->
-            <section class="help-section" id="artists">
+            <section class="help-section admin-organizer-only" id="artists">
                 <h2>🎤 Tab: Artists</h2>
                 <p>จัดการข้อมูลศิลปินทั้งหมดในระบบ — ศิลปินสามารถปรากฏใน program ของหลาย events ได้ (Artist Reuse System)</p>
+                <div class="callout callout-info organizer-only">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>สำหรับ role organizer แท็บ Artists ใช้สำหรับส่ง <strong>Request new artist</strong> เท่านั้น ระบบจะส่งคำขอให้ admin/agent ตรวจสอบก่อนสร้าง artist จริงในฐานข้อมูล <span class="badge-version">v12.3.0</span></div>
+                </div>
+                <div class="organizer-only">
+                    <h3>ขั้นตอนส่งคำขอเพิ่ม Artist</h3>
+                    <ol class="steps">
+                        <li>เปิดแท็บ <strong>🎤 Artists</strong> หรือกด <strong>Request New Artist</strong> จาก Dashboard</li>
+                        <li>กรอกชื่อ artist, ประเภท solo/group, กลุ่มที่สังกัด และข้อมูลที่เกี่ยวข้อง</li>
+                        <li>กดส่งคำขอ ระบบจะสร้างรายการใน <strong>Requests → Artist Request</strong></li>
+                        <li>รอ admin/agent approve; หลังอนุมัติ artist จะถูกสร้างและนำไปใช้กับ Program ได้</li>
+                    </ol>
+                    <div class="callout callout-warn">
+                        <span class="callout-icon">⚠️</span>
+                        <div>Organizer ไม่สามารถสร้างหรือแก้ไขฐานข้อมูล Artists โดยตรง และในฟอร์ม Program ต้องเลือก artist จาก autocomplete ที่มีอยู่แล้วเท่านั้น</div>
+                    </div>
+                </div>
+                <div class="admin-only">
 
                 <h3>ข้อมูลของ Artist</h3>
                 <table class="help-table">
@@ -1011,6 +1132,46 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <span class="callout-icon">ℹ️</span>
                     <div>Artist ที่สร้างผ่านฟอร์ม Program จะปรากฏในตาราง Artists tab นี้โดยอัตโนมัติ สามารถเพิ่ม Variants หรือกำหนดกลุ่มที่สังกัดได้ภายหลัง</div>
                 </div>
+                </div>
+            </section>
+
+            <!-- Venues Tab -->
+            <section class="help-section admin-only" id="venues">
+                <h2>🏛️ Tab: Venues <span class="badge-version">v16.0.0</span></h2>
+                <p>จัดการรายชื่อสถานที่ (canonical) เพื่อลดความซ้ำซ้อนของ <code>location</code> — โครงสร้างคล้าย Artists แต่ 1 program มีได้ 1 สถานที่ (location ยังเป็น text ไม่มี FK)</p>
+
+                <h3>การทำงานอัตโนมัติ</h3>
+                <ul>
+                    <li>ตอนเพิ่ม/แก้ไข Program หรือ Import ICS ระบบจะ <strong>normalize</strong> ชื่อสถานที่: ถ้าตรงกับชื่อหลักหรือ "ชื่อเรียกอื่น" ของสถานที่ใด จะแปลงเป็นชื่อ canonical อัตโนมัติ; ถ้าไม่พบจะลงทะเบียนสถานที่ใหม่ให้เอง</li>
+                    <li>autocomplete ในฟอร์ม Program ดึงรายชื่อจากตาราง Venues (canonical) แทน DISTINCT location เดิม</li>
+                </ul>
+
+                <h3>ชื่อเรียกอื่น (Variants)</h3>
+                <ul>
+                    <li>กดปุ่ม <strong>ชื่อเรียกอื่น</strong> ในแถวของสถานที่เพื่อเปิด modal เพิ่ม/ลบ alias</li>
+                    <li>alias ช่วยให้ ICS import ที่สะกดต่างจับคู่เป็นสถานที่เดียวได้</li>
+                </ul>
+
+                <h3>Merge (รวมสถานที่ซ้ำ)</h3>
+                <ol class="steps">
+                    <li>ติ๊ก checkbox เลือกสถานที่ที่ต้องการรวม (≥2) → กด <strong>🔀 รวมสถานที่ที่เลือก</strong></li>
+                    <li>เลือก "สถานที่หลัก" ที่จะเก็บไว้ — ที่เหลือจะกลายเป็นชื่อเรียกอื่น</li>
+                    <li>กดยืนยัน: <code>programs.location</code> ทั้งหมด (รวม variants ของแหล่ง) จะถูกเขียนทับเป็นชื่อหลัก แล้วลบสถานที่ที่ซ้ำ</li>
+                </ol>
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div>การเปลี่ยนชื่อสถานที่ (Edit) ก็จะอัปเดต <code>programs.location</code> ที่ใช้ชื่อเดิมให้ตรงกันด้วย</div>
+                </div>
+
+                <h3>หน้า Public</h3>
+                <ul>
+                    <li>ชื่อสถานที่ในตารางเป็น link ไปหน้า <code>/venue/{id}</code> (programs ของสถานที่นั้นข้าม events)</li>
+                    <li>หน้า <code>/venues</code> รวมสถานที่ทั้งหมด เข้าถึงจากเมนู "🏛️ สถานที่" บนหน้าแรก</li>
+                </ul>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>ตั้งค่าครั้งแรกผ่าน <code>php tools/migrate-add-venues-table.php</code> หรือ Setup → Run All Migrations (seed venues จาก location เดิม + variants จากการ dedup ที่ทำไว้)</div>
+                </div>
             </section>
 
             <!-- Feed / Subscribe -->
@@ -1052,7 +1213,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Telegram Notifications -->
-            <section class="help-section" id="telegram">
+            <section class="help-section admin-only" id="telegram">
                 <h2>🔔 Telegram Notifications</h2>
                 <p>ส่งการแจ้งเตือนเข้า Telegram เมื่อโปรแกรมของศิลปินที่ผู้ใช้ติดตามจะเริ่มต้นเร็ว ๆ ผู้ใช้เชื่อมต่อบัญชี Telegram ผ่าน deep-link และรับการเตือนอัตโนมัติ N นาทีก่อนเวลาเริ่มต้นของแต่ละโปรแกรม</p>
 
@@ -1060,7 +1221,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <ol class="steps">
                     <li><strong>ผู้ใช้เชื่อมต่อ Telegram:</strong> บนหน้า <code>/my/{slug}</code> ผู้ใช้กดปุ่ม "🔔 Link Telegram" → deep-link ไปยังบอท → ส่งคำสั่ง <code>/start {slug}</code> → บันทึกประวัติการแจ้งเตือน</li>
                     <li><strong>Cron job ทำงานทุก 15 นาที:</strong> ดำเนินการสแกนผู้ใช้ทั้งหมดที่มี Telegram เชื่อมต่อ และค้นหาโปรแกรมที่เริ่มต้นภายในช่วงเวลาของการแจ้งเตือน</li>
-                    <li><strong>ส่งการแจ้งเตือนแบบ push:</strong> บอทส่งข้อความที่จัดรูปแบบ (ชื่อโปรแกรม ศิลปิน เวที เวลา ชื่องาน)</li>
+                    <li><strong>ส่งการแจ้งเตือนแบบ push:</strong> บอทส่งข้อความที่จัดรูปแบบ (ชื่อโปรแกรม ศิลปิน สถานที่ เวลา ชื่องาน)</li>
                     <li><strong>ป้องกันการซ้ำซ้อน:</strong> การติดตามแบบ idempotent ป้องกันไม่ให้โปรแกรมเดียวกันถูกแจ้งเตือนหลายครั้ง</li>
                 </ol>
 
@@ -1095,13 +1256,30 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
 
                 <h3>คำสั่งของผู้ใช้</h3>
                 <table class="help-table">
-                    <thead><tr><th>คำสั่ง</th><th>ฟังก์ชัน</th><th>ใครสามารถใช้</th></tr></thead>
+                    <thead><tr><th>คำสั่ง</th><th>ฟังก์ชัน</th></tr></thead>
                     <tbody>
-                        <tr><td><code>/start {slug}</code></td><td>เชื่อมต่อบัญชี Telegram ไปยัง favorites ผู้ใช้จะได้รับข้อความยืนยัน</td><td>ใครก็ได้ที่ส่งข้อความไปยังบอท</td></tr>
-                        <tr><td><code>/stop</code></td><td>ยกเลิกการเชื่อมต่อบัญชี Telegram ผู้ใช้จะหยุดรับการแจ้งเตือน</td><td>ผู้ใช้ที่เชื่อมต่อแล้ว</td></tr>
-                        <tr><td><code>/upcoming</code></td><td>แสดงโปรแกรมที่กำลังจะเกิดขึ้น 5 รายการต่อไปจากศิลปินที่ติดตาม</td><td>ผู้ใช้ที่เชื่อมต่อแล้ว</td></tr>
+                        <tr><td><code>/start {slug}</code></td><td>เชื่อมต่อบัญชี Telegram ไปยัง favorites; เลือกภาษาผ่าน inline keyboard (TH/EN/JA)</td></tr>
+                        <tr><td><code>/stop</code></td><td>ยกเลิกการเชื่อมต่อบัญชี Telegram — หยุดรับการแจ้งเตือนทั้งหมด</td></tr>
+                        <tr><td><code>/today</code></td><td>แสดง events และจำนวน program วันนี้ (condensed format)</td></tr>
+                        <tr><td><code>/tomorrow</code></td><td>แสดง events และจำนวน program พรุ่งนี้</td></tr>
+                        <tr><td><code>/week</code></td><td>แสดง 7 วันข้างหน้า จัดกลุ่มตามวัน</td></tr>
+                        <tr><td><code>/upcoming [N]</code></td><td>แสดง program ที่กำลังจะเกิดขึ้น N รายการ (default 3, สูงสุด 10)</td></tr>
+                        <tr><td><code>/next</code></td><td>alias ของ <code>/upcoming 1</code> — program ถัดไป 1 รายการ</td></tr>
+                        <tr><td><code>/artists</code></td><td>รายชื่อศิลปินที่ติดตามอยู่ (เรียง A–Z)</td></tr>
+                        <tr><td><code>/lang th|en|ja</code></td><td>เปลี่ยนภาษาการแจ้งเตือนของบอท</td></tr>
+                        <tr><td><code>/tz [zone|auto]</code></td><td><span class="badge-version">v16.1.1</span> ดู/ตั้ง timezone ที่ใช้แสดงเวลาในการแจ้งเตือน; <code>/tz Asia/Tokyo</code> ตั้งค่าเอง, <code>/tz auto</code> กลับเป็นอัตโนมัติ</td></tr>
+                        <tr><td><code>/mute N</code></td><td>หยุดรับการแจ้งเตือน N ชั่วโมง (1–72)</td></tr>
+                        <tr><td><code>/notify on|off|summary</code></td><td><span class="badge-version">v16.2.0</span> โหมดแจ้งเตือน: <code>on</code> = ต่อ program + สรุปรายวัน (ค่าเริ่มต้น), <code>summary</code> = สรุปรายวันอย่างเดียว, <code>off</code> = ปิดทั้งหมด</td></tr>
+                        <tr><td><code>/status</code></td><td>ดูสถานะบัญชี: จำนวนศิลปิน, ภาษา, timezone ที่ใช้, โหมดแจ้งเตือน, mute จนถึงเมื่อไร</td></tr>
                     </tbody>
                 </table>
+
+                <h3>โหมดแจ้งเตือน &amp; Timezone</h3>
+                <ul>
+                    <li><strong>ต่อ program</strong> — ส่ง N นาทีก่อนแต่ละ program ของศิลปินที่ติดตามจะเริ่ม (<code>TELEGRAM_NOTIFY_BEFORE_MINUTES</code>)</li>
+                    <li><strong>สรุปรายวัน (Daily summary)</strong> — ส่งวันละครั้งตอนเช้า (09:00–09:30) รวม programs ของวันนั้นจัดกลุ่มตาม event</li>
+                    <li><strong>เวลาในการแจ้งเตือนใช้ timezone ของผู้ใช้</strong> <span class="badge-version">v16.1.1</span> — ข้อความแสดงเวลาท้องถิ่นของงาน พร้อมเวลาท้องถิ่นของผู้ใช้ในวงเล็บ เช่น <code>18:00 (19:00 Asia/Tokyo)</code> เมื่อ timezone ของงานต่างจากผู้รับ; ผู้ใช้ตั้ง timezone ด้วย <code>/tz</code></li>
+                </ul>
 
                 <h3>การแก้ไขปัญหา</h3>
                 <table class="help-table">
@@ -1125,8 +1303,146 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 </div>
             </section>
 
+            <!-- Web Push Notifications (PWA) -->
+            <section class="help-section admin-only" id="webpush">
+                <h2>📱 Web Push Notifications (PWA)</h2>
+                <p>ส่งการแจ้งเตือน <strong>browser push</strong> ตรงถึงผู้ใช้โดยไม่ต้องใช้ Telegram หรือ app ใดเพิ่มเติม รองรับ Chrome, Firefox, Edge และ Safari 16.4+ ทั้งบน desktop และ mobile ผู้ใช้กด "Subscribe" บนหน้า <code>/my/{slug}</code> แล้วรับการแจ้งเตือน N นาทีก่อนโปรแกรมเริ่ม รวมถึงได้ฟีเจอร์ติดตั้งแอป (PWA Install Prompt)</p>
+
+                <h3>วิธีการทำงาน</h3>
+                <ol class="steps">
+                    <li><strong>ผู้ใช้กด Subscribe:</strong> บนหน้า <code>/my/{slug}</code> → browser ขอ permission → ระบบบันทึก subscription (endpoint + encryption keys) ลงไฟล์ favorites JSON</li>
+                    <li><strong>Cron job ทำงานทุก 15 นาที:</strong> สแกนผู้ใช้ทุกคนที่มี push subscription และค้นหาโปรแกรมภายในช่วงเวลาของการแจ้งเตือน</li>
+                    <li><strong>ส่ง push notification:</strong> เข้ารหัส payload ตาม RFC 8291 (aes128gcm) + VAPID JWT แล้วส่ง HTTP POST ไปยัง browser push service (FCM/Mozilla/Apple)</li>
+                    <li><strong>Service Worker รับและแสดง:</strong> <code>service-worker.js</code> รับ push event และเรียก <code>showNotification()</code>; คลิกการแจ้งเตือน → เปิดหน้า event</li>
+                </ol>
+
+                <h3>การตั้งค่าครั้งแรก</h3>
+                <ol class="steps">
+                    <li>ไปที่ <strong>Settings → 📱 Web Push</strong></li>
+                    <li>คลิก <strong>Generate VAPID Keys</strong> เพื่อสร้าง EC P-256 key pair ใหม่ (ทำครั้งเดียว)</li>
+                    <li>กรอก <strong>Subject</strong> (ที่อยู่ email ของผู้ดูแลระบบ เช่น <code>mailto:admin@example.com</code>)</li>
+                    <li>กรอก <strong>Site URL</strong> — URL เต็มของเว็บไซต์ รวม subdirectory (เช่น <code>https://example.com/stage-idol-calendar</code>) ใช้สร้าง link ใน notification</li>
+                    <li>ปรับ <strong>Notify Before (minutes)</strong> ตามต้องการ (ค่าเริ่มต้น 60 นาที)</li>
+                    <li>เปิดสวิตช์ <strong>Enable Web Push</strong> แล้วกด Save</li>
+                    <li>เพิ่ม cron job ตามตัวอย่างที่แสดงในหน้า Settings</li>
+                    <li>รัน <code>php tools/generate-pwa-icons.php</code> เพื่อสร้างไอคอน PNG (72/192/512 px) ถ้ายังไม่มี</li>
+                </ol>
+
+                <div class="callout callout-warn">
+                    <span class="callout-icon">⚠️</span>
+                    <div><strong>สำคัญ:</strong> VAPID keys ต้องสร้างครั้งเดียวและ<strong>ห้าม</strong>สร้างใหม่หลังจากผู้ใช้ subscribe แล้ว เพราะทุก subscription จะใช้งานไม่ได้ทันที (browser จะได้รับ HTTP 410 Gone)</div>
+                </div>
+
+                <h3>ความต้องการสำหรับการตั้งค่า</h3>
+                <table class="help-table">
+                    <thead><tr><th>องค์ประกอบ</th><th>รายละเอียด</th></tr></thead>
+                    <tbody>
+                        <tr><td>VAPID Keys</td><td>EC P-256 key pair สร้างผ่าน Admin UI (Generate VAPID Keys)</td></tr>
+                        <tr><td>HTTPS</td><td>Service Worker ต้องการ HTTPS (localhost ได้ยกเว้น)</td></tr>
+                        <tr><td>Configuration</td><td><code>config/webpush-config.json</code> ที่มี VAPID keys, subject, settings (สร้างโดย Admin UI)</td></tr>
+                        <tr><td>Cron Job</td><td>Server cron ที่รัน <code>cron/send-web-push-notifications.php</code> ทุก 15 นาที</td></tr>
+                        <tr><td>PWA Icons</td><td><code>icon/icon-72.png</code>, <code>icon-192.png</code>, <code>icon-512.png</code> (สร้างด้วย <code>php tools/generate-pwa-icons.php</code>)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>การกำหนดค่า (Admin UI)</h3>
+                <table class="help-table">
+                    <thead><tr><th>การตั้งค่า</th><th>คำอธิบาย</th></tr></thead>
+                    <tbody>
+                        <tr><td><strong>Enable Web Push</strong></td><td>เปิด/ปิดระบบ Web Push (ต้องตั้งค่า VAPID keys ก่อน)</td></tr>
+                        <tr><td><strong>VAPID Public Key</strong></td><td>แสดงค่า public key (base64url, 87 ตัวอักษร) — ส่งให้ browser ตอน subscribe</td></tr>
+                        <tr><td><strong>VAPID Subject</strong></td><td>ที่อยู่ email <code>mailto:...</code> หรือ URL ของผู้ดูแลระบบ ใช้ใน JWT authorization</td></tr>
+                        <tr><td><strong>Site URL</strong></td><td>URL เต็มของเว็บไซต์ รวม subdirectory ไม่ต้องมี / ท้าย (เช่น <code>https://example.com/stage-idol-calendar</code>) — ใช้สร้าง link ในการแจ้งเตือนและ icon URL</td></tr>
+                        <tr><td><strong>Notify Before (minutes)</strong></td><td>จำนวนนาทีก่อนเวลาเริ่มโปรแกรมที่จะส่งการแจ้งเตือน (ค่าเริ่มต้น 60)</td></tr>
+                        <tr><td><strong>Max Subscriptions per Token</strong></td><td>จำนวน subscription สูงสุดต่อ favorites token (ค่าเริ่มต้น 5)</td></tr>
+                        <tr><td><strong>Generate VAPID Keys</strong></td><td>สร้าง key pair ใหม่ (ทำเฉพาะครั้งแรก — การสร้างใหม่จะ invalidate subscriptions เดิมทั้งหมด)</td></tr>
+                        <tr><td><strong>Test Push</strong></td><td>ส่ง test notification ไปยัง subscription ที่ใหม่ล่าสุดใน favorites ที่ active</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Cron Job Setup</h3>
+                <pre><code># รันทุก 15 นาที (แนะนำ)
+*/15 * * * * php /path/to/cron/send-web-push-notifications.php >> /path/to/cache/logs/webpush-cron.log 2&gt;&amp;1
+
+# Log rotation รายวัน เที่ยงคืน (เก็บ 7 วัน)
+0 0 * * * php /path/to/cron/rotate-webpush-logs.php >> /path/to/cache/logs/rotate-cron.log 2&gt;&amp;1</code></pre>
+                <p>Log จะถูกบันทึกที่ <code>cache/logs/webpush-cron.log</code> โดย rotate อัตโนมัติเมื่อขนาดเกิน 10 MB (size-based) และ rotate รายวันผ่าน <code>cron/rotate-webpush-logs.php</code> (เก็บ 7 วัน)</p>
+
+                <h3>ไฟล์ที่เกี่ยวข้อง</h3>
+                <table class="help-table">
+                    <thead><tr><th>ไฟล์</th><th>หน้าที่</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>service-worker.js</code></td><td>Service Worker สำหรับรับ push event และแสดง notification; scope <code>/</code></td></tr>
+                        <tr><td><code>manifest.json</code></td><td>Web App Manifest — ชื่อ, ไอคอน, theme_color; ทำให้ browser แสดง "Add to Home Screen"</td></tr>
+                        <tr><td><code>icons/</code></td><td>ไอคอน PNG 3 ขนาด (72/192/512 px); สร้างด้วย <code>php tools/generate-pwa-icons.php</code></td></tr>
+                        <tr><td><code>api/push.php</code></td><td>Public API: subscribe / unsubscribe / status (ต้อง HMAC-signed slug)</td></tr>
+                        <tr><td><code>config/webpush-config.json</code></td><td>VAPID keys + settings (ป้องกัน HTTP access โดย <code>config/.htaccess</code>)</td></tr>
+                        <tr><td><code>functions/webpush.php</code></td><td>Crypto core: VAPID JWT, RFC 8291 encryption, key generation</td></tr>
+                        <tr><td><code>cron/send-web-push-notifications.php</code></td><td>Cron script ส่ง notifications (CLI-only)</td></tr>
+                        <tr><td><code>tools/generate-pwa-icons.php</code></td><td>สร้างไอคอน PNG ด้วย PHP GD (sakura gradient)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>การแก้ไขปัญหา</h3>
+                <table class="help-table">
+                    <thead><tr><th>ปัญหา</th><th>วิธีแก้ไข</th></tr></thead>
+                    <tbody>
+                        <tr><td>ปุ่ม Subscribe ไม่แสดงบนหน้า /my</td><td>ตรวจสอบว่า <code>WEBPUSH_ENABLED=true</code> และ VAPID Public Key ไม่ว่าง ในการกำหนดค่า</td></tr>
+                        <tr><td>Browser ไม่ขอ permission</td><td>ตรวจสอบว่าเว็บไซต์ใช้ HTTPS (Service Worker ต้องการ HTTPS) และ <code>service-worker.js</code> มีอยู่ที่ root</td></tr>
+                        <tr><td>ไม่มีการส่งการแจ้งเตือน</td><td>ตรวจสอบว่า cron job ทำงาน รันด้วยตนเอง: <code>php cron/send-web-push-notifications.php</code></td></tr>
+                        <tr><td>HTTP 410 จาก push service</td><td>Subscription หมดอายุ — cron จะลบ subscription นั้นออกโดยอัตโนมัติในรอบถัดไป</td></tr>
+                        <tr><td>การแจ้งเตือนซ้ำซ้อน</td><td>ระบบมี idempotent window ±7.5 นาที; ตรวจสอบนาฬิกาของเซิร์ฟเวอร์ว่าซิงค์ถูกต้อง</td></tr>
+                        <tr><td>VAPID key generation ล้มเหลว (Windows)</td><td>ตรวจสอบว่า OpenSSL extension เปิดอยู่ใน php.ini และ <code>webpush_openssl_ec_config()</code> หา openssl.cnf เจอ</td></tr>
+                    </tbody>
+                </table>
+
+                <div class="callout callout-tip">
+                    <span class="callout-icon">💡</span>
+                    <div><strong>Browser Support:</strong> Chrome 42+, Firefox 44+, Edge 17+, Samsung Internet 4+ รองรับ Web Push เต็มรูปแบบ Safari ต้องการ iOS 16.4+ / macOS Ventura+ และผู้ใช้ต้อง Add to Home Screen ก่อน (Safari ยังไม่รองรับ Web Push บนหน้าเว็บปกติ)</div>
+                </div>
+            </section>
+
+            <!-- Admin Audit Log -->
+            <section class="help-section admin-only" id="audit-log">
+                <h2>🔎 Admin Audit Log <span class="badge-admin">admin only</span></h2>
+                <p>บันทึกการดำเนินการของ Admin ทุกประเภทในรูปแบบ JSON Lines ไฟล์ละหนึ่งวัน (<code>cache/logs/admin-audit-YYYY-MM-DD.log</code>) เก็บนาน 30 วัน</p>
+
+                <h3>เหตุการณ์ที่บันทึก</h3>
+                <ul>
+                    <li><strong>Auth</strong> — login_success, login_failure, login_blocked, logout, twofa_success, twofa_failure, twofa_backup_used</li>
+                    <li><strong>Programs/Events/Artists/Credits/Users</strong> — create, update, delete, bulk_delete</li>
+                    <li><strong>Backup</strong> — backup_create, backup_download, backup_delete, backup_restore, backup_upload_restore</li>
+                    <li><strong>Settings</strong> — settings_update (theme, title, disclaimer), site_cover_delete</li>
+                    <li><strong>Config</strong> — config_update (telegram, email, analytics)</li>
+                    <li><strong>Password/2FA</strong> — change_password, twofa_setup, twofa_disable, twofa_regenerate_backup_codes, twofa_reset</li>
+                </ul>
+
+                <h3>วิธีดู Audit Log</h3>
+                <ol>
+                    <li>ไปที่ <strong>Settings → 🔎 Audit Log</strong></li>
+                    <li>เลือกวันที่จาก dropdown (ไฟล์เรียงจากใหม่ → เก่า)</li>
+                    <li>ใช้ช่อง <em>Filter</em> เพื่อกรอง action / actor / outcome / entity</li>
+                    <li>กด <em>Download</em> เพื่อดาวน์โหลดไฟล์ log ฉบับเต็ม</li>
+                </ol>
+
+                <h3>รูปแบบบันทึก (JSON Lines)</h3>
+                <ul>
+                    <li><code>ts</code> — timestamp (Asia/Bangkok)</li>
+                    <li><code>request_id</code> — ID ของ HTTP request นั้น</li>
+                    <li><code>action</code> — ชื่อกิจกรรม เช่น <code>program_create</code></li>
+                    <li><code>outcome</code> — <code>success</code> / <code>failure</code> / <code>blocked</code></li>
+                    <li><code>actor_user_id</code>, <code>actor_username</code>, <code>actor_role</code></li>
+                    <li><code>ip</code>, <code>ua</code> — IP address และ User-Agent</li>
+                    <li><code>entity_type</code>, <code>entity_id</code>, <code>entity_label</code></li>
+                    <li><code>metadata</code> — ข้อมูลเพิ่มเติม (ค่าที่เปลี่ยน, จำนวนรายการ ฯลฯ)</li>
+                </ul>
+
+                <h3>Log Rotation (Cron)</h3>
+                <pre><code>0 0 * * * php /path/to/cron/rotate-admin-audit-logs.php >> /path/to/cache/logs/rotate-cron.log 2&gt;&amp;1</code></pre>
+            </section>
+
             <!-- Users Tab -->
-            <section class="help-section" id="users">
+            <section class="help-section admin-only" id="users">
                 <h2>👤 Tab: Users <span class="badge-admin">admin only</span></h2>
                 <p>จัดการบัญชีผู้ใช้ Admin ทั้งหมด เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
 
@@ -1137,10 +1453,19 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                         <tr><td>Username <span style="color:red">*</span></td><td>ชื่อผู้ใช้สำหรับ login (ตัวอักษร, ตัวเลข, <code>_</code>, <code>-</code>, <code>.</code>)</td></tr>
                         <tr><td>Display Name</td><td>ชื่อที่แสดงใน header admin</td></tr>
                         <tr><td>Password</td><td>อย่างน้อย 8 ตัวอักษร (เมื่อแก้ไข: เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)</td></tr>
-                        <tr><td>Role</td><td><strong>admin</strong> = เข้าถึงทุกแท็บ | <strong>agent</strong> = จัดการ Programs เท่านั้น</td></tr>
+                        <tr><td>Role</td><td><strong>admin</strong> = เข้าถึงทุกแท็บ | <strong>agent</strong> = งานปฏิบัติการและรีวิวคำขอ | <strong>organizer</strong> = จัดการเฉพาะ event ที่ได้รับมอบหมาย</td></tr>
+                        <tr><td>2FA <span class="badge-version">v10.0.0</span></td><td>แสดงสถานะ Two-Factor Authentication ของบัญชี; ถ้าเปิดอยู่ admin สามารถกด Reset 2FA เพื่อช่วย recovery ได้</td></tr>
                         <tr><td>Active</td><td>เปิด/ปิดบัญชี (ปิด = login ไม่ได้)</td></tr>
                     </tbody>
                 </table>
+
+                <h3>Reset 2FA ให้ผู้ใช้ <span class="badge-version">v10.0.0</span></h3>
+                <ol class="steps">
+                    <li>ไปที่ <strong>Settings → Users</strong></li>
+                    <li>ดูคอลัมน์ <strong>2FA</strong> ว่าบัญชีเปิดใช้งานอยู่หรือไม่</li>
+                    <li>คลิก <strong>Reset 2FA</strong> ในแถวของผู้ใช้ที่ต้องการ</li>
+                    <li>ผู้ใช้นั้นจะต้องตั้งค่า 2FA ใหม่เองหลัง login ครั้งถัดไป</li>
+                </ol>
 
                 <h3>ข้อจำกัดเพื่อป้องกัน Lockout</h3>
                 <ul>
@@ -1154,12 +1479,13 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>
                         Users ที่สร้างผ่าน Admin UI จะเก็บไว้ในฐานข้อมูล SQLite<br>
                         หากฐานข้อมูลยังไม่มีตาราง <code>admin_users</code> ระบบจะใช้ credentials จาก <code>config/admin.php</code> แทน
+                        2FA ใช้ได้เฉพาะ users ที่อยู่ใน <code>admin_users</code> เท่านั้น
                     </div>
                 </div>
             </section>
 
             <!-- Backup Tab -->
-            <section class="help-section" id="backup">
+            <section class="help-section admin-only" id="backup">
                 <h2>💾 Tab: Backup <span class="badge-admin">admin only</span></h2>
                 <p>สำรองและกู้คืนฐานข้อมูล SQLite ทั้งหมด</p>
 
@@ -1200,21 +1526,23 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Settings Tab -->
-            <section class="help-section" id="settings">
+            <section class="help-section admin-only" id="settings">
                 <h2>⚙️ Tab: Settings <span class="badge-admin">admin only</span></h2>
-                <p>Tab Settings จัดระเบียบการตั้งค่าด้วย 7 sub-tabs สำหรับ <strong>Site Title</strong>, <strong>Site Theme</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Google Services</strong> และ <strong>Disclaimer</strong> โดยเข้าถึงได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
+                <p>Tab Settings จัดระเบียบการตั้งค่าด้วย 9 sub-tabs สำหรับ <strong>Site</strong>, <strong>Contact Channels</strong>, <strong>Users</strong>, <strong>Backup/Restore</strong>, <strong>Telegram Notifications</strong>, <strong>Email Notifications</strong>, <strong>Google Services</strong>, <strong>Web Push (PWA)</strong> และ <strong>Disclaimer</strong> โดยเข้าถึงได้เฉพาะผู้ใช้ที่มี role <strong>admin</strong> เท่านั้น</p>
 
                 <h3>📝 Settings Sub-tabs (v6.4.0+)</h3>
-                <p>Settings tab มี 7 sub-tabs ที่จัดระเบียบอย่างเป็นระบบ:</p>
+                <p>Settings tab มี 9 sub-tabs ที่จัดระเบียบอย่างเป็นระบบ:</p>
                 <table class="help-table">
                     <thead><tr><th>Sub-tab</th><th>ฟังก์ชัน</th><th>สำหรับ</th></tr></thead>
                     <tbody>
-                        <tr><td>📝 <strong>Site</strong></td><td>ตั้งค่า Site Title, Site Theme</td><td>Global settings</td></tr>
+                        <tr><td>📝 <strong>Site</strong></td><td>ตั้งค่า Site Title, Site Theme, Site-wide Header Cover Image</td><td>Global settings</td></tr>
                         <tr><td>✉️ <strong>Contact</strong></td><td>จัดการ Contact Channels ของเว็บไซต์</td><td>Contact information</td></tr>
-                        <tr><td>👤 <strong>Users</strong></td><td>จัดการ Admin Users, สิทธิ์ (Admin/Agent)</td><td>User management</td></tr>
+                        <tr><td>👤 <strong>Users</strong></td><td>จัดการ Admin Users, สิทธิ์ (Admin/Agent/Organizer)</td><td>User management</td></tr>
                         <tr><td>💾 <strong>Backup</strong></td><td>Backup/Restore database</td><td>Database management</td></tr>
                         <tr><td>🤖 <strong>Telegram</strong></td><td>ตั้งค่า Telegram Bot, Notifications</td><td>Telegram integration</td></tr>
+                        <tr><td>📧 <strong>Email</strong></td><td>ตั้งค่า SMTP และทดสอบส่งอีเมลแจ้งเตือนคำขอใหม่</td><td>Email notifications</td></tr>
                         <tr><td>🔵 <strong>Google</strong></td><td>ตั้งค่า Google Analytics (GA4) และ Google AdSense</td><td>Monetization &amp; tracking</td></tr>
+                        <tr><td>📱 <strong>Web Push</strong></td><td>ตั้งค่า VAPID Keys, ส่ง browser push notification, PWA icons</td><td>Web Push notifications</td></tr>
                         <tr><td>⚠️ <strong>Disclaimer</strong></td><td>ตั้งค่า Disclaimer (TH/EN/JA)</td><td>Legal content</td></tr>
                     </tbody>
                 </table>
@@ -1293,6 +1621,32 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                     <div>ตั้งค่า theme ของ Event ได้ที่แท็บ <strong>🎪 Events</strong> → คลิก <strong>➕ เพิ่ม Event</strong> หรือ <strong>✏️</strong> แก้ไข → ช่อง <strong>Theme</strong></div>
                 </div>
 
+                <h3>🖼️ Site-wide Header Cover Image <span class="badge-version">v9.2.0</span></h3>
+                <p>
+                    อัปโหลดรูป banner ขนาด <strong>4:1</strong> (แนะนำ 1920×480 px) เพื่อใช้เป็น background ของ <code>&lt;header&gt;</code>
+                    ในทุกหน้า public โดยอัตโนมัติ ถ้า Event มี Header Cover Image ของตัวเอง รูปของ Event จะแสดงแทน (priority สูงกว่า)
+                </p>
+                <table class="help-table">
+                    <thead><tr><th>ลำดับ Priority</th><th>แหล่งที่มาของ Header</th></tr></thead>
+                    <tbody>
+                        <tr><td>1 (สูงสุด)</td><td>Header Cover Image ของ Event เฉพาะ (ตั้งค่าใน Events tab)</td></tr>
+                        <tr><td>2</td><td>Site-wide Header Cover (ตั้งค่าที่นี่ ใน Settings → Site)</td></tr>
+                        <tr><td>3 (fallback)</td><td>Gradient สี theme (ไม่มีรูป)</td></tr>
+                    </tbody>
+                </table>
+                <h4>ขั้นตอนการอัปโหลด Site-wide Header Cover</h4>
+                <ol class="steps">
+                    <li>คลิกแท็บ <strong>⚙️ Settings</strong> → sub-tab <strong>📝 Site</strong></li>
+                    <li>เลื่อนลงมาที่ส่วน <strong>Header Cover Background</strong></li>
+                    <li>คลิก <strong>📸 อัปโหลด Cover</strong> → เลือกรูปภาพ</li>
+                    <li>หน้าต่าง Cropper.js เปิดขึ้นพร้อม frame 4:1 — ปรับ crop แล้วกด <strong>✅ Crop &amp; Upload</strong></li>
+                    <li>รูปจะมีผลกับทุกหน้าที่ไม่มี Event Header Cover ทันที</li>
+                </ol>
+                <div class="callout callout-info">
+                    <span class="callout-icon">ℹ️</span>
+                    <div>รูปถูกบันทึกใน <code>uploads/site/</code> และ URL เก็บใน <code>cache/site-settings.json</code>; กดปุ่ม 🗑️ ลบรูปเพื่อกลับไปใช้ gradient fallback</div>
+                </div>
+
                 <h3>🔵 Google Services (v6.3.0–6.4.0)</h3>
                 <p>
                     ตั้งค่า <strong>Google Analytics</strong> และ <strong>Google AdSense</strong> ได้โดยตรงจาก Admin UI ไม่ต้อง SSH หรือแก้ไขไฟล์บน server
@@ -1364,7 +1718,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             </section>
 
             <!-- Contact Tab -->
-            <section class="help-section" id="contact">
+            <section class="help-section admin-only" id="contact">
                 <h2>✉️ Tab: Contact <span class="badge-admin">admin only</span></h2>
                 <p>จัดการ <strong>ช่องทางติดต่อ</strong> ที่แสดงในหน้า "ติดต่อเรา" ของเว็บไซต์ เช่น Twitter/X, Line, Email ฯลฯ ข้อมูลเก็บใน SQLite ไม่ต้อง hardcode ใน code</p>
 
@@ -1407,19 +1761,22 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
             <!-- Roles -->
             <section class="help-section" id="roles">
                 <h2>🛡️ สิทธิ์ผู้ใช้ (Roles)</h2>
-                <p>ระบบมี 2 roles:</p>
+                <p>ระบบมี 3 roles:</p>
                 <table class="help-table">
-                    <thead><tr><th>ฟีเจอร์</th><th><span class="badge-admin">admin</span></th><th><span class="badge-agent">agent</span></th></tr></thead>
+                    <thead><tr><th>ฟีเจอร์</th><th><span class="badge-admin">admin</span></th><th><span class="badge-agent">agent</span></th><th><span class="badge-organizer">organizer</span></th></tr></thead>
                     <tbody>
-                        <tr><td>Programs (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Events (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Requests (ดู/อนุมัติ/ปฏิเสธ)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Credits (CRUD)</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Import ICS</td><td>✅</td><td>✅</td></tr>
-                        <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Backup / Restore</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td></tr>
-                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Programs (CRUD)</td><td>✅</td><td>✅</td><td>✅ เฉพาะ event ที่ได้รับมอบหมาย</td></tr>
+                        <tr><td>Events (CRUD)</td><td>✅</td><td>✅</td><td>✅ เฉพาะ event ของตัวเอง / ขอเปิด Active</td></tr>
+                        <tr><td>Requests (ดู/อนุมัติ/ปฏิเสธ)</td><td>✅</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Credits (CRUD)</td><td>✅</td><td>✅</td><td>✅ เฉพาะ event ที่เกี่ยวข้อง</td></tr>
+                        <tr><td>Artists</td><td>✅ CRUD</td><td>❌</td><td>✅ ส่งคำขอเพิ่ม artist</td></tr>
+                        <tr><td>Import ICS</td><td>✅</td><td>✅</td><td>❌</td></tr>
+                        <tr><td>Users (CRUD)</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>ตั้งค่า 2FA ของตัวเอง</td><td>✅</td><td>✅</td><td>✅</td></tr>
+                        <tr><td>Reset 2FA ให้ผู้ใช้อื่น</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Backup / Restore</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Settings (Title + Theme + Google + Disclaimer)</td><td>✅</td><td>❌</td><td>❌</td></tr>
+                        <tr><td>Contact Channels (CRUD)</td><td>✅</td><td>❌</td><td>❌</td></tr>
                     </tbody>
                 </table>
             </section>
@@ -1439,7 +1796,7 @@ $adminRole = $_SESSION['admin_role'] ?? 'admin';
                 <h3>Q: เพิ่ม Program แล้วไม่เห็นบนหน้าเว็บ</h3>
                 <ul>
                     <li>ตรวจสอบว่า <strong>Event ที่ Program สังกัด</strong> มีสถานะ <strong>Active</strong></li>
-                    <li>ตรวจสอบว่าไม่ได้กรองวันที่ / เวทีที่ทำให้ Program ไม่แสดง</li>
+                    <li>ตรวจสอบว่าไม่ได้กรองวันที่ / สถานที่ที่ทำให้ Program ไม่แสดง</li>
                     <li>ลอง hard-refresh browser (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>)</li>
                 </ul>
 

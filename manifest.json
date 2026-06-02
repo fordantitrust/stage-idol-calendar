@@ -1,0 +1,31 @@
+{
+    "name": "Idol Track — Live Idol TH",
+    "short_name": "Idol Track",
+    "description": "ตารางกิจกรรม Idol Stage — ติดตามศิลปินและรับแจ้งเตือนก่อนโปรแกรมเริ่ม",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#fff0f5",
+    "theme_color": "#E91E63",
+    "lang": "th",
+    "orientation": "any",
+    "categories": ["entertainment", "lifestyle"],
+    "icons": [
+        {
+            "src": "/icon/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "badge"
+        },
+        {
+            "src": "/icon/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ]
+}

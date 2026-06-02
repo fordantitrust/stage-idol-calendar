@@ -4,9 +4,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Sitemap & robots
+    # Sitemap, robots & manifest
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
     RewriteRule ^robots\.txt$ robots.php [L]
+    RewriteRule ^manifest\.json$ manifest.php [L]
 
     # Event path with subpage: /event/slug/credits → credits.php?event=slug
     RewriteRule ^event/([^/]+)/([^/]+)$ $2.php?event=$1 [L,QSA]
@@ -19,6 +20,12 @@
 
     # Artist profile: /artist/{id} → artist.php?id={id}
     RewriteRule ^artist/([0-9]+)/?$ artist.php?id=$1 [L,QSA]
+
+    # Venue profile: /venue/{id} → venue.php?id={id}
+    RewriteRule ^venue/([0-9]+)/?$ venue.php?id=$1 [L,QSA]
+
+    # Favorites Connect (QR scanner): /connect → connect.php
+    RewriteRule ^connect/?$ connect.php [L,QSA]
 
     # My Favorites list: /my-favorites/{slug} → my-favorites.php?slug={slug}
     RewriteRule ^my-favorites/([0-9a-f-]+)/?$ my-favorites.php?slug=$1 [L,QSA]
@@ -52,6 +59,17 @@
     Deny from all
 </FilesMatch>
 
+# Block CLI-only scripts from web access (defense in depth — also guarded in PHP)
+<Files "sync-sw-version.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</Files>
+
 # ป้องกันการเข้าถึงไฟล์ config ที่มี sensitive data
 <FilesMatch "^\.">
     Order Allow,Deny
@@ -73,4 +91,15 @@ Options -Indexes
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set X-XSS-Protection "1; mode=block"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # PWA: Service Worker must be served from root scope
+    <Files "service-worker.js">
+        Header set Service-Worker-Allowed "/"
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+    </Files>
+
+    # PWA: manifest.json should not be cached aggressively
+    <Files "manifest.json">
+        Header set Cache-Control "no-cache"
+    </Files>
 </IfModule>

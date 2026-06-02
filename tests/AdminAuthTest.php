@@ -382,3 +382,204 @@ function testAdminLoginSessionContainsUserId($test) {
     $test->assertFalse(isset($_SESSION['admin_user_id']), 'Should not set admin_user_id for failed login');
     $test->assertFalse(isset($_SESSION['admin_display_name']), 'Should not set admin_display_name for failed login');
 }
+
+// ── Login CSRF defense ───────────────────────────────────────────────────────
+
+function testLoginPhpVerifiesCsrfTokenOnPost($test) {
+    // admin/login.php must call verify_csrf_token() inside its POST handler.
+    $src = @file_get_contents(__DIR__ . '/../admin/login.php');
+    $test->assertTrue($src !== false, 'admin/login.php should be readable');
+    $test->assertTrue(
+        strpos($src, 'verify_csrf_token') !== false,
+        'admin/login.php must call verify_csrf_token() to defend against login CSRF'
+    );
+}
+
+function testLoginPhpReadsPostedCsrfToken($test) {
+    // The handler must read the posted csrf_token field, not just render it.
+    $src = @file_get_contents(__DIR__ . '/../admin/login.php');
+    $test->assertTrue(
+        strpos($src, "\$_POST['csrf_token']") !== false,
+        'admin/login.php must read $_POST["csrf_token"] in its POST handler'
+    );
+}
+
+function testLoginPhpCsrfCheckBeforeRateLimit($test) {
+    // CSRF check must happen before record_failed_login() / check_login_rate_limit()
+    // so attackers without a valid token cannot exhaust the per-IP login budget.
+    $src = @file_get_contents(__DIR__ . '/../admin/login.php');
+    $csrfPos = strpos($src, 'verify_csrf_token');
+    $ratePos = strpos($src, 'check_login_rate_limit');
+    $test->assertTrue($csrfPos !== false && $ratePos !== false, 'both calls should be present');
+    $test->assertTrue(
+        $csrfPos < $ratePos,
+        'verify_csrf_token() must be called before check_login_rate_limit() in admin/login.php'
+    );
+}
+
+function testLoginPhpAuditsCsrfBlock($test) {
+    // CSRF failure should write a login_blocked audit record with error_code csrf_invalid.
+    $src = @file_get_contents(__DIR__ . '/../admin/login.php');
+    $test->assertTrue(
+        strpos($src, "'csrf_invalid'") !== false,
+        'admin/login.php must audit csrf_invalid failures'
+    );
+}
+
+function testLoginPhpHasErrCsrfI18nMarker($test) {
+    // The new error state must surface to the user with a localized message.
+    $src = @file_get_contents(__DIR__ . '/../admin/login.php');
+    $test->assertTrue(
+        strpos($src, "login_csrf") !== false,
+        'admin/login.php should set $error = "login_csrf" on CSRF failure'
+    );
+    $test->assertTrue(
+        strpos($src, 'data-i18n="login.errCsrf"') !== false,
+        'admin/login.php should render data-i18n="login.errCsrf" for the CSRF error message'
+    );
+}
+
+function testAdminI18nHasLoginErrCsrfTh($test) {
+    $src = @file_get_contents(__DIR__ . '/../admin/js/admin-i18n.js');
+    $test->assertTrue($src !== false, 'admin-i18n.js should be readable');
+    $test->assertTrue(
+        strpos($src, "'login.errCsrf' : 'Session หมดอายุ") !== false,
+        'admin-i18n.js TH dictionary should include login.errCsrf'
+    );
+}
+
+function testAdminI18nHasLoginErrCsrfEn($test) {
+    $src = @file_get_contents(__DIR__ . '/../admin/js/admin-i18n.js');
+    $test->assertTrue(
+        strpos($src, "'login.errCsrf' : 'Session expired") !== false,
+        'admin-i18n.js EN dictionary should include login.errCsrf'
+    );
+}
+
+// ── Log viewer authorization (LOW-1) ─────────────────────────────────────────
+
+function _adminApiSrc(): string {
+    static $src = null;
+    if ($src === null) {
+        $src = (string)@file_get_contents(__DIR__ . '/../admin/api.php');
+    }
+    return $src;
+}
+
+/**
+ * Extract the body of a PHP top-level function from source.
+ */
+function _adminApiExtractFunctionBody(string $name): string {
+    $src = _adminApiSrc();
+    if ($src === '') return '';
+    $start = strpos($src, "function {$name}(");
+    if ($start === false) return '';
+    // crude but adequate: read until the next "^function " or end of file
+    $next  = strpos($src, "\nfunction ", $start + 1);
+    return $next === false ? substr($src, $start) : substr($src, $start, $next - $start);
+}
+
+function testGetTelegramLogRequiresAdminRole($test) {
+    $body = _adminApiExtractFunctionBody('getTelegramLog');
+    $test->assertNotEmpty($body, 'getTelegramLog() should exist');
+    $test->assertTrue(
+        strpos($body, 'require_api_admin_role()') !== false,
+        'getTelegramLog() must call require_api_admin_role()'
+    );
+}
+
+function testGetWebPushLogRequiresAdminRole($test) {
+    $body = _adminApiExtractFunctionBody('getWebPushLog');
+    $test->assertNotEmpty($body, 'getWebPushLog() should exist');
+    $test->assertTrue(
+        strpos($body, 'require_api_admin_role()') !== false,
+        'getWebPushLog() must call require_api_admin_role()'
+    );
+}
+
+function testGetEmailLogRequiresAdminRole($test) {
+    $body = _adminApiExtractFunctionBody('getEmailLog');
+    $test->assertNotEmpty($body, 'getEmailLog() should exist');
+    $test->assertTrue(
+        strpos($body, 'require_api_admin_role()') !== false,
+        'getEmailLog() must call require_api_admin_role()'
+    );
+}
+
+function testGetAdminAuditLogRequiresAdminRole($test) {
+    // already admin-only — regression guard
+    $body = _adminApiExtractFunctionBody('getAdminAuditLog');
+    $test->assertNotEmpty($body, 'getAdminAuditLog() should exist');
+    $test->assertTrue(
+        strpos($body, 'require_api_admin_role()') !== false,
+        'getAdminAuditLog() must call require_api_admin_role()'
+    );
+}
+
+function testLogActionsAreInAdminOnlyDispatcherList($test) {
+    // Defense-in-depth: dispatcher must reject log viewer actions for non-admin
+    // roles before reaching the function body.
+    $src = _adminApiSrc();
+    $test->assertTrue($src !== '', 'admin/api.php should be readable');
+
+    // Extract the $adminOnlyActions array literal
+    if (!preg_match('/\$adminOnlyActions\s*=\s*\[(.+?)\];/s', $src, $m)) {
+        $test->assertTrue(false, '$adminOnlyActions array not found in admin/api.php');
+        return;
+    }
+    $listing = $m[1];
+
+    $required = [
+        'telegram_log_get', 'telegram_log_download',
+        'webpush_log_get',  'webpush_log_download',
+        'email_log_get',    'email_log_download',
+        'admin_audit_log_get', 'admin_audit_log_download',
+    ];
+    foreach ($required as $action) {
+        $test->assertTrue(
+            strpos($listing, "'{$action}'") !== false,
+            "\$adminOnlyActions must include '{$action}'"
+        );
+    }
+}
+
+function testLogActionsAreNotInOrganizerAllowedList($test) {
+    $src = _adminApiSrc();
+    if (!preg_match('/\$organizerAllowedActions\s*=\s*\[(.+?)\];/s', $src, $m)) {
+        $test->assertTrue(false, '$organizerAllowedActions array not found in admin/api.php');
+        return;
+    }
+    $listing = $m[1];
+
+    $forbidden = [
+        'telegram_log_get', 'webpush_log_get', 'email_log_get', 'admin_audit_log_get',
+        'telegram_log_download', 'webpush_log_download', 'email_log_download', 'admin_audit_log_download',
+    ];
+    foreach ($forbidden as $action) {
+        $test->assertFalse(
+            strpos($listing, "'{$action}'") !== false,
+            "\$organizerAllowedActions must NOT include '{$action}'"
+        );
+    }
+}
+
+function testCsrfTokenRoundTrip($test) {
+    // Direct functional test: csrf_token() generates, verify_csrf_token() accepts that token,
+    // rejects anything else, and rejects empty.
+    if (PHP_SAPI === 'cli' && headers_sent()) {
+        echo " [SKIP: CLI with headers sent] ";
+        $test->assertTrue(true, 'Skipped in CLI environment');
+        return;
+    }
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        safe_session_start();
+    }
+    unset($_SESSION['csrf_token']);
+    $token = csrf_token();
+    $test->assertNotEmpty($token, 'csrf_token() should return a non-empty token');
+    $test->assertTrue(verify_csrf_token($token), 'verify_csrf_token() should accept the generated token');
+    $test->assertFalse(verify_csrf_token(''), 'verify_csrf_token() should reject empty token');
+    $test->assertFalse(verify_csrf_token('deadbeef'), 'verify_csrf_token() should reject mismatched token');
+    // Length-mismatch must not cause hash_equals to warn
+    $test->assertFalse(verify_csrf_token(str_repeat('a', 10)), 'verify_csrf_token() should reject length-mismatched token');
+}

@@ -1,11 +1,12 @@
 # Idol Stage Timetable - Dockerfile
 # PHP 8.1+ with Apache and SQLite support
-# Updated for v3.6.2
+# Updated for v9.6.0
 
 FROM php:8.1-apache
 
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
+    curl \
     libsqlite3-dev \
     sqlite3 \
     # GD + FreeType (required for image.php server-side PNG generation)
@@ -38,7 +39,10 @@ COPY . /var/www/html/
 # Create necessary directories with proper permissions
 RUN mkdir -p /var/www/html/cache/images \
     && mkdir -p /var/www/html/cache/favorites \
+    && mkdir -p /var/www/html/cache/logs \
     && mkdir -p /var/www/html/ics \
+    && mkdir -p /var/www/html/backups \
+    && mkdir -p /var/www/html/uploads/site \
     && mkdir -p /var/www/html/uploads/artists \
     && mkdir -p /var/www/html/uploads/events \
     && chown -R www-data:www-data /var/www/html \

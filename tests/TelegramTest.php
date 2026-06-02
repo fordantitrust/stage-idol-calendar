@@ -402,3 +402,223 @@ function testCronMuteGuardBeforeProcessing($test) {
     $test->assertNotFalse($mutePos,   'telegram_is_muted should appear in cron script');
     $test->assertNotFalse($notifyPos, 'telegram_notify_is_enabled should appear in cron script');
 }
+
+// ── 9. Viewer-Timezone Notifications (v16.1.1) ───────────────────────────────
+
+function testIsValidTimezoneHelper($test) {
+    $test->assertTrue(function_exists('is_valid_timezone'), 'is_valid_timezone() should be defined');
+    $test->assertTrue(is_valid_timezone('Asia/Tokyo'), 'Asia/Tokyo should be valid');
+    $test->assertTrue(is_valid_timezone('UTC'), 'UTC should be valid');
+    $test->assertFalse(is_valid_timezone('Not/AZone'), 'Bogus zone should be invalid');
+    $test->assertFalse(is_valid_timezone(''), 'Empty string should be invalid');
+    $test->assertFalse(is_valid_timezone(null), 'null should be invalid');
+}
+
+function testFavResolveUserTimezoneManualWins($test) {
+    $test->assertTrue(function_exists('fav_resolve_user_timezone'), 'fav_resolve_user_timezone() should be defined');
+    // Manual override beats the per-device subscription timezone
+    $fav = ['user_timezone' => 'Asia/Tokyo', 'user_timezone_manual' => true];
+    $test->assertEquals('Asia/Tokyo', fav_resolve_user_timezone($fav, 'Asia/Bangkok'),
+        'Manual override should win over per-device tz');
+}
+
+function testFavResolveUserTimezoneAutoUsesSubTz($test) {
+    $fav = ['user_timezone' => 'Asia/Tokyo', 'user_timezone_manual' => false];
+    $test->assertEquals('Asia/Bangkok', fav_resolve_user_timezone($fav, 'Asia/Bangkok'),
+        'Auto mode should use per-device subscription tz first');
+}
+
+function testFavResolveUserTimezoneAutoFallsBackToUserTz($test) {
+    $fav = ['user_timezone' => 'Asia/Tokyo'];
+    $test->assertEquals('Asia/Tokyo', fav_resolve_user_timezone($fav, null),
+        'Auto mode without subTz should fall back to user_timezone');
+}
+
+function testFavResolveUserTimezoneNullWhenUnknown($test) {
+    $test->assertNull(fav_resolve_user_timezone([], null),
+        'No timezone known should return null');
+    $test->assertNull(fav_resolve_user_timezone(['user_timezone' => 'Bad/Zone'], null),
+        'Invalid stored timezone should return null');
+}
+
+function testFavResolveUserTimezoneInvalidManualFallsThrough($test) {
+    // Manual flag set but stored zone invalid → fall through to subTz
+    $fav = ['user_timezone' => 'Bad/Zone', 'user_timezone_manual' => true];
+    $test->assertEquals('Asia/Bangkok', fav_resolve_user_timezone($fav, 'Asia/Bangkok'),
+        'Invalid manual zone should fall through to a valid subTz');
+}
+
+function _tz_make_program($tz) {
+    return [
+        'title' => 'Test Program',
+        'event_name' => 'Test Event',
+        'location' => 'Hall',
+        'start' => '2026-06-01 18:00:00',
+        'end'   => '2026-06-01 19:00:00',
+        'event_timezone' => $tz,
+    ];
+}
+
+function testFormatNotificationShowsViewerTime($test) {
+    // Event in Taipei (UTC+8) 18:00, viewer in Tokyo (UTC+9) → 19:00–20:00
+    $msg = telegram_format_notification(_tz_make_program('Asia/Taipei'), 'Asia/Tokyo');
+    $test->assertContains('18:00', $msg, 'Primary time should be event-local (Taipei 18:00)');
+    $test->assertContains('Asia/Tokyo', $msg, 'Viewer timezone label should be shown');
+    $test->assertContains('19:00', $msg, 'Viewer-local time (Tokyo 19:00) should be shown');
+}
+
+function testFormatNotificationSameTimezoneNoParens($test) {
+    // Viewer TZ == event TZ → no parenthetical annotation
+    $msg = telegram_format_notification(_tz_make_program('Asia/Tokyo'), 'Asia/Tokyo');
+    $test->assertFalse(strpos($msg, '(') !== false,
+        'No parenthetical when viewer TZ equals event TZ');
+}
+
+function testFormatNotificationNullViewerLegacyDefault($test) {
+    // No viewer TZ; event Taipei (UTC+8) vs default Bangkok (UTC+7) → (17:00), no IANA label
+    $msg = telegram_format_notification(_tz_make_program('Asia/Taipei'), null);
+    $test->assertContains('(17:00', $msg, 'Legacy default-timezone annotation should show Bangkok 17:00');
+    $test->assertFalse(strpos($msg, 'Asia/') !== false,
+        'Legacy default annotation should not include an IANA label');
+}
+
+function testFormatNotificationDefaultParamIsNull($test) {
+    // Called with no second arg → legacy behaviour (backward compatible)
+    $msg = telegram_format_notification(_tz_make_program('Asia/Taipei'));
+    $test->assertContains('(17:00', $msg, 'Single-arg call should keep legacy default annotation');
+}
+
+function testHandleTzCommandExists($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/api/telegram.php');
+    $test->assertContains('function handle_tz_command', $src, 'handle_tz_command should be defined');
+    $test->assertContains("\$command === '/tz'", $src, 'dispatcher should route /tz');
+    $test->assertContains("handle_tz_command(\$chat_id, \$payload, \$language)", $src,
+        'dispatcher should call handle_tz_command');
+}
+
+function testTzMessageKeysExistAllLanguages($test) {
+    foreach (['tz_set', 'tz_invalid', 'tz_current', 'tz_auto'] as $key) {
+        foreach (['th', 'en', 'ja'] as $lang) {
+            $msg = telegram_get_message($key, $lang);
+            $test->assertNotEmpty($msg, "Message key '$key' should exist for '$lang'");
+        }
+    }
+}
+
+function testHelpAndWelcomeMentionTz($test) {
+    $test->assertContains('/tz', telegram_get_message('help', 'en'), 'help should mention /tz');
+    $test->assertContains('/tz', telegram_get_message('welcome', 'en'), 'welcome should mention /tz');
+}
+
+function testStatusMessageHasTimezonePlaceholder($test) {
+    foreach (['th', 'en', 'ja'] as $lang) {
+        $tpl = telegram_get_message('status', $lang, [
+            'count' => 1, 'lang' => 'EN', 'notify' => 'On', 'mute' => 'no', 'tz' => 'Asia/Tokyo (auto)'
+        ]);
+        $test->assertContains('Asia/Tokyo', $tpl, "status ($lang) should render the {tz} placeholder");
+    }
+}
+
+function testCronPassesUserTzToFormatter($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/cron/send-telegram-notifications.php');
+    $test->assertContains('fav_resolve_user_timezone', $src, 'cron should resolve the viewer timezone');
+    $test->assertContains('telegram_format_notification($prog, $userTz)', $src,
+        'cron should pass $userTz to the formatter');
+}
+
+function testUpcomingPassesUserTz($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/api/telegram.php');
+    $test->assertContains('telegram_format_notification($prog, $userTz)', $src,
+        '/upcoming should pass viewer timezone to the formatter');
+}
+
+function testFavoritesSetTimezoneAction($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/api/favorites.php');
+    $test->assertContains("\$action === 'set_timezone'", $src, 'favorites API should handle set_timezone');
+    $test->assertContains('user_timezone_manual', $src, 'set_timezone should track the manual flag');
+}
+
+// ── 10. Notification Mode — Daily Summary Only (v16.2.0) ─────────────────────
+
+function testNotifyModeDefaultIsAllWhenAbsent($test) {
+    $test->assertEquals('all', telegram_get_notify_mode([]),
+        'Absent mode should default to all');
+}
+
+function testNotifyModeExplicitValues($test) {
+    $test->assertEquals('all',     telegram_get_notify_mode(['telegram_notify_mode' => 'all']),     "Explicit 'all'");
+    $test->assertEquals('summary', telegram_get_notify_mode(['telegram_notify_mode' => 'summary']), "Explicit 'summary'");
+    $test->assertEquals('off',     telegram_get_notify_mode(['telegram_notify_mode' => 'off']),     "Explicit 'off'");
+}
+
+function testNotifyModeInvalidFallsBackToAll($test) {
+    $test->assertEquals('all', telegram_get_notify_mode(['telegram_notify_mode' => 'bogus']),
+        'Invalid mode value should fall back to all');
+}
+
+function testNotifyModeLegacyBooleanMapping($test) {
+    $test->assertEquals('off', telegram_get_notify_mode(['telegram_notify_enabled' => false]),
+        'Legacy false should map to off');
+    $test->assertEquals('all', telegram_get_notify_mode(['telegram_notify_enabled' => true]),
+        'Legacy true should map to all');
+    $test->assertEquals('all', telegram_get_notify_mode(['telegram_notify_enabled' => null]),
+        'Legacy null should map to all');
+}
+
+function testNotifyModeFieldWinsOverLegacyBoolean($test) {
+    // New mode field takes precedence over the legacy boolean
+    $test->assertEquals('summary', telegram_get_notify_mode([
+        'telegram_notify_mode' => 'summary',
+        'telegram_notify_enabled' => false,
+    ]), 'telegram_notify_mode should win over telegram_notify_enabled');
+}
+
+function testPerProgramEnabledOnlyForAll($test) {
+    $test->assertTrue(telegram_per_program_enabled(['telegram_notify_mode' => 'all']),
+        'all → per-program enabled');
+    $test->assertTrue(telegram_per_program_enabled([]),
+        'absent (default all) → per-program enabled');
+    $test->assertFalse(telegram_per_program_enabled(['telegram_notify_mode' => 'summary']),
+        'summary → per-program disabled');
+    $test->assertFalse(telegram_per_program_enabled(['telegram_notify_mode' => 'off']),
+        'off → per-program disabled');
+}
+
+function testNotifyIsEnabledAcrossModes($test) {
+    $test->assertTrue(telegram_notify_is_enabled(['telegram_notify_mode' => 'all']),
+        'all → enabled (not off)');
+    $test->assertTrue(telegram_notify_is_enabled(['telegram_notify_mode' => 'summary']),
+        'summary → enabled (not off)');
+    $test->assertFalse(telegram_notify_is_enabled(['telegram_notify_mode' => 'off']),
+        'off → disabled');
+}
+
+function testMessageKeyNotifySummary($test) {
+    foreach (['th', 'en', 'ja'] as $lang) {
+        $msg = telegram_get_message('notify_summary', $lang);
+        $test->assertNotEmpty($msg, "notify_summary should not be empty for lang={$lang}");
+    }
+}
+
+function testNotifyInvalidMentionsSummary($test) {
+    foreach (['th', 'en', 'ja'] as $lang) {
+        $msg = telegram_get_message('notify_invalid', $lang);
+        $test->assertContains('summary', $msg, "notify_invalid should mention summary for lang={$lang}");
+    }
+}
+
+function testHandleNotifyAcceptsSummaryMode($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/api/telegram.php');
+    $test->assertContains("'summary' => 'summary'", $src,
+        'handle_notify_command should map the summary argument to summary mode');
+    $test->assertContains('telegram_notify_mode', $src,
+        'handle_notify_command should persist telegram_notify_mode');
+}
+
+function testCronGuardsPerProgramByMode($test) {
+    $src = file_get_contents(dirname(__DIR__) . '/cron/send-telegram-notifications.php');
+    $test->assertContains('telegram_per_program_enabled', $src,
+        'Cron should gate per-program notifications with telegram_per_program_enabled()');
+    $test->assertContains('if ($perProgram)', $src,
+        'Cron should wrap the per-program loop in an if ($perProgram) guard');
+}

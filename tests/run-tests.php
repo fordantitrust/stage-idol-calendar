@@ -50,9 +50,18 @@ $testFiles = [
     'FavoritesTest'   => __DIR__ . '/FavoritesTest.php',
     'TimezoneTest'    => __DIR__ . '/TimezoneTest.php',
     'TelegramTest'       => __DIR__ . '/TelegramTest.php',
+    'EmailNotificationTest' => __DIR__ . '/EmailNotificationTest.php',
+    'TwoFactorAuthTest'    => __DIR__ . '/TwoFactorAuthTest.php',
+    'OrganizerRoleTest'    => __DIR__ . '/OrganizerRoleTest.php',
     'ArtistPictureTest'   => __DIR__ . '/ArtistPictureTest.php',
     'SeoTest'             => __DIR__ . '/SeoTest.php',
     'EventPicturesTest'   => __DIR__ . '/EventPicturesTest.php',
+    'EventCoverTest'      => __DIR__ . '/EventCoverTest.php',
+    'Fts5Test'            => __DIR__ . '/Fts5Test.php',
+    'WebPushTest'         => __DIR__ . '/WebPushTest.php',
+    'PwaOfflineTest'      => __DIR__ . '/PwaOfflineTest.php',
+    'VenueTest'           => __DIR__ . '/VenueTest.php',
+    'LiveNowTest'         => __DIR__ . '/LiveNowTest.php',
 ];
 
 // Filter test files if specific test requested

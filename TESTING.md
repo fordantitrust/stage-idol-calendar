@@ -20,6 +20,7 @@ Complete test cases for all features and security aspects.
 12. [User Management & Roles](#user-management--roles)
 13. [Artist Reuse System](#artist-reuse-system)
 14. [Event Pictures Gallery (Admin)](#event-pictures-gallery-admin)
+15. [Email Notifications](#email-notifications)
 
 ---
 
@@ -908,6 +909,47 @@ INSERT INTO credits (title, link, description, display_order) VALUES
 **Expected Result**:
 - ❌ HTML5 validation error
 - ❌ Form not submitted
+
+---
+
+**Test Case 4.1.6**: Login with 2FA enabled
+
+**Steps**:
+1. Enable 2FA for a DB-managed admin user from Admin › Change Password
+2. Logout and login with correct username/password
+3. Enter the 6-digit Authenticator code
+
+**Expected Result**:
+- ✅ Password step shows the 2FA verification form
+- ✅ Admin session is created only after valid TOTP/recovery code
+- ❌ Invalid or replayed TOTP code is rejected and counted by rate limiting
+
+---
+
+**Test Case 4.1.7**: 2FA backup code recovery
+
+**Steps**:
+1. Enable 2FA and save generated backup codes
+2. Logout and login with correct username/password
+3. Enter one backup code instead of TOTP
+4. Logout and try the same backup code again
+
+**Expected Result**:
+- ✅ First use logs in successfully
+- ❌ Reusing the same backup code is rejected
+
+---
+
+**Test Case 4.1.8**: 2FA schema migration is manual
+
+**Steps**:
+1. Review `admin/api.php` source
+2. Confirm `setup.php` and `tools/migrate-add-admin-2fa-columns.php` contain the migration
+
+**Expected Result**:
+- ✅ Admin API does not run `ALTER TABLE admin_users ADD COLUMN`
+- ✅ Admin API uses `data/.admin_2fa_columns_ready` to cache confirmed schema readiness
+- ✅ Missing schema returns a migration-required error for 2FA endpoints instead of mutating the DB
 
 ---
 
@@ -2012,7 +2054,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v7.4.1
+**Version**: v14.0.0
 
 **Result**: Pass / Fail
 
@@ -2274,6 +2316,263 @@ _________________________________
 
 **Expected Result**:
 - ✅ Cross-event section not rendered
+
+---
+
+## 15. Email Notifications
+
+### 15.1 Admin Email Settings
+
+**Test Case 15.1.1**: Configure SMTP email notifications
+
+**Steps**:
+1. Login as admin
+2. Go to Admin › Settings › Email
+3. Fill SMTP host, port, encryption, username/password, from email/name, and admin recipients
+4. Enable Email Notifications
+5. Click Save Email
+
+**Expected Result**:
+- ✅ Settings are saved to `config/email-config.json`
+- ✅ Password is not exposed by `email_config_get`
+- ✅ Invalid sender or recipient email is rejected when notifications are enabled
+
+---
+
+**Test Case 15.1.2**: Send test email
+
+**Steps**:
+1. Open Admin › Settings › Email
+2. Verify SMTP settings are filled
+3. Click Send Test Email
+
+**Expected Result**:
+- ✅ Success message appears when SMTP accepts the message
+- ✅ Failures show a clear error and are logged to `cache/logs/email.log`
+
+---
+
+### 15.2 Request Notification Flow
+
+**Test Case 15.2.1**: Program Request sends admin email
+
+**Steps**:
+1. Enable Email Notifications
+2. Submit a public Program Request
+3. Check the configured admin recipient inbox
+
+**Expected Result**:
+- ✅ Program Request is still created normally
+- ✅ Admin receives an email with request type, title, date/time, venue, artists, requester, and note
+- ✅ HTML email escapes user-provided content
+
+---
+
+**Test Case 15.2.2**: Event Request sends admin email
+
+**Steps**:
+1. Enable Email Notifications
+2. Submit a public Event Request
+3. Check the configured admin recipient inbox
+
+**Expected Result**:
+- ✅ Event Request is still created normally
+- ✅ Admin receives an email with event name, date range, requester, description, and note
+
+---
+
+### 15.3 Requests Empty State
+
+**Test Case 15.3.1**: Program/Event Requests empty rows match
+
+**Steps**:
+1. Login to admin panel
+2. Go to Requests
+3. Filter Program Requests to a status with no results
+4. Switch to Event Requests and filter to a status with no results
+
+**Expected Result**:
+- ✅ Both tables show centered muted "No requests" text
+- ✅ Empty rows use the correct colspan for their table columns
+
+---
+
+## 16. PWA Offline Cache (v16.0.0)
+
+### 16.1 Service Worker Activation
+
+**Test Case 16.5.1**: Service Worker registers and activates on a fresh load
+
+**Steps**:
+1. Open the site in Chrome → DevTools › Application › Service Workers
+2. Hard refresh (Cmd/Ctrl + Shift + R)
+3. Inspect the active worker
+
+**Expected Result**:
+- ✅ Service Worker shows status `activated and is running`
+- ✅ Worker source matches current `service-worker.js`
+- ✅ DevTools › Application › Cache Storage shows `app-static-v{VER}`, `app-pages-v{VER}`, `app-api-v{VER}` (where `{VER}` is the current `APP_VERSION`)
+
+### 16.2 Precache on Install
+
+**Test Case 16.2.1**: Static assets are precached during install
+
+**Steps**:
+1. Application › Cache Storage › `app-static-v{VER}`
+2. Inspect the entry list
+
+**Expected Result**:
+- ✅ Contains `offline.html`, `manifest.json`
+- ✅ Contains `icon/icon-72.png`, `icon/icon-192.png`, `icon/icon-512.png`
+- ✅ Contains `styles/common.css?v={VER}`, `styles/index.css?v={VER}`, `styles/artist.css?v={VER}`, `styles/portal.css?v={VER}`
+- ✅ Contains `js/common.js?v={VER}`, `js/translations.js?v={VER}`
+
+### 16.3 Visited HTML Pages Cache for Offline Reload
+
+**Test Case 16.3.1**: Reload core pages while offline
+
+**Steps**:
+1. While online, visit each of: `/`, `/my/{slug}`, `/artist/{existingId}`, `/artists`
+2. DevTools › Network › check `Offline`
+3. Reload each visited page
+
+**Expected Result**:
+- ✅ Each page renders from cache (Size column shows `(ServiceWorker)`)
+- ✅ Page content visible without network
+- ✅ `app-pages-v{VER}` in Cache Storage contains entries for these URLs
+
+### 16.4 Unvisited URL Falls Back to offline.html
+
+**Test Case 16.4.1**: Navigate to a page not previously cached while offline
+
+**Steps**:
+1. Network › `Offline`
+2. In a new tab, visit a path you've never opened in this session (e.g. `/contact` if you didn't visit it earlier)
+
+**Expected Result**:
+- ✅ Browser displays `offline.html` (sakura gradient pink card)
+- ✅ UI language matches your `localStorage.lang` setting (or `<html lang>` fallback)
+- ✅ "🔄 ลองอีกครั้ง / Try again / 再試行" and "🏠 กลับหน้าแรก / Go home / ホームへ" buttons visible
+- ✅ Click "ลองอีกครั้ง" → `location.reload()` triggers (still offline → stays on offline.html)
+- ✅ Click "กลับหน้าแรก" → navigates to the deployment base (subdir-safe)
+
+### 16.5 Network-Only APIs Are Not Stale-Cached
+
+**Test Case 16.5.1**: Private APIs bypass cache when offline
+
+**Steps**:
+1. While online, perform actions that hit `/api/favorites?action=list`, `/api/push?action=status`, `/api/request?action=submit`
+2. Network › `Offline`
+3. Retry the same actions
+
+**Expected Result**:
+- ✅ All three return network failure (not a stale cached response)
+- ✅ Cache Storage shows no entries under `app-api-v{VER}` for `/api/favorites`, `/api/push`, `/api/request`, `/api/event-request`, `/api/telegram`
+- ✅ `feed.php` and `my-feed.php` also fail offline (never cached)
+
+### 16.6 Public API Stale-While-Revalidate
+
+**Test Case 16.6.1**: `api.php` serves from cache and revalidates in background
+
+**Steps**:
+1. While online, hit `/api.php?action=programs` once
+2. Hit the same URL again (still online)
+3. Inspect Network tab
+
+**Expected Result**:
+- ✅ Second request returns instantly from `(ServiceWorker)` cache
+- ✅ A background `fetch` to `/api.php?action=programs` appears in Network with `If-None-Match` header carrying the cached `ETag`
+- ✅ If the server returns `304 Not Modified`, the cached body is preserved (no new `cache.put` of empty body)
+- ✅ If the server returns `200`, the cache entry is replaced with a fresh `X-SW-Cached-At` timestamp
+
+### 16.7 Network Timeout (Captive Wi-Fi Simulation)
+
+**Test Case 16.7.1**: HTML strategy falls back to cache when network is slow
+
+**Steps**:
+1. Visit `/` while online (page gets cached)
+2. Network › throttle to a custom profile with > 5s latency
+3. Reload `/`
+
+**Expected Result**:
+- ✅ After ~3 seconds, cached page is served (waiting on `Promise.race([fetch, setTimeout])` timeout)
+- ✅ Page contents visible despite slow network
+- ✅ Background fetch eventually completes (visible in Network)
+
+### 16.8 7-Day API Cache Max Age
+
+**Test Case 16.8.1**: Stale API cache > 7 days falls through to offline.html
+
+**Steps**:
+1. While online, hit `/api.php?action=programs`
+2. DevTools › Application › Cache Storage › `app-api-v{VER}` → edit the cached response header `X-SW-Cached-At` to a value > 7 days old
+3. Network › `Offline`
+4. Hit `/api.php?action=programs` again
+
+**Expected Result**:
+- ✅ Service Worker treats the entry as expired
+- ✅ Response is `offline.html` (not the stale data)
+
+### 16.9 Activate Hook Cleans Up Old Caches
+
+**Test Case 16.9.1**: Version bump triggers cache invalidation
+
+**Steps**:
+1. While running current version: confirm Cache Storage has `app-static-v{CUR}`, `app-pages-v{CUR}`, `app-api-v{CUR}`
+2. Bump to a new patch: `php tools/update-version.php X.Y.Z && php sync-sw-version.php`
+3. Reload the site (or check "Update on reload" in DevTools)
+
+**Expected Result**:
+- ✅ Service Worker activates new version
+- ✅ Cache Storage now has `app-static-v{NEW}`, `app-pages-v{NEW}`, `app-api-v{NEW}`
+- ✅ Old caches are deleted (no longer visible)
+- ✅ All assets re-fetched from network on first reload
+
+### 16.10 Cross-Origin Resources Bypass Service Worker
+
+**Test Case 16.10.1**: AdSense, GA, and CDN scripts pass through untouched
+
+**Steps**:
+1. While online, open `/`
+2. Network tab → filter by Third-party
+
+**Expected Result**:
+- ✅ AdSense (`pagead2.googlesyndication.com`) requests do **not** show `(ServiceWorker)` tag
+- ✅ Google Analytics requests pass through
+- ✅ CDN-loaded libraries (qrcodejs, jsQR, Cropper, html2canvas) pass through
+
+### 16.11 Synchronisation Script (sync-sw-version.php)
+
+**Test Case 16.11.1**: CLI workflow + idempotent re-run + HTTP block
+
+**Steps**:
+1. `php tools/update-version.php X.Y.Z` (bumps APP_VERSION + .md files)
+2. Inspect `service-worker.js` — `CACHE_VERSION` is unchanged (script does NOT touch SW)
+3. `php sync-sw-version.php` (syncs SW)
+4. Re-inspect `service-worker.js` — `CACHE_VERSION` now matches `APP_VERSION`
+5. `php sync-sw-version.php` again (re-run)
+6. `curl -I https://your-site.example.com/sync-sw-version.php`
+
+**Expected Result**:
+- ✅ Step 2 confirms `tools/update-version.php` does not modify `service-worker.js`
+- ✅ Step 3 outputs `✅ service-worker.js: v{OLD} → v{NEW}`
+- ✅ Step 4 confirms the change took effect
+- ✅ Step 5 outputs `✅ service-worker.js already at v{NEW} — no changes needed.` (idempotent, exit 0)
+- ✅ Step 6 returns HTTP 403 (blocked by `.htaccess` `<Files "sync-sw-version.php">` block)
+
+### 16.12 Push Notification Regression Guard
+
+**Test Case 16.12.1**: Push handlers remain functional after v16.0.0
+
+**Steps**:
+1. Configure Web Push via Admin › Settings › Web Push (or use existing config)
+2. Subscribe a browser via `/api/push?action=subscribe`
+3. Trigger a test push (via cron run or manually with `cron/send-web-push-notifications.php`)
+
+**Expected Result**:
+- ✅ Notification appears (push handler still works)
+- ✅ Clicking the notification opens or focuses the correct URL (notificationclick handler works)
+- ✅ Browsers that rotate VAPID keys still receive `PUSH_SUBSCRIPTION_CHANGED` postMessage (pushsubscriptionchange handler works)
 
 ---
 

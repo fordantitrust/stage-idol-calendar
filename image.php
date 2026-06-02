@@ -234,7 +234,7 @@ if (!in_array($langParam, ['th', 'en', 'ja'], true)) $langParam = 'th';
 
 $labels = [
     'th' => [
-        'time' => 'เวลา', 'program' => 'Program', 'venue' => 'เวที',
+        'time' => 'เวลา', 'program' => 'Program', 'venue' => 'สถานที่',
         'type' => 'ประเภท', 'artists' => 'ศิลปิน', 'noPrograms' => 'ไม่พบ Program',
         'generated' => 'สร้างโดย',
         'months' => ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.',

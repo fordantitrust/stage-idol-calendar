@@ -87,7 +87,7 @@ docker run hello-world
 
 ```bash
 # 1. Prepare your ICS files
-mkdir -p ics
+mkdir -p ics data cache config
 cp your-events.ics ics/
 
 # 2. Build and start
@@ -118,6 +118,7 @@ docker run -d \
   -v $(pwd)/ics:/var/www/html/ics:ro \
   -v $(pwd)/cache:/var/www/html/cache \
   -v $(pwd)/data:/var/www/html/data \
+  -v $(pwd)/config:/var/www/html/config \
   idol-stage-calendar
 
 # Check logs
@@ -208,8 +209,27 @@ volumes:
   # Database directory (read-write) — contains calendar.db + .setup_locked
   - ./data:/var/www/html/data
 
-  # Config (optional, read-only)
-  - ./config:/var/www/html/config:ro
+  # Config (read-write) — persists Admin UI runtime settings:
+  # google-config.json, telegram-config.json, email-config.json
+  - ./config:/var/www/html/config
+```
+
+---
+
+### Email Notifications in Docker *(v9.6.0+)*
+
+Admin › Settings › Email writes SMTP settings to `config/email-config.json`, so Docker deployments should keep `./config:/var/www/html/config` mounted read-write. Without that mount, settings saved in the Admin UI may be lost when the container is rebuilt or recreated.
+
+Operational notes:
+- Docker does not need inbound mail ports exposed. The container only needs outbound network access to your SMTP host.
+- Prefer SMTP ports `587` with TLS or `465` with SSL; many hosts block outbound port `25`.
+- Delivery logs are written to `cache/logs/email.log`, so keep `./cache:/var/www/html/cache` mounted.
+- `config/*-config.json` is excluded by `.dockerignore` to avoid baking SMTP, Telegram, or Google credentials into the Docker image.
+- If the Admin UI cannot save Email settings, fix host permissions for `config/` so the container user can write JSON files.
+
+```bash
+mkdir -p config cache/logs
+docker-compose up -d --build
 ```
 
 ---
@@ -241,6 +261,9 @@ docker exec idol-stage-calendar chmod -R 777 /var/www/html/cache
 
 # Fix database permissions
 docker exec idol-stage-calendar chmod 666 /var/www/html/data/calendar.db
+
+# Fix runtime config permissions for Admin UI JSON settings
+docker exec idol-stage-calendar chown -R www-data:www-data /var/www/html/config
 ```
 
 ### Database Not Found
@@ -477,6 +500,8 @@ services:
     secrets:
       - admin_password
 ```
+
+For v9.6.0 email notifications, do not bake `config/email-config.json` into custom production images. Keep it as a mounted runtime file or manage it with your platform's secret/config mechanism.
 
 ---
 

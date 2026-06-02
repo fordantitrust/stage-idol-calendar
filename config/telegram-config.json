@@ -4,7 +4,7 @@
     "webhook_secret": "",
     "notify_before_minutes": 10,
     "enabled": true,
-    "webhook_status": "",
+    "webhook_status": "ok",
     "last_webhook_test": "",
     "updated_at": "",
     "webhook_url": "",

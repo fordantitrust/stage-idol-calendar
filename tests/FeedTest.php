@@ -708,8 +708,9 @@ function testAdminApiInvalidatesFeedCacheOnCreate($test) {
 function testAdminApiHasSixFeedCacheInvalidations($test) {
     $src = file_get_contents(dirname(__DIR__) . '/admin/api.php');
     $count = substr_count($src, 'invalidate_feed_cache()');
-    $test->assertEquals(6, $count,
-        'admin/api.php must call invalidate_feed_cache() exactly 6 times (create, update, delete, bulkDelete, bulkUpdate, confirmIcsImport)');
+    // 6 program write ops + 2 venue ops (updateVenue rename, mergeVenues) that rewrite programs.location (v16.0.0)
+    $test->assertEquals(8, $count,
+        'admin/api.php must call invalidate_feed_cache() 8 times (program: create, update, delete, bulkDelete, bulkUpdate, confirmIcsImport; venue: updateVenue, mergeVenues)');
 }
 
 function testFeedCacheKeyIncludesEventId($test) {

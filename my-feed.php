@@ -114,7 +114,8 @@ if (!empty($artistIds)) {
             SELECT DISTINCT p.id, p.title, p.start, p.end, p.location,
                    p.categories, p.program_type, p.stream_url, p.uid,
                    p.description, p.updated_at,
-                   e.name AS event_name
+                   e.name AS event_name,
+                   e.timezone AS event_timezone
             FROM programs p
             JOIN events e ON e.id = p.event_id AND e.is_active = 1
             WHERE p.id IN (
@@ -155,8 +156,11 @@ icsLine("X-PUBLISHED-TTL:PT1H");
 icsLine("REFRESH-INTERVAL;VALUE=DURATION:PT1H");
 
 foreach ($programs as $p) {
-    $startTime = gmdate('Ymd\THis\Z', strtotime($p['start']));
-    $endTime   = gmdate('Ymd\THis\Z', strtotime($p['end']));
+    // Parse stored event-local time in the event's own timezone, then emit UTC for ICS
+    try { $_pTz = new DateTimeZone($p['event_timezone'] ?: DEFAULT_TIMEZONE); }
+    catch (Exception $e) { $_pTz = new DateTimeZone(DEFAULT_TIMEZONE); }
+    $startTime = gmdate('Ymd\THis\Z', (new DateTime($p['start'], $_pTz))->getTimestamp());
+    $endTime   = gmdate('Ymd\THis\Z', (new DateTime($p['end'],   $_pTz))->getTimestamp());
     $updatedTs = !empty($p['updated_at']) ? strtotime($p['updated_at']) : time();
     $dtstamp   = gmdate('Ymd\THis\Z', $updatedTs);
     $uid = !empty($p['uid'])

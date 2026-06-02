@@ -100,10 +100,10 @@ function get_cached_credits($eventId = null) {
 
         if ($eventId !== null) {
             // Global credits (NULL) + event-specific credits
-            $stmt = $db->prepare("SELECT * FROM credits WHERE event_id IS NULL OR event_id = :id ORDER BY display_order ASC, created_at ASC");
+            $stmt = $db->prepare("SELECT * FROM credits WHERE event_id IS NULL OR event_id = :id ORDER BY display_order ASC, created_at DESC");
             $stmt->execute([':id' => $eventId]);
         } else {
-            $stmt = $db->query("SELECT * FROM credits ORDER BY display_order ASC, created_at ASC");
+            $stmt = $db->query("SELECT * FROM credits ORDER BY display_order ASC, created_at DESC");
         }
         $credits = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt->closeCursor();
@@ -348,6 +348,29 @@ function invalidate_artist_query_cache(): bool {
 }
 
 /**
+ * Invalidate all venue profile query caches (query_venue_*.json + portal)
+ * Call this after modifying venues, venue_variants, or programs.location
+ *
+ * @return bool
+ */
+function invalidate_venue_query_cache(): bool {
+    $cacheDir = QUERY_CACHE_DIR;
+    if (!is_dir($cacheDir)) return true;
+
+    $files = array_merge(
+        glob($cacheDir . '/query_venue_*.json') ?: [],
+        file_exists($cacheDir . '/query_portal_venues.json') ? [$cacheDir . '/query_portal_venues.json'] : []
+    );
+    $result = true;
+    foreach ($files as $file) {
+        if (file_exists($file)) {
+            $result = unlink($file) && $result;
+        }
+    }
+    return $result;
+}
+
+/**
  * Invalidate sitemap cache
  * Call this after creating, updating, or deleting events or artists
  *
@@ -381,6 +404,8 @@ function invalidate_all_caches() {
         'feed_*.ics',
         'query_event_*.json',
         'query_artist_*.json',
+        'query_venue_*.json',
+        'query_portal_venues.json',
         'sitemap.xml',
     ];
 

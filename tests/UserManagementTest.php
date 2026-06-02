@@ -116,12 +116,12 @@ function testAdminUsersTableSchema($test) {
 // =============================================================================
 
 function testGetAdminRoleDefault($test) {
-    // Without session set, should return 'admin' (default)
+    // Without session set, use least-privilege fallback.
     $savedRole = $_SESSION['admin_role'] ?? null;
     unset($_SESSION['admin_role']);
 
     $role = get_admin_role();
-    $test->assertEquals('admin', $role, 'Default role should be admin');
+    $test->assertEquals('agent', $role, 'Default role should be least-privilege agent');
 
     // Restore
     if ($savedRole !== null) {
@@ -137,6 +137,9 @@ function testGetAdminRoleFromSession($test) {
 
     $_SESSION['admin_role'] = 'admin';
     $test->assertEquals('admin', get_admin_role(), 'Should return admin from session');
+
+    $_SESSION['admin_role'] = 'organizer';
+    $test->assertEquals('organizer', get_admin_role(), 'Should return organizer from session');
 
     // Restore
     if ($savedRole !== null) {
@@ -167,6 +170,30 @@ function testIsAdminRoleFalseForAgent($test) {
     $test->assertFalse(is_admin_role(), 'Should return false for agent role');
 
     // Restore
+    if ($savedRole !== null) {
+        $_SESSION['admin_role'] = $savedRole;
+    } else {
+        unset($_SESSION['admin_role']);
+    }
+}
+
+function testOrganizerRoleHelpers($test) {
+    $savedRole = $_SESSION['admin_role'] ?? null;
+
+    $test->assertTrue(function_exists('is_agent_role'), 'is_agent_role function should exist');
+    $test->assertTrue(function_exists('is_organizer_role'), 'is_organizer_role function should exist');
+    $test->assertTrue(function_exists('current_admin_user_id'), 'current_admin_user_id function should exist');
+    $test->assertTrue(function_exists('can_manage_event'), 'can_manage_event function should exist');
+
+    $_SESSION['admin_role'] = 'organizer';
+    $test->assertTrue(is_organizer_role(), 'Should return true for organizer role');
+    $test->assertFalse(is_admin_role(), 'Organizer should not be admin');
+    $test->assertFalse(is_agent_role(), 'Organizer should not be agent');
+
+    $_SESSION['admin_role'] = 'unexpected';
+    $test->assertEquals('agent', get_admin_role(), 'Unknown role should fall back to least privilege');
+    $test->assertFalse(is_admin_role(), 'Unknown role should not become admin');
+
     if ($savedRole !== null) {
         $_SESSION['admin_role'] = $savedRole;
     } else {
@@ -320,6 +347,12 @@ function testUserRoleValues($test) {
     $stmt->execute([':u' => $agentUser, ':p' => $testPassword]);
     $agentId = $db->lastInsertId();
 
+    // Test 'organizer' role
+    $organizerUser = 'test_role_organizer_' . time();
+    $stmt = $db->prepare("INSERT INTO admin_users (username, password_hash, role, is_active, created_at, updated_at) VALUES (:u, :p, 'organizer', 1, datetime('now'), datetime('now'))");
+    $stmt->execute([':u' => $organizerUser, ':p' => $testPassword]);
+    $organizerId = $db->lastInsertId();
+
     // Verify
     $stmt = $db->prepare("SELECT role FROM admin_users WHERE id = :id");
 
@@ -329,8 +362,11 @@ function testUserRoleValues($test) {
     $stmt->execute([':id' => $agentId]);
     $test->assertEquals('agent', $stmt->fetch(PDO::FETCH_ASSOC)['role'], 'Agent role should be stored correctly');
 
+    $stmt->execute([':id' => $organizerId]);
+    $test->assertEquals('organizer', $stmt->fetch(PDO::FETCH_ASSOC)['role'], 'Organizer role should be stored correctly');
+
     // Cleanup
-    $db->prepare("DELETE FROM admin_users WHERE id IN (:id1, :id2)")->execute([':id1' => $adminId, ':id2' => $agentId]);
+    $db->prepare("DELETE FROM admin_users WHERE id IN (:id1, :id2, :id3)")->execute([':id1' => $adminId, ':id2' => $agentId, ':id3' => $organizerId]);
 }
 
 function testUserPasswordHash($test) {

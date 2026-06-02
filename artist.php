@@ -6,8 +6,9 @@
 require_once 'config.php';
 send_security_headers();
 
-$siteTitle = get_site_title();
-$theme     = get_site_theme();
+$siteTitle     = get_site_title();
+$theme         = get_site_theme();
+$headerCoverBg = get_header_cover_bg();
 
 // ---- Resolve artist ID ----
 $rawId    = $_GET['id'] ?? '';
@@ -51,6 +52,7 @@ if (!$hasPATable) {
 $stmtA = $db->prepare("
     SELECT a.id, a.name, a.is_group, a.group_id,
            a.display_picture, a.cover_picture,
+           a.social_facebook, a.social_instagram, a.social_twitter, a.social_tiktok,
            g.name AS group_name
     FROM artists a
     LEFT JOIN artists g ON g.id = a.group_id
@@ -88,7 +90,8 @@ if ($hasVTable) {
 // Programs linked to this artist, grouped by event
 $stmtP = $db->prepare("
     SELECT p.id, p.title, p.start, p.end, p.location, p.categories, p.program_type, p.stream_url,
-           e.id AS event_id, e.name AS event_name, e.slug AS event_slug
+           e.id AS event_id, e.name AS event_name, e.slug AS event_slug,
+           e.timezone AS event_timezone
     FROM program_artists pa
     JOIN programs p ON p.id = pa.program_id
     LEFT JOIN events e ON e.id = p.event_id
@@ -104,7 +107,8 @@ $groupPrograms = [];
 if (!$artist['is_group'] && $artist['group_id']) {
     $stmtGP = $db->prepare("
         SELECT p.id, p.title, p.start, p.end, p.location, p.categories, p.program_type, p.stream_url,
-               e.id AS event_id, e.name AS event_name, e.slug AS event_slug
+               e.id AS event_id, e.name AS event_name, e.slug AS event_slug,
+               e.timezone AS event_timezone
         FROM program_artists pa
         JOIN programs p ON p.id = pa.program_id
         LEFT JOIN events e ON e.id = p.event_id
@@ -170,6 +174,9 @@ function include_404(string $msg): never {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
     <title><?php echo htmlspecialchars($artist['name'], ENT_QUOTES, 'UTF-8'); ?> – <?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // ── SEO meta tags ─────────────────────────────────────────────────────────
@@ -235,7 +242,7 @@ function include_404(string $msg): never {
 </head>
 <body class="theme-<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>">
     <div class="container">
-        <header>
+        <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars(get_base_path() . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
             <div class="header-top-left">
                 <a href="<?php echo get_base_path(); ?>/" class="home-icon-btn" title="หน้าแรก">
                     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -257,7 +264,7 @@ function include_404(string $msg): never {
             . '<th data-i18n="artist.colDate">วันที่</th>'
             . '<th data-i18n="artist.colTime">เวลา</th>'
             . '<th data-i18n="artist.colTitle">ชื่อ Program</th>'
-            . '<th data-i18n="artist.colVenue">เวที</th>'
+            . '<th data-i18n="artist.colVenue">สถานที่</th>'
             . '<th data-i18n="artist.colType">ประเภท</th>'
             . '</tr></thead>';
 
@@ -284,9 +291,17 @@ function include_404(string $msg): never {
                 foreach ($evProgs as $p) {
                     $start = $p['start'] ? date('d M', strtotime($p['start'])) : '-';
                     $time  = format_time_range($p['start'] ?? '', $p['end'] ?? '');
+                    // UTC ms + event TZ for cross-TZ "(HH:MM local)" annotation (v16.0.7+)
+                    $_evTz = $p['event_timezone'] ?: DEFAULT_TIMEZONE;
+                    try {
+                        $_tzObj = new DateTimeZone($_evTz);
+                        $_utcStart = !empty($p['start']) ? (new DateTime($p['start'], $_tzObj))->getTimestamp() * 1000 : 0;
+                        $_utcEnd   = !empty($p['end'])   ? (new DateTime($p['end'],   $_tzObj))->getTimestamp() * 1000 : 0;
+                    } catch (Exception $e) { $_utcStart = $_utcEnd = 0; }
+                    $_tzAttr = ' data-utc-start="' . $_utcStart . '" data-utc-end="' . $_utcEnd . '" data-event-tz="' . htmlspecialchars($_evTz, ENT_QUOTES, 'UTF-8') . '"';
                     echo '<tr>';
                     echo '<td class="prog-time">' . $start . '</td>';
-                    echo '<td class="prog-time">' . $time . '</td>';
+                    echo '<td class="prog-time"' . $_tzAttr . '>' . $time . '</td>';
                     echo '<td>' . htmlspecialchars($p['title'] ?? '', ENT_QUOTES, 'UTF-8');
                     if (!empty($p['stream_url'])) {
                         echo '&nbsp;<a class="prog-stream-btn" href="' . htmlspecialchars($p['stream_url'], ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">🔴 Live</a>';
@@ -359,6 +374,42 @@ function include_404(string $msg): never {
                     <?php echo htmlspecialchars($artist['group_name'], ENT_QUOTES, 'UTF-8'); ?>
                     <?php endif; ?>
                 </div>
+                <?php
+                $hasSocial = !empty($artist['social_facebook']) || !empty($artist['social_instagram'])
+                          || !empty($artist['social_twitter'])  || !empty($artist['social_tiktok']);
+                if ($hasSocial): ?>
+                <div class="artist-social-links">
+                    <?php if (!empty($artist['social_facebook'])): ?>
+                    <a href="<?php echo htmlspecialchars($artist['social_facebook'], ENT_QUOTES, 'UTF-8'); ?>"
+                       class="artist-social-link artist-social-facebook" target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                        Facebook
+                    </a>
+                    <?php endif; ?>
+                    <?php if (!empty($artist['social_instagram'])): ?>
+                    <a href="<?php echo htmlspecialchars($artist['social_instagram'], ENT_QUOTES, 'UTF-8'); ?>"
+                       class="artist-social-link artist-social-instagram" target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        Instagram
+                    </a>
+                    <?php endif; ?>
+                    <?php if (!empty($artist['social_twitter'])): ?>
+                    <a href="<?php echo htmlspecialchars($artist['social_twitter'], ENT_QUOTES, 'UTF-8'); ?>"
+                       class="artist-social-link artist-social-twitter" target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        X / Twitter
+                    </a>
+                    <?php endif; ?>
+                    <?php if (!empty($artist['social_tiktok'])): ?>
+                    <a href="<?php echo htmlspecialchars($artist['social_tiktok'], ENT_QUOTES, 'UTF-8'); ?>"
+                       class="artist-social-link artist-social-tiktok" target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.26 8.26 0 004.84 1.56V6.79a4.87 4.87 0 01-1.07-.1z"/></svg>
+                        TikTok
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+
                 <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">
                     <button class="btn btn-subscribe"
                             onclick="openSubscribeModal(false, <?php echo htmlspecialchars(json_encode($artist['name']), ENT_QUOTES, 'UTF-8'); ?>)">

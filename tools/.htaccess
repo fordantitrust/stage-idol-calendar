@@ -1,13 +1,16 @@
-# Tools Directory - Restricted Access
-# อนุญาตเฉพาะ localhost และ local network
+# Tools Directory — Deny ALL HTTP Access
+# Migration and developer utilities here are CLI-only.
+# They have no business being reachable over HTTP from any origin,
+# including LAN — shared/cloud hosting "LAN" CIDRs often overlap
+# the provider's internal network and may be reachable by neighbours.
 
-Order Deny,Allow
-Deny from all
-Allow from 127.0.0.1
-Allow from ::1
-Allow from 192.168.0.0/16
-Allow from 10.0.0.0/8
+# Apache 2.4+
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
 
-# หรือใช้ deny all ถ้าต้องการปิดการเข้าถึงจาก web ทั้งหมด
-# ให้รัน scripts ผ่าน CLI เท่านั้น
-# Deny from all
+# Apache 2.2 and 2.4 with mod_access_compat
+<IfModule mod_access_compat.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

@@ -132,6 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             __DIR__ . '/uploads/artists'   => 'uploads/artists/',
             __DIR__ . '/uploads/events'    => 'uploads/events/',
             __DIR__ . '/cache/favorites' => 'cache/favorites/',
+            __DIR__ . '/cache/logs'      => 'cache/logs/',
         ];
         $created = 0;
         foreach ($toCreate as $path => $label) {
@@ -189,6 +190,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 theme TEXT DEFAULT NULL,
                 email TEXT DEFAULT NULL,
                 timezone TEXT DEFAULT 'Asia/Bangkok',
+                gallery_template TEXT DEFAULT 'grid3',
+                cover_image TEXT DEFAULT NULL,
+                cover_image_card TEXT DEFAULT NULL,
+                header_cover_image TEXT DEFAULT NULL,
+                ticket_url TEXT DEFAULT NULL,
+                created_by_user_id INTEGER DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -214,6 +221,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 admin_note TEXT,
                 reviewed_at DATETIME,
                 reviewed_by TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // event_requests table — คำขอเพิ่ม/แก้ไข Event จากผู้ใช้ (v9.3.0)
+            $db->exec("CREATE TABLE IF NOT EXISTS event_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                request_type TEXT NOT NULL,
+                event_id INTEGER,
+                name TEXT,
+                description TEXT,
+                start_date DATE,
+                end_date DATE,
+                requester_name TEXT NOT NULL,
+                requester_email TEXT,
+                note TEXT,
+                status TEXT DEFAULT 'pending',
+                admin_note TEXT,
+                reviewed_at DATETIME,
+                reviewed_by TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+
+            // artist_requests table — organizer-submitted artist proposals (v12.3.0)
+            $db->exec("CREATE TABLE IF NOT EXISTS artist_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                is_group INTEGER DEFAULT 0,
+                group_id INTEGER DEFAULT NULL,
+                social_facebook TEXT DEFAULT NULL,
+                social_instagram TEXT DEFAULT NULL,
+                social_twitter TEXT DEFAULT NULL,
+                social_tiktok TEXT DEFAULT NULL,
+                requester_user_id INTEGER DEFAULT NULL,
+                requester_name TEXT NOT NULL,
+                requester_email TEXT DEFAULT NULL,
+                status TEXT DEFAULT 'pending',
+                admin_note TEXT DEFAULT NULL,
+                reviewed_at DATETIME DEFAULT NULL,
+                reviewed_by TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
@@ -249,13 +297,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 password_hash TEXT NOT NULL,
                 display_name TEXT,
                 role TEXT DEFAULT 'admin',
+                twofa_enabled INTEGER DEFAULT 0,
+                twofa_secret TEXT DEFAULT NULL,
+                twofa_backup_codes TEXT DEFAULT NULL,
+                twofa_confirmed_at DATETIME DEFAULT NULL,
+                twofa_last_used_step INTEGER DEFAULT NULL,
                 is_active BOOLEAN DEFAULT 1,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_login_at DATETIME
             )");
 
-            // artists table — ศิลปิน/กลุ่ม (v3.0.0+; display_picture + cover_picture added v6.0.0)
+            // artists table — ศิลปิน/กลุ่ม (v3.0.0+; display_picture + cover_picture added v6.0.0; social links added v9.5.0)
             $db->exec("CREATE TABLE IF NOT EXISTS artists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
@@ -263,16 +316,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 group_id INTEGER REFERENCES artists(id),
                 display_picture TEXT DEFAULT NULL,
                 cover_picture TEXT DEFAULT NULL,
+                social_facebook TEXT DEFAULT NULL,
+                social_instagram TEXT DEFAULT NULL,
+                social_twitter TEXT DEFAULT NULL,
+                social_tiktok TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
-            // Ensure picture columns exist on older databases (idempotent)
+            // Ensure columns exist on older databases (idempotent)
             $acols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
             if (!in_array('display_picture', $acols)) {
                 $db->exec("ALTER TABLE artists ADD COLUMN display_picture TEXT DEFAULT NULL");
             }
             if (!in_array('cover_picture', $acols)) {
                 $db->exec("ALTER TABLE artists ADD COLUMN cover_picture TEXT DEFAULT NULL");
+            }
+            foreach (['social_facebook', 'social_instagram', 'social_twitter', 'social_tiktok'] as $sc) {
+                if (!in_array($sc, $acols)) {
+                    $db->exec("ALTER TABLE artists ADD COLUMN $sc TEXT DEFAULT NULL");
+                }
             }
 
             // program_artists junction table — many-to-many (v3.0.0+)
@@ -293,6 +355,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UNIQUE(artist_id, variant)
             )");
 
+            // venues + venue_variants tables (v16.0.0; is_online added v16.0.1)
+            $db->exec("CREATE TABLE IF NOT EXISTS venues (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                description TEXT DEFAULT NULL,
+                map_url TEXT DEFAULT NULL,
+                is_online INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )");
+            $vcols0 = $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            if (!in_array('is_online', $vcols0)) {
+                $db->exec("ALTER TABLE venues ADD COLUMN is_online INTEGER DEFAULT 0");
+            }
+            $db->exec("CREATE TABLE IF NOT EXISTS venue_variants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                venue_id INTEGER NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+                variant TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(venue_id, variant)
+            )");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_venue_variants_venue_id ON venue_variants(venue_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_venues_name ON venues(name)");
+
             // event_pictures table (v7.0.0)
             $db->exec("CREATE TABLE IF NOT EXISTS event_pictures (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -302,26 +388,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 display_order INTEGER DEFAULT 0,
                 created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
             )");
-            // gallery_template column in events (idempotent)
+            $db->exec("CREATE TABLE IF NOT EXISTS event_organizers (
+                event_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                assigned_by INTEGER DEFAULT NULL,
+                assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (event_id, user_id),
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES admin_users(id) ON DELETE SET NULL
+            )");
+            // gallery_template + cover_image columns in events (idempotent)
             $ecols0 = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
             if (!in_array('gallery_template', $ecols0)) {
                 $db->exec("ALTER TABLE events ADD COLUMN gallery_template TEXT DEFAULT 'grid3'");
             }
+            if (!in_array('cover_image', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN cover_image TEXT DEFAULT NULL");
+            }
+            if (!in_array('cover_image_card', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN cover_image_card TEXT DEFAULT NULL");
+            }
+            if (!in_array('header_cover_image', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN header_cover_image TEXT DEFAULT NULL");
+            }
+            if (!in_array('ticket_url', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN ticket_url TEXT DEFAULT NULL");
+            }
+            if (!in_array('created_by_user_id', $ecols0)) {
+                $db->exec("ALTER TABLE events ADD COLUMN created_by_user_id INTEGER DEFAULT NULL");
+            }
 
             // Indexes สำหรับ performance
             $db->exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)");
+            $adminCols = $db->query("PRAGMA table_info(admin_users)")->fetchAll(PDO::FETCH_COLUMN, 1);
+            $twofaCols = [
+                'twofa_enabled' => 'INTEGER DEFAULT 0',
+                'twofa_secret' => 'TEXT DEFAULT NULL',
+                'twofa_backup_codes' => 'TEXT DEFAULT NULL',
+                'twofa_confirmed_at' => 'DATETIME DEFAULT NULL',
+                'twofa_last_used_step' => 'INTEGER DEFAULT NULL',
+            ];
+            foreach ($twofaCols as $col => $definition) {
+                if (!in_array($col, $adminCols)) {
+                    $db->exec("ALTER TABLE admin_users ADD COLUMN $col $definition");
+                }
+            }
             $db->exec("CREATE INDEX IF NOT EXISTS idx_programs_event_id ON programs(event_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_programs_start ON programs(start)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_programs_location ON programs(location)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_programs_categories ON programs(categories)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_requests_status ON program_requests(status)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_requests_event_id ON program_requests(event_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_requests_status ON artist_requests(status)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_requests_created_at ON artist_requests(created_at)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_requests_requester_user_id ON artist_requests(requester_user_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_credits_event_id ON credits(event_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_artists_program_id ON program_artists(program_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_program_artists_artist_id ON program_artists(artist_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_artist_variants_artist_id ON artist_variants(artist_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_event_id ON event_pictures(event_id)");
             $db->exec("CREATE INDEX IF NOT EXISTS idx_event_pictures_order ON event_pictures(event_id, display_order)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_event_organizers_event_id ON event_organizers(event_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_event_organizers_user_id ON event_organizers(user_id)");
+            $db->exec("CREATE INDEX IF NOT EXISTS idx_events_created_by_user_id ON events(created_by_user_id)");
+
+            // FTS5 virtual tables + sync triggers (v9.0.0)
+            $sqliteVer  = $db->query("SELECT sqlite_version()")->fetchColumn();
+            $ftsTokenizer = version_compare($sqliteVer, '3.43.0', '>=') ? 'trigram' : 'unicode61';
+            $db->exec("CREATE VIRTUAL TABLE IF NOT EXISTS programs_fts USING fts5(title, description, categories, location, organizer, content=programs, content_rowid=id, tokenize='$ftsTokenizer')");
+            $db->exec("CREATE VIRTUAL TABLE IF NOT EXISTS events_fts   USING fts5(name, description, content=events, content_rowid=id, tokenize='$ftsTokenizer')");
+            $db->exec("CREATE VIRTUAL TABLE IF NOT EXISTS artists_fts  USING fts5(name, content=artists, content_rowid=id, tokenize='$ftsTokenizer')");
+            $ftsTriggerDefs = [
+                "programs_ai AFTER INSERT ON programs BEGIN INSERT INTO programs_fts(rowid,title,description,categories,location,organizer) VALUES(new.id,new.title,COALESCE(new.description,''),COALESCE(new.categories,''),COALESCE(new.location,''),COALESCE(new.organizer,'')); END",
+                "programs_au AFTER UPDATE ON programs BEGIN INSERT INTO programs_fts(programs_fts,rowid,title,description,categories,location,organizer) VALUES('delete',old.id,old.title,COALESCE(old.description,''),COALESCE(old.categories,''),COALESCE(old.location,''),COALESCE(old.organizer,'')); INSERT INTO programs_fts(rowid,title,description,categories,location,organizer) VALUES(new.id,new.title,COALESCE(new.description,''),COALESCE(new.categories,''),COALESCE(new.location,''),COALESCE(new.organizer,'')); END",
+                "programs_ad AFTER DELETE ON programs BEGIN INSERT INTO programs_fts(programs_fts,rowid,title,description,categories,location,organizer) VALUES('delete',old.id,old.title,COALESCE(old.description,''),COALESCE(old.categories,''),COALESCE(old.location,''),COALESCE(old.organizer,'')); END",
+                "events_ai AFTER INSERT ON events BEGIN INSERT INTO events_fts(rowid,name,description) VALUES(new.id,new.name,COALESCE(new.description,'')); END",
+                "events_au AFTER UPDATE ON events BEGIN INSERT INTO events_fts(events_fts,rowid,name,description) VALUES('delete',old.id,old.name,COALESCE(old.description,'')); INSERT INTO events_fts(rowid,name,description) VALUES(new.id,new.name,COALESCE(new.description,'')); END",
+                "events_ad AFTER DELETE ON events BEGIN INSERT INTO events_fts(events_fts,rowid,name,description) VALUES('delete',old.id,old.name,COALESCE(old.description,'')); END",
+                "artists_ai AFTER INSERT ON artists BEGIN INSERT INTO artists_fts(rowid,name) VALUES(new.id,new.name); END",
+                "artists_au AFTER UPDATE ON artists BEGIN INSERT INTO artists_fts(artists_fts,rowid,name) VALUES('delete',old.id,old.name); INSERT INTO artists_fts(rowid,name) VALUES(new.id,new.name); END",
+                "artists_ad AFTER DELETE ON artists BEGIN INSERT INTO artists_fts(artists_fts,rowid,name) VALUES('delete',old.id,old.name); END",
+            ];
+            $existingTriggers = $db->query("SELECT name FROM sqlite_master WHERE type='trigger'")->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($ftsTriggerDefs as $td) {
+                $tname = strtok($td, ' ');
+                if (!in_array($tname, $existingTriggers)) $db->exec("CREATE TRIGGER $td");
+            }
 
             // Seed admin user ถ้ายังไม่มี
             $adminCount = $db->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();
@@ -389,6 +542,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Keep venues in sync with programs.location after sample-program seed (v16.0.10+)
+            // — invariant: every distinct programs.location value has a row in venues
+            $db->exec("INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != ''");
+
             $messages[] = ['type' => 'success', 'text' => "สร้างตาราง database และ indexes ทั้งหมดเรียบร้อย"];
 
             // Auto-login หลัง fresh install — ตั้ง session โดยตรง
@@ -423,8 +580,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->exec("ALTER TABLE admin_users ADD COLUMN role TEXT DEFAULT 'admin'");
                 $db->exec("UPDATE admin_users SET role = 'admin' WHERE role IS NULL");
                 $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>role column</strong> ใน admin_users เรียบร้อย"];
-            } else {
-                $messages[] = ['type' => 'info', 'text' => "role column มีอยู่แล้ว"];
+            }
+            $twofaCols = [
+                'twofa_enabled' => 'INTEGER DEFAULT 0',
+                'twofa_secret' => 'TEXT DEFAULT NULL',
+                'twofa_backup_codes' => 'TEXT DEFAULT NULL',
+                'twofa_confirmed_at' => 'DATETIME DEFAULT NULL',
+                'twofa_last_used_step' => 'INTEGER DEFAULT NULL',
+            ];
+            $addedTwofa = 0;
+            foreach ($twofaCols as $col => $definition) {
+                if (!in_array($col, $cols)) {
+                    $db->exec("ALTER TABLE admin_users ADD COLUMN $col $definition");
+                    $addedTwofa++;
+                }
+            }
+            if ($addedTwofa > 0) {
+                $messages[] = ['type' => 'success', 'text' => "เพิ่ม <strong>2FA columns</strong> ใน admin_users เรียบร้อย"];
+            } elseif (in_array('role', $cols)) {
+                $messages[] = ['type' => 'info', 'text' => "role และ 2FA columns มีอยู่แล้ว"];
             }
         } catch (PDOException $e) {
             $messages[] = ['type' => 'error', 'text' => "Error: " . htmlspecialchars($e->getMessage())];
@@ -662,13 +836,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     group_id INTEGER REFERENCES artists(id),
                     display_picture TEXT DEFAULT NULL,
                     cover_picture TEXT DEFAULT NULL,
+                    social_facebook TEXT DEFAULT NULL,
+                    social_instagram TEXT DEFAULT NULL,
+                    social_twitter TEXT DEFAULT NULL,
+                    social_tiktok TEXT DEFAULT NULL,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )");
                 $messages[] = ['type' => 'success', 'text' => "สร้างตาราง <strong>artists</strong> เรียบร้อย"];
             } else {
                 $messages[] = ['type' => 'info', 'text' => "ตาราง artists มีอยู่แล้ว"];
-                // Ensure new columns exist (idempotent — added in v6.0.0)
+                // Ensure new columns exist (idempotent)
                 $artistCols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
                 if (!in_array('display_picture', $artistCols)) {
                     $db->exec("ALTER TABLE artists ADD COLUMN display_picture TEXT DEFAULT NULL");
@@ -677,6 +855,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!in_array('cover_picture', $artistCols)) {
                     $db->exec("ALTER TABLE artists ADD COLUMN cover_picture TEXT DEFAULT NULL");
                     $messages[] = ['type' => 'success', 'text' => "เพิ่ม column <strong>cover_picture</strong> ใน artists"];
+                }
+                foreach (['social_facebook', 'social_instagram', 'social_twitter', 'social_tiktok'] as $sc) {
+                    if (!in_array($sc, $artistCols)) {
+                        $db->exec("ALTER TABLE artists ADD COLUMN $sc TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "เพิ่ม column <strong>$sc</strong> ใน artists"];
+                    }
                 }
             }
 
@@ -773,6 +957,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $ran++;
                 }
 
+                if (in_array('admin_users', $existingTables)) {
+                    $twofaCols = [
+                        'twofa_enabled' => 'INTEGER DEFAULT 0',
+                        'twofa_secret' => 'TEXT DEFAULT NULL',
+                        'twofa_backup_codes' => 'TEXT DEFAULT NULL',
+                        'twofa_confirmed_at' => 'DATETIME DEFAULT NULL',
+                        'twofa_last_used_step' => 'INTEGER DEFAULT NULL',
+                    ];
+                    foreach ($twofaCols as $col => $definition) {
+                        if (!in_array($col, $existingCols['admin_users'] ?? [])) {
+                            $db->exec("ALTER TABLE admin_users ADD COLUMN $col $definition");
+                            $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม <strong>admin_users.$col</strong> column"];
+                            $ran++;
+                        }
+                    }
+                }
+
                 // events.theme column
                 if (in_array('events', $existingTables) && !in_array('theme', $existingCols['events'] ?? [])) {
                     $db->exec("ALTER TABLE events ADD COLUMN theme TEXT DEFAULT NULL");
@@ -791,6 +992,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (in_array('events', $existingTables) && !in_array('timezone', $existingCols['events'] ?? [])) {
                     $db->exec("ALTER TABLE events ADD COLUMN timezone TEXT DEFAULT 'Asia/Bangkok'");
                     $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม <strong>events.timezone</strong> column"];
+                    $ran++;
+                }
+
+                if (in_array('events', $existingTables) && !in_array('created_by_user_id', $existingCols['events'] ?? [])) {
+                    $db->exec("ALTER TABLE events ADD COLUMN created_by_user_id INTEGER DEFAULT NULL");
+                    $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม <strong>events.created_by_user_id</strong> column"];
                     $ran++;
                 }
 
@@ -818,7 +1025,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'idx_program_requests_status'   => "CREATE INDEX IF NOT EXISTS idx_program_requests_status ON program_requests(status)",
                     'idx_program_requests_event_id' => "CREATE INDEX IF NOT EXISTS idx_program_requests_event_id ON program_requests(event_id)",
                     'idx_credits_event_id'          => "CREATE INDEX IF NOT EXISTS idx_credits_event_id ON credits(event_id)",
+                    'idx_event_organizers_event_id' => "CREATE INDEX IF NOT EXISTS idx_event_organizers_event_id ON event_organizers(event_id)",
+                    'idx_event_organizers_user_id'  => "CREATE INDEX IF NOT EXISTS idx_event_organizers_user_id ON event_organizers(user_id)",
+                    'idx_events_created_by_user_id' => "CREATE INDEX IF NOT EXISTS idx_events_created_by_user_id ON events(created_by_user_id)",
+                    'idx_artist_requests_status'    => "CREATE INDEX IF NOT EXISTS idx_artist_requests_status ON artist_requests(status)",
+                    'idx_artist_requests_created_at'=> "CREATE INDEX IF NOT EXISTS idx_artist_requests_created_at ON artist_requests(created_at)",
+                    'idx_artist_requests_requester_user_id' => "CREATE INDEX IF NOT EXISTS idx_artist_requests_requester_user_id ON artist_requests(requester_user_id)",
                 ];
+                if (!in_array('event_organizers', $existingTables)) {
+                    $db->exec("CREATE TABLE IF NOT EXISTS event_organizers (
+                        event_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        assigned_by INTEGER DEFAULT NULL,
+                        assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (event_id, user_id),
+                        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (assigned_by) REFERENCES admin_users(id) ON DELETE SET NULL
+                    )");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>event_organizers</strong>"];
+                    $ran++;
+                }
+                if (!in_array('artist_requests', $existingTables)) {
+                    $db->exec("CREATE TABLE IF NOT EXISTS artist_requests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        is_group INTEGER DEFAULT 0,
+                        group_id INTEGER DEFAULT NULL,
+                        social_facebook TEXT DEFAULT NULL,
+                        social_instagram TEXT DEFAULT NULL,
+                        social_twitter TEXT DEFAULT NULL,
+                        social_tiktok TEXT DEFAULT NULL,
+                        requester_user_id INTEGER DEFAULT NULL,
+                        requester_name TEXT NOT NULL,
+                        requester_email TEXT DEFAULT NULL,
+                        status TEXT NOT NULL DEFAULT 'pending',
+                        admin_note TEXT DEFAULT NULL,
+                        reviewed_at DATETIME DEFAULT NULL,
+                        reviewed_by INTEGER DEFAULT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (group_id) REFERENCES artists(id) ON DELETE SET NULL,
+                        FOREIGN KEY (requester_user_id) REFERENCES admin_users(id) ON DELETE SET NULL,
+                        FOREIGN KEY (reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL
+                    )");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>artist_requests</strong>"];
+                    $ran++;
+                }
                 $missingIdx = array_diff(array_keys($requiredIdx), $existingIdx);
                 if (!empty($missingIdx)) {
                     foreach ($missingIdx as $idxName) { $db->exec($requiredIdx[$idxName]); }
@@ -896,6 +1149,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $ran++;
                 }
 
+                // venues + venue_variants tables (added in v16.0.0)
+                if (!in_array('venues', $existingTables)) {
+                    $db->exec("CREATE TABLE venues (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT UNIQUE NOT NULL,
+                        description TEXT DEFAULT NULL,
+                        map_url TEXT DEFAULT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )");
+                    $db->exec("CREATE INDEX IF NOT EXISTS idx_venues_name ON venues(name)");
+                    // seed venues จาก DISTINCT location ที่มีอยู่
+                    $db->exec("INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != ''");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>venues</strong> + seed จาก location เดิม"];
+                    $ran++;
+                }
+                if (!in_array('venue_variants', $existingTables)) {
+                    $db->exec("CREATE TABLE venue_variants (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        venue_id INTEGER NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+                        variant TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(venue_id, variant)
+                    )");
+                    $db->exec("CREATE INDEX IF NOT EXISTS idx_venue_variants_venue_id ON venue_variants(venue_id)");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>venue_variants</strong> (seed variants: รัน tools/migrate-add-venues-table.php)"];
+                    $ran++;
+                }
+                // venues.is_online column (added v16.0.1, idempotent)
+                if (in_array('venues', $existingTables)) {
+                    $vcolsCheck = $db->query("PRAGMA table_info(venues)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    if (!in_array('is_online', $vcolsCheck)) {
+                        $db->exec("ALTER TABLE venues ADD COLUMN is_online INTEGER DEFAULT 0");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>venues.is_online</strong> (v16.0.1)"];
+                        $ran++;
+                    }
+                }
+
+                // Re-sync venues with programs.location — catches programs imported before
+                // venue_resolve_canonical() was wired in, or seeded by init_database (v16.0.10+)
+                if (in_array('venues', $existingTables)) {
+                    $missing = (int)$db->query("SELECT COUNT(DISTINCT location) FROM programs WHERE location IS NOT NULL AND location != '' AND location NOT IN (SELECT name FROM venues)")->fetchColumn();
+                    if ($missing > 0) {
+                        $db->exec("INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != ''");
+                        $messages[] = ['type' => 'success', 'text' => "✅ Sync venues จาก programs.location — เพิ่ม <strong>$missing</strong> สถานที่"];
+                        $ran++;
+                    }
+                }
+
                 // program_requests review columns (added in v6.1.3)
                 if (in_array('program_requests', $existingTables)) {
                     $reqCols = $db->query("PRAGMA table_info(program_requests)")->fetchAll(PDO::FETCH_COLUMN, 1);
@@ -938,6 +1240,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.gallery_template</strong>"];
                         $ran++;
                     }
+                    if (!in_array('cover_image', $evCols2)) {
+                        $db->exec("ALTER TABLE events ADD COLUMN cover_image TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.cover_image</strong> (Hero Carousel)"];
+                        $ran++;
+                    }
+                    if (!in_array('cover_image_card', $evCols2)) {
+                        $db->exec("ALTER TABLE events ADD COLUMN cover_image_card TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.cover_image_card</strong> (Event Card 4:3)"];
+                        $ran++;
+                    }
+                    if (!in_array('header_cover_image', $evCols2)) {
+                        $db->exec("ALTER TABLE events ADD COLUMN header_cover_image TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.header_cover_image</strong> (Header Cover 4:1)"];
+                        $ran++;
+                    }
+                }
+
+                // FTS5 tables + triggers (v9.0.0)
+                $allTablesNow    = $db->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
+                $allTriggersNow  = $db->query("SELECT name FROM sqlite_master WHERE type='trigger'")->fetchAll(PDO::FETCH_COLUMN);
+                $needFts5Tables  = !in_array('programs_fts', $allTablesNow);
+                $needFts5Triggers = !in_array('programs_ai', $allTriggersNow);
+                if ($needFts5Tables || $needFts5Triggers) {
+                    // Delegate to migration script logic
+                    $sqliteVer = $db->query("SELECT sqlite_version()")->fetchColumn();
+                    $tokenizer = version_compare($sqliteVer, '3.43.0', '>=') ? 'trigram' : 'unicode61';
+                    if ($needFts5Tables) {
+                        foreach (['programs_fts', 'events_fts', 'artists_fts'] as $t) {
+                            if (!in_array($t, $allTablesNow)) {
+                                if ($t === 'programs_fts') $db->exec("CREATE VIRTUAL TABLE programs_fts USING fts5(title, description, categories, location, organizer, content=programs, content_rowid=id, tokenize='$tokenizer')");
+                                if ($t === 'events_fts')   $db->exec("CREATE VIRTUAL TABLE events_fts   USING fts5(name, description, content=events, content_rowid=id, tokenize='$tokenizer')");
+                                if ($t === 'artists_fts')  $db->exec("CREATE VIRTUAL TABLE artists_fts  USING fts5(name, content=artists, content_rowid=id, tokenize='$tokenizer')");
+                            }
+                        }
+                        $db->exec("INSERT INTO programs_fts(programs_fts) VALUES('rebuild')");
+                        $db->exec("INSERT INTO events_fts(events_fts) VALUES('rebuild')");
+                        $db->exec("INSERT INTO artists_fts(artists_fts) VALUES('rebuild')");
+                        $messages[] = ['type' => 'success', 'text' => "✅ สร้าง FTS5 virtual tables + rebuild index ($tokenizer tokenizer)"];
+                        $ran++;
+                    }
+                    if ($needFts5Triggers) {
+                        $triggerDefs = [
+                            "programs_ai AFTER INSERT ON programs BEGIN INSERT INTO programs_fts(rowid,title,description,categories,location,organizer) VALUES(new.id,new.title,COALESCE(new.description,''),COALESCE(new.categories,''),COALESCE(new.location,''),COALESCE(new.organizer,'')); END",
+                            "programs_au AFTER UPDATE ON programs BEGIN INSERT INTO programs_fts(programs_fts,rowid,title,description,categories,location,organizer) VALUES('delete',old.id,old.title,COALESCE(old.description,''),COALESCE(old.categories,''),COALESCE(old.location,''),COALESCE(old.organizer,'')); INSERT INTO programs_fts(rowid,title,description,categories,location,organizer) VALUES(new.id,new.title,COALESCE(new.description,''),COALESCE(new.categories,''),COALESCE(new.location,''),COALESCE(new.organizer,'')); END",
+                            "programs_ad AFTER DELETE ON programs BEGIN INSERT INTO programs_fts(programs_fts,rowid,title,description,categories,location,organizer) VALUES('delete',old.id,old.title,COALESCE(old.description,''),COALESCE(old.categories,''),COALESCE(old.location,''),COALESCE(old.organizer,'')); END",
+                            "events_ai AFTER INSERT ON events BEGIN INSERT INTO events_fts(rowid,name,description) VALUES(new.id,new.name,COALESCE(new.description,'')); END",
+                            "events_au AFTER UPDATE ON events BEGIN INSERT INTO events_fts(events_fts,rowid,name,description) VALUES('delete',old.id,old.name,COALESCE(old.description,'')); INSERT INTO events_fts(rowid,name,description) VALUES(new.id,new.name,COALESCE(new.description,'')); END",
+                            "events_ad AFTER DELETE ON events BEGIN INSERT INTO events_fts(events_fts,rowid,name,description) VALUES('delete',old.id,old.name,COALESCE(old.description,'')); END",
+                            "artists_ai AFTER INSERT ON artists BEGIN INSERT INTO artists_fts(rowid,name) VALUES(new.id,new.name); END",
+                            "artists_au AFTER UPDATE ON artists BEGIN INSERT INTO artists_fts(artists_fts,rowid,name) VALUES('delete',old.id,old.name); INSERT INTO artists_fts(rowid,name) VALUES(new.id,new.name); END",
+                            "artists_ad AFTER DELETE ON artists BEGIN INSERT INTO artists_fts(artists_fts,rowid,name) VALUES('delete',old.id,old.name); END",
+                        ];
+                        foreach ($triggerDefs as $td) {
+                            $name = strtok($td, ' ');
+                            if (!in_array($name, $allTriggersNow)) $db->exec("CREATE TRIGGER $td");
+                        }
+                        $messages[] = ['type' => 'success', 'text' => "✅ สร้าง FTS5 sync triggers (9 triggers)"];
+                        $ran++;
+                    }
+                }
+
+                // artists social columns (v9.5.0)
+                if (in_array('artists', $existingTables)) {
+                    $artistCols2 = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    foreach (['social_facebook', 'social_instagram', 'social_twitter', 'social_tiktok'] as $sc) {
+                        if (!in_array($sc, $artistCols2)) {
+                            $db->exec("ALTER TABLE artists ADD COLUMN $sc TEXT DEFAULT NULL");
+                            $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>artists.$sc</strong>"];
+                            $ran++;
+                        }
+                    }
+                }
+
+                // events.ticket_url column (v9.5.0)
+                if (in_array('events', $existingTables)) {
+                    $evCols3 = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
+                    if (!in_array('ticket_url', $evCols3)) {
+                        $db->exec("ALTER TABLE events ADD COLUMN ticket_url TEXT DEFAULT NULL");
+                        $messages[] = ['type' => 'success', 'text' => "✅ เพิ่ม column <strong>events.ticket_url</strong>"];
+                        $ran++;
+                    }
+                }
+
+                // event_requests table (v9.3.0)
+                $allTablesNow2 = $db->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
+                if (!in_array('event_requests', $allTablesNow2)) {
+                    $db->exec("CREATE TABLE event_requests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        request_type TEXT NOT NULL,
+                        event_id INTEGER,
+                        name TEXT,
+                        description TEXT,
+                        start_date DATE,
+                        end_date DATE,
+                        requester_name TEXT NOT NULL,
+                        requester_email TEXT,
+                        note TEXT,
+                        status TEXT DEFAULT 'pending',
+                        admin_note TEXT,
+                        reviewed_at DATETIME,
+                        reviewed_by TEXT,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )");
+                    $messages[] = ['type' => 'success', 'text' => "✅ สร้างตาราง <strong>event_requests</strong> (Event Request system)"];
+                    $ran++;
                 }
 
                 if ($ran === 0) {
@@ -1063,6 +1471,7 @@ $dirChecks = [
     'uploads_artists' => ['label' => 'uploads/artists/', 'path' => __DIR__ . '/uploads/artists', 'need_write' => true,  'purpose' => $isEn ? 'Stores artist display & cover pictures (v6.0.0)' : 'เก็บ display/cover picture ของ artist (v6.0.0)'],
     'uploads_events'  => ['label' => 'uploads/events/',  'path' => __DIR__ . '/uploads/events',  'need_write' => true,  'purpose' => $isEn ? 'Stores event gallery pictures (v7.0.0)'           : 'เก็บรูปภาพ gallery ของ event (v7.0.0)'],
     'cache_favorites' => ['label' => 'cache/favorites/', 'path' => __DIR__ . '/cache/favorites', 'need_write' => true,  'purpose' => $isEn ? 'Stores anonymous favorites JSON files' : 'เก็บไฟล์ favorites (anonymous)'],
+    'cache_logs'      => ['label' => 'cache/logs/',      'path' => __DIR__ . '/cache/logs',      'need_write' => true,  'purpose' => $isEn ? 'Stores admin audit log files (v14.0.0)'   : 'เก็บ admin audit log files (v14.0.0)'],
 ];
 foreach ($dirChecks as &$dc) {
     $dc['exists'] = is_dir($dc['path']);
@@ -1113,6 +1522,7 @@ $programCount = 0;
 $eventCount = 0;
 $adminCount = 0;
 $hasRoleColumn = false;
+$hasAdminTwofaColumns = false;
 $hasThemeColumn = false;
 $hasEventEmailColumn = false;
 $hasTimezoneColumn = false;
@@ -1122,8 +1532,22 @@ $hasStreamUrlColumn = false;
 $hasContactChannelsTable = false;
 $hasArtistTables = false;
 $hasArtistPictureColumns = false;
+$hasArtistSocialColumns = false;
 $hasRequestReviewColumns = false;
+$hasEventRequestsTable = false;
+$hasArtistRequestsTable = false;
+$hasArtistRequestIndexes = false;
+$hasTicketUrlColumn = false;
 $hasGalleryTemplateColumn = false;
+$hasCoverImageColumn          = false;
+$hasCoverImageCardColumn      = false;
+$hasHeaderCoverImageColumn    = false;
+$hasCreatedByUserIdColumn     = false;
+$hasEventOrganizersTable      = false;
+$hasOrganizerIndexes          = false;
+$hasFts5Tables                = false;
+$hasFts5Triggers         = false;
+$hasVenuesTables              = false;
 $hasIndexes = false;
 $dbError = '';
 $existingIndexes = [];
@@ -1139,13 +1563,20 @@ if ($dbExists) {
             $tableStatus[$t] = in_array($t, $existingTables);
         }
         $tableStatus['event_pictures'] = in_array('event_pictures', $existingTables);
+        $hasEventOrganizersTable = in_array('event_organizers', $existingTables);
+        $hasEventRequestsTable = in_array('event_requests', $existingTables);
+        $hasArtistRequestsTable = in_array('artist_requests', $existingTables);
         $hasContactChannelsTable = in_array('contact_channels', $existingTables);
         $hasArtistTables = in_array('artists', $existingTables)
                         && in_array('program_artists', $existingTables)
                         && in_array('artist_variants', $existingTables);
+        $hasVenuesTables = in_array('venues', $existingTables)
+                        && in_array('venue_variants', $existingTables);
         if (in_array('artists', $existingTables)) {
             $acols = $db->query("PRAGMA table_info(artists)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasArtistPictureColumns = in_array('display_picture', $acols) && in_array('cover_picture', $acols);
+            $hasArtistSocialColumns  = in_array('social_facebook', $acols) && in_array('social_instagram', $acols)
+                                    && in_array('social_twitter', $acols) && in_array('social_tiktok', $acols);
         }
         if (in_array('program_requests', $existingTables)) {
             $reqcols = $db->query("PRAGMA table_info(program_requests)")->fetchAll(PDO::FETCH_COLUMN, 1);
@@ -1164,13 +1595,23 @@ if ($dbExists) {
             $adminCount = (int)$db->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();
             $cols = $db->query("PRAGMA table_info(admin_users)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasRoleColumn = in_array('role', $cols);
+            $hasAdminTwofaColumns = in_array('twofa_enabled', $cols)
+                                && in_array('twofa_secret', $cols)
+                                && in_array('twofa_backup_codes', $cols)
+                                && in_array('twofa_confirmed_at', $cols)
+                                && in_array('twofa_last_used_step', $cols);
         }
         if ($tableStatus['events'] ?? false) {
             $ecols = $db->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_COLUMN, 1);
             $hasThemeColumn = in_array('theme', $ecols);
             $hasEventEmailColumn = in_array('email', $ecols);
             $hasTimezoneColumn = in_array('timezone', $ecols);
-            $hasGalleryTemplateColumn = in_array('gallery_template', $ecols);
+            $hasTicketUrlColumn = in_array('ticket_url', $ecols);
+            $hasGalleryTemplateColumn  = in_array('gallery_template', $ecols);
+            $hasCoverImageColumn       = in_array('cover_image', $ecols);
+            $hasCoverImageCardColumn   = in_array('cover_image_card', $ecols);
+            $hasHeaderCoverImageColumn = in_array('header_cover_image', $ecols);
+            $hasCreatedByUserIdColumn  = in_array('created_by_user_id', $ecols);
         }
         $hasTitleColumn = false;
         $hasProgramTypeColumn = false;
@@ -1185,6 +1626,17 @@ if ($dbExists) {
         $existingIndexes = $db->query("SELECT name FROM sqlite_master WHERE type='index'")->fetchAll(PDO::FETCH_COLUMN);
         $requiredIndexes = ['idx_programs_event_id', 'idx_programs_start', 'idx_credits_event_id'];
         $hasIndexes = count(array_intersect($requiredIndexes, $existingIndexes)) === count($requiredIndexes);
+        $organizerIndexes = ['idx_event_organizers_event_id', 'idx_event_organizers_user_id', 'idx_events_created_by_user_id'];
+        $hasOrganizerIndexes = count(array_intersect($organizerIndexes, $existingIndexes)) === count($organizerIndexes);
+        $artistRequestIndexes = ['idx_artist_requests_status', 'idx_artist_requests_created_at', 'idx_artist_requests_requester_user_id'];
+        $hasArtistRequestIndexes = count(array_intersect($artistRequestIndexes, $existingIndexes)) === count($artistRequestIndexes);
+
+        // FTS5 tables
+        $allTables = $db->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
+        $hasFts5Tables = in_array('programs_fts', $allTables) && in_array('events_fts', $allTables) && in_array('artists_fts', $allTables);
+        // FTS5 triggers (check for at least the 3 AI triggers)
+        $allTriggers = $db->query("SELECT name FROM sqlite_master WHERE type='trigger'")->fetchAll(PDO::FETCH_COLUMN);
+        $hasFts5Triggers = in_array('programs_ai', $allTriggers) && in_array('events_ai', $allTriggers) && in_array('artists_ai', $allTriggers);
 
         unset($db);
     } catch (PDOException $e) {
@@ -1192,7 +1644,7 @@ if ($dbExists) {
     }
 }
 
-$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables && $hasArtistPictureColumns && $hasRequestReviewColumns && $hasGalleryTemplateColumn;
+$allTablesOk = $dbExists && !empty($tableStatus) && !in_array(false, $tableStatus) && $hasRoleColumn && $hasAdminTwofaColumns && $hasThemeColumn && $hasEventEmailColumn && $hasTimezoneColumn && $hasTicketUrlColumn && $hasIndexes && $hasTitleColumn && $hasProgramTypeColumn && $hasStreamUrlColumn && $hasContactChannelsTable && $hasArtistTables && $hasArtistPictureColumns && $hasArtistSocialColumns && $hasRequestReviewColumns && $hasGalleryTemplateColumn && $hasCoverImageColumn && $hasCoverImageCardColumn && $hasHeaderCoverImageColumn && $hasFts5Tables && $hasFts5Triggers && $hasEventRequestsTable && $hasArtistRequestsTable && $hasArtistRequestIndexes && $hasCreatedByUserIdColumn && $hasEventOrganizersTable && $hasOrganizerIndexes && $hasVenuesTables;
 
 // Migration checklist — ใช้ตรวจว่าค้าง migration ตัวไหน
 // แต่ละรายการมี: label, version, applied (bool), action (string action name สำหรับรัน)
@@ -1211,7 +1663,38 @@ $migrationChecks = $dbExists ? [
     ['label' => 'artists.display_picture + artists.cover_picture columns',       'version' => 'v6.0.0', 'applied' => $hasArtistPictureColumns,                                    'action' => 'add_artist_tables'],
     ['label' => 'program_requests.admin_note + reviewed_at + reviewed_by columns', 'version' => 'v6.1.3', 'applied' => $hasRequestReviewColumns,                                  'action' => 'run_all_migrations'],
     ['label' => 'event_pictures table + events.gallery_template column',           'version' => 'v7.0.0', 'applied' => ($tableStatus['event_pictures'] ?? false) && $hasGalleryTemplateColumn, 'action' => 'add_event_pictures_table'],
+    ['label' => 'events.cover_image column (Hero Carousel)',                        'version' => 'v8.0.0', 'applied' => $hasCoverImageColumn,                                           'action' => 'run_all_migrations'],
+    ['label' => 'events.cover_image_card column (Event Card 4:3)',                 'version' => 'v8.0.0', 'applied' => $hasCoverImageCardColumn,                                        'action' => 'run_all_migrations'],
+    ['label' => 'FTS5 virtual tables (programs_fts, events_fts, artists_fts)',     'version' => 'v9.0.0', 'applied' => $hasFts5Tables,                                                    'action' => 'run_all_migrations'],
+    ['label' => 'events.header_cover_image column (Header Cover 4:1)',             'version' => 'v9.2.0', 'applied' => $hasHeaderCoverImageColumn,                                        'action' => 'run_all_migrations'],
+    ['label' => 'FTS5 sync triggers (9 triggers for INSERT/UPDATE/DELETE)',         'version' => 'v9.0.0', 'applied' => $hasFts5Triggers,                                                  'action' => 'run_all_migrations'],
+    ['label' => 'event_requests table (Event Request system)',                      'version' => 'v9.3.0', 'applied' => $hasEventRequestsTable,                                             'action' => 'run_all_migrations'],
+    ['label' => 'artist_requests table (Organizer Artist Request system)',          'version' => 'v12.3.0','applied' => $hasArtistRequestsTable && $hasArtistRequestIndexes,                 'action' => 'run_all_migrations'],
+    ['label' => 'artists.social_facebook/instagram/twitter/tiktok columns',        'version' => 'v9.5.0', 'applied' => $hasArtistSocialColumns,                                                'action' => 'run_all_migrations'],
+    ['label' => 'events.ticket_url column',                                         'version' => 'v9.5.0', 'applied' => $hasTicketUrlColumn,                                                    'action' => 'run_all_migrations'],
+    ['label' => 'admin_users twofa_* columns (Admin TOTP 2FA)',                     'version' => 'v10.0.0','applied' => $hasAdminTwofaColumns,                                                'action' => 'add_role_column'],
+    ['label' => 'events.created_by_user_id column (Organizer audit)',               'version' => 'v12.0.0','applied' => $hasCreatedByUserIdColumn,                                           'action' => 'run_all_migrations'],
+    ['label' => 'event_organizers table (Organizer assignments)',                   'version' => 'v12.0.0','applied' => $hasEventOrganizersTable,                                            'action' => 'run_all_migrations'],
+    ['label' => 'venues + venue_variants tables (Venue dedup system)',               'version' => 'v16.0.0','applied' => $hasVenuesTables,                                                   'action' => 'run_all_migrations'],
+    ['label' => 'Organizer ownership indexes (3 indexes)',                          'version' => 'v12.0.0','applied' => $hasOrganizerIndexes,                                               'action' => 'run_all_migrations'],
+    ['label' => 'cache/logs/ directory (Admin Audit Log file storage)',            'version' => 'v14.0.0','applied' => is_dir(__DIR__ . '/cache/logs') && is_writable(__DIR__ . '/cache/logs'), 'action' => null],
+    ['label' => 'config/webpush-config.json (Web Push VAPID config)',              'version' => 'v15.0.0','applied' => file_exists(__DIR__ . '/config/webpush-config.json'),                     'action' => null],
+    ['label' => 'service-worker.js (PWA Service Worker)',                          'version' => 'v15.0.0','applied' => file_exists(__DIR__ . '/service-worker.js'),                               'action' => null],
+    ['label' => 'manifest.json (Web App Manifest)',                                'version' => 'v15.0.0','applied' => file_exists(__DIR__ . '/manifest.json'),                                    'action' => null],
+    ['label' => 'icon/icon-192.png (PWA icon)',                                    'version' => 'v15.0.0','applied' => file_exists(__DIR__ . '/icon/icon-192.png'),                               'action' => null],
 ] : [];
+foreach ($migrationChecks as $i => &$migrationCheck) {
+    $migrationCheck['_order'] = $i;
+}
+unset($migrationCheck);
+usort($migrationChecks, function($a, $b) {
+    $versionCompare = version_compare(ltrim($a['version'], 'v'), ltrim($b['version'], 'v'));
+    return $versionCompare !== 0 ? $versionCompare : ($a['_order'] <=> $b['_order']);
+});
+foreach ($migrationChecks as &$migrationCheck) {
+    unset($migrationCheck['_order']);
+}
+unset($migrationCheck);
 $pendingMigrations = array_filter($migrationChecks, fn($m) => !$m['applied'] && $m['action'] !== null);
 $allMigrationsApplied = $dbExists && empty($pendingMigrations);
 
@@ -1389,6 +1872,30 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
         .setup-container {
             max-width: 860px;
             margin: 0 auto;
+        }
+        .setup-top-nav {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .setup-top-nav a {
+            color: #333;
+            background: rgba(255,255,255,0.82);
+            border: 1px solid rgba(233,30,99,0.18);
+            border-radius: 999px;
+            padding: 7px 13px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            transition: all 0.15s;
+        }
+        .setup-top-nav a:hover {
+            background: white;
+            color: var(--sakura-dark, #E91E63);
+            transform: translateY(-1px);
         }
 
         /* Header */
@@ -1683,6 +2190,10 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
 </head>
 <body>
 <div class="setup-container">
+    <div class="setup-top-nav">
+        <a href="admin/"><?= $isEn ? '⚙️ Admin Panel' : '⚙️ ไป Admin' ?></a>
+        <a href="index.php"><?= $isEn ? '← Homepage' : '← หน้าแรก' ?></a>
+    </div>
 
     <!-- Header -->
     <div class="setup-header">
@@ -2087,6 +2598,13 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                     <?php echo $hasRoleColumn ? 'exists' : 'missing'; ?>
                 </span>
             </div>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasAdminTwofaColumns ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>admin_users.twofa_*</code> <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Admin TOTP 2FA columns (v10.0.0)' : 'คอลัมน์ Admin TOTP 2FA (v10.0.0)' ?></span></span>
+                <span class="check-value <?php echo $hasAdminTwofaColumns ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasAdminTwofaColumns ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
             <?php endif; ?>
 
             <!-- Event Email Column -->
@@ -2104,6 +2622,20 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                 <span class="check-label"><code>events.timezone</code> <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Per-event timezone for ICS export & display (v4.0.0)' : 'Timezone ต่อ event สำหรับ ICS export และแสดงผล (v4.0.0)' ?></span></span>
                 <span class="check-value <?php echo $hasTimezoneColumn ? 'ok' : 'warning'; ?>">
                     <?php echo $hasTimezoneColumn ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasCreatedByUserIdColumn ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>events.created_by_user_id</code> <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Organizer creator audit (v12.0.0)' : 'audit ผู้สร้าง event สำหรับ Organizer (v12.0.0)' ?></span></span>
+                <span class="check-value <?php echo $hasCreatedByUserIdColumn ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasCreatedByUserIdColumn ? 'exists' : 'missing'; ?>
+                </span>
+            </div>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasEventOrganizersTable ? '✅' : '⚠️'; ?></span>
+                <span class="check-label"><code>event_organizers</code> <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Organizer event assignments (v12.0.0)' : 'ตาราง assign organizer ต่อ event (v12.0.0)' ?></span></span>
+                <span class="check-value <?php echo $hasEventOrganizersTable ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasEventOrganizersTable ? 'exists' : 'missing'; ?>
                 </span>
             </div>
             <?php endif; ?>
@@ -2125,6 +2657,13 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
                 <span class="check-label">Performance Indexes <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'Speed up queries 2–5x' : 'เพิ่มความเร็ว query 2-5x' ?></span></span>
                 <span class="check-value <?php echo $hasIndexes ? 'ok' : 'warning'; ?>">
                     <?php echo $hasIndexes ? 'ok' : 'missing'; ?>
+                </span>
+            </div>
+            <div class="check-row">
+                <span class="check-icon"><?php echo $hasOrganizerIndexes ? '✅' : '⚠️'; ?></span>
+                <span class="check-label">Organizer Indexes <span style="color:#999;font-size:0.82rem;"><?= $isEn ? 'event_organizers + created_by indexes (v12.0.0)' : 'indexes สำหรับ event_organizers + created_by (v12.0.0)' ?></span></span>
+                <span class="check-value <?php echo $hasOrganizerIndexes ? 'ok' : 'warning'; ?>">
+                    <?php echo $hasOrganizerIndexes ? 'ok' : 'missing'; ?>
                 </span>
             </div>
         </div>

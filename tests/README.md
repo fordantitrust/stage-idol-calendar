@@ -19,6 +19,7 @@ tests/
 ├── ProgramTypeTest.php      # Program type system (schema, CRUD, API filter, UI badges)
 ├── FeedTest.php             # ICS feed (icsEscape, icsFold, CATEGORIES, ETag, cache)
 ├── StreamUrlTest.php        # Stream URL field (schema, CRUD, admin badge, public UI)
+├── EmailNotificationTest.php # SMTP email notifications for Program/Event Requests
 ├── run-tests.php            # Main test runner script
 └── README.md                # This file
 ```
@@ -46,6 +47,7 @@ php tests/run-tests.php EventEmailTest
 php tests/run-tests.php ProgramTypeTest
 php tests/run-tests.php FeedTest
 php tests/run-tests.php StreamUrlTest
+php tests/run-tests.php EmailNotificationTest
 ```
 
 ### Run Specific Test Method
@@ -211,9 +213,29 @@ php tests/run-tests.php CacheTest::testDataVersionCacheCreation
 - ✅ ICS feed emits `URL:` property when stream_url set
 - ✅ `stream_url` validated to https?:// scheme; other schemes stored as NULL
 
-**Total: 1630 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
+### EmailNotificationTest (13 unique tests / 554 cumulative)
+- ✅ `config.php` loads `config/email.php` and `functions/email.php`
+- ✅ Default email configuration is disabled, uses SMTP port 587, and TLS
+- ✅ Recipient parser accepts comma/semicolon/newline-separated addresses, deduplicates, and drops invalid values
+- ✅ HTML request email body escapes user-provided content; plain text remains readable
+- ✅ Test, Program Request, and EventRequest subjects use configured site name instead of hardcoded Idol Stage text
+- ✅ Admin email links strip `/api` and duplicate `/admin` script directories before linking to `/admin/`
+- ✅ Disabled guard runs before opening an SMTP socket
+- ✅ Program Request and Event Request APIs trigger notification helpers after successful insert
+- ✅ Admin API exposes `email_config_get`, `email_config_save`, and `email_test_send`
+- ✅ Admin API defensively loads `functions/email.php` before using email helpers
+- ✅ Admin UI includes Email Settings sub-tab, SMTP inputs, recipients field, save, and test actions
+- ✅ Admin i18n includes Email settings labels/messages
+- ✅ Program Requests and Event Requests empty states render matching centered muted "No requests" rows
 
-> **Note**: Test counts are cumulative — the runner uses `get_defined_functions()` which accumulates all previously-loaded test functions. The number shown per-suite = all test functions in memory at that point. Each suite contributes its unique functions; the grand total = sum of all per-suite cumulative counts (1630 = 7+17+38+49+100+119+143+157+176+211+291+322).
+### TwoFactorAuthTest (9 unique tests / 563 cumulative)
+- ✅ RFC 6238 TOTP vectors, Base32 helpers, otpauth URI, verify window, and replay rejection
+- ✅ One-time backup codes are hashed, consumed once, and not exposed as plaintext
+- ✅ Admin 2FA schema, manual migration sources, schema readiness file flag, API endpoints, login flow, UI controls, and i18n keys are covered
+
+**Total: 7857 automated tests** (all pass on PHP 8.1, 8.2, 8.3, 8.4, 8.5)
+
+> **Note**: Test counts are cumulative — the runner uses `get_defined_functions()` which accumulates all previously-loaded test functions. The number shown per-suite = all test functions in memory at that point. Each suite contributes its unique functions; the grand total is the sum of all per-suite cumulative counts.
 
 ## 🎯 Expected Output
 
@@ -242,10 +264,15 @@ EventEmailTest            ✓ PASS (176 passed, 0 failed)
 ProgramTypeTest           ✓ PASS (211 passed, 0 failed)
 FeedTest                  ✓ PASS (291 passed, 0 failed)
 StreamUrlTest             ✓ PASS (322 passed, 0 failed)
+...
+EmailNotificationTest     ✓ PASS (554 passed, 0 failed)
+TwoFactorAuthTest         ✓ PASS (563 passed, 0 failed)
+...
+Fts5Test                  ✓ PASS (833 passed, 0 failed)
 
 ──────────────────────────────────────────────────────
-Total: 1630 tests
-Passed: 1630
+Total: 7857 tests
+Passed: 7857
 Pass Rate: 100.0%
 ──────────────────────────────────────────────────────
 

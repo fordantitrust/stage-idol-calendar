@@ -6,9 +6,25 @@
 require_once 'config.php';
 send_security_headers();
 
-$siteTitle = get_site_title();
-$theme     = get_site_theme();
-$basePath  = get_base_path();
+function portal_social_svg(string $network): string {
+    switch ($network) {
+        case 'facebook':
+            return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#4267B2" aria-hidden="true"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>';
+        case 'instagram':
+            return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#E1306C" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>';
+        case 'twitter':
+            return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#000" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+        case 'tiktok':
+            return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#010101" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.3 6.3 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.75a4.85 4.85 0 01-1.01-.06z"/></svg>';
+        default:
+            return '';
+    }
+}
+
+$siteTitle     = get_site_title();
+$theme         = get_site_theme();
+$basePath      = get_base_path();
+$headerCoverBg = get_header_cover_bg();
 
 // ---- Query cache ----
 $cacheFile = 'query_portal.json';
@@ -38,6 +54,7 @@ if ($cached !== false) {
     // ---- Groups ----
     $stmt = $db->query("
         SELECT a.id, a.name,
+               a.social_facebook, a.social_instagram, a.social_twitter, a.social_tiktok,
                (SELECT COUNT(*) FROM artists m WHERE m.group_id = a.id AND m.is_group = 0) AS member_count,
                $pcExpr AS program_count
         FROM artists a
@@ -49,6 +66,7 @@ if ($cached !== false) {
     // ---- All non-group artists ----
     $stmt = $db->query("
         SELECT a.id, a.name, a.group_id,
+               a.social_facebook, a.social_instagram, a.social_twitter, a.social_tiktok,
                $pcExpr AS program_count
         FROM artists a
         WHERE a.is_group = 0
@@ -74,6 +92,26 @@ if ($cached !== false) {
     ]);
 }
 
+// FTS5 server-side filter when ?q= present
+$portalQuery   = trim(get_sanitized_param('q', '', 200));
+$ftsArtistIds  = null;
+if ($portalQuery !== '' && mb_strlen($portalQuery) >= 3) {
+    try {
+        $dbSearch = new PDO('sqlite:' . DB_PATH);
+        $dbSearch->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $ftsRows     = fts5_search_artists($dbSearch, $portalQuery, 500);
+        $ftsArtistIds = array_flip(array_column($ftsRows, 'id'));
+    } catch (Exception $e) {
+        $ftsArtistIds = [];
+    }
+}
+
+// Apply FTS filter to groups and soloArtists
+if ($ftsArtistIds !== null) {
+    $groups      = array_values(array_filter($groups, fn($g) => isset($ftsArtistIds[$g['id']])));
+    $soloArtists = array_values(array_filter($soloArtists, fn($a) => isset($ftsArtistIds[$a['id']])));
+}
+
 $totalGroups  = count($groups);
 $totalSolos   = count($soloArtists);
 $totalMembers = 0;
@@ -85,6 +123,9 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#E91E63">
+    <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?> – Artist Portal</title>
     <?php
     // ── SEO meta tags ─────────────────────────────────────────────────────────
@@ -135,7 +176,7 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
 <body class="theme-<?php echo htmlspecialchars($theme, ENT_QUOTES, 'UTF-8'); ?>">
 <div class="container wide">
 
-    <header>
+    <header<?php if ($headerCoverBg): ?> class="has-site-cover" style="--header-cover-url: url('<?php echo htmlspecialchars($basePath . '/' . $headerCoverBg, ENT_QUOTES, 'UTF-8'); ?>')"<?php endif; ?>>
         <div class="header-top-left">
             <a href="<?php echo $basePath; ?>/" class="home-icon-btn" title="หน้าแรก">
                 <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -235,6 +276,22 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
                     <?php else: ?>
                     <p class="portal-no-members" data-i18n="portal.noMembers">ยังไม่มีสมาชิก</p>
                     <?php endif; ?>
+                    <?php
+                    $gSocials = array_filter([
+                        'facebook'  => $g['social_facebook']  ?? '',
+                        'instagram' => $g['social_instagram'] ?? '',
+                        'twitter'   => $g['social_twitter']   ?? '',
+                        'tiktok'    => $g['social_tiktok']    ?? '',
+                    ]);
+                    if (!empty($gSocials)): ?>
+                    <div class="portal-social-links">
+                        <?php foreach ($gSocials as $net => $url): ?>
+                        <a href="<?php echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8'); ?>"
+                           class="portal-social-icon portal-social-<?php echo $net; ?>"
+                           target="_blank" rel="noopener noreferrer"><?php echo portal_social_svg($net); ?></a>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -256,15 +313,30 @@ foreach ($groups as $g) $totalMembers += (int)$g['member_count'];
                     $aId    = (int)$a['id'];
                     $aName  = htmlspecialchars($a['name'], ENT_QUOTES, 'UTF-8');
                     $aProg  = (int)$a['program_count'];
+                    $aSocials = array_filter([
+                        'facebook'  => $a['social_facebook']  ?? '',
+                        'instagram' => $a['social_instagram'] ?? '',
+                        'twitter'   => $a['social_twitter']   ?? '',
+                        'tiktok'    => $a['social_tiktok']    ?? '',
+                    ]);
                 ?>
-                <a href="<?php echo $basePath; ?>/artist/<?php echo $aId; ?>"
-                   class="portal-solo-card"
-                   data-name="<?php echo strtolower($a['name']); ?>">
-                    <span class="portal-solo-name"><?php echo $aName; ?></span>
-                    <?php if ($aProg > 0): ?>
-                    <span class="portal-solo-prog"><?php echo $aProg; ?> <span data-i18n="portal.programs">programs</span></span>
+                <div class="portal-solo-card" data-name="<?php echo strtolower($a['name']); ?>">
+                    <a href="<?php echo $basePath; ?>/artist/<?php echo $aId; ?>" class="portal-solo-name-link">
+                        <span class="portal-solo-name"><?php echo $aName; ?></span>
+                        <?php if ($aProg > 0): ?>
+                        <span class="portal-solo-prog"><?php echo $aProg; ?> <span data-i18n="portal.programs">programs</span></span>
+                        <?php endif; ?>
+                    </a>
+                    <?php if (!empty($aSocials)): ?>
+                    <div class="portal-social-links">
+                        <?php foreach ($aSocials as $net => $url): ?>
+                        <a href="<?php echo htmlspecialchars($url, ENT_QUOTES, 'UTF-8'); ?>"
+                           class="portal-social-icon portal-social-<?php echo $net; ?>"
+                           target="_blank" rel="noopener noreferrer"><?php echo portal_social_svg($net); ?></a>
+                        <?php endforeach; ?>
+                    </div>
                     <?php endif; ?>
-                </a>
+                </div>
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>

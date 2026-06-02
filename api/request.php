@@ -33,6 +33,8 @@ try {
     exit;
 }
 
+audit_api_context();
+
 $action = $_GET['action'] ?? '';
 
 switch ($action) {
@@ -55,6 +57,8 @@ function submitRequest() {
 
     $ip = get_client_ip();
     if (!checkRateLimit($ip)) {
+        audit_log(['action' => 'program_request_blocked', 'outcome' => 'blocked', 'error_code' => 'rate_limit',
+            'entity_type' => 'program_request', 'metadata' => ['ip' => $ip]]);
         http_response_code(429);
         jsonResponse(false, null, 'Too many requests');
     }
@@ -118,9 +122,35 @@ function submitRequest() {
             VALUES (:request_type, :program_id, :summary, :start, :end, :location, :organizer, :description, :categories, :requester_name, :requester_email, :note, :event_id)
         ");
         $stmt->execute($data);
+        $requestId = $db->lastInsertId();
         recordRequest($ip);
-        jsonResponse(true, ['id' => $db->lastInsertId()], 'Request submitted');
+        audit_log(['action' => 'program_request_create', 'outcome' => 'success',
+            'entity_type' => 'program_request', 'entity_id' => (int)$requestId,
+            'entity_label' => mb_substr($data[':summary'] ?? '', 0, 80),
+            'metadata' => [
+                'request_type'    => $data[':request_type'],
+                'requester_name'  => $data[':requester_name'],
+                'requester_email' => $data[':requester_email'] ?: null,
+                'event_slug'      => $input['event_slug'] ?? null,
+                'program_id'      => $data[':program_id'],
+            ]]);
+
+        $notifyPayload = $input;
+        $notifyPayload['event_slug'] = $input['event_slug'] ?? '';
+        $notifyPayload['event_name'] = '';
+        if (!empty($notifyPayload['event_slug'])) {
+            $eventMeta = get_event_by_slug($notifyPayload['event_slug']);
+            if (is_array($eventMeta)) {
+                $notifyPayload['event_name'] = $eventMeta['name'] ?? '';
+            }
+        }
+        email_notify_program_request_created($requestId, $notifyPayload);
+
+        jsonResponse(true, ['id' => $requestId], 'Request submitted');
     } catch (PDOException $e) {
+        audit_log(['action' => 'program_request_create', 'outcome' => 'failure', 'error_code' => 'db_error',
+            'entity_type' => 'program_request',
+            'metadata' => ['request_type' => $data[':request_type'] ?? null, 'requester_name' => $data[':requester_name'] ?? null]]);
         jsonResponse(false, null, 'Submit failed');
     }
 }

@@ -635,3 +635,84 @@ function testGetAllActiveEventsExcludesInactiveEvent($test) {
     $stmt = null;
     $db = null;
 }
+
+// ── Repository hygiene & directory hardening (LOW-2 / LOW-3 / LOW-4) ─────────
+
+function testGitignoreBlocksDbFiles($test) {
+    $src = @file_get_contents(__DIR__ . '/../.gitignore');
+    $test->assertTrue($src !== false, '.gitignore should be readable');
+    $test->assertTrue(
+        preg_match('/^\*\.db\b/m', $src) === 1,
+        '.gitignore must include a top-level `*.db` rule to prevent accidental DB commits'
+    );
+}
+
+function testGitignoreBlocksRootTestScripts($test) {
+    $src = @file_get_contents(__DIR__ . '/../.gitignore');
+    $test->assertTrue(
+        preg_match('/^test-\*\.php\b/m', $src) === 1,
+        '.gitignore must include `test-*.php` to prevent root-level debug scripts from being committed (see HIGH-1)'
+    );
+}
+
+function testGitignoreBlocksRootDebugScripts($test) {
+    $src = @file_get_contents(__DIR__ . '/../.gitignore');
+    $test->assertTrue(
+        preg_match('/^debug-\*\.php\b/m', $src) === 1,
+        '.gitignore should include `debug-*.php` for the same reason as test-*.php'
+    );
+}
+
+function testConfigHtaccessDeniesAll($test) {
+    $src = @file_get_contents(__DIR__ . '/../config/.htaccess');
+    $test->assertTrue($src !== false, 'config/.htaccess should be readable');
+    $test->assertTrue(
+        strpos($src, 'Require all denied') !== false,
+        'config/.htaccess must use Apache 2.4 `Require all denied` to block ALL extensions'
+    );
+    // Also must keep 2.2 fallback so the deny still applies on older hosts
+    $test->assertTrue(
+        strpos($src, 'Deny from all') !== false,
+        'config/.htaccess must retain `Deny from all` fallback for Apache 2.2 / mod_access_compat'
+    );
+    // Old extension-only FilesMatch must be gone
+    $test->assertFalse(
+        strpos($src, 'FilesMatch') !== false && strpos($src, '(php|json)') !== false,
+        'config/.htaccess should no longer rely on the extension-only FilesMatch pattern'
+    );
+}
+
+function testConfigHtaccessNoLeakyAllow($test) {
+    // Old file had `Allow from 127.0.0.1` etc. which become inert under Apache 2.4
+    // without mod_access_compat. After the rewrite there should be no
+    // `Allow from` lines at all.
+    $src = @file_get_contents(__DIR__ . '/../config/.htaccess');
+    $test->assertFalse(
+        preg_match('/^\s*Allow\s+from\b/mi', $src) === 1,
+        'config/.htaccess must not contain `Allow from` directives — deny-all is absolute'
+    );
+}
+
+function testToolsHtaccessDeniesAll($test) {
+    $src = @file_get_contents(__DIR__ . '/../tools/.htaccess');
+    $test->assertTrue($src !== false, 'tools/.htaccess should be readable');
+    $test->assertTrue(
+        strpos($src, 'Require all denied') !== false,
+        'tools/.htaccess must use Apache 2.4 `Require all denied`'
+    );
+    $test->assertTrue(
+        strpos($src, 'Deny from all') !== false,
+        'tools/.htaccess must retain `Deny from all` fallback for Apache 2.2 / mod_access_compat'
+    );
+}
+
+function testToolsHtaccessNoLanAllow($test) {
+    // The previous file allowed LAN CIDRs (192.168.0.0/16, 10.0.0.0/8) which
+    // are unsafe on shared / cloud hosting. After hardening, no `Allow from`
+    // lines should remain.
+    $src = @file_get_contents(__DIR__ . '/../tools/.htaccess');
+    $test->assertFalse(
+        preg_match('/^\s*Allow\s+from\b/mi', $src) === 1,
+        'tools/.htaccess must not contain `Allow from` directives — migration scripts are CLI-only'
+    );
+}

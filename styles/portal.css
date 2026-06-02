@@ -254,7 +254,6 @@
     border: 1.5px solid #f9d0e0;
     border-radius: 10px;
     padding: 12px 14px;
-    text-decoration: none;
     color: #1f2937;
     transition: background .12s, border-color .12s, box-shadow .12s;
 }
@@ -262,6 +261,17 @@
     background: #fff5f8;
     border-color: var(--sakura-medium, #F48FB1);
     box-shadow: 0 2px 8px rgba(233,30,99,.09);
+}
+
+.portal-solo-name-link {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-decoration: none;
+    color: inherit;
+}
+.portal-solo-name-link:hover .portal-solo-name {
+    color: var(--sakura-dark, #E91E63);
 }
 
 .portal-solo-name {
@@ -273,6 +283,47 @@
 .portal-solo-prog {
     font-size: 0.78em;
     color: #9ca3af;
+}
+
+/* ── Social icons on portal cards ────────────────────────────────────────── */
+.portal-social-links {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px 14px;
+    border-top: 1px solid #fce7f3;
+    flex-wrap: wrap;
+}
+
+.portal-social-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #f3f4f6;
+    text-decoration: none;
+    transition: background .12s, transform .12s;
+    flex-shrink: 0;
+}
+.portal-social-icon:hover { background: #e5e7eb; transform: translateY(-1px); }
+.portal-social-facebook:hover  { background: #e7f0fb; }
+.portal-social-instagram:hover { background: #fce4ec; }
+.portal-social-twitter:hover   { background: #f3f4f6; }
+.portal-social-tiktok:hover    { background: #f0f0f0; }
+
+/* Social links on group cards need no padding override (group card layout) */
+.portal-group-card .portal-social-links {
+    padding: 8px 14px;
+    margin-top: 0;
+}
+
+/* Social links on solo cards */
+.portal-solo-card .portal-social-links {
+    padding: 0;
+    margin-top: 6px;
+    border-top: none;
 }
 
 /* ── Empty / no-results ──────────────────────────────────────────────────── */

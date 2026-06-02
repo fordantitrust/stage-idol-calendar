@@ -72,14 +72,18 @@ Click **"Initialize Database"** to:
 1. Create the `data/calendar.db` file
 2. Create all required tables:
    - `programs` — Individual show/performance records
-   - `events` — Event/convention metadata
-   - `program_requests` — User-submitted add/edit requests
+   - `events` — Event/convention metadata (with timezone, cover images, gallery template)
+   - `program_requests` — User-submitted add/edit requests for programs
+   - `event_requests` — User-submitted proposals to add new events (v9.3.0+)
+   - `artist_requests` — Organizer-submitted requests to add new artists (v12.3.0+)
+   - `event_pictures` — Per-event photo gallery images (v7.0.0+)
    - `credits` — Credits and references
    - `admin_users` — Admin user accounts
    - `contact_channels` — Contact channels (DB-driven)
-   - `artists` — Artist/group master records (reused across events)
+   - `artists` — Artist/group master records with display/cover pictures (reused across events)
    - `program_artists` — Many-to-many junction: programs ↔ artists
    - `artist_variants` — Alias/alternate names per artist (for ICS auto-linking)
+   - `programs_fts`, `events_fts`, `artists_fts` — FTS5 full-text search virtual tables (v9.0.0+)
 3. Seed the default admin user (from `config/admin.php`)
 4. Seed a default event (slug: `default`) and **3 sample programs** so you can see the real layout immediately:
    - Opening Ceremony, Artist Performance, Closing Stage (dated today)
@@ -137,13 +141,25 @@ If the default password is still in use, the system will display an inline passw
 
 > After changing the password, test your login at `/admin/login` before locking setup.
 
-#### 5.2 Add Database Indexes (Recommended)
+#### 5.2 Enable Admin 2FA Columns (v10.0.0+)
+
+Existing installs should run:
+
+```bash
+php tools/migrate-add-admin-2fa-columns.php
+```
+
+Fresh installs create these columns automatically. 2FA is optional per DB-managed user and can be enabled later from Admin › Change Password.
+
+Since v10.1.0, Admin API does not auto-create these columns during normal requests. After the columns are confirmed once, the API writes `data/.admin_2fa_columns_ready` and skips repeated schema checks. Delete that flag file only when you need to force a schema re-check.
+
+#### 5.3 Add Database Indexes (Recommended)
 
 Click **"Add Indexes"** to add performance indexes to SQLite:
 - Speeds up frequent queries by 2–5x
 - Idempotent — safe to run multiple times
 
-#### 5.3 Lock Setup Page
+#### 5.4 Lock Setup Page
 
 Once setup is complete, lock the page immediately:
 
@@ -243,6 +259,7 @@ After completing the wizard and logging into `/admin/`, configure these Settings
 | **👤 Users** | Admin › Settings | Manage admin users + roles |
 | **💾 Backup** | Admin › Settings | Create/restore database backups |
 | **🤖 Telegram** | Admin › Settings | Configure Telegram notification bot |
+| **📧 Email** (v9.6.0+) | Admin › Settings | Configure SMTP email notifications for new Program/Event Requests; supports test send |
 | **🔵 Google** (v6.4.0+) | Admin › Settings | Configure Google Analytics 4 ID + AdSense client/slot IDs — no SSH needed; stored in `config/google-config.json` |
 | **⚠️ Disclaimer** | Admin › Settings | Set multilingual disclaimer text (TH/EN/JA) |
 
@@ -258,9 +275,21 @@ After completing the wizard and logging into `/admin/`, configure these Settings
 | `config/admin.php` | Admin credentials (fallback) |
 | `config/app.php` | App version and settings |
 | `config/google-config.json` | Google Analytics + AdSense config (created/edited via Admin UI) |
+| `config/email.php` | Email notification constants loaded at runtime |
+| `config/email-config.json` | SMTP email notification config (created/edited via Admin UI; protected from HTTP access) |
 
 For all CLI migration scripts and their descriptions, see **[PROJECT-STRUCTURE.md — tools/](PROJECT-STRUCTURE.md#️-tools)**.
 
+### v12.0.0 Organizer Role Migration
+
+To enable organizer-owned events on an existing install, run:
+
+```bash
+php tools/migrate-add-organizer-role.php
+```
+
+This adds `events.created_by_user_id`, creates `event_organizers`, and adds the ownership indexes used by Admin API permission checks.
+
 ---
 
-*Idol Stage Timetable v7.4.1*
+*Idol Stage Timetable v16.5.1*

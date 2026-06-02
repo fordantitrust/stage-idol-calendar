@@ -1,6 +1,6 @@
 # 📁 Project Structure
 
-File and folder structure for Idol Stage Timetable v7.4.1
+File and folder structure for Idol Stage Timetable v16.5.1
 
 ---
 
@@ -67,6 +67,8 @@ Configuration constants for the entire system, loaded via `config.php`
 | `google-config.json` | JSON file with `ga_id`, `ads_client`, `ads_slot_*` | Runtime-editable Google config; protected from HTTP by `config/.htaccess` |
 | `favorites.php` | `FAV_SECRET`, `FAV_CACHE_DIR`, `FAV_CACHE_TTL` | Anonymous favorites HMAC secret + storage config |
 | `telegram.php` | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_NOTIFY_BEFORE_MINUTES` | Loads from `telegram-config.json`; constants for telegram bot |
+| `email.php` | `EMAIL_ENABLED`, `EMAIL_SMTP_*`, `EMAIL_FROM_*`, `EMAIL_RECIPIENTS` | Loads SMTP notification settings from `email-config.json`; disabled by default |
+| `email-config.json` | JSON file with SMTP host/port/encryption, sender, recipients, enabled flag | Runtime-editable Email Notifications config; protected from HTTP by `config/.htaccess` |
 
 ---
 
@@ -78,13 +80,16 @@ Helper functions loaded via `config.php`
 |------|--------------|---------|
 | `helpers.php` | `get_db()`, `get_site_title()`, `get_site_theme()`, `get_event_by_slug()`, `get_event_id()`, `get_all_active_events()`, `get_event_venue_mode()`, `event_url()`, `get_event_timezone()` | General utilities + DB singleton + site title/theme + multi-event helpers + timezone |
 | `cache.php` | `get_data_version()`, `get_cached_credits()`, `invalidate_data_version_cache()`, `invalidate_credits_cache()`, `invalidate_feed_cache()`, `invalidate_sitemap_cache()`, `invalidate_query_cache()`, `invalidate_artist_query_cache()`, `invalidate_all_caches()` | Cache read/write/invalidate (data version, credits, ICS feed, sitemap, query cache) |
-| `admin.php` | `admin_login()`, `safe_session_start()`, `check_admin_session()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting |
+| `admin.php` | `admin_login()`, `admin_login_attempt()`, `admin_complete_twofa()`, `safe_session_start()`, `admin_logout()`, `get_admin_role()`, `is_admin_role()`, `require_admin_role()`, `check_login_rate_limit()`, `record_failed_login()`, `clear_login_attempts()` | Auth + session + RBAC + rate limiting + 2FA login flow |
+| `totp.php` | `totp_hotp()`, `totp_code()`, `totp_verify()`, `totp_otpauth_uri()`, `twofa_generate_backup_codes()`, `twofa_consume_backup_code()` | RFC 6238 TOTP + Base32 + one-time backup-code helpers for Admin 2FA |
 | `security.php` | `sanitize_string()`, `sanitize_string_array()`, `get_sanitized_param()`, `send_security_headers()`, `check_ip_whitelist()`, `generate_csrf_token()`, `validate_csrf_token()` | XSS, CSRF, headers, IP whitelist |
 | `ads.php` | `render_ad_unit(type)` | Google AdSense helper — renders leaderboard/rectangle/responsive ad units; no-op when `GOOGLE_ADS_CLIENT` is empty (v6.3.0+) |
 | `ics.php` | `icsLine()`, `icsFold()`, `icsEscape()`, `icsEscapeText()`, `icsVtimezone()`, `icsOffsetString()` | Shared ICS helpers for RFC 5545 compliant export and feed generation |
 | `telegram.php` | `send_telegram_message()`, `find_favorites_by_chat_id()`, `telegram_is_muted()`, `telegram_notify_is_enabled()`, `telegram_format_events_list()` | Telegram Bot API helpers + notification state |
+| `email.php` | `email_send()`, `email_parse_recipients()`, `email_notify_program_request_created()`, `email_notify_event_request_created()` | Native SMTP email notification helpers for Program/Event Requests; logs to `cache/logs/email.log` |
 | `favorites.php` | `fav_create()`, `fav_load()`, `fav_save()`, `fav_build_slug()`, `fav_parse_slug()`, `fav_verify_slug()`, `fav_maybe_cleanup()` | Anonymous favorites: HMAC-signed slug, JSON file I/O, sharded storage |
 | `seo.php` | `seo_full_url()`, `seo_truncate()`, `seo_render_meta()`, `seo_render_json_ld()` | CLI-safe SEO helpers — meta description, Open Graph, Twitter Card, canonical URL, noindex, JSON-LD structured data (v6.5.0+) |
+| `search.php` | `fts5_available()`, `fts5_escape()`, `fts5_count_programs()`, `fts5_search_programs()`, `fts5_count_events()`, `fts5_search_events()`, `fts5_search_artists()`, `fts5_search_all()`, `fts5_rebuild_all()` | FTS5 full-text search across programs, events, artists; `unicode61` tokenizer; graceful LIKE fallback when FTS tables absent (v9.0.0+) |
 
 ---
 
@@ -94,6 +99,7 @@ Helper functions loaded via `config.php`
 |------|---------|
 | `calendar.db` | Main SQLite database |
 | `.setup_locked` | Lock file for setup.php (present = locked) |
+| `.admin_2fa_columns_ready` | Runtime flag created after Admin API confirms `admin_users.twofa_*` columns exist; delete to force a schema re-check |
 
 > **Security**: The `data/` directory is protected by `.htaccess` to prevent direct web browser access.
 
@@ -123,6 +129,7 @@ Auto-created by the system
 | `query_artist_{id}.json` | Artist profile page DB query results | 1 hour |
 | `query_listing.json` | Homepage listing query cache (`$activeEvents` + `$listingCalData`) | 1 hour |
 | `query_portal.json` | Artists & Group Portal page query cache | 1 hour |
+| `logs/email.log` | Email notification delivery log | Persistent (append-only; rotate externally if needed) |
 | `login_attempts.json` | Login rate limiting data | 15 minutes |
 | `site-theme.json` | Global site theme setting | Persistent (changed by admin) |
 | `site-settings.json` | Site settings: `site_title`, `disclaimer_th/en/ja` | Persistent (changed by admin) |
@@ -136,7 +143,8 @@ Public API endpoints — no login required
 
 | File | Purpose |
 |------|---------|
-| `request.php` | User request submission (submit + programs listing) |
+| `request.php` | Program request submission — submit add/modify request + programs listing (for modal) |
+| `event-request.php` | Event request submission — propose new events (add-only); rate-limited 10 req/hr/IP (v9.3.0+) |
 
 See [API.md](API.md) for full endpoint documentation.
 
@@ -149,7 +157,7 @@ Admin panel — login required
 | File | Purpose |
 |------|---------|
 | `login.php` | Login page (rate limited: 5 attempts/15 min/IP) |
-| `index.php` | Admin dashboard — Tabs: Programs, Requests, Credits, Events, Users, Backup, Contact, Settings |
+| `index.php` | Admin dashboard — Tabs: Dashboard, Programs, Requests, Credits, Events, Artists, Import, Settings |
 | `api.php` | All CRUD API endpoints (requires session + CSRF token) |
 
 See [API.md](API.md) for admin endpoint documentation.
@@ -169,6 +177,7 @@ CLI scripts for developers — run via `php tools/script.php`
 | `migrate-add-events-meta-table.php` | Create `events` (meta) table | ✅ |
 | `migrate-add-admin-users-table.php` | Create `admin_users` table + seed from config | ✅ |
 | `migrate-add-role-column.php` | Add `role` column to `admin_users` | ✅ |
+| `migrate-add-admin-2fa-columns.php` | Add TOTP 2FA columns to `admin_users` | ✅ |
 | `migrate-rename-tables-columns.php` | Rename tables/columns to v2.0.0 schema | ✅ |
 | `migrate-add-indexes.php` | Add 7 performance indexes | ✅ |
 | `migrate-add-event-email-column.php` | Add `email` column to `events` | ✅ |
@@ -177,7 +186,17 @@ CLI scripts for developers — run via `php tools/script.php`
 | `migrate-add-theme-column.php` | Add `theme` column to `events` | ✅ |
 | `migrate-add-contact-channels-table.php` | Create `contact_channels` table | ✅ |
 | `migrate-add-artist-variants-table.php` | Create `artist_variants` table + import variants from `data/artists-mapping.json` | ✅ |
+| `migrate-add-timezone-column.php` | Add `timezone TEXT DEFAULT 'Asia/Bangkok'` column to `events` | ✅ |
+| `migrate-add-artist-pictures-column.php` | Add `display_picture` + `cover_picture TEXT DEFAULT NULL` to `artists`; create `uploads/artists/` dir | ✅ |
+| `migrate-add-event-pictures-table.php` | Create `event_pictures` table + `events.gallery_template` column | ✅ |
+| `migrate-add-fts5.php` | Create FTS5 virtual tables (`programs_fts`, `events_fts`, `artists_fts`) + 9 auto-sync triggers; rebuild index | ✅ |
+| `migrate-add-header-cover-image-column.php` | Add `header_cover_image TEXT DEFAULT NULL` to `events` | ✅ |
+| `migrate-add-event-requests-table.php` | Create `event_requests` table | ✅ |
+| `migrate-add-artist-requests-table.php` | Create `artist_requests` table for organizer Artist Request workflow | ✅ |
+| `migrate-add-artist-social-columns.php` | Add `social_facebook/instagram/twitter/tiktok TEXT DEFAULT NULL` to `artists` | ✅ |
+| `migrate-add-ticket-url-column.php` | Add `ticket_url TEXT DEFAULT NULL` to `events` | ✅ |
 | `update-version.php` | Bump `APP_VERSION` across 9 files automatically | - |
+| `migrate-add-organizer-role.php` | Add organizer role ownership schema (`events.created_by_user_id`, `event_organizers`) | v12.0.0 |
 | `generate-password-hash.php` | Generate bcrypt password hash | |
 | `debug-parse.php` | Debug ICS file parsing | |
 | `test-parse.php` | Test ICS parser | |
@@ -188,7 +207,7 @@ CLI scripts for developers — run via `php tools/script.php`
 
 ## 🧪 tests/
 
-Automated test suite — 5053 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
+Automated test suite — 24 suites (cumulative runner), PHP 8.1/8.2/8.3/8.4/8.5
 
 | File | Unique Tests | Cumulative | Coverage |
 |------|-------------|-----------|---------|
@@ -207,21 +226,27 @@ Automated test suite — 5053 tests (cumulative), PHP 8.1/8.2/8.3/8.4/8.5
 | `FeedTest.php` | 80 | 291 | icsEscape/icsEscapeText/icsFold, CATEGORIES, ETag, feed cache, RFC 5545 |
 | `StreamUrlTest.php` | 31 | 322 | stream_url schema, CRUD, admin badge, public UI, ICS URL property |
 | `FavoritesTest.php` | 84 | 406 | Anonymous favorites, UUID v7, HMAC, personal feeds, artist profiles |
-| `TimezoneTest.php` | 67 | 473 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
+| `TimezoneTest.php` | 81 | 487 | Per-event timezone, UTC conversion, TZID format, local time display, migration |
 | `TelegramTest.php` | 54 | 541 | Telegram bot commands, helpers, mute/notify state, group resolution |
-| `ArtistPictureTest.php` | 61 | 602 | Artist display/cover picture upload, GD resize, admin API, tooltip |
-| `SeoTest.php` | 63 | 665 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks on 8 public pages |
-| `EventPicturesTest.php` | 57 | 722 | event_pictures table/columns/indexes/CASCADE, events.gallery_template, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list), processAndSaveImage mode='fit', uploads/events dir/htaccess, setup.php, index.php gallery+lightbox, admin/index.php picture section+template dropdown, CSS templates, translations |
+| `EmailNotificationTest.php` | 13 | 554 | Email config/helper loading, site-name subjects, admin URL base path, recipient parsing, SMTP disabled guard, defensive helper loading, request email hooks, Admin Email UI/API, Requests empty state |
+| `TwoFactorAuthTest.php` | 9 | 563 | RFC 6238 TOTP vectors, Base32, otpauth URI, replay guard, backup codes, manual 2FA migration sources, schema flag, API/UI/i18n |
+| `ArtistPictureTest.php` | 61 | 624 | Artist display/cover picture upload, GD resize, admin API, tooltip |
+| `SeoTest.php` | 63 | 687 | seo_full_url() CLI safety, seo_truncate() word boundary, seo_render_meta() OG/Twitter/noindex, seo_render_json_ld() Unicode, JSON-LD schemas, source checks on 8 public pages |
+| `EventPicturesTest.php` | 57 | 744 | event_pictures table/columns/indexes/CASCADE, events.gallery_template, migration idempotency, DB CRUD, admin API (upload/delete/reorder/list), processAndSaveImage mode='fit', uploads/events dir/htaccess, setup.php, index.php gallery+lightbox, admin/index.php picture section+template dropdown, CSS templates, translations |
+| `EventCoverTest.php` | 44 | 788 | events.cover_image/cover_image_card schema, Cropper.js upload flow, CSRF X-CSRF-Token header, fallback chain, admin API, listing cache keys, migration idempotency |
+| `Fts5Test.php` | 45 | 833 | FTS5 virtual tables, triggers (ai/au/ad × 3 tables), fts5_available() caching, fts5_search_*, fts5_rebuild_all(), LIKE fallback, public API action=search, admin FTS integration |
+| `WebPushTest.php` | 45 | 882 | WEBPUSH_* constants, webpush_is_enabled(), base64url encode/decode, VAPID keygen (EC P-256, 87-char public key), JWT/encrypt/send functions, service-worker.js push+notificationclick, manifest.json, icons, admin API webpush_config_get/save/vapid_generate, api/push.php, cron CLI guard, admin-i18n.js + translations.js keys, config.php loading |
 
-> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 5053.
+> **Cumulative mechanism**: `run-tests.php` uses `get_defined_functions()` — each suite re-runs all functions loaded so far. Total reported = sum of per-suite cumulative counts = 9338.
 
 ```bash
-# Run all 5053 tests
+# Run all tests
 php tests/run-tests.php
 
 # Run specific suite
 php tests/run-tests.php SecurityTest
 php tests/run-tests.php FeedTest
+php tests/run-tests.php Fts5Test
 php tests/run-tests.php StreamUrlTest::testStreamUrlColumn
 ```
 
@@ -306,6 +331,9 @@ User-submitted requests to add or modify programs (formerly `event_requests`).
 | `requester_email` | TEXT | | Email of the requester |
 | `requester_note` | TEXT | | Additional notes |
 | `status` | TEXT | DEFAULT `'pending'` | `'pending'`, `'approved'`, or `'rejected'` |
+| `admin_note` | TEXT | | Admin's note when approving/rejecting (v6.1.3+) |
+| `reviewed_at` | DATETIME | | When the request was reviewed (v6.1.3+) |
+| `reviewed_by` | TEXT | | Admin username who reviewed (v6.1.3+) |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Submission time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last status update |
 
@@ -329,10 +357,16 @@ Convention/event metadata for multi-event support (formerly `events_meta`).
 | `is_active` | BOOLEAN | DEFAULT 1 | Whether event is publicly visible |
 | `theme` | TEXT | DEFAULT NULL | Per-event color theme (v2.1.1+) |
 | `email` | TEXT | DEFAULT NULL | Contact email for ICS ORGANIZER field (v2.3.0+) |
+| `timezone` | TEXT | DEFAULT `'Asia/Bangkok'` | Per-event timezone for ICS export and UTC conversion (v4.0.0+) |
+| `cover_image` | TEXT | DEFAULT NULL | Hero cover image path (1600×900, 16:9) for homepage carousel (v8.0.0+) |
+| `cover_image_card` | TEXT | DEFAULT NULL | Card cover image path (800×600, 4:3) for events grid (v8.0.0+) |
+| `gallery_template` | TEXT | DEFAULT `'grid3'` | Photo gallery layout: `grid1`/`grid2`/`grid3`/`masonry` (v7.0.0+) |
+| `header_cover_image` | TEXT | DEFAULT NULL | Header cover image path (1920×480, 4:1) shown behind page header (v9.2.0+) |
+| `ticket_url` | TEXT | DEFAULT NULL | Ticket purchase URL (http/https only); displays orange "🎟️ ซื้อบัตร" button in event-detail nav (v9.5.0+) |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
 
-**Referenced by**: `programs.event_id`, `program_requests.event_id`, `credits.event_id`
+**Referenced by**: `programs.event_id`, `program_requests.event_id`, `credits.event_id`, `event_requests.event_id`
 
 ---
 
@@ -366,6 +400,11 @@ Admin user credentials and roles.
 | `password_hash` | TEXT | NOT NULL | Bcrypt password hash |
 | `display_name` | TEXT | | Display name in UI |
 | `role` | TEXT | NOT NULL DEFAULT `'admin'` | `'admin'` (full access) or `'agent'` (programs only) |
+| `twofa_enabled` | INTEGER | DEFAULT 0 | Optional TOTP 2FA enabled flag |
+| `twofa_secret` | TEXT | | Base32 TOTP secret (DB-managed users only) |
+| `twofa_backup_codes` | TEXT | | JSON array of hashed one-time recovery codes |
+| `twofa_confirmed_at` | DATETIME | | Timestamp when 2FA was enabled |
+| `twofa_last_used_step` | INTEGER | | Last accepted TOTP step for replay prevention |
 | `is_active` | BOOLEAN | DEFAULT 1 | Whether user is active |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
@@ -402,10 +441,88 @@ Artist/group records shared across all events (v3.0.0+).
 | `name` | TEXT | UNIQUE NOT NULL | Canonical display name |
 | `is_group` | INTEGER | DEFAULT 0 | 1 = group/unit, 0 = solo artist |
 | `group_id` | INTEGER | FK → `artists.id` | Parent group (if this artist is a member) |
+| `display_picture` | TEXT | DEFAULT NULL | Circular profile picture path (400×400 px, stored in `uploads/artists/`) (v6.0.0+) |
+| `cover_picture` | TEXT | DEFAULT NULL | Banner cover picture path (1200×400 px, stored in `uploads/artists/`) (v6.0.0+) |
+| `social_facebook` | TEXT | DEFAULT NULL | Facebook profile URL (v9.5.0+) |
+| `social_instagram` | TEXT | DEFAULT NULL | Instagram profile URL (v9.5.0+) |
+| `social_twitter` | TEXT | DEFAULT NULL | Twitter/X profile URL (v9.5.0+) |
+| `social_tiktok` | TEXT | DEFAULT NULL | TikTok profile URL (v9.5.0+) |
 | `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 | `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
 
 > **Reuse rate**: 74.7% of artists (62/83) appear in 2+ events.
+> **Social links** *(v9.5.0)*: Displayed as icon buttons on `/artist/{id}` header and `/artists` portal (group cards + solo cards). Validated with `sanitize_social_url()` — accepts http/https only.
+
+---
+
+### Table: `event_pictures`
+
+Per-event photo gallery (v7.0.0+). Managed via Admin › Events edit modal.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Picture ID |
+| `event_id` | INTEGER | FK → `events.id` ON DELETE CASCADE | Owning event |
+| `filename` | TEXT | NOT NULL | Relative path (e.g. `uploads/events/1/abc123.jpg`) |
+| `caption` | TEXT | DEFAULT `''` | Optional caption text |
+| `display_order` | INTEGER | DEFAULT 0 | Sort order for gallery display |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Upload time |
+
+**Indexes**: `idx_event_pictures_event_id`, `idx_event_pictures_order`
+**Storage**: Files sharded to `uploads/events/{event_id}/` (v7.2.0+)
+
+---
+
+### Table: `event_requests`
+
+User-submitted proposals to add new events plus organizer activation requests (v12.1.0+). Managed via Admin › Requests › 🗓️ Event Requests sub-tab.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Request ID |
+| `request_type` | TEXT | NOT NULL | `'add'`, `'modify'`, or `'activate'` |
+| `event_id` | INTEGER | FK → `events.id` (nullable) | Existing event for modify/activate requests |
+| `name` | TEXT | | Proposed event name |
+| `description` | TEXT | | Proposed event description |
+| `start_date` | DATE | | Proposed start date (YYYY-MM-DD) |
+| `end_date` | DATE | | Proposed end date (YYYY-MM-DD) |
+| `requester_name` | TEXT | NOT NULL | Name of the person submitting |
+| `requester_email` | TEXT | | Email of the submitter (optional) |
+| `note` | TEXT | | Additional notes from submitter |
+| `status` | TEXT | DEFAULT `'pending'` | `'pending'`, `'approved'`, or `'rejected'` |
+| `admin_note` | TEXT | | Admin's note when approving/rejecting |
+| `reviewed_at` | DATETIME | | When the request was reviewed |
+| `reviewed_by` | TEXT | | Admin username who reviewed |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Submission time |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
+
+---
+
+### Table: `artist_requests`
+
+Organizer-submitted requests to add new artists (v12.3.0+). Managed via Admin › Requests › Artist Request; organizers submit from Admin › Artists › Request new artist.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Request ID |
+| `name` | TEXT | NOT NULL | Proposed artist/group name |
+| `is_group` | INTEGER | DEFAULT 0 | `1` for group, `0` for solo/member |
+| `group_id` | INTEGER | FK → `artists.id` (nullable) | Parent group for solo/member requests |
+| `social_facebook` | TEXT | | Facebook URL |
+| `social_instagram` | TEXT | | Instagram URL |
+| `social_twitter` | TEXT | | X/Twitter URL |
+| `social_tiktok` | TEXT | | TikTok URL |
+| `requester_user_id` | INTEGER | FK → `admin_users.id` | Organizer user who submitted |
+| `requester_name` | TEXT | NOT NULL | Organizer display name/username |
+| `requester_email` | TEXT | | Reserved requester email field |
+| `status` | TEXT | DEFAULT `'pending'` | `'pending'`, `'approved'`, or `'rejected'` |
+| `admin_note` | TEXT | | Reviewer note |
+| `reviewed_at` | DATETIME | | When reviewed |
+| `reviewed_by` | TEXT | | Reviewer username |
+| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Submission time |
+| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | Last update time |
+
+**Indexes**: `idx_artist_requests_status`, `idx_artist_requests_created_at`, `idx_artist_requests_requester_user_id`
 
 ---
 
@@ -442,6 +559,22 @@ Alias/variant names for artists — used by ICS import to recognise alternate sp
 **Index**: `idx_artist_variants_artist_id`
 
 > Managed via **Admin › Artists** tab — Variants modal per artist. Seeded from `data/artists-mapping.json` by migration script.
+
+---
+
+### FTS5 Virtual Tables *(v9.0.0+)*
+
+Full-text search virtual tables powered by SQLite FTS5 (`unicode61` tokenizer). Created by `tools/migrate-add-fts5.php`.
+
+| Virtual Table | Indexed Columns | Description |
+|---------------|-----------------|-------------|
+| `programs_fts` | `title`, `categories`, `organizer`, `description` | Full-text index for programs |
+| `events_fts` | `name`, `description` | Full-text index for events |
+| `artists_fts` | `name` | Full-text index for artists |
+
+**Auto-sync triggers** (9 total): `programs_ai/au/ad`, `events_ai/au/ad`, `artists_ai/au/ad` — keep FTS tables in sync on INSERT/UPDATE/DELETE.
+
+> `fts5_rebuild_all()` is called automatically after ICS import. A graceful `LIKE '%q%'` fallback activates when FTS tables are absent.
 
 ---
 
@@ -527,10 +660,13 @@ config.php (bootstrap)
     ├── config/security.php     → Rate limiting
     ├── config/database.php     → DB_PATH
     ├── config/cache.php        → Cache TTL constants
+    ├── config/email.php        → EMAIL_* SMTP notification constants
     ├── functions/helpers.php   → get_db(), event helpers
     ├── functions/cache.php     → Cache read/write
     ├── functions/admin.php     → Auth + RBAC + rate limiting
-    └── functions/security.php  → Sanitize, CSRF, headers
+    ├── functions/totp.php      → Admin TOTP 2FA helpers
+    ├── functions/security.php  → Sanitize, CSRF, headers
+    └── functions/email.php     → Request email notifications
 
 index.php
     ├── config.php              → bootstrap
@@ -557,4 +693,4 @@ setup.php
 
 ---
 
-*Idol Stage Timetable v7.4.1*
+*Idol Stage Timetable v16.5.1*

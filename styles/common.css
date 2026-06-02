@@ -91,6 +91,13 @@ header {
     position: relative;
 }
 
+/* Header with cover background image */
+header.has-site-cover {
+    background-image: var(--header-cover-url);
+    background-size: cover;
+    background-position: center;
+}
+
 /* Language Switcher */
 .language-switcher {
     position: absolute;
@@ -153,6 +160,16 @@ header {
     transform: translateY(-2px);
 }
 
+.btn-ticket {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    border-color: rgba(255,255,255,.4);
+    font-weight: 700;
+}
+.btn-ticket:hover {
+    background: linear-gradient(135deg, #e55a24 0%, #e07e10 100%);
+    border-color: rgba(255,255,255,.6);
+}
+
 h1 {
     font-size: 2em;
     margin-bottom: 10px;
@@ -188,7 +205,8 @@ h1 {
     margin-bottom: 15px;
 }
 
-.section ul {
+.section ul,
+.section ol {
     margin-left: 20px;
     margin-bottom: 15px;
 }
@@ -1307,6 +1325,15 @@ footer {
     font-size: 0.88rem;
     color: #444;
     margin-bottom: 0.35rem;
+}
+/* Clickable artist profile links inside calendar detail modal + day panel */
+.cal-artist-link {
+    color: var(--sakura-deep, #C2185B);
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+}
+.cal-artist-link:hover {
+    border-bottom-style: solid;
 }
 .cal-detail-header-title {
     font-size: 0.95rem;

@@ -211,6 +211,14 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
     $artistIds = $favData['artists'];
     $telegramNotified = $favData['telegram_notified'] ?? [];
 
+    // Per-program reminders are sent only in 'all' mode. In 'summary' mode we
+    // skip the per-program window query + send loop but still send the daily
+    // summary below. (Mode 'off' and mute already returned early above.)
+    $perProgram = telegram_per_program_enabled($favData);
+
+    // Viewer timezone for the parenthetical local-time annotation (null → legacy default-TZ annotation)
+    $userTz = fav_resolve_user_timezone($favData);
+
     telegram_log('DEBUG', "User details", ['chat_id' => substr($chatId, 0, 4) . '***', 'artists_count' => count($artistIds)]);
 
     // Resolve parent groups (same logic as my.php and api/telegram.php v5.5.1+):
@@ -240,44 +248,58 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
         $db = get_db();
         $placeholders = implode(',', array_fill(0, count($allArtistIds), '?'));
 
-        // Convert Unix timestamps to event-timezone datetime strings for comparison.
-        // SQLite's strftime('%s', ...) treats stored datetimes as UTC, but p.start is stored
-        // in the event's local timezone (DEFAULT_TIMEZONE). Comparing Unix timestamps directly
-        // causes notifications to be delayed by the UTC offset (e.g. +7h for Bangkok).
-        // Using datetime() in SQL normalizes both the stored value and the window strings,
-        // handling both 'T' and ' ' separators (e.g. "2026-04-17T11:00:00" vs "2026-04-17 23:53:24").
-        // Raw BETWEEN string comparison is incorrect because 'T' (ASCII 84) > ' ' (ASCII 32),
-        // so "2026-04-17T11:00:00" would falsely match a window of "2026-04-17 23:53:24"–"2026-04-18 00:03:24".
+        // Expand the SQL window by ±14 h to cover all possible event timezone offsets
+        // (UTC-12 to UTC+14). Programs are stored in the event's own local timezone, not
+        // DEFAULT_TIMEZONE, so a Taipei event stored as "18:00" must not be compared against
+        // a Bangkok window string — they differ by 1 h. The loose SQL pre-filter keeps the
+        // result set small; PHP does the exact UTC-based check per program afterward.
         $tzObj = new DateTimeZone(defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok');
-        $windowStartStr = (new DateTime('@' . $windowStart))->setTimezone($tzObj)->format('Y-m-d H:i:s');
-        $windowEndStr   = (new DateTime('@' . $windowEnd))->setTimezone($tzObj)->format('Y-m-d H:i:s');
+        $maxTzOffset   = 14 * 3600; // seconds
+        $looseStartStr = (new DateTime('@' . ($windowStart - $maxTzOffset)))->setTimezone($tzObj)->format('Y-m-d H:i:s');
+        $looseEndStr   = (new DateTime('@' . ($windowEnd   + $maxTzOffset)))->setTimezone($tzObj)->format('Y-m-d H:i:s');
+        $defaultTzName = defined('DEFAULT_TIMEZONE') ? DEFAULT_TIMEZONE : 'Asia/Bangkok';
 
+        if ($perProgram) {
         $stmt = $db->prepare("
             SELECT DISTINCT
                 p.id, p.title, p.start, p.end, p.location,
                 p.program_type, p.stream_url, p.event_id,
-                e.name as event_name
+                e.name as event_name,
+                COALESCE(e.timezone, :defaultTz) AS event_timezone
             FROM programs p
             JOIN events e ON p.event_id = e.id
             JOIN program_artists pa ON p.id = pa.program_id
             WHERE pa.artist_id IN ($placeholders)
                 AND e.is_active = 1
-                AND datetime(p.start) BETWEEN datetime(:windowStart) AND datetime(:windowEnd)
+                AND datetime(p.start) BETWEEN datetime(:looseStart) AND datetime(:looseEnd)
         ");
 
         $stmt->execute(array_merge($allArtistIds, [
-            ':windowStart' => $windowStartStr,
-            ':windowEnd' => $windowEndStr
+            ':defaultTz'  => $defaultTzName,
+            ':looseStart' => $looseStartStr,
+            ':looseEnd'   => $looseEndStr,
         ]));
 
         $programs = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $stmt = null;
 
-        telegram_log('DEBUG', "Programs in notification window", ['count' => count($programs), 'window_start' => $windowStartStr, 'window_end' => $windowEndStr]);
+        telegram_log('DEBUG', "Programs in notification window", ['count' => count($programs), 'window_start' => $looseStartStr, 'window_end' => $looseEndStr]);
 
         // Send notifications
+        $notifyTargetUtc = (int)(($windowStart + $windowEnd) / 2); // = time() + notifyBefore
+        $halfWindowDur   = (int)(($windowEnd - $windowStart) / 2);
         foreach ($programs as $prog) {
             $programId = (int)$prog['id'];
+
+            // Exact UTC-based window check using the event's own timezone.
+            // The SQL pre-filter was expanded by ±14 h; this confirms the program
+            // actually falls within [notifyBefore − halfWindow, notifyBefore + halfWindow].
+            $evTzName = $prog['event_timezone'] ?: $defaultTzName;
+            try { $evTz = new DateTimeZone($evTzName); } catch (Exception $e) { $evTz = $tzObj; }
+            $programUtc = (new DateTime($prog['start'], $evTz))->getTimestamp();
+            if (abs($programUtc - $notifyTargetUtc) > $halfWindowDur) {
+                continue;
+            }
 
             if (!telegram_should_notify($telegramNotified, $programId)) {
                 telegram_log('DEBUG', "Skipping already notified program", ['program_id' => $programId, 'title' => $prog['title']]);
@@ -286,7 +308,7 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
             }
 
             // Send message
-            $message = telegram_format_notification($prog);
+            $message = telegram_format_notification($prog, $userTz);
             if (telegram_send_message($chatId, $message)) {
                 telegram_log('INFO', "Notification sent", [
                     'program_id' => $programId,
@@ -305,9 +327,11 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
                 $errorCount++;
             }
         }
+        } // end if ($perProgram)
 
-        // Cleanup old notifications
-        telegram_cleanup_old_notifications($favData);
+        // Stage updates on $favData (used as fallback if the disk read under
+        // the write lock fails). The authoritative merge happens inside the
+        // LOCK_EX block below.
         $favData['telegram_notified'] = $telegramNotified;
 
         // Send daily summary at 9:00 AM
@@ -356,16 +380,38 @@ function process_favorites_file($filePath, $windowStart, $windowEnd, &$notifiedC
             $summarySkippedCount++;
         }
 
-        // Write back with lock
+        // Read-modify-write under exclusive lock.
+        // Re-read the file inside LOCK_EX so we pick up any concurrent writes
+        // (Web Push cron updating push_subscriptions, web routes updating
+        // artists/last_access/telegram_chat_id) and only overwrite our own
+        // keys (telegram_notified, telegram_summary_date). Without this merge
+        // step, a concurrent writer reading the file before our HTTP send and
+        // writing after our HTTP send would clobber our telegram_notified
+        // update, causing duplicate notifications on the next cron run.
         $fh = @fopen($filePath, 'r+');
         if ($fh && flock($fh, LOCK_EX)) {
             rewind($fh);
+            $latestRaw = stream_get_contents($fh);
+            $latest = json_decode($latestRaw, true);
+            if (!is_array($latest)) {
+                // File is empty or corrupt — fall back to our in-memory state
+                $latest = $favData;
+            } else {
+                $latest['telegram_notified'] = $telegramNotified;
+                if (isset($favData['telegram_summary_date'])) {
+                    $latest['telegram_summary_date'] = $favData['telegram_summary_date'];
+                }
+            }
+            telegram_cleanup_old_notifications($latest);
+
+            rewind($fh);
             ftruncate($fh, 0);
-            fwrite($fh, json_encode($favData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            fwrite($fh, json_encode($latest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
             flock($fh, LOCK_UN);
             fclose($fh);
             telegram_log('DEBUG', "Favorites file updated", ['file' => $filename]);
         } else {
+            if ($fh) fclose($fh);
             telegram_log('WARN', "Could not update favorites file", ['file' => $filename]);
         }
 

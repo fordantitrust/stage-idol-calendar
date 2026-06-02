@@ -72,6 +72,19 @@ $fieldsToEscape = ['title', 'location', 'organizer', 'description', 'categories'
 try {
     switch ($action) {
         case 'programs':
+            // FTS5 full-text search via ?q=
+            if (!empty($_GET['q'])) {
+                $rawQ = trim(get_sanitized_param('q', ''));
+                if (mb_strlen($rawQ) >= 3) {
+                    $db = new PDO('sqlite:' . DB_PATH);
+                    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    $results = fts5_search_programs($db, $rawQ, $eventId, 100);
+                    $results = array_map(fn($r) => escapeApiData($r, array_merge($fieldsToEscape, ['snippet'])), $results);
+                    sendJsonWithCache($results, 60); // short cache for search results
+                    break;
+                }
+            }
+
             $events = $parser->getAllEvents();
 
             // Filter by organizer
@@ -80,7 +93,7 @@ try {
                 $events = array_filter($events, function($event) use ($organizer) {
                     return $event['organizer'] === $organizer;
                 });
-                $events = array_values($events); // Re-index array
+                $events = array_values($events);
             }
 
             // Filter by location
@@ -89,7 +102,7 @@ try {
                 $events = array_filter($events, function($event) use ($location) {
                     return $event['location'] === $location;
                 });
-                $events = array_values($events); // Re-index array
+                $events = array_values($events);
             }
 
             // Filter by program type
@@ -98,10 +111,9 @@ try {
                 $events = array_filter($events, function($event) use ($typeFilter) {
                     return ($event['program_type'] ?? '') === $typeFilter;
                 });
-                $events = array_values($events); // Re-index array
+                $events = array_values($events);
             }
 
-            // Escape HTML เพื่อป้องกัน XSS
             $events = array_map(function($event) use ($fieldsToEscape) {
                 return escapeApiData($event, $fieldsToEscape);
             }, $events);
@@ -151,10 +163,29 @@ try {
             sendJsonWithCache($activeEvents, 600); // events list เปลี่ยนไม่บ่อย cache 10 นาที
             break;
 
+        // Cross-entity FTS5 search: ?action=search&q=term
+        case 'search':
+            $rawQ = trim(get_sanitized_param('q', ''));
+            if (mb_strlen($rawQ) < 3) {
+                echo json_encode(['programs' => [], 'events' => [], 'artists' => [],
+                    'hint' => 'Query must be at least 3 characters'], JSON_UNESCAPED_UNICODE);
+                break;
+            }
+            $db  = new PDO('sqlite:' . DB_PATH);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $res = fts5_search_all($db, $rawQ);
+            // Escape output
+            $esc = fn($rows, $fields) => array_map(fn($r) => escapeApiData($r, $fields), $rows);
+            $res['programs'] = $esc($res['programs'], array_merge($fieldsToEscape, ['snippet']));
+            $res['events']   = $esc($res['events'],   ['name','description','slug','snippet']);
+            $res['artists']  = $esc($res['artists'],  ['name','snippet']);
+            sendJsonWithCache($res, 60);
+            break;
+
         default:
             http_response_code(400);
             echo json_encode([
-                'error' => 'Invalid action. Use: programs, organizers, locations, types, or events_list'
+                'error' => 'Invalid action. Use: programs, organizers, locations, types, events_list, or search'
             ], JSON_UNESCAPED_UNICODE);
     }
 } catch (Exception $e) {

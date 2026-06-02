@@ -142,6 +142,55 @@ if (in_array($action, ['add', 'remove'], true) && $_SERVER['REQUEST_METHOD'] ===
     exit;
 }
 
+// ─── Set viewer timezone ─────────────────────────────────────────────────────
+// Body: { "tz": "Asia/Tokyo", "mode": "manual" | "auto" | "sync" }
+//   manual → user picked a timezone (sticky; auto-capture won't overwrite)
+//   auto   → user chose "Automatic" (clears the manual override, adopts tz)
+//   sync   → passive browser auto-capture (no-op when a manual override exists)
+if ($action === 'set_timezone' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $body = json_decode(file_get_contents('php://input'), true) ?? [];
+    $tz   = isset($body['tz']) ? trim((string)$body['tz']) : '';
+    $mode = $body['mode'] ?? 'sync';
+    if (!in_array($mode, ['manual', 'auto', 'sync'], true)) {
+        $mode = 'sync';
+    }
+
+    if (!is_valid_timezone($tz)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid timezone.']);
+        exit;
+    }
+
+    $data = fav_read($token);
+    if (!$data) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Favorites not found or expired.']);
+        exit;
+    }
+
+    if ($mode === 'manual') {
+        $data['user_timezone']        = $tz;
+        $data['user_timezone_manual'] = true;
+    } elseif ($mode === 'auto') {
+        $data['user_timezone']        = $tz;
+        $data['user_timezone_manual'] = false;
+    } else { // sync — passive; respect an existing manual override
+        if (empty($data['user_timezone_manual'])) {
+            $data['user_timezone']        = $tz;
+            $data['user_timezone_manual'] = false;
+        }
+    }
+
+    $data['last_access'] = date('c');
+    fav_write($data);
+
+    echo json_encode([
+        'user_timezone'        => $data['user_timezone'] ?? null,
+        'user_timezone_manual' => !empty($data['user_timezone_manual']),
+    ]);
+    exit;
+}
+
 // ─── Unlink Telegram ─────────────────────────────────────────────────────────
 if ($action === 'unlink_telegram' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = telegram_unlink_account($slugParam);
