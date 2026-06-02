@@ -375,7 +375,7 @@ If you discover a security issue:
 
 ## Additional Resources
 
-- [Security Audit Report 2026](docs/SECURITY_AUDIT_2026.md) — full findings + remediation history (revision 7, re-verified at v16.5.x; all items closed)
+- [Security Audit Report 2026](docs/SECURITY_AUDIT_2026.md) — full findings + remediation history (revision 7, re-verified at v16.5.x; all items closed, internal use only not public)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [PHP Security Best Practices](https://www.php.net/manual/en/security.php)
 - [SQLite Security](https://www.sqlite.org/security.html)
