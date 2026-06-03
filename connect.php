@@ -23,6 +23,10 @@ $basePath      = get_base_path();
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#E91E63">
     <link rel="manifest" href="<?= $basePath ?>/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= $basePath ?>/icon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="<?= $basePath ?>/icon/icon-72.png">
+    <link rel="icon" href="<?= $basePath ?>/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="<?= $basePath ?>/icon/icon-192.png">
     <title><?= htmlspecialchars($siteTitle) ?> — เชื่อมต่อ Favorites</title>
     <?php seo_render_meta(['noindex' => true]); ?>
     <?php if (defined('GOOGLE_ANALYTICS_ID') && GOOGLE_ANALYTICS_ID): ?>

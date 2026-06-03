@@ -821,7 +821,7 @@ header p {
    ======================================== */
 .date-jump-bar {
     position: fixed;
-    top: 0;
+    top: env(safe-area-inset-top, 0px);
     left: 0;
     right: 0;
     z-index: 1000;
@@ -844,6 +844,32 @@ header p {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
+}
+
+.date-jump-now-btn {
+    flex-shrink: 0;
+    border: 2px solid #ef4444;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.85em;
+    line-height: 1;
+    padding: 9px 12px;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(239, 68, 68, 0.22);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.date-jump-now-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(239, 68, 68, 0.32);
+}
+
+.date-jump-now-btn[hidden] {
+    display: none;
 }
 
 .date-jump-label {
@@ -912,6 +938,12 @@ header p {
     pointer-events: none;
 }
 
+.time-jump-arrow {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8em;
+}
+
 .date-jump-btn {
     display: flex;
     flex-direction: column;
@@ -948,9 +980,162 @@ header p {
     line-height: 1.2;
 }
 
+.time-jump-row {
+    max-width: 1200px;
+    margin: -2px auto 0;
+    padding: 0 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.time-jump-row[hidden] {
+    display: none;
+}
+
+.time-jump-label {
+    font-size: 0.85em;
+}
+
+.time-jump-buttons {
+    display: flex;
+    gap: 7px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    padding: 2px 0;
+    white-space: nowrap;
+}
+
+.time-jump-buttons::-webkit-scrollbar {
+    display: none;
+}
+
+.time-jump-buttons.is-scrollable {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+
+.time-jump-buttons.is-at-start {
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 14px), transparent 100%);
+}
+
+.time-jump-buttons.is-at-end {
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 100%);
+}
+
+.time-jump-buttons.is-at-start.is-at-end {
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+@media (hover: hover) {
+    .time-jump-buttons {
+        scrollbar-width: thin;
+        scrollbar-color: var(--sakura-medium) transparent;
+        padding-bottom: 5px;
+    }
+    .time-jump-buttons::-webkit-scrollbar {
+        display: block;
+        height: 3px;
+    }
+    .time-jump-buttons::-webkit-scrollbar-thumb {
+        background: var(--sakura-medium);
+        border-radius: 2px;
+    }
+    .time-jump-buttons::-webkit-scrollbar-track {
+        background: transparent;
+    }
+}
+
+.time-jump-btn {
+    flex: 0 0 auto;
+    border: 1px solid var(--sakura-light);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--sakura-deep);
+    cursor: pointer;
+    font-size: 0.82em;
+    font-weight: 650;
+    line-height: 1;
+    padding: 7px 11px;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+}
+
+.time-jump-btn:hover,
+.time-jump-btn.active {
+    background: var(--sakura-gradient);
+    border-color: var(--sakura-dark);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.time-jump-btn[hidden] {
+    display: none;
+}
+
+.program-row-current {
+    outline: 2px solid rgba(239, 68, 68, 0.75);
+    outline-offset: -2px;
+}
+
+.program-row-current .program-time::before {
+    content: '● ';
+    color: #ef4444;
+    font-size: 0.8em;
+}
+
+.program-row-jump-highlight {
+    animation: program-jump-highlight 1.8s ease-out;
+}
+
+@keyframes program-jump-highlight {
+    0% { background-color: rgba(255, 235, 59, 0.65); }
+    100% { background-color: transparent; }
+}
+
+@media (max-width: 640px) {
+    .date-jump-inner,
+    .time-jump-row {
+        padding-left: 10px;
+        padding-right: 10px;
+        gap: 8px;
+    }
+
+    .date-jump-date-label,
+    .time-jump-label {
+        display: none;
+    }
+
+    .date-jump-now-btn {
+        font-size: 0.78em;
+        padding: 8px 10px;
+    }
+
+    .date-jump-btn {
+        padding: 7px 12px;
+    }
+
+    .time-jump-btn {
+        padding: 7px 10px;
+    }
+
+    .time-jump-arrow {
+        display: none;
+    }
+}
+
 .day-section {
     margin-bottom: 40px;
-    scroll-margin-top: 60px;
+    scroll-margin-top: 120px;
 }
 
 .day-header {
@@ -1340,8 +1525,10 @@ tr.program-live {
 /* Mobile responsive */
 @media (max-width: 768px) {
     .header-top-left {
-        top: 10px;
-        left: 10px;
+        /* keep in sync with common.css — include the safe-area inset so these
+           buttons clear the notch/camera in standalone PWA */
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        left: calc(10px + env(safe-area-inset-left, 0px));
         gap: 6px;
     }
     .home-icon-btn,

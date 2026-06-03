@@ -65,6 +65,10 @@ $totalVenues = count($venues);
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
     <meta name="theme-color" content="#E91E63">
     <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="<?php echo get_base_path(); ?>/icon/icon-72.png">
+    <link rel="icon" href="<?php echo get_base_path(); ?>/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?> – Venue Portal</title>
     <?php
     $seoDesc      = 'รายชื่อสถานที่จัดงานทั้งหมด ' . $totalVenues . ' แห่ง | ' . $siteTitle;

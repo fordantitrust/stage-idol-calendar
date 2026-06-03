@@ -3,7 +3,7 @@
 **Idol Stage Timetable** — Step-by-step workflows for common development, operational, and deployment tasks.
 
 Stack: **PHP 8.1+ / SQLite (PDO) / Apache / Vanilla JS**
-Current version: **v16.5.2** | DB: `data/calendar.db` | Tests: `php tests/run-tests.php` (27 suites, 13,231 cumulative)
+Current version: **v16.7.1** | DB: `data/calendar.db` | Tests: `php tests/run-tests.php` (27 suites, 13,231 cumulative)
 
 ---
 
@@ -803,6 +803,53 @@ gh run list --limit 20
 
 ## Recent Release Notes
 
+### v16.7.1 (2026-06-03)
+
+**Time Jump overflow + PWA safe-area fix**
+
+แก้ Date/Time Jump Bar หลัง v16.7.0: รายการเวลาในแต่ละ event ที่ยาวมากไม่ดันหน้าออกนอก container แล้ว และ standalone PWA ไม่ชิด Dynamic Island / notch
+
+- **Desktop time scroll** — เพิ่มปุ่มซ้าย/ขวาให้ Time Jump row, mouse-wheel horizontal scroll, desktop scrollbar และ fade edge
+- **Overflow containment** — ใช้ `min-width: 0`, nowrap chips และ hidden row overflow บน date/time rows
+- **Mobile behavior** — ซ่อน time arrows บน mobile เพื่อให้ swipe chips ต่อได้แบบ compact
+- **Safe-area top** — `.date-jump-bar` ใช้ `env(safe-area-inset-top, 0px)` และ JS scroll offset รวม computed top inset
+- **Version normalization** — normalize ค่า `16.7.0rc1` กลับเป็น release SemVer แล้ว bump เป็น v16.7.1
+
+**Files changed:**
+- `index.php`
+- `styles/index.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version refs (auto)
+- `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `WORKFLOW.md`, `SKILL.md` — release notes + current version (manual)
+
+> ไม่มี DB migration; ไม่มี cache/API schema change; PWA cache-bust ผ่าน `CACHE_VERSION` v16.7.1
+
+### v16.7.0 (2026-06-03)
+
+**Date + Time Jump with current-program navigation**
+
+ต่อยอด Date Jump Bar บนหน้า event detail ให้มีวันที่, time chips ของวันที่ active, และปุ่ม "ตอนนี้ / Now / 開催中" สำหรับกระโดดไป program ที่กำลังแสดงอยู่ โดยใช้ `start_ts` / `end_ts` UTC epoch ที่มีอยู่แล้วจาก `$filteredEvents`
+
+- **Stable anchors** — program rows ใช้ `program-{start_ts}-{id}` พร้อม `data-start-ts`, `data-end-ts`, `data-program-id`, `data-day-key`
+- **Time chips** — สร้างจาก unique `start_ts` หลัง filter และ label ตาม event timezone
+- **Current button** — แสดงเฉพาะเมื่อมี visible program ที่กำลัง active; หลายรายการซ้อนกันเลือก earliest start แล้ว lowest id
+- **Instant program grace** — `end_ts` ว่างหรือเท่ากับ `start_ts` ถือว่า current เฉพาะ 5 นาทีหลังเริ่ม
+- **Refresh cadence** — recalc ตอน load/language change/scroll/resize และทุก 30 วินาที
+- **List + Gantt** — กด "ตอนนี้" แล้ว scroll ไป anchor หรือ day section โดยไม่บังคับเปลี่ยน view
+- **i18n** — เพิ่ม `dateJump.now`, `dateJump.time`, `dateJump.noCurrent` ใน TH/EN/JA
+
+**Files changed:**
+- `index.php`
+- `styles/index.css`
+- `js/translations.js`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version refs (auto)
+- `README.md`, `CHANGELOG.md`, `CLAUDE.md`, `WORKFLOW.md`, `SKILL.md` — release notes + current version (manual)
+
+> ไม่มี DB migration; ไม่มี cache/API schema change; PWA cache-bust ผ่าน `CACHE_VERSION` v16.7.0
+
 ### v15.8.0 (2026-05-22)
 
 **Timeline View — My Upcoming Programs**
@@ -1092,7 +1139,7 @@ Test suite: 9361 → **9809 (+448)**. `WebPushTest` 35 → 68 (+33). `AdminAuthT
 
 ---
 
-**Last Updated**: v16.5.2 (2026-06-02)
+**Last Updated**: v16.7.1 (2026-06-03)
 
 > The release-history entries below are a historical log; the current version is shown at the top of this file.
 

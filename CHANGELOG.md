@@ -5,6 +5,152 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [16.7.1] - 2026-06-03
+
+### Bug Fix — Time Jump overflow and PWA safe-area spacing
+
+The v16.7.0 event-page time chips could overflow horizontally on desktop without an obvious way to reach later slots, and the fixed Date Jump Bar sat at the very top of standalone PWAs where it could collide with iOS Dynamic Island / notch safe areas.
+
+- 🕒 **Desktop time-chip scrolling** — the Time Jump row now has left/right arrow buttons, mouse-wheel horizontal scrolling, a thin desktop scrollbar, and edge fade states so long time lists remain reachable without wrapping or pushing the page wider.
+- 📐 **Overflow containment** — the date/time jump rows now use `min-width: 0`, nowrap chips, and hidden row overflow so long schedules stay within the event container.
+- 📱 **Mobile behavior preserved** — mobile keeps compact swipeable time chips and hides the extra time arrows to avoid eating vertical space.
+- 🏝️ **PWA safe area** — the fixed jump bar now uses `env(safe-area-inset-top, 0px)`, and JS scroll offsets include the computed top inset so jump targets are not hidden under the bar on notched devices.
+- 🔄 **SemVer normalization** — normalized accidental `16.7.0rc1` values back into the regular release flow and bumped to `16.7.1`.
+
+**Files changed:**
+
+- `index.php`
+- `styles/index.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `README.md`
+- `WORKFLOW.md`
+- `SKILL.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — UI/CSS/JS only; no DB schema, cache, or API changes. PWA/browser assets are cache-busted by `APP_VERSION` / `CACHE_VERSION` v16.7.1.
+
+## [16.7.0] - 2026-06-03
+
+### Feature — Date + Time Jump with current-program navigation
+
+Event detail pages now extend the existing Date Jump Bar into a compact date/time/current navigation control. The bar remains filter-aware and uses the already-normalized UTC epoch fields (`start_ts` / `end_ts`) for stable anchors and current-state checks, without changing the database, cache schema, or public APIs.
+
+- 📅 **Stable epoch anchors** — program rows now use `id="program-{start_ts}-{id}"` and expose `data-start-ts`, `data-end-ts`, `data-program-id`, and `data-day-key`, so date/time/current jumps target deterministic rows even when display dates are timezone-adjusted.
+- 🕒 **Time Jump row** — the jump bar builds one chip per unique `start_ts` in the active filtered day, labels it in the event timezone, and scrolls to the first program in that time slot.
+- 🔴 **Current program button** — a filter-aware "Now" button appears only when a visible program is currently active. Multiple concurrent programs resolve to the earliest `start_ts`, then lowest program id. Rows currently in progress get a live current style.
+- ⚡ **Client-side clock logic** — `Date.now() / 1000` is compared against `start_ts <= now < end_ts`; instant programs (`end_ts` empty or equal to `start_ts`) only count during a short 5-minute grace window after start.
+- 🔁 **Live state refresh** — current state recalculates on load, language change, scroll, resize, and every 30 seconds. Jump highlights are transient and do not interfere with normal date/time navigation.
+- 📊 **List + Gantt behavior** — pressing "Now" scrolls to the existing row/anchor when visible; in Gantt view it can scroll to the day section without forcing users back to List view.
+- 🌏 **Translations** — added TH/EN/JA keys for `dateJump.now`, `dateJump.time`, and `dateJump.noCurrent`.
+
+**Files changed:**
+
+- `index.php`
+- `styles/index.css`
+- `js/translations.js`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `README.md`
+- `WORKFLOW.md`
+- `SKILL.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — UI/client-side only; no DB schema, cache, or API changes. PWA/browser assets are cache-busted by `APP_VERSION` / `CACHE_VERSION` v16.7.0.
+
+## [16.6.0] - 2026-06-03
+
+### Feature — Favicon support (browser tab + apple-touch-icon)
+
+The site previously declared no favicon at all — no `favicon.ico` file and no `<link rel="icon">` on any page — so browsers fell back to their default tab icon and every page silently 404'd on the automatic `/favicon.ico` request. The PWA icons in `manifest.json` only cover home-screen install, not the browser tab. This adds a real favicon plus icon `<link>` tags reusing the existing sakura PWA icons.
+
+- 🖼️ **`favicon.ico` (new, project root)** — a multi-size icon (16×16, 32×32, 48×48) where each entry is stored as a PNG stream (PNG-compressed ICO entries, supported by all modern browsers), downscaled from `icon/icon-512.png`.
+- 🧰 **`tools/generate-favicon.php` (new)** — GD-based generator: reads `icon/icon-512.png` (falls back to `icon/icon-192.png`), resamples to the three sizes, and hand-assembles the ICONDIR/ICONDIRENTRY container — no external `.ico` encoder needed. Re-run after changing the source icon.
+- 🔗 **Icon `<link>` tags on every page** — added after the existing `<link rel="manifest">`: `rel="icon"` 192×192 + 72×72 PNG, `rel="icon"` → `favicon.ico` (`sizes="any"`), and `rel="apple-touch-icon"` 192×192. All hrefs go through `get_base_path()` / `asset_url()` (or document-relative paths on the root-level `setup.php`) so they resolve correctly under subdirectory installs.
+- 📄 **Pages covered** — 12 public pages (`index`, `artist`, `artists`, `contact`, `credits`, `how-to-use`, `past-events`, `venue`, `venues`, `my`, `my-favorites`, `connect`) plus `admin/login.php` and `setup.php`. Other admin pages still get the tab icon via the root `favicon.ico` (browser auto-discovery on domain-root installs).
+- 🎯 **No DB / runtime impact** — static assets + template `<head>` only.
+
+**Files changed:**
+
+- `favicon.ico` (new)
+- `tools/generate-favicon.php` (new)
+- `index.php`
+- `artist.php`
+- `artists.php`
+- `contact.php`
+- `credits.php`
+- `how-to-use.php`
+- `past-events.php`
+- `venue.php`
+- `venues.php`
+- `my.php`
+- `my-favorites.php`
+- `connect.php`
+- `admin/login.php`
+- `setup.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — static/template only; no DB schema change. The `favicon.ico` is committed; re-run `php tools/generate-favicon.php` if the source icon changes. Returning visitors pick up the new tab icon once the browser revalidates the pages (cache-busted by the version bump / `CACHE_VERSION` v16.6.0).
+
+## [16.5.5] - 2026-06-03
+
+### Bug Fix — Header buttons hidden under the notch/camera in standalone PWA
+
+When the site was installed as a PWA, the top header buttons (home / event-picker / contact / how-to-use on the left, language switcher on the right) were unreachable because the OS camera, notch, or Dynamic Island covered them. Most public pages set `apple-mobile-web-app-status-bar-style` to `black-translucent` together with `viewport-fit=cover`, which makes iOS extend the web content fully under the status bar safe area — but the header never reserved that space, so the absolutely-positioned buttons sat underneath the hardware cutout.
+
+- 🐛 **Root cause** — the existing `@supports` safe-area block in `styles/common.css` padded only `body` (left/right/bottom), not the top; the header's absolutely-positioned `.header-top-left` and `.language-switcher` used fixed `top: 20px` (10px on mobile) that ignored `env(safe-area-inset-top)`, so under `black-translucent` standalone they rendered beneath the notch/camera.
+- 🎯 **Approach — uniform shift** — the title (normal flow) and both button groups (absolute) all move down by **exactly** `env(safe-area-inset-top)` via `calc(<base> + env(...))`, so the original relative spacing (which never overlapped) is preserved and simply translated below the cutout. Using `max(<base>, env(...))` for padding while `calc(<base> + env(...))` for the buttons was the initial mistake — the two moved by different deltas and the language switcher dropped onto the title.
+- 🔧 **`header` padding-top** — `calc(70px + env(safe-area-inset-top, 0px))` (60px base on mobile); the base value also seats the centered title clearly below the button row (which otherwise sat at the same vertical band and felt cramped). Horizontal insets are left to the existing `body` `@supports` block to avoid double-padding.
+- 🔧 **`.header-top-left` (left buttons)** — `top`/`left` → `calc(20px + env(safe-area-inset-top/left, 0px))` (10px base on mobile).
+- 🔧 **`.language-switcher` (right buttons)** — `top`/`right` → `calc(20px + env(safe-area-inset-top/right, 0px))` (10px base on mobile).
+- 🔧 **`styles/index.css` mobile override** — the homepage/event pages also load `index.css`, whose `@media (max-width:768px)` rule re-pinned `.header-top-left { top: 10px; left: 10px }` **without** `env()` and won the cascade (loaded after `common.css`), so the left buttons stayed under the notch while the right side moved. Added the same `calc(... + env(...))` insets there to keep both files in sync.
+- 🎯 **No visual change in a normal browser** — `env(safe-area-inset-*)` is `0` without a hardware cutout, so the desktop and in-browser layouts render exactly as before; only standalone PWAs on notched devices shift the header content down.
+- ⚡ **Cache-bust** — version bump to v16.5.5 refreshes the `?v=APP_VERSION` query on `common.css` / `index.css`; `service-worker.js` `CACHE_VERSION` synced so installed PWAs pick up the fix on the next revalidation (no reinstall required).
+
+**Files changed:**
+
+- `styles/common.css`
+- `styles/index.css`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — CSS-only; no DB schema change. Installed PWAs get the fix once the service worker revalidates `common.css` / `index.css` (cache-busted by the version bump / `CACHE_VERSION` v16.5.5) — no need to uninstall and reinstall the PWA.
+
 ## [16.5.3] - 2026-06-03
 
 ### UI — Switch site font to Noto Sans (Google Fonts)

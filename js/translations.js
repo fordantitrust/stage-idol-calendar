@@ -477,6 +477,9 @@ const translations = {
 
         // Date jump bar
         'dateJump.label': '📅 ข้ามไปวันที่:',
+        'dateJump.time': '🕐 ข้ามไปเวลา:',
+        'dateJump.now': '🔴 ตอนนี้',
+        'dateJump.noCurrent': 'ไม่มีการแสดงที่กำลังแสดงอยู่',
 
         // Credits page
         'credits.title': '📋 แหล่งข้อมูลอ้างอิง',
@@ -1151,6 +1154,9 @@ const translations = {
 
         // Date jump bar
         'dateJump.label': '📅 Jump to date:',
+        'dateJump.time': '🕐 Jump to time:',
+        'dateJump.now': '🔴 Now',
+        'dateJump.noCurrent': 'No program is currently on',
 
         // Credits page
         'credits.title': '📋 Credits & References',
@@ -1825,6 +1831,9 @@ const translations = {
 
         // Date jump bar
         'dateJump.label': '📅 日付にジャンプ:',
+        'dateJump.time': '🕐 時刻にジャンプ:',
+        'dateJump.now': '🔴 開催中',
+        'dateJump.noCurrent': '現在開催中のプログラムはありません',
 
         // Credits page
         'credits.title': '📋 クレジット & 参照',

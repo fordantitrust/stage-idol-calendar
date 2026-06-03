@@ -98,6 +98,11 @@ header {
     background: var(--sakura-gradient);
     color: white;
     padding: 30px;
+    /* Shift the whole header down by the device safe-area inset (notch / camera /
+       Dynamic Island). The base value also seats the centered title clearly
+       below the absolutely-positioned button row (buttons span ~20–58px) so
+       they don't feel cramped — both title and buttons move by exactly env(...) */
+    padding-top: calc(70px + env(safe-area-inset-top, 0px));
     text-align: center;
     position: relative;
 }
@@ -112,8 +117,8 @@ header.has-site-cover {
 /* Language Switcher */
 .language-switcher {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: calc(20px + env(safe-area-inset-top, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
     display: flex;
     gap: 8px;
 }
@@ -339,8 +344,8 @@ footer {
 /* Top-left icon button group (all pages) */
 .header-top-left {
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: calc(20px + env(safe-area-inset-top, 0px));
+    left: calc(20px + env(safe-area-inset-left, 0px));
     display: flex;
     align-items: center;
     gap: 8px;
@@ -374,7 +379,7 @@ footer {
 }
 
 @media (max-width: 768px) {
-    .header-top-left { top: 10px; left: 10px; gap: 6px; }
+    .header-top-left { top: calc(10px + env(safe-area-inset-top, 0px)); left: calc(10px + env(safe-area-inset-left, 0px)); gap: 6px; }
     .home-icon-btn, .event-picker-btn { width: 34px; height: 34px; }
 }
 
@@ -704,11 +709,13 @@ footer {
 
     header {
         padding: 50px 15px 20px;
+        /* base seats the title below the 10–44px mobile button row */
+        padding-top: calc(60px + env(safe-area-inset-top, 0px));
     }
 
     .language-switcher {
-        top: 10px;
-        right: 10px;
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        right: calc(10px + env(safe-area-inset-right, 0px));
         gap: 4px;
     }
 

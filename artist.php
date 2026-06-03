@@ -177,6 +177,10 @@ function include_404(string $msg): never {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#E91E63">
     <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="<?php echo get_base_path(); ?>/icon/icon-72.png">
+    <link rel="icon" href="<?php echo get_base_path(); ?>/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
     <title><?php echo htmlspecialchars($artist['name'], ENT_QUOTES, 'UTF-8'); ?> – <?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
     // ── SEO meta tags ─────────────────────────────────────────────────────────

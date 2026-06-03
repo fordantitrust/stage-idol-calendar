@@ -27,7 +27,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 📅 **Export to Calendar** | Download filtered programs as .ics file for Google Calendar, Apple Calendar, etc. | v1.0.0 |
 | 📝 **Request Changes** | Submit requests to add or modify programs (rate-limited) | v1.0.0 |
 | 🎪 **Multi-Event** | Support for multiple conventions/events with searchable modal card picker (filter by status) | v1.2.0 |
-| 📅 **Date Jump Bar** | Fixed-position navigation bar (with ◀ ▶ arrows + mousewheel scroll) to jump quickly to any date | v1.2.1 |
+| 📅 **Date Jump Bar** | Fixed-position navigation bar with date chips, per-day time chips, and a live "Now" jump to the currently running program | v1.2.1 / v16.7.1 |
 | 🏷️ **Program Types** | Filter programs by type with badge display on rows and Gantt bars | v2.4.0 |
 | 🖱️ **Quick Filter Badges** | Click any artist or type badge in results to instantly append that filter | v2.4.1 |
 | 🔔 **Live Subscription** | Subscribe to a live webcal:// feed — calendar apps auto-sync when programs change (no re-export needed) | v2.5.0 |
@@ -56,6 +56,7 @@ A beautiful, responsive event calendar system designed for idol performances and
 | 🌐 **Timezone-aware Notifications** | Telegram & Web Push notifications show the event-local time with your local time in parentheses, e.g. `18:00 (19:00 Asia/Tokyo)`, when timezones differ; control your timezone in-bot with `/tz Asia/Tokyo` or `/tz auto` | v16.1.1 |
 | 🔔 **Telegram Summary-only Mode** | `/notify on\|off\|summary` — keep just the 9 AM daily summary while turning off per-program alerts (`on` = both, `summary` = daily only, `off` = none) | v16.2.0 |
 | 🎤 **Calendar View Artist Links** | Artist names in Calendar view (day panel + detail modal) are clickable links to `/artist/{id}`; artists without a profile remain plain text | v16.3.0 |
+| 🕒 **Event Time Jump + Now** | Event pages add per-day time chips and a filter-aware "Now" button that jumps to the currently running program using UTC epoch anchors | v16.7.0 |
 
 ### 👨‍💼 For Event Organizers (Admin)
 | Feature | Description | Since |
@@ -288,6 +289,8 @@ A beautiful, responsive event calendar system designed for idol performances and
 | **v16.5.0** | 2026-06-01 | **Cross-event section also references each artist's group** — the "Also appears in" section now matches not just the same `artist_id` but also each solo artist's parent group, so events where the artist's **group** performs (tagged as the group, not the member) are surfaced; the cross-event query in `index.php` `UNION`s each current-event artist's parent `group_id` into the `IN (...)` lookup and joins `artists` to select `artist_name` per row (group names resolve even when the group isn't in the current event); surfaced group appearances render as `.cross-event-artist-chip` links to `/artist/{group_id}`, deduped per event; solo→group only (no group→member expansion); no schema/migration/CSS change; reuses My Upcoming Programs' resolution logic |
 | **v16.5.2** | 2026-06-02 | **Security (LOW-5) — move Favorites HMAC secret out of the git-tracked config file** — a working-tree review (security audit revision 7) found the live `FAVORITES_HMAC_SECRET` written into the tracked `config/favorites.php` (not covered by the `config/*-config.json` `.gitignore` rule); verified never committed. Secret relocated to gitignored `config/favorites-config.json` (loaded like `config/telegram.php`); `tools/generate-favorites-secret.php` now writes that JSON directly with an overwrite guard. Re-verified all prior audit findings intact at v16.5.x; tests 13,231/13,231 |
 | **v16.5.1** | 2026-06-02 | **Docs — Help & How-to-Use coverage brought up to v16.5.0** — documentation-only release (no runtime/schema/API change; tests stay 13,231/13,231). Admin Help (TH+EN) Telegram section gains the `/tz [zone\|auto]` command (v16.1.1), `/notify on\|off` → `/notify on\|off\|summary` with all three modes (v16.2.0), an updated `/status`, and a new "Notification Modes & Timezone" subsection. How-to-Use adds two new sections — 🔴 **Live Now** (v16.1.0) and 🏛️ **All Venues** (`/venues` + `/venue/{id}`, v16.0.0/v16.0.1) — documents the My Favorites 📋 List / 📊 Timeline toggle (v15.8.0), adds `/tz` + `/notify summary` to the Telegram guide, and rewrites the FAQ offline answer to mention PWA Offline Cache (v15.7.0). New/updated i18n keys across TH/EN/JA in `js/translations.js` (`section25.*`, `section26.*`, `section17.myupcoming.timeline`, `section20.tz.*`, etc.) + 2 new TOC entries |
+| **v16.7.0** | 2026-06-03 | **Date + Time Jump on event pages** — Date Jump Bar now includes per-day time chips and a filter-aware "Now" button; uses `start_ts` / `end_ts` UTC epoch anchors, refreshes current state every 30 s, handles instant programs with a short grace window, and works without DB/API changes |
+| **v16.7.1** | 2026-06-03 | **Time Jump overflow + PWA safe-area fix** — desktop time chips now have arrows, mouse-wheel horizontal scroll, scrollbar/fade affordance, and overflow containment; standalone PWA jump bar respects `safe-area-inset-top` so it clears Dynamic Island / notch areas |
 
 ---
 
@@ -388,7 +391,7 @@ php tools/import-ics-to-sqlite.php
 | 🏷️ **Filter by Type** | Check program type checkboxes |
 | 🖱️ **Quick Filter** | Click any badge in results to append filter |
 | 📊 **Switch Views** | Toggle List / Gantt Chart (or Calendar in calendar mode) |
-| 📅 **Jump to Date** | Use the fixed Date Jump Bar (arrows or mousewheel to scroll) |
+| 📅 **Jump to Date/Time** | Use the fixed Date Jump Bar, time chips, or "Now" button to jump to the relevant slot |
 | 📸 **Save Image** | Click "Save as Image" button |
 | 📅 **Export Calendar** | Click "Export to Calendar" button |
 | 🔔 **Subscribe** | Click "Subscribe" button for live webcal:// calendar link |
@@ -973,7 +976,7 @@ For detailed testing documentation, see [tests/README.md](tests/README.md) and [
 
 See [CHANGELOG.md](CHANGELOG.md) for full version history and release notes.
 
-**Current Version**: 14.0.0
+**Current Version**: 16.7.1
 
 ---
 

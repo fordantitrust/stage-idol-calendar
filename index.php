@@ -516,6 +516,10 @@ if ($_listingCalDataFromCache !== null) {
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#E91E63">
     <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="<?php echo get_base_path(); ?>/icon/icon-72.png">
+    <link rel="icon" href="<?php echo get_base_path(); ?>/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
     <title><?php
         $siteTitle = get_site_title();
         $pageTitle = $siteTitle;
@@ -614,26 +618,53 @@ if ($_listingCalDataFromCache !== null) {
     ?>
 </head>
 <body>
-    <?php if (!$showEventListing && !empty($eventsByDay) && count($eventsByDay) > 1): ?>
+    <?php if (!$showEventListing && !empty($eventsByDay) && $currentVenueMode !== 'calendar'): ?>
     <div class="date-jump-bar" id="dateJumpBar">
         <div class="date-jump-inner">
-        <span class="date-jump-label" data-i18n="dateJump.label">📅 ข้ามไปวันที่:</span>
-        <button class="date-jump-arrow" id="jumpPrev" onclick="scrollJumpBar(-200)" aria-label="Previous">◀</button>
-        <div class="date-jump-buttons" id="jumpButtons">
-            <?php foreach ($eventsByDay as $djKey => $djEvents): ?>
-            <?php
-                $djTimestamp = $djEvents[0]['start_ts'];
-                $djDay = $evFmt($djTimestamp, 'd');
-                $djMonth = $evFmt($djTimestamp, 'm');
-                $djDayOfWeek = $evFmt($djTimestamp, 'w');
-            ?>
-            <a href="#day-<?php echo $djKey; ?>" class="date-jump-btn" data-day="<?php echo $djDay; ?>" data-month="<?php echo $djMonth; ?>" data-dayofweek="<?php echo $djDayOfWeek; ?>">
-                <span class="date-jump-day"><?php echo $djDay . '/' . $djMonth; ?></span>
-                <span class="date-jump-weekday" data-dayofweek="<?php echo $djDayOfWeek; ?>"></span>
-            </a>
-            <?php endforeach; ?>
+            <button type="button" class="date-jump-now-btn" id="jumpNowBtn" data-i18n="dateJump.now" hidden>🔴 ตอนนี้</button>
+            <span class="date-jump-label date-jump-date-label" data-i18n="dateJump.label">📅 ข้ามไปวันที่:</span>
+            <button class="date-jump-arrow" id="jumpPrev" onclick="scrollJumpBar(-200)" aria-label="Previous">◀</button>
+            <div class="date-jump-buttons" id="jumpButtons">
+                <?php foreach ($eventsByDay as $djKey => $djEvents): ?>
+                <?php
+                    $djTimestamp = $djEvents[0]['start_ts'];
+                    $djDay = $evFmt($djTimestamp, 'd');
+                    $djMonth = $evFmt($djTimestamp, 'm');
+                    $djDayOfWeek = $evFmt($djTimestamp, 'w');
+                ?>
+                <a href="#day-<?php echo $djKey; ?>" class="date-jump-btn" data-day-key="<?php echo htmlspecialchars($djKey, ENT_QUOTES, 'UTF-8'); ?>" data-day="<?php echo $djDay; ?>" data-month="<?php echo $djMonth; ?>" data-dayofweek="<?php echo $djDayOfWeek; ?>">
+                    <span class="date-jump-day"><?php echo $djDay . '/' . $djMonth; ?></span>
+                    <span class="date-jump-weekday" data-dayofweek="<?php echo $djDayOfWeek; ?>"></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <button class="date-jump-arrow" id="jumpNext" onclick="scrollJumpBar(200)" aria-label="Next">▶</button>
         </div>
-        <button class="date-jump-arrow" id="jumpNext" onclick="scrollJumpBar(200)" aria-label="Next">▶</button>
+        <div class="time-jump-row" id="timeJumpRow">
+            <span class="date-jump-label time-jump-label" data-i18n="dateJump.time">🕐 ข้ามไปเวลา:</span>
+            <button class="date-jump-arrow time-jump-arrow" id="timeJumpPrev" onclick="scrollTimeJumpBar(-240)" aria-label="Previous time">◀</button>
+            <div class="time-jump-buttons" id="timeJumpButtons">
+                <?php foreach ($eventsByDay as $tjKey => $tjEvents): ?>
+                    <?php
+                        $seenTimes = [];
+                        foreach ($tjEvents as $tjEvent):
+                            $tjStartTs = (int)($tjEvent['start_ts'] ?? 0);
+                            if ($tjStartTs <= 0 || isset($seenTimes[$tjStartTs])) continue;
+                            $seenTimes[$tjStartTs] = true;
+                            $tjId = (int)($tjEvent['id'] ?? 0);
+                            $tjAnchor = 'program-' . $tjStartTs . '-' . $tjId;
+                    ?>
+                    <button type="button"
+                            class="time-jump-btn"
+                            data-day-key="<?php echo htmlspecialchars($tjKey, ENT_QUOTES, 'UTF-8'); ?>"
+                            data-start-ts="<?php echo $tjStartTs; ?>"
+                            data-target-id="<?php echo htmlspecialchars($tjAnchor, ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo htmlspecialchars($evFmt($tjStartTs, 'H:i'), ENT_QUOTES, 'UTF-8'); ?>
+                    </button>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
+            <button class="date-jump-arrow time-jump-arrow" id="timeJumpNext" onclick="scrollTimeJumpBar(240)" aria-label="Next time">▶</button>
         </div>
     </div>
     <?php endif; ?>
@@ -1307,6 +1338,11 @@ if ($_listingCalDataFromCache !== null) {
                                 <tbody>
                                     <?php foreach ($events as $event): ?>
                                         <?php
+                                            $programId = (int)($event['id'] ?? 0);
+                                            $programStartTs = (int)($event['start_ts'] ?? 0);
+                                            $programEndTs = (int)($event['end_ts'] ?? 0);
+                                            $programDayKey = $programStartTs > 0 ? $evFmt($programStartTs, 'Y-m-d') : $dayKey;
+                                            $programAnchorId = 'program-' . $programStartTs . '-' . $programId;
                                             $streamUrl = $event['stream_url'] ?? '';
                                             $streamPlatform = '';
                                             if (!empty($streamUrl)) {
@@ -1316,7 +1352,12 @@ if ($_listingCalDataFromCache !== null) {
                                                 else $streamPlatform = '🔴';
                                             }
                                         ?>
-                                        <tr<?php echo !empty($streamUrl) ? ' class="program-live"' : ''; ?>>
+                                        <tr id="<?php echo htmlspecialchars($programAnchorId, ENT_QUOTES, 'UTF-8'); ?>"
+                                            class="program-row<?php echo !empty($streamUrl) ? ' program-live' : ''; ?>"
+                                            data-start-ts="<?php echo $programStartTs; ?>"
+                                            data-end-ts="<?php echo $programEndTs; ?>"
+                                            data-program-id="<?php echo $programId; ?>"
+                                            data-day-key="<?php echo htmlspecialchars($programDayKey, ENT_QUOTES, 'UTF-8'); ?>">
                                             <td class="program-datetime-cell">
                                                 <?php
                                                     // Format in event TZ — Bangkok PHP default would offset Taipei/Tokyo/etc. events
@@ -1693,20 +1734,35 @@ if ($_listingCalDataFromCache !== null) {
     <?php endif; ?>
     const EVENT_SLUG = '<?php echo htmlspecialchars($eventSlug); ?>';
 
-    // Date jump bar: fixed position, show/hide on scroll, highlight active date
+    // Date/time jump bar: fixed position, show/hide on scroll, highlight active date/time/current program
     (function() {
         const jumpBar = document.getElementById('dateJumpBar');
         if (!jumpBar) return;
 
-        const jumpBtns = jumpBar.querySelectorAll('.date-jump-btn');
+        const jumpBtns = Array.from(jumpBar.querySelectorAll('.date-jump-btn'));
         const jumpButtons = document.getElementById('jumpButtons');
         const jumpPrev = document.getElementById('jumpPrev');
         const jumpNext = document.getElementById('jumpNext');
+        const jumpNowBtn = document.getElementById('jumpNowBtn');
+        const timeJumpRow = document.getElementById('timeJumpRow');
+        const timeJumpButtons = document.getElementById('timeJumpButtons');
+        const timeJumpPrev = document.getElementById('timeJumpPrev');
+        const timeJumpNext = document.getElementById('timeJumpNext');
+        const timeBtns = Array.from(jumpBar.querySelectorAll('.time-jump-btn'));
         const daySections = document.querySelectorAll('.day-section[id^="day-"]');
+        const programRows = Array.from(document.querySelectorAll('.program-row[data-start-ts]'));
         const calendarContainer = document.querySelector('.calendar-container');
         if (daySections.length === 0 || !calendarContainer) return;
 
-        const jumpBarHeight = 56; // approximate bar height for offset
+        const instantGraceSeconds = 5 * 60;
+        let activeDayKey = jumpBtns[0] ? jumpBtns[0].dataset.dayKey : '';
+        let currentProgram = null;
+        const hasMultipleDays = jumpBtns.length > 1;
+
+        function jumpBarOffset() {
+            const top = parseFloat(window.getComputedStyle(jumpBar).top || '0') || 0;
+            return top + (jumpBar.offsetHeight || 56) + 8;
+        }
 
         // Position the bar to match container width
         function positionBar() {
@@ -1719,23 +1775,114 @@ if ($_listingCalDataFromCache !== null) {
             }
         }
 
-        // Update arrow button visibility based on scroll position of button strip
+        // Update arrow button visibility based on scroll position of a button strip.
+        function updateStripArrows(strip, prev, next) {
+            if (!strip || !prev || !next) return;
+            const hasOverflow = strip.scrollWidth > strip.clientWidth + 2;
+            const atStart = strip.scrollLeft <= 2;
+            const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 2;
+            prev.disabled = !hasOverflow || atStart;
+            next.disabled = !hasOverflow || atEnd;
+            strip.classList.toggle('is-scrollable', hasOverflow);
+            strip.classList.toggle('is-at-start', !hasOverflow || atStart);
+            strip.classList.toggle('is-at-end', !hasOverflow || atEnd);
+        }
+
         function updateArrows() {
-            if (!jumpButtons || !jumpPrev || !jumpNext) return;
-            const atStart = jumpButtons.scrollLeft <= 2;
-            const atEnd = jumpButtons.scrollLeft >= jumpButtons.scrollWidth - jumpButtons.clientWidth - 2;
-            jumpPrev.disabled = atStart;
-            jumpNext.disabled = atEnd;
+            updateStripArrows(jumpButtons, jumpPrev, jumpNext);
+        }
+
+        function updateTimeArrows() {
+            updateStripArrows(timeJumpButtons, timeJumpPrev, timeJumpNext);
+        }
+
+        function visibleTimeButtons() {
+            return timeBtns.filter(btn => !btn.hidden && btn.dataset.dayKey === activeDayKey);
+        }
+
+        function setActiveDay(dayKey) {
+            if (!dayKey) return;
+            activeDayKey = dayKey;
+            jumpBtns.forEach(b => {
+                b.classList.toggle('active', b.dataset.dayKey === dayKey);
+            });
+
+            let visibleCount = 0;
+            timeBtns.forEach(btn => {
+                const visible = btn.dataset.dayKey === dayKey;
+                btn.hidden = !visible;
+                if (visible) visibleCount++;
+            });
+            if (timeJumpRow) timeJumpRow.hidden = visibleCount <= 1;
+            updateTimeArrows();
+        }
+
+        function setActiveTime(startTs) {
+            timeBtns.forEach(btn => {
+                btn.classList.toggle('active', !!startTs && btn.dataset.startTs === String(startTs));
+            });
+        }
+
+        function scrollToElement(el) {
+            if (!el) return;
+            const section = el.closest('.day-section');
+            const target = el.offsetParent ? el : (section || el);
+            const y = target.getBoundingClientRect().top + window.pageYOffset - jumpBarOffset();
+            window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+
+        function highlightProgram(row) {
+            if (!row) return;
+            row.classList.remove('program-row-jump-highlight');
+            // Force restart of the highlight animation/class transition.
+            void row.offsetWidth;
+            row.classList.add('program-row-jump-highlight');
+            setTimeout(function() {
+                row.classList.remove('program-row-jump-highlight');
+            }, 1800);
+        }
+
+        function isProgramCurrent(row, nowSeconds) {
+            const start = parseInt(row.dataset.startTs || '0', 10);
+            const end = parseInt(row.dataset.endTs || '0', 10);
+            if (!start || start > nowSeconds) return false;
+            if (end > start) return end > nowSeconds;
+            return nowSeconds - start <= instantGraceSeconds;
+        }
+
+        function updateCurrentProgram() {
+            const nowSeconds = Math.floor(Date.now() / 1000);
+            const currentRows = programRows.filter(row => isProgramCurrent(row, nowSeconds));
+            currentRows.sort(function(a, b) {
+                const aStart = parseInt(a.dataset.startTs || '0', 10);
+                const bStart = parseInt(b.dataset.startTs || '0', 10);
+                if (aStart !== bStart) return aStart - bStart;
+                return parseInt(a.dataset.programId || '0', 10) - parseInt(b.dataset.programId || '0', 10);
+            });
+
+            programRows.forEach(row => row.classList.toggle('program-row-current', currentRows.indexOf(row) !== -1));
+            currentProgram = currentRows[0] || null;
+            if (jumpNowBtn) {
+                jumpNowBtn.hidden = !currentProgram;
+                jumpNowBtn.disabled = !currentProgram;
+                jumpNowBtn.title = currentProgram ? '' : ((translations[currentLang] && translations[currentLang]['dateJump.noCurrent']) || '');
+            }
+            return currentProgram;
+        }
+
+        function hasUsefulJumpTarget() {
+            return hasMultipleDays || currentProgram || visibleTimeButtons().length > 1;
         }
 
         // Show/hide based on scroll position
         function updateVisibility() {
             const calRect = calendarContainer.getBoundingClientRect();
             // Show when calendar top is above viewport
-            if (calRect.top < 0 && calRect.bottom > jumpBarHeight) {
+            if (calRect.top < 0 && calRect.bottom > jumpBarOffset() && hasUsefulJumpTarget()) {
                 jumpBar.classList.add('visible');
                 positionBar();
                 updateArrows();
+                updateTimeArrows();
             } else {
                 jumpBar.classList.remove('visible');
             }
@@ -1743,7 +1890,9 @@ if ($_listingCalDataFromCache !== null) {
 
         window.addEventListener('scroll', updateVisibility, { passive: true });
         window.addEventListener('resize', function() {
-            if (jumpBar.classList.contains('visible')) { positionBar(); updateArrows(); }
+            updateCurrentProgram();
+            if (jumpBar.classList.contains('visible')) { positionBar(); updateArrows(); updateTimeArrows(); }
+            updateVisibility();
         }, { passive: true });
 
         // Arrow scroll function (called from HTML onclick)
@@ -1753,17 +1902,25 @@ if ($_listingCalDataFromCache !== null) {
             }
         };
 
-        // Sync arrow state when user scrolls the button strip (touch or mouse)
-        if (jumpButtons) {
-            jumpButtons.addEventListener('scroll', updateArrows, { passive: true });
+        window.scrollTimeJumpBar = function(delta) {
+            if (timeJumpButtons) {
+                timeJumpButtons.scrollBy({ left: delta, behavior: 'smooth' });
+            }
+        };
 
-            // Mousewheel → horizontal scroll on desktop
-            jumpButtons.addEventListener('wheel', function(e) {
+        function bindHorizontalScroll(strip, updateFn) {
+            if (!strip) return;
+            strip.addEventListener('scroll', updateFn, { passive: true });
+            strip.addEventListener('wheel', function(e) {
                 e.preventDefault();
-                jumpButtons.scrollLeft += e.deltaY || e.deltaX;
-                updateArrows();
+                strip.scrollLeft += e.deltaY || e.deltaX;
+                updateFn();
             }, { passive: false });
         }
+
+        // Sync arrow state when user scrolls the button strips (touch or mouse).
+        bindHorizontalScroll(jumpButtons, updateArrows);
+        bindHorizontalScroll(timeJumpButtons, updateTimeArrows);
 
         // Smooth scroll with offset for fixed bar
         jumpBtns.forEach(btn => {
@@ -1772,28 +1929,78 @@ if ($_listingCalDataFromCache !== null) {
                 const targetId = this.getAttribute('href').substring(1);
                 const target = document.getElementById(targetId);
                 if (target) {
-                    const y = target.getBoundingClientRect().top + window.pageYOffset - jumpBarHeight;
-                    window.scrollTo({ top: y, behavior: 'smooth' });
-                    // Update active state
-                    jumpBtns.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
+                    setActiveDay(this.dataset.dayKey || targetId.replace(/^day-/, ''));
+                    setActiveTime(null);
+                    scrollToElement(target);
                 }
             });
         });
+
+        timeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const target = document.getElementById(this.dataset.targetId || '');
+                setActiveDay(this.dataset.dayKey || activeDayKey);
+                setActiveTime(this.dataset.startTs);
+                this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                scrollToElement(target);
+                highlightProgram(target);
+            });
+        });
+
+        if (jumpNowBtn) {
+            jumpNowBtn.addEventListener('click', function() {
+                const target = updateCurrentProgram();
+                if (!target) return;
+                setActiveDay(target.dataset.dayKey || activeDayKey);
+                setActiveTime(target.dataset.startTs);
+                scrollToElement(target);
+                highlightProgram(target);
+            });
+        }
 
         // IntersectionObserver to highlight current visible date
         const observer = new IntersectionObserver(function(entries) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const id = entry.target.id;
-                    jumpBtns.forEach(b => {
-                        b.classList.toggle('active', b.getAttribute('href') === '#' + id);
-                    });
+                    const dayKey = id.replace(/^day-/, '');
+                    setActiveDay(dayKey);
+                    updateVisibility();
                 }
             });
         }, { rootMargin: '-60px 0px -60% 0px', threshold: 0 });
 
         daySections.forEach(section => observer.observe(section));
+
+        function updateActiveTimeFromViewport() {
+            const offset = jumpBarOffset();
+            let active = null;
+            for (const row of programRows) {
+                if ((row.dataset.dayKey || '') !== activeDayKey) continue;
+                const rect = row.getBoundingClientRect();
+                if (rect.bottom >= offset && rect.top <= window.innerHeight * 0.55) {
+                    active = row;
+                    break;
+                }
+            }
+            if (active) setActiveTime(active.dataset.startTs);
+        }
+
+        window.addEventListener('scroll', function() {
+            updateActiveTimeFromViewport();
+            updateCurrentProgram();
+            updateVisibility();
+        }, { passive: true });
+
+        setActiveDay(activeDayKey);
+        updateCurrentProgram();
+        updateVisibility();
+        updateArrows();
+        updateTimeArrows();
+        setInterval(function() {
+            updateCurrentProgram();
+            updateVisibility();
+        }, 30000);
     })();
 
     var _reqProgramsLoaded = false;

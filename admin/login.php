@@ -119,6 +119,9 @@ $csrfToken = csrf_token();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Admin <?php echo htmlspecialchars(get_site_title()); ?></title>
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo asset_url('../icon/icon-192.png'); ?>">
+    <link rel="icon" href="<?php echo asset_url('../favicon.ico'); ?>" sizes="any">
+    <link rel="apple-touch-icon" href="<?php echo asset_url('../icon/icon-192.png'); ?>">
     <link rel="stylesheet" href="<?php echo asset_url('../styles/common.css'); ?>">
     <script src="<?php echo asset_url('js/admin-i18n.js'); ?>"></script>
     <style>

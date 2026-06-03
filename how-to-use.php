@@ -15,6 +15,10 @@ $eventMeta = get_event_by_slug($eventSlug);
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#E91E63">
     <link rel="manifest" href="<?php echo get_base_path(); ?>/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
+    <link rel="icon" type="image/png" sizes="72x72" href="<?php echo get_base_path(); ?>/icon/icon-72.png">
+    <link rel="icon" href="<?php echo get_base_path(); ?>/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="<?php echo get_base_path(); ?>/icon/icon-192.png">
     <title>วิธีการใช้งาน - <?php echo htmlspecialchars(get_site_title()); ?></title>
     <?php seo_render_meta([
         'description' => 'วิธีการใช้งาน ' . get_site_title()
