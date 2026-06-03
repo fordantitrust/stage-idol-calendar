@@ -32,9 +32,7 @@ The v16.7.0 event-page time chips could overflow horizontally on desktop without
 - `ICS_FORMAT.md`
 - `README.md`
 - `WORKFLOW.md`
-- `SKILL.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — UI/CSS/JS only; no DB schema, cache, or API changes. PWA/browser assets are cache-busted by `APP_VERSION` / `CACHE_VERSION` v16.7.1.
 
@@ -68,9 +66,7 @@ Event detail pages now extend the existing Date Jump Bar into a compact date/tim
 - `ICS_FORMAT.md`
 - `README.md`
 - `WORKFLOW.md`
-- `SKILL.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — UI/client-side only; no DB schema, cache, or API changes. PWA/browser assets are cache-busted by `APP_VERSION` / `CACHE_VERSION` v16.7.0.
 
@@ -114,7 +110,6 @@ The site previously declared no favicon at all — no `favicon.ico` file and no 
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — static/template only; no DB schema change. The `favicon.ico` is committed; re-run `php tools/generate-favicon.php` if the source icon changes. Returning visitors pick up the new tab icon once the browser revalidates the pages (cache-busted by the version bump / `CACHE_VERSION` v16.6.0).
 
@@ -147,7 +142,6 @@ When the site was installed as a PWA, the top header buttons (home / event-picke
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — CSS-only; no DB schema change. Installed PWAs get the fix once the service worker revalidates `common.css` / `index.css` (cache-busted by the version bump / `CACHE_VERSION` v16.5.5) — no need to uninstall and reinstall the PWA.
 
@@ -182,7 +176,6 @@ Replaced the legacy `'Segoe UI', Tahoma, …` body font stack with **Noto Sans**
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — CSS/template-only; no DB schema change. Returning users get Noto Sans once the browser revalidates `common.css` (cache-busted by the version bump) and the service worker (`CACHE_VERSION` v16.5.3).
 
@@ -212,7 +205,6 @@ A diff-based review of the working tree (security audit revision 7) found the li
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — no DB schema change. On existing installs the secret continues to load from the working-tree value until moved; create `config/favorites-config.json` with `{"hmac_secret": "<existing 64-hex>"}` (or re-run `php tools/generate-favorites-secret.php` for a fresh secret — note this invalidates all existing Favorites URLs). `config/favorites-config.json` is gitignored and must never be committed.
 
@@ -246,9 +238,7 @@ The Admin Help pages and the public How-to-Use guide had drifted behind the feat
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 - `README.md`
-- `SKILL.md`
 
 > **Migration:** none — documentation/i18n only; no DB schema change. Users pick up the new help/how-to-use content once the browser revalidates the service worker (`CACHE_VERSION` bumped to v16.5.1).
 
@@ -276,7 +266,6 @@ The "งานอื่นที่เกี่ยวข้องกับศิ
 - `ICS_FORMAT.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — query/render-only change; no DB schema change. The `artist_other_events` query cache picks up the new `artist_name` field on its next rebuild (TTL 1h or on the next program/artist write).
 
@@ -308,7 +297,6 @@ Artist social links (Facebook / Instagram / Twitter-X / TikTok) could only be se
 - `ICS_FORMAT.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — CLI dev tool only; no DB schema change. Reuses existing `artists.social_*` columns (added in v9.5.0).
 
@@ -339,7 +327,6 @@ The Calendar view (`venue_mode = 'calendar'`) shows programs in two interactive 
 - `ICS_FORMAT.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS/PHP/CSS only; no DB schema change. The `artists` field is attached to `CALENDAR_EVENTS` at render time.
 
@@ -372,7 +359,6 @@ Telegram notifications were binary: `/notify on|off`. Because the cron checked t
 - `ICS_FORMAT.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — no DB schema change; favorites JSON gains `telegram_notify_mode` only when a user runs `/notify summary` or `/notify off`. Existing links default to `all` (unchanged behaviour).
 
@@ -410,7 +396,6 @@ Telegram and Web Push notifications previously showed the program time in the ev
 - `config/app.php`
 - `docs/TIMEZONE_NOTIFICATION_PLAN.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — no DB schema change; favorites JSON gains optional `user_timezone` / `user_timezone_manual` keys on first use; web push subscriptions gain an optional per-device `tz` on next subscribe/visit.
 
@@ -443,7 +428,6 @@ The multi-event homepage listing previously showed only overview data (hero caro
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — PHP/JS/CSS only; no DB schema changes. The listing cache picks up `live_programs` automatically on next rebuild (TTL 1 h) or after any program write.
 
@@ -474,7 +458,6 @@ When a program's event timezone differs from `DEFAULT_TIMEZONE`, notifications n
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — PHP-only fix; no DB schema changes
 
@@ -504,7 +487,6 @@ Both notification cron scripts compared `programs.start` (stored in the event's 
 - `SECURITY.md`
 - `ICS_FORMAT.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — cron / PHP-only fix; no DB schema changes.
 
@@ -531,7 +513,6 @@ On mobile, the My Timeline view could display the first two event columns but th
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — CSS/JS-only.
 
@@ -557,7 +538,6 @@ On mobile, the My Timeline view could display the first two event columns but th
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none for new installs (the `init_database` path now self-syncs). For an existing DB that has the gap (e.g. `venues=0, distinct=2` from before this fix), run `setup.php` → "Run All Migrations" — the new safety-net step will sync the missing locations and report the count. Or run the one-liner: `php -r 'require "config.php"; $db=new PDO("sqlite:".DB_PATH); $db->exec("INSERT OR IGNORE INTO venues (name) SELECT DISTINCT location FROM programs WHERE location IS NOT NULL AND location != \"\""); invalidate_venue_query_cache();'`
 
@@ -586,7 +566,6 @@ v16.0.8 moved the Timeline's positioning math to user-local minutes so cross-TZ 
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS/CSS only.
 
@@ -615,7 +594,6 @@ This release moves the **positioning math** to user-local minutes while keeping 
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS-only on top of v16.0.3's ISO-with-offset data shape. The `_favProgMins()` helper falls back to the previous event-local minutes for any program that lacks `start_full` / `end_full` (e.g. cached before v16.0.3), so the change is non-breaking for stale data.
 
@@ -647,7 +625,6 @@ Final follow-up to the v16.0.2 → v16.0.6 timezone series. The artist profile p
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — PHP/JS/CSS only. The query caches were force-invalidated once during this release so the new `event_timezone` field becomes available on the next request; no schema change.
 
@@ -672,7 +649,6 @@ Companion to v16.0.5. The Gantt/Timeline view's program bars now show `(HH:MM lo
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS-only enhancement on top of v16.0.5's data attributes.
 
@@ -703,7 +679,6 @@ Three small follow-ups to the v16.0.2 → v16.0.4 timezone work: (1) the v16.0.3
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS/PHP-only enhancement on top of v16.0.4's data shape. The `DEFAULT_TIMEZONE` constant is unchanged (`Asia/Bangkok`) so existing installs see identical defaults; sites that want a different default now have a single place to change it.
 
@@ -731,7 +706,6 @@ After v16.0.3 fixed the underlying timestamps, programs displayed event-local ti
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — JS-only enhancement on top of v16.0.3's data shape. Refresh `/my/{slug}` to see the new annotations.
 
@@ -763,7 +737,6 @@ Critically, this page aggregates programs from **multiple followed events that m
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — display-only fix on `my.php`; for `my-feed.php`, subscribed calendar apps refresh on their next pull (Apple ≤ 1 hour, Google ≤ 24 hours, Outlook ≤ 24 hours) and will then show the corrected times. Users with Outlook Web who want the fix immediately should remove and re-subscribe to the personal feed.
 
@@ -789,7 +762,6 @@ Events whose timezone differs from the server-side PHP default (`Asia/Bangkok`, 
 - `INSTALLATION.md`
 - `TESTING.md`
 - `CHANGELOG.md`
-- `CLAUDE.md`
 
 > **Migration:** none — display-only fix. Existing `programs.start` / `programs.end` data is unchanged (it was already correct event-local text); the bug was purely in how `index.php` rendered those values. Refresh the page to see the corrected time.
 
@@ -820,7 +792,7 @@ Online platforms (YouTube, Instagram Live, X Spaces) are programs' "locations" t
 - `index.php`, `artist.php`, `how-to-use.php`, `image.php`, `admin/help.php` — Thai labels updated to "สถานที่"
 - `tests/VenueTest.php` — 7 new tests
 - `service-worker.js`, `config/app.php` — bumped to v16.0.1 (via `sync-sw-version.php`)
-- `CHANGELOG.md`, `CLAUDE.md` — release notes
+- `CHANGELOG.md` — release notes
 
 > **Migration:** re-run `php tools/migrate-add-venues-table.php` (idempotent — adds the column if missing and flags the 3 known online platforms). Existing custom online venues can be flagged via Admin › Venues › Edit › 🌐 checkbox.
 
@@ -864,7 +836,6 @@ Introduced a canonical layer for program locations, mirroring the Artist Reuse a
 - `config/app.php` — `APP_VERSION` bumped to v16.0.0
 - `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version references updated (automatic via `tools/update-version.php`)
 - `CHANGELOG.md` — added the v16.0.0 release entry (manual)
-- `CLAUDE.md` — added the v16.0.0 changelog section (manual)
 - `README.md` — added the v16.0.0 row to the Feature Timeline table (manual)
 
 > **Migration:** run `php tools/migrate-add-venues-table.php` (or `setup.php` → Run All Migrations) on existing installs to create + seed the venues tables. No change to `programs.location` data is required; the homepage/feeds/exports keep working unchanged.
@@ -900,9 +871,7 @@ Added a per-day Gantt-style Timeline view on `/my/{slug}` alongside the existing
 - `config/app.php` — `APP_VERSION` bumped to v15.8.0
 - `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md` — version references updated (automatic via `tools/update-version.php`)
 - `CHANGELOG.md` — added the v15.8.0 release entry (manual)
-- `CLAUDE.md` — added the v15.8.0 changelog section (manual)
 - `README.md` — added the v15.8.0 row to the Feature Timeline table (manual)
-- `SKILL.md` — updated `Current version: v15.8.0` (manual)
 - `WORKFLOW.md` — updated `Current version`, added v15.8.0 to Recent Release Notes, updated `Last Updated` (manual)
 
 > **Manual smoke test:** open `/my/{slug}` → click **📊 Timeline** → list hides, timeline shows; check `localStorage.fav_view_mode === 'timeline'` in DevTools; reload the page → timeline view is restored; switch language TH ↔ EN ↔ JA → "Time" axis label, date headers, and overlap badge re-render; test an overlap case (two followed artists from different events with programs at overlapping times) → two bars in two columns + vertical red zone + 🔴 badge in the date header; click a bar → day modal opens.
@@ -940,8 +909,7 @@ Added a `fetch` handler with cache strategies to `service-worker.js` (previously
 - `tests/PwaOfflineTest.php` — new test suite, 59 unique tests
 - `tests/run-tests.php` — registered `PwaOfflineTest` (suite #25, cumulative tests: 985)
 - `config/app.php` — version bump to v15.7.0
-- `CLAUDE.md` — added v15.7.0 changelog section
-- `README.md`, `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md` — version references updated
+- `README.md`, `SETUP.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md` — version references updated
 
 > **Migration:** no DB schema migration required. Existing PWA users get the new service worker automatically on next revalidation (the `Cache-Control: no-cache, no-store, must-revalidate` headers on `service-worker.js` at `.htaccess:82-85` force the browser to refetch it on every load).
 >
@@ -1272,7 +1240,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `functions/email.php` — robust app base path extraction for request notification admin links.
 - `tests/EmailNotificationTest.php` — regression coverage for `/api/admin` email link fallback.
 - `config/app.php` — version bump to `12.3.4`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.4 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.3.4 release documentation.
 
 ## [12.3.3] - 2026-05-08
 
@@ -1284,7 +1252,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 ### Files Changed
 - `admin/help.php`, `admin/help-en.php` — role-aware navigation/content visibility and v12.3.3 documentation updates.
 - `config/app.php` — version bump to `12.3.3`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.3 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.3.3 release documentation.
 
 ## [12.3.2] - 2026-05-08
 
@@ -1300,7 +1268,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `admin/index.php` — refresh Artist list after Artist Request approval and show created artist id in the success toast.
 - `tests/OrganizerRoleTest.php` — regression coverage for approve-to-artist behavior and UI refresh.
 - `config/app.php` — version bump to `12.3.2`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.2 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.3.2 release documentation.
 
 ## [12.3.1] - 2026-05-08
 
@@ -1315,7 +1283,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `admin/index.php` — removed the unconditional `loadArtists()` call from Artists tab switching so organizer request flow can open without a 403 error.
 - `tests/OrganizerRoleTest.php` — regression coverage for organizer Artists tab access.
 - `config/app.php` — version bump to `12.3.1`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.1 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.3.1 release documentation.
 
 ## [12.3.0] - 2026-05-08
 
@@ -1338,7 +1306,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `tools/migrate-add-artist-requests-table.php` — idempotent migration for `artist_requests` table and indexes.
 - `tests/OrganizerRoleTest.php` — coverage for Artist Request migration/API/UI surface.
 - `config/app.php` — version bump to `12.3.0`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.3.0 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.3.0 release documentation.
 
 ## [12.2.0] - 2026-05-07
 
@@ -1357,7 +1325,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `admin/js/admin-i18n.js` — organizer autocomplete-only helper/error labels in Thai/English.
 - `tests/OrganizerRoleTest.php` — coverage for organizer autocomplete access and artist reference-only policy.
 - `config/app.php` — version bump to `12.2.0`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.2.0 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.2.0 release documentation.
 
 ## [12.1.0] - 2026-05-07
 
@@ -1378,7 +1346,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `admin/js/admin-i18n.js` — request-active labels and activate request type labels in Thai/English.
 - `tests/OrganizerRoleTest.php` — static coverage for organizer activation policy and UI/API surface.
 - `config/app.php` — version bump to `12.1.0`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.1.0 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.1.0 release documentation.
 
 ## [12.0.0] - 2026-05-07
 
@@ -1403,7 +1371,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `tools/migrate-add-organizer-role.php` — idempotent CLI migration for organizer ownership schema.
 - `tests/UserManagementTest.php`, `tests/OrganizerRoleTest.php`, `tests/run-tests.php` — role helper, schema, API guard, UI surface, and suite registration coverage.
 - `config/app.php` — version bump to `12.0.0`.
-- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `SKILL.md`, `CLAUDE.md`, `CHANGELOG.md` — v12.0.0 release documentation.
+- `README.md`, `API.md`, `PROJECT-STRUCTURE.md`, `SETUP.md`, `INSTALLATION.md`, `TESTING.md`, `SECURITY.md`, `ICS_FORMAT.md`, `WORKFLOW.md`, `CHANGELOG.md` — v12.0.0 release documentation.
 
 ## [11.0.0] - 2026-05-07
 
@@ -1449,9 +1417,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `TESTING.md` — adds 2FA manual migration/schema flag test case
 - `PROJECT-STRUCTURE.md` — adds `data/.admin_2fa_columns_ready` runtime flag and updates TwoFactorAuthTest coverage summary
 - `WORKFLOW.md` — updates current version and release workflow examples to v10.1.0
-- `SKILL.md` — updates current version and Admin API architecture note
 - `tests/README.md` — updates TwoFactorAuthTest coverage summary
-- `CLAUDE.md` — adds v10.1.0 changelog section
 - `admin/help.php` — adds Thai admin help note for v10.1.0 2FA migration behavior
 - `admin/help-en.php` — adds English admin help note for v10.1.0 2FA migration behavior
 
@@ -1485,7 +1451,7 @@ Comprehensive security audit (2026-05-19) followed by full remediation (2026-05-
 - `config.php` — loads `functions/totp.php`
 - `config/app.php` — version bump to v10.0.0
 - `tests/run-tests.php` — registered TwoFactorAuthTest suite
-- Documentation — updated `README.md`, `API.md`, `SECURITY.md`, `SETUP.md`, `TESTING.md`, `PROJECT-STRUCTURE.md`, `WORKFLOW.md`, `tests/README.md`, and `CLAUDE.md`
+- Documentation — updated `README.md`, `API.md`, `SECURITY.md`, `SETUP.md`, `TESTING.md`, `PROJECT-STRUCTURE.md`, `WORKFLOW.md`, and `tests/README.md`
 
 ---
 
@@ -3700,7 +3666,7 @@ After migration, all v3.0.0 features activate automatically.
 ## [2.4.4] - 2026-03-03
 
 ### Added
-- 🔧 **`tools/update-version.php`** — automated version update script; updates `APP_VERSION` in `config/app.php` and 8 documentation files in a single command (`php tools/update-version.php X.Y.Z`); excludes `CHANGELOG.md` and `CLAUDE.md` which require manual content
+- 🔧 **`tools/update-version.php`** — automated version update script; updates `APP_VERSION` in `config/app.php` and 8 documentation files in a single command (`php tools/update-version.php X.Y.Z`); excludes `CHANGELOG.md` which require manual content
 - 📅 **ICS Export: 15-minute reminder** — every exported VEVENT now includes a `VALARM` component (`TRIGGER:-PT15M`, `ACTION:DISPLAY`) so Google Calendar, Apple Calendar, and other RFC 5545-compliant apps will show a notification 15 minutes before each program
 
 ### Fixed
@@ -4555,7 +4521,6 @@ php tools/migrate-add-indexes.php
     - `TESTING.md` - Manual testing checklist with 129 test cases
 
 ### Documentation
-- Updated CLAUDE.md with credits management and testing features
 - Updated README.md with cache system and testing information
 - Updated QUICKSTART.md with testing section and quick test commands
 - Updated INSTALLATION.md with testing & QA procedures, pre-production checklist
