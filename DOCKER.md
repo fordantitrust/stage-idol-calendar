@@ -378,7 +378,7 @@ FROM php:8.1-apache
 
 RUN apt-get update && apt-get install -y \
     libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
-    fonts-thai-tlwg fonts-noto-cjk fonts-unifont \
+    fonts-thai-tlwg fonts-noto-cjk fonts-unifont fontconfig \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_sqlite gd \
     && a2enmod rewrite && fc-cache -fv \

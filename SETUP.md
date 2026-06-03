@@ -294,4 +294,4 @@ This adds `events.created_by_user_id`, creates `event_organizers`, and adds the 
 
 ---
 
-*Idol Stage Timetable v16.5.2*
+*Idol Stage Timetable v16.5.3*

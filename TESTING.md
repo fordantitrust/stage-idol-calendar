@@ -2055,7 +2055,7 @@ What actually happened
 
 **Date**: _______________
 
-**Version**: v16.5.2
+**Version**: v16.5.3
 
 **Result**: Pass / Fail
 
@@ -2402,7 +2402,7 @@ _________________________________
 
 ### 16.1 Service Worker Activation
 
-**Test Case 16.5.2**: Service Worker registers and activates on a fresh load
+**Test Case 16.5.3**: Service Worker registers and activates on a fresh load
 
 **Steps**:
 1. Open the site in Chrome → DevTools › Application › Service Workers
@@ -2459,7 +2459,7 @@ _________________________________
 
 ### 16.5 Network-Only APIs Are Not Stale-Cached
 
-**Test Case 16.5.2**: Private APIs bypass cache when offline
+**Test Case 16.5.3**: Private APIs bypass cache when offline
 
 **Steps**:
 1. While online, perform actions that hit `/api/favorites?action=list`, `/api/push?action=status`, `/api/request?action=submit`

@@ -1,6 +1,6 @@
 # 🔌 API Documentation
 
-All API endpoints for Idol Stage Timetable v16.5.2
+All API endpoints for Idol Stage Timetable v16.5.3
 
 ---
 
@@ -1457,4 +1457,4 @@ Approve rejects duplicate artist names at review time; submit also rejects names
 
 ---
 
-*Idol Stage Timetable v16.5.2*
+*Idol Stage Timetable v16.5.3*

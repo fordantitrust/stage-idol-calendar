@@ -5,6 +5,41 @@ All notable changes to Idol Stage Timetable will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [16.5.3] - 2026-06-03
+
+### UI — Switch site font to Noto Sans (Google Fonts)
+
+Replaced the legacy `'Segoe UI', Tahoma, …` body font stack with **Noto Sans** referenced directly from Google Fonts. Because the site serves Thai/English/Japanese content, the import bundles **Noto Sans + Noto Sans Thai + Noto Sans JP** (weights `400..800`, `display=swap`) so all three scripts render in the same family. Monospace contexts (code, log viewers, URL inputs) are left untouched.
+
+- 🔤 **`styles/common.css`** — added `@import` for the three Noto Sans families at the top of the file (before `:root`); changed the `body` font stack to `'Noto Sans', 'Noto Sans Thai', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`. Every public page, the admin panel, and the login page load `common.css`, so the new font cascades site-wide from this single point.
+- 🧷 **Form-control inheritance** — added `input, textarea, select, button { font-family: inherit }` to `common.css`. Form controls don't inherit `font-family` from `body` by default, so buttons, search boxes, dropdowns, and filter inputs were still rendering in the browser default font — this reset makes them use Noto Sans too. (Monospace inputs that set their own font, e.g. URL/hex fields, are unaffected since they override `inherit`.)
+- 🔘 **Event action-bar button fit** — Noto Sans JP is wider than the previous Segoe UI, so the Japanese action-bar labels (e.g. 画像として保存, カレンダーにエクスポート, 追加・編集をリクエスト) overflowed the row and wrapped mid-label on desktop. Fixed in `styles/index.css`: `.filter-buttons` now `flex-wrap: wrap` (the row wraps to a new line instead of shrinking buttons), and `.filter-buttons .btn` uses `font-size: 0.9em`, tighter `padding: 12px 18px`, and `white-space: nowrap` so each label stays on one line. The ≤768px mobile override keeps its existing 3-per-row layout and adds `white-space: normal` so narrow buttons can still wrap.
+- 🛠️ **`admin/help.php` + `admin/help-en.php`** — both already load `common.css`; overrode their inline `body { font-family: sans-serif }` with the same Noto Sans stack so the help pages match.
+- 🧰 **`setup.php`** — added Google Fonts `<link>` (with `preconnect`) in `<head>` so the fresh-install branch (which renders before `common.css` is available) still gets Noto Sans; updated the inline `body` font stack; added the same form-control `font-family: inherit` reset to its always-applied style block so both the fresh-install and config-loaded branches cover form controls. The config-loaded branch inherits the font via `common.css`.
+- 🚫 **Out of scope** — `image.php` server-side PNG export already uses bundled Noto Sans TTF files via PHP GD and is unrelated to this web-font change; `offline.html` keeps its system-font stack because it renders offline where the cross-origin Google Fonts aren't cached; monospace usages and hard-failure error pages (no `common.css`) unchanged.
+- ⚡ **Cache-bust** — version bump to v16.5.3 refreshes the `?v=APP_VERSION` query on `common.css` so returning users pick up the new font automatically; `service-worker.js` `CACHE_VERSION` synced.
+
+**Files changed:**
+
+- `styles/common.css`
+- `styles/index.css`
+- `admin/help.php`
+- `admin/help-en.php`
+- `setup.php`
+- `service-worker.js`
+- `config/app.php`
+- `SETUP.md`
+- `API.md`
+- `PROJECT-STRUCTURE.md`
+- `INSTALLATION.md`
+- `TESTING.md`
+- `SECURITY.md`
+- `ICS_FORMAT.md`
+- `CHANGELOG.md`
+- `CLAUDE.md`
+
+> **Migration:** none — CSS/template-only; no DB schema change. Returning users get Noto Sans once the browser revalidates `common.css` (cache-busted by the version bump) and the service worker (`CACHE_VERSION` v16.5.3).
+
 ## [16.5.2] - 2026-06-02
 
 ### Security (LOW-5) — Move Favorites HMAC secret out of the git-tracked config file

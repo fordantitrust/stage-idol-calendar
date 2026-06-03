@@ -721,7 +721,16 @@ header p {
 
 .filter-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+}
+
+/* Action-bar buttons: keep each label on one line and compact so wider
+   Noto Sans JP text fits; the row wraps to a new line instead of shrinking. */
+.filter-buttons .btn {
+    font-size: 0.9em;
+    padding: 12px 18px;
+    white-space: nowrap;
 }
 
 .btn {
@@ -1405,6 +1414,7 @@ tr.program-live {
         min-height: 40px;
         text-align: center;
         line-height: 1.3;
+        white-space: normal;
     }
 
     .btn {

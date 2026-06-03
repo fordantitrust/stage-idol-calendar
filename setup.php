@@ -1845,6 +1845,9 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Setup & Installation - <?php echo htmlspecialchars(function_exists('get_site_title') ? get_site_title() : (defined('APP_NAME') ? APP_NAME : 'Idol Stage Timetable')); ?></title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400..800&family=Noto+Sans+Thai:wght@400..800&family=Noto+Sans+JP:wght@400..800&display=swap">
     <?php if ($configLoaded): ?>
     <link rel="stylesheet" href="<?php echo asset_url('styles/common.css'); ?>">
     <?php else: ?>
@@ -1858,7 +1861,7 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
             --sakura-bg: #FFF0F3;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.5; }
+        body { font-family: 'Noto Sans', 'Noto Sans Thai', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.5; }
     </style>
     <?php endif; ?>
     <style>
@@ -1868,6 +1871,8 @@ if (!$usingDefaultPassword && !$allTablesOk && defined('ADMIN_PASSWORD_HASH')) {
             padding: 20px;
             color: #333;
         }
+
+        input, textarea, select, button { font-family: inherit; }
 
         .setup-container {
             max-width: 860px;

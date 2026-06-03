@@ -358,7 +358,7 @@ END:VCALENDAR
 
 Edit [config/app.php](config/app.php):
 ```php
-define('APP_VERSION', '16.5.2'); // Change to force cache refresh
+define('APP_VERSION', '16.5.3'); // Change to force cache refresh
 ```
 
 **When to change**:
@@ -889,7 +889,7 @@ chmod +x quick-test.sh
 | **VenueTest** | 1052 | venues + venue_variants schema, venue_resolve_canonical(), merge, is_online flag, /venue/{id} + /venues portal, admin API, migration |
 | **LiveNowTest** | 1067 | Live Now strip query, ISO-with-offset emission, live/soon classification, i18n keys |
 
-> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. The per-suite number above is the running total through that suite. Total: **27 suites, 13,231 cumulative tests** (v16.5.2).
+> **Note**: Test counts are cumulative — each suite also re-runs all previously defined test functions. The per-suite number above is the running total through that suite. Total: **27 suites, 13,231 cumulative tests** (v16.5.3).
 
 ✅ **All tests pass on PHP 8.1, 8.2, 8.3, 8.4, and 8.5**
 

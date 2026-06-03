@@ -279,7 +279,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - **Directory hardening (LOW-2 / LOW-3):** `config/.htaccess` and `tools/.htaccess` switched to `Require all denied` (Apache 2.4) with a 2.2 `Deny from all` fallback; all `Allow from` LAN CIDRs removed
 - **Secret hygiene (LOW-4):** `.gitignore` blocks `*.db`, `test-*.php`, `debug-*.php`; Telegram webhook secret retired (`webhook_secret=""`, `verify_telegram_request()` fail-closes on empty)
 
-✅ **Favorites Secret Management** (Hardened in v16.5.2 — security audit revision 7, LOW-5)
+✅ **Favorites Secret Management** (Hardened in v16.5.3 — security audit revision 7, LOW-5)
 - `FAVORITES_HMAC_SECRET` (signs the anonymous favorites slug) is loaded from `config/favorites-config.json`, which is gitignored (`config/*-config.json`) and HTTP-denied by `config/.htaccess` — never stored in a git-tracked source file
 - `config/favorites.php` falls back to a placeholder when the JSON is absent; `tools/generate-favorites-secret.php` writes the gitignored JSON directly with an overwrite guard, closing the recurrence path
 - Slug parsing uses a strict length check, regex, and `hash_equals()` (constant-time) HMAC comparison; favorites files are written atomically (`tmp + rename`) and rate-limited per IP under `flock(LOCK_EX)`
@@ -288,7 +288,7 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 ## Known Limitations
 
-### Current Version (v16.5.2)
+### Current Version (v16.5.3)
 
 ✅ **Session Security** (Implemented in v1.1.0)
 - Session timeout (2 hours, configurable)
@@ -375,7 +375,7 @@ If you discover a security issue:
 
 ## Additional Resources
 
-- [Security Audit Report 2026](docs/SECURITY_AUDIT_2026.md) — full findings + remediation history (revision 7, re-verified at v16.5.x; all items closed)
+- [Security Audit Report 2026](docs/SECURITY_AUDIT_2026.md) — full findings + remediation history (revision 7, re-verified at v16.5.x; all items closed, internal use only not public)
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [PHP Security Best Practices](https://www.php.net/manual/en/security.php)
 - [SQLite Security](https://www.sqlite.org/security.html)
@@ -383,5 +383,5 @@ If you discover a security issue:
 ---
 
 **Last Updated:** 2026-06-02
-**Version:** 16.5.2
+**Version:** 16.5.3
 **Latest Audit:** `docs/SECURITY_AUDIT_2026.md` revision 7 — ✅ all findings closed (HIGH-1, MEDIUM-1/2, LOW-1→5); full suite 13,231 / 13,231

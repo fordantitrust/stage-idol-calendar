@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y \
     # Symbol fallback font — GNU Unifont (BMP symbols ♾ ★ ✓ ⌚; also covers Hiragana/Katakana
     # as a secondary CJK fallback when fonts-noto-cjk is not present)
     fonts-unifont \
+    # fontconfig provides fc-cache / fc-list — NOT pulled in by the font data
+    # packages on the slim php:8.1-apache base; without it `fc-cache` → exit 127
+    fontconfig \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_sqlite gd \
     && fc-cache -fv \

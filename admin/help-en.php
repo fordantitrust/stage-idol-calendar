@@ -32,7 +32,7 @@ $adminRole = get_admin_role();
             --admin-text-light: #64748b;
         }
 
-        body { background: var(--admin-bg); color: var(--admin-text); font-family: sans-serif; }
+        body { background: var(--admin-bg); color: var(--admin-text); font-family: 'Noto Sans', 'Noto Sans Thai', 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
         .admin-container { max-width: 960px; margin: 0 auto; padding: 20px; }
 
